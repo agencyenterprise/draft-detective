@@ -1,7 +1,9 @@
 # Eval samples for the recommendation_check workflow, in inventory form: one expected issue per
 # recommendation occurrence, anchored by its wording, with the severity its classification maps to
-# (none = supported, medium = partially supported, high = unsupported). Titles are free-form for
-# this workflow, so none is named. See evals_inspectai/common/issue_inventory.py.
+# (none = supported, medium = partially supported, high = unsupported). Support issues have free-form
+# titles, so none is named for them. The actionability, audience and length issues (RAND EEI item 8)
+# have fixed titles, which are named; decoys that carry a title are recommendations a correct run
+# reports for support but must not report under that title. See evals_inspectai/common/issue_inventory.py.
 # Figures are referenced by local PNG path and inlined at upload.
 - input: |
     # Remote Work Productivity Study
@@ -27,6 +29,10 @@
   - id: contractor_flexibility
     anchor: Expand schedule flexibility to contractor staff
     severity: high
+  decoys:
+  - anchor: Continue the fully remote work policy across all four departments
+    title: Recommendation Audience Unclear
+    reason: single_actor
   notes: Recommendation 1 restates the productivity and retention findings. Recommendation 2 adds a six-hour cap
     the 4.2-hour finding does not establish (threshold rule). Recommendation 3 extends to contractors the study
     never covered (out-of-scope population).
@@ -52,8 +58,13 @@
   - id: restore_beach_width
     anchor: Use the intervention to restore beach width
     severity: high
+  decoys:
+  - anchor: Scale the permeable groyne intervention to all five sites
+    title: Recommendation Audience Unclear
+    reason: single_actor
   notes: 'Recommendation 1 extends the intervention to S4 and S5, which were untreated controls (pilot-to-unmeasured-site
-    extrapolation). Recommendation 2 is contradicted: the findings state no measurable change in beach width.'
+    extrapolation). Recommendation 2 is contradicted: the findings state no measurable change in beach width. The report
+    names no party but the pilot itself, so neither recommendation has an unclear audience.'
 - input: |
     # Annual Air Quality Report
 
@@ -128,6 +139,10 @@
   - id: detailed_terminals_18mo
     anchor: Replace ageing self-checkout terminals across the network within the next 18 months
     severity: high
+  decoys:
+  - anchor: Increase the e-book lending budget by at least 25 percent
+    title: Too Many Recommendations
+    reason: restatements_counted_once
   notes: 'Two recommendation sections, three recommendations each, evaluated per occurrence. The summary e-book
     line is supported; the detailed version adds a 25 percent threshold. Both evening-hours lines are partial: capacity
     in the final hour is measured, demand after closing is not. Both terminal lines are unsupported: no equipment
@@ -157,12 +172,28 @@
   - id: near_miss_reporting
     anchor: Continue to encourage near-miss reporting
     severity: none
+  - id: near_miss_not_actionable
+    title: Recommendation Not Actionable
+    anchor: Continue to encourage near-miss reporting
+    severity: medium
+    required: false
   - id: contractor_sites_worldwide
     anchor: Roll out the mandatory safety briefings to contractor sites worldwide
     severity: high
+  - id: contractor_sites_audience
+    title: Recommendation Audience Unclear
+    anchor: Roll out the mandatory safety briefings to contractor sites worldwide
+    severity: medium
+    required: false
+  decoys:
+  - anchor: Make pre-shift safety briefings a permanent fixture across all sites
+    title: Recommendation Audience Unclear
+    reason: single_actor
   notes: Recommendation 1 makes the briefings permanent and network-wide, a horizon and scope the studied period
     does not establish. Recommendation 2 is supported by the document's own reading of the near-miss increase. Recommendation
-    3 extends to contractor sites worldwide, never studied.
+    3 extends to contractor sites worldwide, never studied. "Continue to encourage" names no new step, so a not-actionable
+    issue on it is accepted but not required; so is an unclear-audience issue on recommendation 3, since contractor
+    sites are run by other firms and the document does not say who would arrange the rollout.
 - input: |
     # Hospital Readmission Reduction Pilot
 
@@ -227,3 +258,307 @@
     severity: high
   notes: Figure 1 shows incident rates essentially unchanged (about 8.2 vs 8.0, 7.5 vs 7.7, 9.1 vs 9.0), so the
     document's own finding contradicts the recommendation's premise. Only reachable by reading the chart.
+- input: |
+    # Workforce Training Vouchers: Evaluation of the State Pilot
+
+    ## Background
+
+    The U.S. Department of Labor funds the training voucher program. The state workforce agency sets eligibility rules, and eleven local workforce boards issue vouchers, which participants spend at community colleges and private training providers.
+
+    ## Findings
+
+    Participants at the four boards whose career counselors worked on community college campuses completed training at a rate of 78 percent, compared with 61 percent at the seven boards without on-campus counselors.
+
+    None of the eleven boards reported participants' employment outcomes beyond six months after training, so the evaluation could not tell whether earnings gains persisted.
+
+    Under pilot waivers at two boards, part-time workers who received vouchers completed training at the same rate as full-time workers (71 percent and 73 percent). Current eligibility rules exclude part-time workers in the other nine areas.
+
+    ## Recommendations
+
+    1. Improve outcomes for program participants through stronger coordination.
+    2. The state workforce agency should require local boards to report participants' employment outcomes beyond six months after training.
+    3. Policymakers should expand eligibility for training vouchers to part-time workers.
+  expected_issues:
+  - id: improve_outcomes_support
+    anchor: Improve outcomes for program participants through stronger coordination.
+    severity: medium
+  - id: improve_outcomes_not_actionable
+    title: Recommendation Not Actionable
+    anchor: Improve outcomes for program participants through stronger coordination.
+    severity: medium
+  - id: improve_outcomes_audience
+    title: Recommendation Audience Unclear
+    anchor: Improve outcomes for program participants through stronger coordination.
+    severity: medium
+  - id: report_outcomes_support
+    anchor: The state workforce agency should require local boards to report
+    severity: none
+  - id: part_time_support
+    anchor: Policymakers should expand eligibility for training vouchers to part-time workers.
+    severity: medium
+  - id: part_time_audience
+    title: Recommendation Audience Unclear
+    anchor: Policymakers should expand eligibility for training vouchers to part-time workers.
+    severity: medium
+  decoys:
+  - anchor: Improve outcomes for program participants through stronger coordination.
+    title: Too Many Recommendations
+    reason: three_or_fewer
+  notes: 'Four parties could act (the federal department, the state agency, local boards, colleges). Recommendation 1
+    states a goal with an abstract means and no actor; the co-located counselor finding backs its direction only
+    generically (partial). Recommendation 2 names its actor and a concrete step the six-month gap supports. Recommendation
+    3 names only "policymakers" and extends a two-board waiver result to the other nine areas (partial, pilot-to-similar-sites).'
+- input: |
+    # Closing the Broadband Adoption Gap
+
+    ## Background
+
+    The Federal Communications Commission maintains the national broadband coverage map. State broadband offices distribute federal grants, and county governments and internet service providers carry out local deployment and outreach.
+
+    ## Findings
+
+    A national comparison with field tests found that the coverage map listed service at 18 percent of addresses that had none. Where providers had filed address-level coverage data, the error was 3 percent.
+
+    Counties that wrote a joint plan with their state broadband office had adoption rates 9 points higher than counties that planned alone.
+
+    Among households with service available but no subscription, 41 percent named monthly cost as the main reason.
+
+    ## Recommendations
+
+    - A more integrated approach to broadband planning is needed.
+    - The Federal Communications Commission should require providers to file address-level coverage data for the national map.
+    - Stakeholders should take steps to address affordability barriers.
+  expected_issues:
+  - id: integrated_support
+    anchor: A more integrated approach to broadband planning is needed.
+    severity: medium
+  - id: integrated_not_actionable
+    title: Recommendation Not Actionable
+    anchor: A more integrated approach to broadband planning is needed.
+    severity: medium
+  - id: integrated_audience
+    title: Recommendation Audience Unclear
+    anchor: A more integrated approach to broadband planning is needed.
+    severity: medium
+  - id: address_data_support
+    anchor: The Federal Communications Commission should require providers to file address-level coverage data
+    severity: none
+  - id: affordability_support
+    anchor: Stakeholders should take steps to address affordability barriers.
+    severity: medium
+  - id: affordability_not_actionable
+    title: Recommendation Not Actionable
+    anchor: Stakeholders should take steps to address affordability barriers.
+    severity: medium
+  - id: affordability_audience
+    title: Recommendation Audience Unclear
+    anchor: Stakeholders should take steps to address affordability barriers.
+    severity: medium
+  notes: 'Recommendation 1 is an outcome stated as a need, with no action and no actor; recommendation 3 is an abstract
+    "take steps to address" aimed at "stakeholders", in a document with four kinds of actor. Both point in the direction
+    of a finding but only generically (partial). Recommendation 2 names the actor and a concrete, supported step.'
+- input: |
+    # Regional Hospital Emergency Department Throughput Review
+
+    ## Findings
+
+    Median time from arrival to triage was 38 minutes on weekday evenings, when the department had one triage nurse on duty, against 12 minutes at other times, when it had two.
+
+    Patients waiting for an inpatient bed spent a median of 6.5 hours in the emergency department. Beds were assigned only at the 7 a.m. and 3 p.m. bed meetings, and waits were longest for patients admitted just after a meeting.
+
+    Emergency department laboratory results took a median of 74 minutes when porters carried the samples and 29 minutes during the two-week trial in which a runner was assigned to the department.
+
+    Twenty-two percent of patients who left without being seen did so after being told the wait would be more than three hours.
+
+    Discharge prescriptions filled at the hospital pharmacy before the patient left were followed by 14 percent fewer 30-day return visits than prescriptions sent to outside pharmacies.
+
+    ## Recommendations
+
+    1. Add a second triage nurse on weekday evenings.
+    2. Assign inpatient beds continuously through the day rather than only at the two daily bed meetings.
+    3. Assign a dedicated runner to carry emergency department laboratory samples.
+    4. Give patients in the waiting room updated wait-time estimates every hour.
+    5. Fill discharge prescriptions at the hospital pharmacy before patients leave.
+  expected_issues:
+  - id: triage_nurse_support
+    anchor: Add a second triage nurse on weekday evenings.
+    severity: none
+  - id: continuous_beds_support
+    anchor: Assign inpatient beds continuously through the day
+  - id: runner_support
+    anchor: Assign a dedicated runner to carry emergency department laboratory samples.
+  - id: wait_estimates_support
+    anchor: Give patients in the waiting room updated wait-time estimates every hour.
+  - id: discharge_prescriptions_support
+    anchor: Fill discharge prescriptions at the hospital pharmacy before patients leave.
+    severity: none
+  - id: too_many
+    title: Too Many Recommendations
+    anchor: Add a second triage nurse on weekday evenings.
+    severity: low
+  decoys:
+  - anchor: Add a second triage nurse on weekday evenings.
+    title: Recommendation Audience Unclear
+    reason: single_actor
+  - anchor: Assign a dedicated runner to carry emergency department laboratory samples.
+    title: Recommendation Not Actionable
+    reason: concrete_action
+  notes: 'Five distinct, concrete recommendations for one hospital: one length issue, anchored on the first. Support
+    severities are left unscored where two classifications are defensible (a trial result, bed timing, hourly estimates);
+    the sample is about the count.'
+- input: |
+    # Early Literacy Screening in Grades K–2
+
+    ## Background
+
+    The state Department of Education sets screening requirements and funds reading coaches. School districts choose screening tools, and schools administer them.
+
+    ## Findings
+
+    Districts that screened students in grades K–2 three times a year identified 1.8 times as many students with reading difficulties as districts that screened once a year.
+
+    Teachers in 14 of the 20 districts studied said they did not receive screening results until four to six weeks after testing. Districts that returned results within one week started interventions a median of 29 days earlier.
+
+    Schools with a full-time reading coach delivered intervention to 84 percent of flagged students, compared with 52 percent in schools without one.
+
+    ## Recommendations
+
+    We recommend that the state Department of Education:
+
+    1. Require districts to screen students in grades K–2 three times a year.
+    2. Set a deadline for returning screening results to teachers.
+       - Require districts to return results within one week of testing.
+       - Publish each district's turnaround time every year.
+    3. Fund a full-time reading coach in every elementary school.
+  expected_issues:
+  - id: screen_three_times_support
+    anchor: Require districts to screen students in grades K–2 three times a year.
+    severity: none
+  - id: deadline_support
+    anchor: Set a deadline for returning screening results to teachers.
+  - id: reading_coach_support
+    anchor: Fund a full-time reading coach in every elementary school.
+  decoys:
+  - anchor: Require districts to screen students in grades K–2 three times a year.
+    title: Recommendation Audience Unclear
+    reason: lead_in_audience
+  - anchor: Fund a full-time reading coach in every elementary school.
+    title: Recommendation Audience Unclear
+    reason: lead_in_audience
+  - anchor: Publish each district's turnaround time every year.
+    title: Too Many Recommendations
+    reason: sub_items
+  notes: 'Three parties could act, but the lead-in addresses every recommendation to the state Department of Education.
+    Recommendation 2 has two sub-points that elaborate it, so the document makes three recommendations, not five.
+    Severity is left unscored for recommendation 2 (its second sub-point has no direct finding) and 3 (studied
+    districts extended statewide).'
+- input: |
+    # High-Dosage Tutoring: Second-Year Results
+
+    ## Background
+
+    The state education agency funds the tutoring program, school districts hire and train tutors, and schools schedule sessions during the school day. The program served students in grades 3 through 5.
+
+    ## Findings
+
+    Students in grades 3 through 5 who attended at least 40 sessions gained the equivalent of 0.2 years of additional learning in math over the school year.
+
+    Among students who started the year below grade level, each additional ten sessions was associated with a further 0.05 years of learning, with no sign of the gains levelling off within the range observed.
+
+    ## Recommendations for School Districts
+
+    - Consider extending the tutoring program to sixth grade, where many of the same students continue to struggle in math.
+    - Increase the number of tutoring sessions for students who start the year below grade level.
+  expected_issues:
+  - id: sixth_grade_support
+    anchor: Consider extending the tutoring program to sixth grade
+  - id: more_sessions_support
+    anchor: Increase the number of tutoring sessions for students who start the year below grade level.
+    severity: none
+  decoys:
+  - anchor: Consider extending the tutoring program to sixth grade
+    title: Recommendation Not Actionable
+    reason: hedged_concrete
+  - anchor: Consider extending the tutoring program to sixth grade
+    title: Recommendation Audience Unclear
+    reason: heading_audience
+  - anchor: Increase the number of tutoring sessions for students who start the year below grade level.
+    title: Recommendation Not Actionable
+    reason: unquantified_action
+  - anchor: Increase the number of tutoring sessions for students who start the year below grade level.
+    title: Recommendation Audience Unclear
+    reason: heading_audience
+  notes: 'The heading addresses both recommendations to school districts, so neither lacks an audience. "Consider
+    extending" names a concrete action, hedged; "increase the number of sessions" is concrete without a number. The
+    sixth-grade extension reaches an unstudied but adjacent grade, so its severity is left unscored.'
+- input: |
+    # Reducing Wait Times for Disability Claims
+
+    ## Background
+
+    The Social Security Administration decides disability claims with help from state Disability Determination Services offices, which gather medical evidence. Claimants' doctors and hospitals supply records.
+
+    ## Findings
+
+    Claims waited a median of 41 days for medical records requested by mail, compared with 9 days for records requested through the electronic exchange that 12 of the 50 state offices use.
+
+    State offices that used the exchange decided claims a median of 34 days faster than those that did not, after accounting for claim type.
+
+    In interviews, staff at every one of the 38 offices without the exchange named the setup cost as the main obstacle.
+
+    ## Conclusions
+
+    Electronic records exchange was associated with markedly shorter decision times.
+
+    ## Recommendations
+
+    1. The Social Security Administration should fund the setup of the electronic records exchange in the 38 state offices that do not yet use it.
+    2. State Disability Determination Services offices should request medical records through the electronic exchange whenever a provider participates in it.
+  expected_issues:
+  - id: fund_exchange_support
+    anchor: The Social Security Administration should fund the setup of the electronic records exchange
+    severity: none
+  - id: request_electronically_support
+    anchor: State Disability Determination Services offices should request medical records
+    severity: none
+  decoys:
+  - anchor: Electronic records exchange was associated with markedly shorter decision times.
+    reason: conclusion
+  - anchor: The Social Security Administration should fund the setup of the electronic records exchange
+    title: Too Many Recommendations
+    reason: three_or_fewer
+  notes: 'Well-formed recommendations: each names its actor and a concrete, supported step. Only the two informational
+    support issues are expected.'
+- input: |
+    # Night Shift Pharmacy Staffing Review, Riverside Medical Center
+
+    ## Findings
+
+    On the night shift, one pharmacist verified a median of 140 medication orders per hour, compared with 50 per pharmacist on the day shift. Order verification took a median of 47 minutes at night and 11 minutes during the day.
+
+    In the staff survey, 64 percent of night-shift pharmacy staff rated their morale as low, compared with 22 percent of day-shift staff. The most common reason given was workload.
+
+    ## Recommendations
+
+    1. Add pharmacist coverage to the night shift.
+    2. Explore options to improve staff morale.
+  expected_issues:
+  - id: night_coverage_support
+    anchor: Add pharmacist coverage to the night shift.
+    severity: none
+  - id: morale_support
+    anchor: Explore options to improve staff morale.
+    severity: medium
+  - id: morale_not_actionable
+    title: Recommendation Not Actionable
+    anchor: Explore options to improve staff morale.
+    severity: medium
+  decoys:
+  - anchor: Explore options to improve staff morale.
+    title: Recommendation Audience Unclear
+    reason: single_actor
+  - anchor: Add pharmacist coverage to the night shift.
+    title: Recommendation Not Actionable
+    reason: concrete_action
+  notes: 'One medical center reviewing its own pharmacy, so the center is who acts. "Explore options to improve morale"
+    names no step; the morale finding backs its direction only generically (partial).'

@@ -108,7 +108,7 @@ EDIT_DESCRIPTIONS: dict[str, str] = {
 
 def decoy_descriptions(reasons: Sequence[str]) -> dict[str, str]:
     return {
-        f"no_fp_{reason}": f"1 if no decoy tagged '{reason}' was quoted or edited by a reported issue in the sample, 0 if one was; NaN when the sample has no such decoy."
+        f"no_fp_{reason}": f"1 if no decoy tagged '{reason}' was flagged in the sample (quoted or edited by a reported issue, or, for a decoy tied to a title, reported under that title), 0 if one was; NaN when the sample has no such decoy."
         for reason in reasons
     }
 
@@ -137,7 +137,13 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
     return re.search(pattern, normalize(issue.title)) is not None
 
 
-def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
+# Added to the tier of an untitled expected issue reported under a title another
+# expected issue of the inventory names: above every plain tier, below the cost of
+# leaving it unmatched (see _UNMATCHED_OPTIONAL).
+_CLAIMED_TITLE_PENALTY = 6
+
+
+def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = ()) -> Optional[int]:
     """How well ``issue`` reports ``expected``, lower is stronger; None when it
     does not report it.
 
@@ -148,7 +154,14 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
     range is elsewhere: when one issue quotes both a recommendation and its
     restatement, its range says which occurrence it reports, and without that
     the pairing would depend on report order.
+
+    ``claimed`` are the titles the inventory names for other expected issues.
+    An untitled expected issue (free-form titles) matches any title, but an
+    issue under a claimed title is evidence for that other kind first: it
+    still counts, ranked below every free-form report, so an extra issue of a
+    named kind on the same sentence cannot stand in for the free-form one.
     """
+    penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
     quoted = normalize(expected.anchor) in _issue_text(issue)
     in_range = issue.start_line <= expected.line <= issue.end_line
@@ -160,28 +173,48 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem) -> Optional[int]:
         tier = 2
     else:
         return None
-    return tier * 2 + (0 if in_range else 1)
+    return tier * 2 + (0 if in_range else 1) + penalty
 
 
-def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> list[int]:
+def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> list[int]:
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
-        tier = hit_tier(expected, issue)
+        tier = hit_tier(expected, issue, claimed)
         if tier is not None:
             scored.append((tier, index))
     return [index for _, index in sorted(scored)]
 
 
-def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem]) -> Optional[int]:
+def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> Optional[int]:
     """Index of the best-tier issue that reports this expected, or None."""
-    ranked = ranked_hits(expected, issues)
+    ranked = ranked_hits(expected, issues, claimed)
     return ranked[0] if ranked else None
 
 
-def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem]) -> list[Decoy]:
-    texts = [_issue_text(issue) for issue in issues]
-    return [d for d in decoys if any(normalize(d.anchor) in t for t in texts)]
+def claimed_titles(inventory: ResolvedInventory) -> tuple[str, ...]:
+    """The titles the dataset's expected issues name, in this record or any other
+    (see ``hit_tier``): a kind that has no expected issue in this record is still
+    a kind, and a report of it is not the free-form one."""
+    return tuple(sorted({*inventory.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
+
+
+def decoy_hits(decoys: Sequence[Decoy], issues: Sequence[IssueItem], lines: Sequence[str] = ()) -> list[Decoy]:
+    """The decoys a run flagged. An untitled decoy is flagged by any issue that
+    quotes it. A titled one only by an issue under that title that quotes it or
+    brackets one of the ``lines`` it is on, since a correct run may report the
+    same sentence under another title."""
+
+    def flags(decoy: Decoy, issue: IssueItem) -> bool:
+        anchor = normalize(decoy.anchor)
+        if decoy.title is None:
+            return anchor in _issue_text(issue)
+        if not _title_matches(issue, decoy.title):
+            return False
+        on = [n for n, line in enumerate(lines, 1) if anchor in normalize(line)]
+        return anchor in _issue_text(issue) or any(issue.start_line <= n <= issue.end_line for n in on)
+
+    return [d for d in decoys if any(flags(d, issue) for issue in issues)]
 
 
 def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
@@ -361,10 +394,11 @@ def hit_pairs(
     # workflow happened to report them in; then map back to the original indices.
     order = _canonical_order(issues)
     ordered = [issues[i] for i in order]
+    claimed = claimed_titles(inventory)
     if one_to_one:
-        found = _one_to_one_hits(ordered, inventory.expected_issues)
+        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed)
     else:
-        found = {e.id: hit_issue(e, ordered) for e in inventory.expected_issues}
+        found = {e.id: hit_issue(e, ordered, claimed) for e in inventory.expected_issues}
     hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
@@ -401,7 +435,9 @@ _UNMATCHED_OPTIONAL = 10_000
 _UNMATCHED_REQUIRED = 20_000
 
 
-def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue]) -> dict[str, Optional[int]]:
+def _one_to_one_hits(
+    issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue], claimed: Sequence[str] = ()
+) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
     strongest evidence (lowest total tier). Solved as an assignment problem;
@@ -414,7 +450,7 @@ def _one_to_one_hits(issues: Sequence[IssueItem], expected_issues: Sequence[Reso
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
-            tier = hit_tier(e, issue)
+            tier = hit_tier(e, issue, claimed)
             if tier is not None:
                 cost[row][col] = tier
     assignment = _min_cost_assignment(cost)
@@ -567,7 +603,7 @@ def decoy_scores(
     ``reasons`` is the dataset-wide list, so every sample returns the same keys.
     """
     present = {d.reason for d in inventory.decoys}
-    hit = decoy_hits(inventory.decoys, issues)
+    hit = decoy_hits(inventory.decoys, issues, inventory.document.split("\n"))
     values: dict[str, float] = {}
     notes: list[str] = []
     for reason in reasons:
