@@ -4223,6 +4223,7 @@ export const WorkflowRunType = {
   ReviewerCoverageReport: 'reviewer_coverage_report',
   ActiveVoice: 'active_voice',
   ConcisionPrecision: 'concision_precision',
+  NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',
 } as const;
 
