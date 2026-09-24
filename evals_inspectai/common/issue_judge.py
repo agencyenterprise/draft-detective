@@ -96,7 +96,9 @@ PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one crite
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
-_FENCE_RE = re.compile(r"^ {0,3}(?:```|~~~)")
+# A fence opens with three or more backticks or tildes and closes on a line of the
+# same character, at least as many of it, and nothing after.
+_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 _LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s")
 
 
@@ -155,15 +157,22 @@ def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_ac
     )
 
 
+def _closes(fence: str, marker: str, rest: str) -> bool:
+    return marker[0] == fence[0] and len(marker) >= len(fence) and not rest.strip()
+
+
 def _heading_levels(lines: list[str]) -> list[int]:
     """The markdown heading level of each line, 0 for a line that is not a heading,
     including a ``#`` line inside a fenced code block."""
     levels: list[int] = []
-    fenced = False
+    fence: Optional[str] = None
     for line in lines:
-        if _FENCE_RE.match(line):
-            fenced = not fenced
-        heading = None if fenced else _HEADING_RE.match(line)
+        marker = _FENCE_RE.match(line)
+        if marker is not None and fence is None:
+            fence = marker.group(1)
+        elif marker is not None and fence is not None and _closes(fence, marker.group(1), marker.group(2)):
+            fence = None
+        heading = None if fence is not None or marker is not None else _HEADING_RE.match(line)
         levels.append(len(heading.group(1)) if heading else 0)
     return levels
 

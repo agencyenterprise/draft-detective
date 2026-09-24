@@ -147,6 +147,12 @@ def test_section_text_reads_an_indented_heading_but_not_a_code_block():
 def test_section_text_ignores_hashes_in_code_and_splits_list_items():
     fenced = "# T\n\n## A\n\n```\n# comment\n```\nmore\n\n## B\n"
     assert section_text(fenced, 3) == "## A\n\n```\n# comment\n```\nmore"
+    # Inside a four-backtick fence, a three-backtick line is content, not the close.
+    longer = "# T\n\n## A\n\n````\n```\n# comment\n````\nmore\n\n## B\n"
+    assert section_text(longer, 3) == "## A\n\n````\n```\n# comment\n````\nmore"
+    # A line with an info string does not close a fence.
+    info = "# T\n\n## A\n\n```\n```python\n# comment\n```\nmore\n\n## B\n"
+    assert section_text(info, 3) == "## A\n\n```\n```python\n# comment\n```\nmore"
     listed = "# T\n\n- **Retention.** Staff stayed\n  longer.\n- **Cost.** Staff cost more.\n"
     assert section_text(listed, 3) == "- **Retention.** Staff stayed\n  longer."
     assert section_text(listed, 5) == "- **Cost.** Staff cost more."

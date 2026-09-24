@@ -68,6 +68,9 @@ def test_suggestion_is_read_from_its_fixed_form():
     assert suggestion("Suggested lead: “Crews Fixed Leaks Faster.”", "lead") == "Crews Fixed Leaks Faster."
     assert suggestion('Suggested lead: "Crews Fixed Leaks Faster."', "header") is None
     assert suggestion("Retitle the section to say what it found.", "header") is None
+    # The action must begin with the form, as the skill requires.
+    assert suggestion('Retitle this section. Suggested header: "Scores Rose"', "header") is None
+    assert suggestion('  Suggested header: "Scores Rose"', "header") == "Scores Rose"
     assert suggestion(None, "header") is None
     # Markdown marks around the wording are not part of it.
     assert suggestion('Suggested header: "## 3. Voucher Users Had Higher Employment"', "header") == "3. Voucher Users Had Higher Employment"

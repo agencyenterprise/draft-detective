@@ -3,7 +3,7 @@
 The workflow proposes no edits: a new header or lead sentence is wording the
 author chooses, so the skill puts it in the suggested action, in a fixed form
 (``Suggested header: "..."``, ``Suggested lead: "..."``). The deterministic
-checks read that wording back: it is there, a header stays 2 to 8 words, and a
+checks read that wording back: the action begins with it, a header stays 2 to 8 words, and a
 numbered header keeps its number. The judge grades the same wording against the
 section it heads, which it sees in full (``passage="section"``).
 """
@@ -23,7 +23,8 @@ ANY_HEADER_TITLE = "Header"
 LEAD_TITLE = "Lead Sentence Lacks Takeaway"
 MIN_HEADER_WORDS, MAX_HEADER_WORDS = 2, 8
 
-_SUGGESTION_RE = re.compile(r"Suggested (header|lead):\s*(?=[\"“])", re.I)
+# The suggested action begins with the wording, as the skill requires.
+_SUGGESTION_RE = re.compile(r"^\s*Suggested (header|lead):\s*(?=[\"“])", re.I)
 # "Chapter 3:", "Appendix B:", "Part II:", "3.", "2.1", "2.1.4" at the start of a header.
 # The label is a number, one capital letter or a roman numeral, so "Part of the Gain"
 # is not numbered; a bare number needs a dot, so "2024 Rate Increase" is not either.
@@ -40,12 +41,12 @@ def takes_suggestion(expected: ResolvedIssue) -> bool:
 
 
 def suggestion(action: Optional[str], kind: str) -> Optional[str]:
-    """The wording after ``Suggested <kind>:`` in a suggested action, or None."""
-    for match in _SUGGESTION_RE.finditer(action or ""):
-        if match.group(1).lower() == kind:
-            quoted = _quoted(action or "", match.end())
-            return header_text(quoted) if quoted else None
-    return None
+    """The wording after the ``Suggested <kind>:`` a suggested action begins with, or None."""
+    match = _SUGGESTION_RE.match(action or "")
+    if match is None or match.group(1).lower() != kind:
+        return None
+    quoted = _quoted(action or "", match.end())
+    return header_text(quoted) if quoted else None
 
 
 def _quoted(text: str, start: int) -> Optional[str]:
@@ -103,7 +104,7 @@ def _suggestion_checks(expected: ResolvedIssue, issue: IssueItem, lines: list[st
     kind = "header" if is_header_issue(expected) else "lead"
     wording = suggestion(issue.suggested_action, kind)
     if wording is None:
-        return {"suggestion_in_form": 0.0}, [f"{expected.id}: no 'Suggested {kind}: \"...\"' in the suggested action"]
+        return {"suggestion_in_form": 0.0}, [f"{expected.id}: the suggested action does not begin with 'Suggested {kind}: \"...\"'"]
     scores, notes = _header_checks(expected, wording, lines) if kind == "header" else ({}, [])
     return {"suggestion_in_form": 1.0, **scores}, notes
 
@@ -125,7 +126,7 @@ def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory)
 
 
 SUGGESTION_DESCRIPTIONS = {
-    "suggestion_in_form": "Of the detected header and lead-sentence issues, share whose suggested action gives the wording as 'Suggested header: \"...\"' or 'Suggested lead: \"...\"'.",
+    "suggestion_in_form": "Of the detected header and lead-sentence issues, share whose suggested action begins with the wording as 'Suggested header: \"...\"' or 'Suggested lead: \"...\"'.",
     "suggestion_header_length": f"Of the suggested headers, share of {MIN_HEADER_WORDS} to {MAX_HEADER_WORDS} words, not counting a section number.",
     "suggestion_keeps_number": "Of the suggested headers for numbered headers ('3. Results', 'Chapter 4: Discussion'), share that keep the number unchanged. NaN when a sample has none.",
 }
