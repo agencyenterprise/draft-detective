@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.3] - 2026-09-24
+
+### Added
+- Added assessment presets to the workflow picker, including Standard Review and Editorial Review.
+- Added an Audience Fit experimental check for target audience and technical language, included in the Editorial Review preset.
+- Added a Headers & Skimmability check with an issue-inventory eval, and included it in the Editorial Review preset.
+- Added a Narrative & Synthesis check with an Inspect eval, and included it in the Editorial Review preset.
+- Added publishing of the Inspect AI log viewer on GitHub Pages for committed eval logs in `docs/evals/`.
+- Added replay of backend agent conversations into the Inspect transcript for E2E evals.
+
+### Changed
+- Re-ran the seven editorial-check evals, replaced the recorded logs, and slimmed `docs/eval-scores.md` to focus on the current baseline.
+- Extended Recommendation Check to flag vague, unaddressed, and over-long recommendations, and updated its eval dataset and recorded log.
+- Removed runtime-specific details from skill files and moved required runtime details into workflow system prompts.
+- Cached mypy results between CI runs.
+- Updated the frontend security scan workflow to scan the pnpm lockfile and the Dockerfile base image instead of building the frontend image.
+- Updated backend CI to precompile bytecode and size pytest workers to the runner.
+- Updated tracked-changes and edit-export tests to build documents from a lean python-docx template.
+
+### Fixed
+- Fixed scrolling on the assessments step of the new-project wizard so scrolling over the fixed footer no longer scrolls the whole page and breaks layout.
+- Added a PDF quality notice on upload in the new-project wizard when the selected document is a PDF.
+
+
 ## [v2.0.2] - 2026-09-23
 
 ### Added
