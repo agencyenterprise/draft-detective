@@ -82,13 +82,13 @@ def test_suggestion_is_read_from_its_fixed_form():
 
 
 def test_section_numbers_and_header_length():
-    assert section_number("3. Results") == "3"
+    assert section_number("3. Results") == "3."
     assert section_number("2.1 Background") == "2.1"
-    assert section_number("Chapter 4: Discussion") == "chapter 4"
+    assert section_number("Chapter 4: Discussion") == "Chapter 4:"
     assert section_number("Findings") is None
     assert header_words("Chapter 3: Losses Fell but Gaps Persist") == 5
     assert header_words("3. Results") == 1
-    assert section_number("Part II: Costs") == "part ii"
+    assert section_number("Part II: Costs") == "Part II:"
     # A word after "Part" and a leading year or count are not section numbers.
     assert section_number("Part of the Gain Faded by Year Two") is None
     assert header_words("Part of the Gain Faded by Year Two") == 8
@@ -105,7 +105,14 @@ def test_suggestion_scores_check_form_length_and_number():
     dropped = IssueItem(title="Vague Header", start_line=3, end_line=3, suggested_action='Suggested header: "Voucher Users Had Higher Employment Rates Than Eligible Nonusers Overall"')
     values, explanation = suggestion_scores([dropped], _inventory(HEADER))
     assert values["suggestion_header_length"] == 0.0 and values["suggestion_keeps_number"] == 0.0
-    assert "drops the number" in explanation
+    assert "changes the number" in explanation
+
+    # The number is kept as written: a changed delimiter or capital changes it.
+    chapter = ResolvedIssue(id="discussion", title="Vague Header", anchor="Chapter 4: Discussion", line=3)
+    recased = IssueItem(title="Vague Header", start_line=3, end_line=3, suggested_action='Suggested header: "chapter 4 Scores Rose in Grade 3"')
+    doc = "# Report\n\n## Chapter 4: Discussion\n\nScores rose.\n"
+    values, _ = suggestion_scores([recased], ResolvedInventory(document=doc, expected_issues=[chapter], decoys=[]))
+    assert values["suggestion_keeps_number"] == 0.0
 
     unformed = IssueItem(title="Lead Sentence Lacks Takeaway", start_line=7, end_line=7, suggested_action="State the point.")
     values, _ = suggestion_scores([unformed], _inventory(LEAD))

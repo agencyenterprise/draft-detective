@@ -72,8 +72,10 @@ def header_text(line: str) -> str:
 
 
 def section_number(header: str) -> Optional[str]:
+    """A header's section number as written, delimiter and capitals included, since
+    a suggestion keeps it exactly; only the spacing inside it is normalised."""
     match = _NUMBER_RE.match(header)
-    return match.group(1).rstrip(":.").lower() if match else None
+    return " ".join(match.group(1).split()) if match else None
 
 
 def header_words(header: str) -> int:
@@ -95,7 +97,7 @@ def _header_checks(expected: ResolvedIssue, wording: str, lines: list[str]) -> t
         kept = section_number(wording) == original
         scores["suggestion_keeps_number"] = float(kept)
         if not kept:
-            notes.append(f"{expected.id}: suggested header {wording!r} drops the number {original!r}")
+            notes.append(f"{expected.id}: suggested header {wording!r} changes the number {original!r}")
     return scores, notes
 
 
@@ -128,7 +130,7 @@ def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory)
 SUGGESTION_DESCRIPTIONS = {
     "suggestion_in_form": "Of the detected header and lead-sentence issues, share whose suggested action begins with the wording as 'Suggested header: \"...\"' or 'Suggested lead: \"...\"'.",
     "suggestion_header_length": f"Of the suggested headers, share of {MIN_HEADER_WORDS} to {MAX_HEADER_WORDS} words, not counting a section number.",
-    "suggestion_keeps_number": "Of the suggested headers for numbered headers ('3. Results', 'Chapter 4: Discussion'), share that keep the number unchanged. NaN when a sample has none.",
+    "suggestion_keeps_number": "Of the suggested headers for numbered headers ('3. Results', 'Chapter 4: Discussion'), share that keep the number exactly as written, delimiter and capitals included. NaN when a sample has none.",
 }
 
 SUPPORTED_CRITERION = (

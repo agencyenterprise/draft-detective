@@ -63,7 +63,7 @@ Report problems; do not rewrite the document. Feedback on a header or a lead sen
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Do not emit issues for headers, openers or boxes that pass. Explain each problem in plain practical terms, what a skimming reader misses and why the suggested wording helps, never by reference to a rule or guideline.
+Report issues following the conventions defined in the `issues` skill. Do not emit issues for headers, openers or boxes that pass. Explain each problem in plain practical terms, what a skimming reader misses and why the suggested wording helps, never by reference to a rule or guideline.
 
 - **Vague header** → one issue per header, title `"Vague Header"`, **severity: medium**.
 - **Header lacks takeaway** → one issue per header, title `"Header Lacks Takeaway"`, **severity: low**.
