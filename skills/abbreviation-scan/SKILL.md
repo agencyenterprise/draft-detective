@@ -41,4 +41,4 @@ If an occurrence carries an inline definition that differs from the **first** in
 
 ## Reporting
 
-Report issues following the conventions defined in the issues skill (`/skills/issues/SKILL.md`). Use the exact titles above and **severity: medium**. Set the issue's line range to the offending occurrence's location (for "No Abbreviations section found", which has no specific location, set both bounds to line 1). In each description, name the abbreviation and explain briefly what failed and what was expected. Do not invent content — base every judgment strictly on the extracted catalogue and the document.
+Report issues following the conventions defined in the `issues` skill. Use the exact titles above and **severity: medium**. Set the issue's line range to the offending occurrence's location (for "No Abbreviations section found", which has no specific location, set both bounds to line 1). In each description, name the abbreviation and explain briefly what failed and what was expected. Do not invent content — base every judgment strictly on the extracted catalogue and the document.

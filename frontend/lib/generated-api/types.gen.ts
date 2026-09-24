@@ -282,6 +282,12 @@ export type AboutThisGerState = {
    * Result from the authors validation deep agent
    */
   authors_result?: AgentCheckResult | null;
+  /**
+   * Agent Conversations
+   *
+   * Each validator agent's conversation, for debugging and eval transcripts.
+   */
+  agent_conversations?: Array<AgentConversation>;
 };
 
 /**
@@ -495,6 +501,26 @@ export type AgentCheckResult = {
    * Markdown report summarising the check results
    */
   report_markdown?: string;
+};
+
+/**
+ * AgentConversation
+ *
+ * One validator agent's full conversation, system prompt included.
+ */
+export type AgentConversation = {
+  /**
+   * Name
+   *
+   * Which validator ran it: "preface" or "authors".
+   */
+  name: string;
+  /**
+   * Messages
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -3216,6 +3242,14 @@ export type Reviewer2State = {
    * The rebuttal document as markdown
    */
   rebuttal_markdown?: string | null;
+  /**
+   * Messages
+   *
+   * The reviewer agent's full conversation, system prompt included.
+   */
+  messages?: Array<{
+    [key: string]: unknown;
+  }>;
 };
 
 /**
@@ -3869,6 +3903,38 @@ export const WorkflowGate = { ReferenceReview: 'reference_review' } as const;
 export type WorkflowGate = (typeof WorkflowGate)[keyof typeof WorkflowGate];
 
 /**
+ * WorkflowPreset
+ *
+ * A named set of assessments the picker selects in one go.
+ */
+export type WorkflowPreset = {
+  /**
+   * Slug
+   *
+   * Stable identifier of the preset
+   */
+  slug: string;
+  /**
+   * Label
+   *
+   * Name shown on the preset's chip
+   */
+  label: string;
+  /**
+   * Description
+   *
+   * One sentence on who the preset is for and what it runs
+   */
+  description: string;
+  /**
+   * Workflows
+   *
+   * The assessments the preset selects, in picker order
+   */
+  workflows: Array<WorkflowRunType>;
+};
+
+/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -4156,8 +4222,11 @@ export const WorkflowRunType = {
   ReviewerResponseMemos: 'reviewer_response_memos',
   ReviewerCoverageReport: 'reviewer_coverage_report',
   ActiveVoice: 'active_voice',
+  AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
+  NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',
+  HeadersSkimmability: 'headers_skimmability',
 } as const;
 
 /**
@@ -4276,7 +4345,7 @@ export type WorkflowTypeDescription = {
 /**
  * WorkflowTypesResponse
  *
- * Combined response: flat workflow details plus the ordered category display config.
+ * Combined response: flat workflow details, the ordered category display config, and the presets.
  */
 export type WorkflowTypesResponse = {
   /**
@@ -4287,6 +4356,10 @@ export type WorkflowTypesResponse = {
    * Categories
    */
   categories: Array<WorkflowCategoryOrder>;
+  /**
+   * Presets
+   */
+  presets: Array<WorkflowPreset>;
 };
 
 /**

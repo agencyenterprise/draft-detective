@@ -49,3 +49,6 @@ rand-personal/
 # test coverage
 .coverage
 coverage.xml
+
+# Inspect log viewer bundle, built by .github/workflows/pages.yml
+docs/evals-viewer/

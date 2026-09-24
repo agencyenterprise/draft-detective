@@ -45,6 +45,7 @@ metadata:
     web_search: false                         # give the agent web search; gates the run on user consent
     reasoning_effort: medium                  # low | medium | high; the agent's default if omitted
     propose_edits: false                      # let issues carry verbatim-quote text replacements
+    presets: []                               # slugs from lib/workflows/presets.py this check belongs to
     required_dependencies: [document_processing]
 ---
 ```
@@ -70,16 +71,21 @@ are good models.
 - Use stable issue titles and fixed severities, and state them in a Reporting section.
   Evals match a reported issue to an expected one by its title and the sentence it quotes,
   and reviewers learn to scan for the titles.
-- Point at the issues skill for the output contract: "Report issues following the
-  conventions defined in the issues skill (`/skills/issues/SKILL.md`)". That skill is
-  mounted alongside yours and defines every field, including proposed edits.
+- Point at the issues skill for the output contract, by name: "Report issues following
+  the conventions defined in the issues skill". That skill ships alongside yours and
+  defines every field, including proposed edits. Refer to companion skills by name, never
+  by a path such as `/skills/issues/SKILL.md`: where a skill is mounted is the runtime's
+  business, and this repo's agents already name the path in their system prompts (see
+  `lib/workflows/simple_deep_agent/agent.py`). `tests/unit/test_skills.py` fails on a
+  skill that embeds one.
 - Say how many issues to emit per finding (one per occurrence, one per paragraph, one
   per document) and, for checks that can fire on most paragraphs, add a cap with a
   single summary issue once it is reached.
 - Ask for a short report: what was checked, what was found, what was skipped.
 - Stay environment-agnostic. Skills ship as a plugin to other runtimes, so never name
   a tool of this repo's agent; write "when you have a way to view images" or "when you
-  can attach proposed edits". `tests/unit/test_skills.py` fails on known tool names.
+  can attach proposed edits". `tests/unit/test_skills.py` fails on known tool names
+  and on paths to other skills.
 - Sections meant only for an interactive session (asking for web-search consent, say)
   go between `<!-- interactive-only:start -->` and `<!-- interactive-only:end -->`
   markers; the backend strips them.
@@ -128,10 +134,12 @@ the criteria the judge grades. None of that is tied to skill-declared workflows:
 that reports issues can be evaluated the same way. `evals_inspectai/e2e/concision_precision/` and
 `evals_inspectai/e2e/writing_consistency/` are the second and third skill-declared workflows on it, each
 with its own `criteria.py` (a deterministic edit check plus judged criteria); `evals_inspectai/e2e/recommendation_check/`
-scores a hand-written workflow with free-form titles and no edits on the same loader and scorers
-(`expects_edits` and `expects_titles` read off the inventory that no edits and no titles are
-expected, and `issue_checks(edits=False, titles=False)` then leaves the edit-hygiene and title keys
-out, so the eval emits no key it can never score). Its skill requires one issue per
+scores a hand-written workflow with no edits on the same loader and scorers
+(`expects_edits` reads off the inventory that no edits are expected, and `issue_checks(edits=False)`
+then leaves the edit-hygiene keys out, so the eval emits no key it can never score). Its support
+issues have free-form titles, which the inventory leaves unnamed, while its actionability, audience and
+length issues have fixed titles it names; its decoys on recommendations carry a `title`, since every
+recommendation is reported for support and the decoy only says it must not get that one kind. Its skill requires one issue per
 recommendation occurrence, so it passes `one_to_one=True`: a reported issue covers at most one expected
 issue, and a run that merges two restatements loses recall on the second. Active Voice keeps the
 default, where one paragraph-level issue may cover several expected sentences.
@@ -160,6 +168,10 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
   decoys:
     - anchor: "The scope is limited to"
       reason: stative                                 # free-form; becomes the metric no_fp_stative
+      title: Passive Voice                            # optional: flagged only by an issue under this
+                                                    # title, when a correct run reports the sentence
+                                                    # under another (every recommendation gets a
+                                                    # support issue, but not every one is vague)
 ```
 
 `line` is resolved from the anchor at load time and the loader fails on an anchor that is
@@ -200,7 +212,12 @@ Check uses the first two plus its image check):
    mapped to 1, 0.5 and 0. A detected issue that offers no suggested action scores 0 on an
    action criterion, not NaN. Inspect's built-in scorers grade one answer per sample, which is
    why the loop over edits is ours and the protocol is theirs. Pass `judge_calls=3` to take
-   the median on a noisy criterion.
+   the median on a noisy criterion. An issue-level criterion sees only the anchor and the
+   suggested action unless it sets `passage="section"`, which also shows the grader the passage
+   the anchor sits in: the section its heading opens when the anchor is a heading, otherwise the
+   paragraph around it, bounded by blank lines, headings and list items (Headers & Skimmability
+   grades suggested headers and bold lead sentences that way, Narrative & Synthesis its
+   suggested actions).
 
 Each task passes a one-line description of every metric as `Task(metadata=...)`, which the
 log viewer shows once in its Info tab; per-sample `explanation` text says what happened on
@@ -257,6 +274,11 @@ asks whether a sample passes in every trial (pass^k), `pass_at_1` averages, and 
   `DEFAULT_SELECTED_WORKFLOW_TYPES` in `frontend/components/workflows/utils.ts`.
 - **Adding a new category**: categories are still declared in
   `lib/workflows/categories.py`; add the slug and label there, and skills can then name it.
+- **Putting a check in a preset**: presets are the named sets the picker selects in one
+  go (an editorial department's checks, say). They are declared in
+  `lib/workflows/presets.py`; a skill joins one by listing its slug under `presets:` in
+  the frontmatter, and hand-written workflows are listed in the preset itself. Every
+  workflow in a preset must belong to a category, or the service refuses to start.
 - **Retiring a workflow**: delete the skill directory. Its type leaves the enum and the
   registry, and past runs of it are hidden as retired, the same as for any removed workflow.
 - **Turning a skill-declared workflow into a custom graph**: give it a hand-written
@@ -272,5 +294,6 @@ asks whether a sample passes in every trial (pass^k), `pass_at_1` averages, and 
 | Import error naming a skill and "not a WorkflowRunType member" | The skill is outside `skills/` or was added after the process started |
 | Import error about a slug the enum "already has" | The slug or its upper-cased name collides with a hand-written member or another skill |
 | Import error listing known categories | `category` is not a slug in `lib/workflows/categories.py` |
+| Import error listing known presets | A slug under `presets` is not in `lib/workflows/presets.py` |
 | Validation error on `draft_detective` | An unknown key or a wrong value type in the block |
 | Picker shows the default document icon | `icon` is not a valid lucide name |

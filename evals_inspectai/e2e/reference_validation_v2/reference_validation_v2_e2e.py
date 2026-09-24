@@ -72,6 +72,8 @@ def reference_validation_v2_e2e():
         fail_on_error=0.2,
         solver=api_workflow_agent(
             "reference_validation_v2",
+            item_messages_key="reference_validations",
+            item_label="reference",
         ),
         scorer=[
             structured_output_scorer(ReferenceValidationOutput, _compare_final_result),
@@ -83,6 +85,7 @@ def reference_validation_v2_e2e():
 
 
 def _compare_final_result(output: ReferenceValidationOutput, state: TaskState) -> Score:
+    """Deterministic: the reference's final validation result label equals the target exactly."""
     if not output.reference_validations:
         return Score(value=INCORRECT, explanation="No reference validations found")
 

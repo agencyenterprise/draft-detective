@@ -1,0 +1,460 @@
+# Eval samples for the narrative_synthesis workflow, in inventory form: the data dumps, order
+# problems, unanswered framing questions and restated points a correct run
+# reports, plus decoys for every exclusion the skill states. Order and framing issues are anchored
+# where the skill anchors them (the introductory section for order, why and what is new; the
+# concluding or last section for what happens next), so the anchor is that section's first
+# paragraph. The skill proposes no edits, so no record says anything about edits.
+# See evals_inspectai/common/issue_inventory.py.
+
+# ---- data without synthesis ----------------------------------------------------------------
+- input: |
+    ## Chapter 3. What Employers Reported
+
+    We interviewed hiring managers at 42 firms between March and June 2025, and 31 of them also completed the follow-up survey.
+
+    Employers reported that the apprenticeship pipeline is now their main source of entry-level technicians. Thirty-one percent of surveyed firms hired at least one apprentice in 2024, up from 12 percent in 2021, and most said the program had shortened the time it took to fill technician roles. For small firms, the pipeline appears to have replaced recruiting agencies altogether.
+
+    Of the 31 firms, 14 had fewer than 50 employees, 11 had between 50 and 250, and 6 had more than 250. Average starting wages were $19.40 an hour at small firms, $21.10 at mid-sized firms and $23.75 at large firms. Retention after 12 months was 68 percent, 74 percent and 81 percent, respectively. Nine firms paid for certification exams, 17 offered tuition assistance, and 5 offered neither. Twenty-two firms had a designated mentor for each apprentice.
+
+    Firms also described what made the program hard to sustain. Most said the paperwork for the wage subsidy took a staff member several days each quarter, and three small firms had stopped claiming the subsidy because of it.
+  expected_issues:
+  - id: firm_size_dump
+    title: Data Without Synthesis
+    anchor: Of the 31 firms, 14 had fewer than 50 employees
+    severity: medium
+  decoys:
+  - anchor: We interviewed hiring managers at 42 firms
+    reason: methods_description
+  - anchor: Thirty-one percent of surveyed firms hired at least one apprentice
+    reason: interpreted_data
+  notes: >-
+    An excerpt (one chapter, no introduction), so framing, order and length are skipped. The
+    third paragraph strings wages, retention and benefits by firm size together with no takeaway;
+    its neighbours state their point.
+- input: |
+    ## Teachers' Views of the New Schedule
+
+    Teachers described the block schedule as the main barrier to collaboration: with no shared planning period, grade-level teams met only when someone gave up a lunch. "We see each other in the hallway and that's it," one fourth-grade teacher said, and a colleague at another school called team meetings "a thing we used to do."
+
+    "I don't know when I'd meet with the reading coach." "The kids like the longer blocks, honestly." "We got the pacing guide in October." "My mentor is at a different school now." "The new math materials are fine but there are not enough of them." One teacher said, "I spend Sundays planning." Another said, "The schedule changes every quarter."
+
+    Principals agreed that collaboration had suffered and said they would ask the district for a common planning period next year.
+  expected_issues:
+  - id: quote_dump
+    title: Data Without Synthesis
+    anchor: I don't know when I'd meet with the reading coach
+    severity: medium
+  decoys:
+  - anchor: Teachers described the block schedule as the main barrier to collaboration
+    reason: interpreted_data
+  notes: >-
+    Qualitative data: a run of interview quotations on unrelated topics with no claim they
+    support. The first paragraph also quotes teachers but leads with its point.
+- input: |
+    ## 4. Completion Rates
+
+    In this section, we describe how completion rates changed after the college introduced co-requisite math courses.
+
+    Before the change, 22 percent of students placed into remedial math completed a college-level math course within a year. After it, 61 percent did. The share rose for every group we examined: from 18 to 57 percent for Black students, from 21 to 60 percent for Hispanic students, and from 25 to 64 percent for students over 25.
+
+    Taken together, these numbers show that the co-requisite model nearly tripled completion and did so without widening gaps between groups, which was the main worry faculty raised before the change.
+
+    Table 4.1 lists completion rates for each campus.
+
+    | Campus | Before | After |
+    |---|---|---|
+    | North | 24% | 63% |
+    | South | 20% | 58% |
+    | Downtown | 22% | 62% |
+
+    Completion rose by similar amounts on all three campuses, so the gain does not depend on one campus's staff or students.
+  decoys:
+  - anchor: In this section, we describe how completion rates changed
+    reason: signposting
+  - anchor: Before the change, 22 percent of students placed into remedial math
+    reason: interpretation_follows
+  - anchor: Table 4.1 lists completion rates for each campus
+    reason: table_or_figure
+  notes: >-
+    Clean excerpt. The numbers paragraph is interpreted by the paragraph that follows it, and the
+    table is followed by its takeaway.
+- input: |
+    ## 3. How Districts Responded to the New Funding Formula
+
+    Districts that gained money under the new formula spent most of it on staff, not on the programs the formula was meant to expand. Of the 40 districts that gained at least 5 percent, 31 used the gain mainly to raise salaries, which district leaders described as the only way to keep teachers from leaving for neighboring states.
+
+    The legislature passed the formula in March 2021. The state board adopted implementing rules in August 2021. Districts received the first payments in January 2022. The board revised the English learner weight in 2022 and again in 2023. A court case over the poverty weight was filed in 2023 and dismissed in 2024. The formula's hold-harmless provision expires in 2027.
+
+    Salary increases alone did not stop teacher departures in the districts with the highest turnover, where 18 percent of teachers still left in 2024. Leaders in those districts said working conditions, not pay, drove most departures.
+  expected_issues:
+  - id: chronology_dump
+    title: Data Without Synthesis
+    anchor: The legislature passed the formula in March 2021
+    severity: medium
+  decoys:
+  - anchor: Of the 40 districts that gained at least 5 percent
+    reason: interpreted_data
+  - anchor: where 18 percent of teachers still left in 2024
+    reason: single_statistic
+  notes: >-
+    A list of facts rather than numbers: a dated chronology in a findings chapter that never says
+    how any of it bears on how districts spent the money.
+
+# ---- clean whole documents -------------------------------------------------------------------
+- input: |
+    # Paid Family Leave Take-Up Among Hourly Workers
+
+    ## Summary
+
+    Hourly workers in the state use paid family leave at half the rate of salaried workers, mostly because many do not know they are eligible. A mailed notice at hire could close much of the gap.
+
+    ## Introduction
+
+    Workers who cannot take paid leave after a birth or a family illness are more likely to quit, and hourly workers are the group least able to go without pay. The state's program has covered hourly workers since 2020, but its reports do not separate them from salaried workers, so no one knows whether they use it. This report makes that comparison for the first time and suggests what the state could change.
+
+    ## Findings
+
+    Hourly workers used paid leave at half the rate of salaried workers after a birth: 31 percent against 63 percent in 2024. In interviews, most hourly workers who did not apply said they did not know they were eligible, and the gap was widest among workers at firms with fewer than 50 employees, where no one in human resources handled leave. The gap therefore looks like an information problem more than a cost problem.
+
+    ## Next Steps
+
+    The state could mail every new hire a notice of eligibility, and track whether hourly take-up rises in the first year.
+
+    ## Appendix A. Detailed Take-Up Rates
+
+    Take-up after a birth was 29 percent in retail, 33 percent in food service, 35 percent in health care support and 27 percent in warehousing in 2024. Among salaried workers it was 61 percent in retail, 64 percent in food service, 66 percent in health care support and 60 percent in warehousing. Take-up after a family illness was 8 percent for hourly and 14 percent for salaried workers.
+  decoys:
+  - anchor: Take-up after a birth was 29 percent in retail
+    reason: appendix_data
+  - anchor: Hourly workers in the state use paid family leave at half the rate
+    reason: summary_restatement
+  notes: >-
+    Clean. The findings restate the summary by design, and the appendix holds an uninterpreted
+    breakdown, which appendices may.
+- input: |
+    # Evaluating a Summer Reading Program
+
+    ## Summary
+
+    The district's summer reading program raised fall reading scores for the students who attended most often, but only a third of invited students attended that often. Expanding transportation is the most direct way to reach more of them.
+
+    ## 1. Introduction
+
+    Students who read little over the summer return in the fall weeks behind where they left in June, and the gap is widest for students from low-income families. The district spends $1.2 million a year on its summer program, yet it had never compared attendees' fall scores with those of similar students who stayed home. This report makes that comparison for summer 2024 and sets out what the district could change for summer 2026.
+
+    ## 2. Program and Data
+
+    **Chapter summary.** The program served 1,450 invited students at six schools, and we compared those who attended with those who did not.
+
+    The program ran for five weeks at six elementary schools. We matched district test records for the 1,450 invited students to daily attendance logs.
+
+    ## 3. Findings
+
+    Students who attended at least 20 of the 25 days scored 8 points higher on the fall reading assessment than similar invited students who did not attend, a gain equal to about six weeks of instruction. Students who attended fewer days scored no differently from non-attendees. Only 34 percent of invited students reached 20 days, and attendance fell most at the two schools without bus service, which suggests transportation limited who could benefit.
+
+    ## 4. Limitations
+
+    Families chose whether to attend, so the comparison may overstate the program's effect if more motivated families attended more often.
+
+    ## 5. Recommendations and Next Steps
+
+    The district should add bus service at the two schools without it and track whether attendance rises in summer 2026. A comparison of fall scores after that summer would show whether the gain holds for the added students.
+  decoys:
+  - anchor: The program served 1,450 invited students at six schools
+    reason: chapter_summary
+  - anchor: We matched district test records for the 1,450 invited students
+    reason: methods_description
+  notes: >-
+    Clean, in conventional order: a limitations section after the findings and a chapter that
+    opens with its own summary are both ordinary.
+- input: |
+    # Wildfire Smoke and Outdoor Workers
+
+    ## Summary
+
+    Farmworkers and construction crews breathe more wildfire smoke than any other workers in the state, and the state's smoke rule, adopted in 2022, has never been checked against what they actually experience on smoky days. Using air monitors worn by 90 workers, this study is the first to measure their exposure directly. Employers followed the rule on most smoky days, but the rule's trigger level left workers exposed for hours before protections began, and lowering the trigger is the change most likely to help.
+
+    ## Background
+
+    The rule requires employers to offer N95 respirators when the air quality index reaches 151 and to move work indoors or stop it at 301.
+
+    ## Methods
+
+    Ninety workers at 12 farms and 8 construction sites wore personal monitors on 34 smoky days in 2024.
+
+    ## Results
+
+    On smoky days, workers spent an average of 3.4 hours in air above an index of 100 before the reading at the nearest regulatory monitor reached 151. Employers offered respirators on 29 of the 34 days once the trigger was reached, but workers had by then already been exposed for most of the morning. The rule worked as written; its trigger came too late.
+
+    ## Conclusion
+
+    Lowering the trigger to 101, or basing it on on-site readings, would start protections earlier. The state could test an on-site trigger with a group of volunteer employers during the 2026 season.
+  decoys:
+  - anchor: this study is the first to measure their exposure directly
+    reason: framing_elsewhere
+  notes: >-
+    Clean. There is no introduction: the summary answers why it matters and what is new, and the
+    conclusion says what happens next.
+
+# ---- order -----------------------------------------------------------------------------------
+- input: |
+    # Broadband Subsidies for Rural Households
+
+    ## Introduction
+
+    Roughly one in five rural households in the state still lacks a home internet connection fast enough for video calls, which shuts them out of telehealth visits, remote work and online coursework. The state's 2023 subsidy was the first program to pay providers per connected household rather than per mile of cable laid, and no one has yet asked whether that change reached the households it was meant for. This report examines who signed up in the program's first year and what the state could change before the subsidy is renewed in 2026.
+
+    ## Recommendations
+
+    The state should extend enrollment outreach to households without a bank account, allow community organizations to enroll households on their behalf, and publish take-up by county every quarter.
+
+    ## Data and Methods
+
+    We combined the state's enrollment records for 2024 with census estimates of unconnected households in each of the state's 61 rural counties, and interviewed staff at 12 providers.
+
+    ## Findings
+
+    Take-up was highest where providers already had customers. In the 20 counties where a provider had existing lines, 38 percent of eligible households enrolled; in the 41 counties without one, 9 percent did. Provider staff said households without a bank account could not complete the online application, which required a card for the $10 monthly copay. These gaps suggest the subsidy mostly reached households that were already close to a connection.
+
+    ## Conclusion
+
+    The per-household design brought connections to places providers already served, but not yet to the households hardest to reach. The changes above target the application barrier that providers described.
+  expected_issues:
+  - id: recommendations_first
+    title: Illogical Order
+    anchor: Roughly one in five rural households in the state
+    severity: medium
+  notes: >-
+    The recommendations come before the data and findings they rest on. Framing is complete, and
+    the findings interpret their numbers.
+- input: |
+    # Measuring Hospital Preparedness for Heat Waves
+
+    ## Introduction
+
+    Heat waves now send more people to emergency departments in the region than any other kind of weather, and the hospitals that receive them were built for a cooler climate. No one has asked hospitals how ready they are to operate through a week of extreme heat. We surveyed the region's 28 hospitals to find out, and we set out what the regional health authority could fund first.
+
+    ## Findings
+
+    Most hospitals are at Tier 2 on power and at Tier 1 on cooling. Only 4 of the 28 reached Tier 3 on any dimension, and none reached it on staffing. Hospitals at Tier 1 on cooling reported closing wards during the 2024 heat wave; those at Tier 2 did not, which suggests Tier 2 is the level that keeps wards open.
+
+    ## The Preparedness Tiers
+
+    We scored each hospital on four dimensions: power, cooling, water and staffing. On each, Tier 1 means the hospital has no plan for sustained heat, Tier 2 means it has a plan and the equipment to carry it out for 72 hours, and Tier 3 means it can operate for a week without outside help.
+
+    ## Survey Methods
+
+    All 28 hospitals completed the survey between January and March 2025, and we visited 10 of them to check their answers.
+
+    ## Recommendations
+
+    The authority should first fund cooling upgrades at the hospitals at Tier 1, since cooling is the dimension where a gap closed wards.
+  expected_issues:
+  - id: tiers_after_use
+    title: Illogical Order
+    anchor: Heat waves now send more people to emergency departments
+    severity: medium
+  notes: >-
+    The findings use the tiers before the chapter that defines them, and the survey methods come
+    after both.
+
+# ---- framing ---------------------------------------------------------------------------------
+- input: |
+    # Remote Work and Downtown Transit Ridership
+
+    ## Introduction
+
+    Downtown bus and rail ridership in the region is still 30 percent below its 2019 level, and fares cover a shrinking share of the transit agency's costs, which puts service on every route at risk. Earlier studies estimated ridership losses from remote work using national survey data; this report is the first to use the agency's own tap-card records, which show when each rider stopped commuting. We ask how much of the lost ridership comes from riders who now work from home part of the week.
+
+    ## Data
+
+    We analyzed 4.1 million tap-card trips from 2019 and 2024, linked to an annual rider survey that asks about work location.
+
+    ## Findings
+
+    Most of the lost ridership comes from hybrid workers, not from riders who stopped commuting altogether. Riders who reported working from home two or three days a week took 41 percent fewer peak-hour trips in 2024 than in 2019, while riders who never work from home took about the same number. Trips on Mondays and Fridays fell twice as much as trips midweek, which fits a pattern of hybrid workers choosing the same days to stay home.
+
+    ## Conclusion
+
+    Downtown ridership remains below its 2019 level. Hybrid workers account for most of the decline, and the drop is concentrated on Mondays and Fridays.
+  expected_issues:
+  - id: no_next_steps
+    title: "Missing Framing: What Happens Next"
+    anchor: Downtown ridership remains below its 2019 level.
+    severity: medium
+  decoys:
+  - anchor: We analyzed 4.1 million tap-card trips
+    reason: methods_description
+  notes: >-
+    The conclusion only restates the findings: nothing says what the agency could do with them or
+    what should be studied next. Why it matters and what is new are answered in the introduction.
+- input: |
+    # Employer Survey on Credential Use
+
+    ## Introduction
+
+    This report presents the results of a survey of 300 employers in the state conducted in spring 2025. The survey asked employers which short-term credentials they recognize when hiring. Chapter 2 describes the survey, Chapter 3 presents the results, and Chapter 4 sets out what the state workforce board could do with them.
+
+    ## 2. The Survey
+
+    We drew a random sample of 300 employers from the state's unemployment insurance records, stratified by industry, and 212 responded.
+
+    ## 3. Results
+
+    Employers recognize far fewer credentials than the state's approved list includes. Of the 46 credentials on the list, 11 were recognized by at least half of employers in the industries they target; 19 were recognized by fewer than one in ten. Recognition was highest for credentials that employers helped design, which suggests that employer involvement matters more than a credential's length or cost.
+
+    ## 4. What the Workforce Board Could Do
+
+    The board could review the 19 rarely recognized credentials and ask employers to co-design any credential it adds to the list.
+  expected_issues:
+  - id: no_stakes
+    title: "Missing Framing: Why It Matters"
+    anchor: This report presents the results of a survey of 300 employers
+    severity: medium
+  - id: no_novelty
+    title: "Missing Framing: What Is New"
+    anchor: This report presents the results of a survey of 300 employers
+    line: 5
+    severity: medium
+  notes: >-
+    The introduction says what the report does but not why a reader should care about
+    credential recognition or what the survey adds; Chapter 4 answers what happens next.
+- input: |
+    # Library Card Sign-Ups, 2020 to 2024
+
+    ## Introduction
+
+    This report describes library card sign-ups in the city's 22 branches from 2020 to 2024. It draws on the library system's registration records.
+
+    ## Sign-Ups by Year
+
+    Sign-ups fell by half in 2020, when branches closed for five months, and recovered to their 2019 level by 2023. Most of the recovery came from children's cards, which the city began issuing through schools in 2022; adult sign-ups in 2024 were still 20 percent below 2019.
+
+    ## Sign-Ups by Branch
+
+    The four branches that added evening hours in 2023 recovered fastest, returning to their 2019 level a year before the others.
+  expected_issues:
+  - id: library_why
+    title: "Missing Framing: Why It Matters"
+    anchor: This report describes library card sign-ups
+    severity: medium
+  - id: library_new
+    title: "Missing Framing: What Is New"
+    anchor: This report describes library card sign-ups
+    line: 5
+    severity: medium
+  - id: library_next
+    title: "Missing Framing: What Happens Next"
+    anchor: The four branches that added evening hours in 2023
+    severity: medium
+  notes: >-
+    None of the three questions is answered. There is no conclusion, so what happens next is
+    anchored to the last section of the main body.
+
+# ---- restated points -------------------------------------------------------------------------
+- input: |
+    # Four-Day School Weeks in Rural Districts
+
+    ## 1. Introduction
+
+    Rural districts that cannot fill teaching positions are turning to four-day weeks to attract staff, and 14 districts in the state have now adopted one. Parents and legislators want to know whether the shorter week costs students learning time, but earlier studies came from other states with longer school days. This report compares achievement in the state's four-day districts with similar five-day districts and recommends what the state should require of districts that adopt the schedule.
+
+    ## 2. How the Four-Day Week Works
+
+    Districts on a four-day week hold classes Monday through Thursday and lengthen each day by about 70 minutes, so that annual instructional hours fall by roughly 5 percent. Most use Fridays for teacher training once a month and leave the other Fridays free, and a few run optional enrichment programs on those days. Districts adopted the schedule to recruit teachers, who value the long weekend, and to save on transportation and utilities.
+
+    ## 3. Achievement
+
+    As Chapter 2 showed, the four-day week trims annual instructional hours by about 5 percent. Students in four-day districts scored slightly lower in math than students in similar five-day districts by the third year, a gap of about 0.05 standard deviations, and no differently in reading. The math gap was larger in districts that left Fridays unstructured, which suggests the use of the fifth day matters more than the schedule itself.
+
+    ## 4. Staffing
+
+    Under the four-day schedule, classes run Monday through Thursday and each day is about 70 minutes longer, which cuts annual instructional hours by roughly 5 percent. Most districts reserve one Friday a month for teacher training and leave the rest free, while a handful offer optional enrichment. The districts chose the schedule chiefly to recruit teachers, who prize the three-day weekend, and to cut transportation and utility costs. Teacher vacancies in the four-day districts fell from 11 percent to 6 percent in the two years after adoption, while vacancies in similar five-day districts stayed near 10 percent.
+
+    ## 5. Recommendations
+
+    The state should require four-day districts to offer structured Friday programming for students behind in math, and should track vacancy rates to confirm the recruiting benefit holds.
+  expected_issues:
+  - id: schedule_restated
+    title: Restated Point
+    anchor: Under the four-day schedule, classes run Monday through Thursday
+    severity: low
+  decoys:
+  - anchor: As Chapter 2 showed, the four-day week trims annual instructional hours
+    reason: cross_reference
+  - anchor: Teacher vacancies in the four-day districts fell from 11 percent to 6 percent
+    reason: single_comparison
+  notes: >-
+    Chapter 4 opens with three sentences that repeat Chapter 2 in new words before its own
+    finding. Chapter 3 refers back to the same point in one clause, which is the right way.
+
+# ---- headers belong to the header check -------------------------------------------------------
+- input: |
+    # Community Health Worker Program: First-Year Review
+
+    ## Introduction
+
+    Emergency room visits for uncontrolled diabetes cost the county's public hospital more than $9 million in 2023, most of it for a few hundred patients who miss follow-up appointments. The county's community health worker program is the first in the region to assign each of those patients a worker who visits them at home. This review looks at the program's first year and what the county should decide before it renews the program's funding.
+
+    ## Who Enrolled
+
+    The program enrolled 312 patients in its first year, 71 percent of those referred. Enrollment was lowest among patients without a stable address, whom workers could not reach for a first visit.
+
+    ## Costs of the Program
+
+    Patients who enrolled missed fewer follow-up appointments than they had the year before, and 58 percent reported checking their blood sugar daily, up from 22 percent at enrollment. Workers said the home visits helped most when a family member attended, since relatives often managed the patient's medications. Patients who received at least six visits were the most likely to keep their appointments.
+
+    ## Additional Observations
+
+    Several workers noted that referrals arrived in batches at the end of each month, which left them with more first visits than they could schedule. Two clinics sent most of the referrals.
+
+    ## Recommendations
+
+    The county should renew the program, fund outreach to patients without a stable address, and ask all clinics to refer patients as they are identified rather than monthly.
+  decoys:
+  - anchor: Costs of the Program
+    reason: header_mismatch
+  - anchor: Additional Observations
+    reason: plain_header
+  notes: >-
+    Clean for this check. The section headed as costs reports patient outcomes, and the
+    "Additional Observations" header is vague; both are for the Headers & Skimmability check,
+    which reports mismatched and vague headers, so reporting them here would flag the same
+    header twice in the editorial preset.
+
+# ---- section-length document --------------------------------------------------------------------
+- input: file://e2e/narrative_synthesis/files/manufacturing_apprenticeships.md
+  expected_issues:
+  - id: enrollee_dump
+    title: Data Without Synthesis
+    anchor: Of the 2,870 apprentices, 2,410 were men and 460 were women
+    severity: medium
+  - id: earnings_dump
+    title: Data Without Synthesis
+    anchor: Completers' earnings in the first year after the program averaged
+    severity: medium
+  - id: program_restated
+    title: Restated Point
+    anchor: The program gives each participating employer $4,000
+    severity: low
+  decoys:
+  - anchor: The state's manufacturing apprenticeship program places more young workers
+    reason: summary_restatement
+  - anchor: The remainder of this report is organized as follows
+    reason: signposting
+  - anchor: We linked the program's enrollment records for the 2,870 apprentices
+    reason: methods_description
+  - anchor: Three years after they would have finished, completers earned
+    reason: interpreted_data
+  - anchor: Table 5.1 lists earnings three years after the program by region
+    reason: table_or_figure
+  - anchor: As Chapter 4 showed, apprentices with mentors finished at higher rates
+    reason: cross_reference
+  - anchor: Most apprentices who leave do so in the first year, and low first-year pay
+    reason: chapter_summary
+  - anchor: Completion was 49 percent in the Northeast region
+    reason: appendix_data
+  notes: >-
+    A complete report with its framing in place. Two data dumps (enrollee counts in Chapter 4,
+    year-by-year earnings in Chapter 5) and one restated point (Chapter 6 repeats the program
+    description of Chapter 2 in new words), among decoys for most exclusions.

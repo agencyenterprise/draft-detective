@@ -47,7 +47,9 @@ def abbreviation_checker_e2e():
         # TODO: allow model to be specified dynamically / via api config
         dataset=dataset,
         fail_on_error=0.2,
-        solver=api_workflow_agent("abbreviation_scan_v2"),
+        solver=api_workflow_agent(
+            "abbreviation_scan_v2", item_messages_key="chunks", item_label="chunk"
+        ),
         scorer=[
             structured_output_scorer(
                 AbbreviationCheckOutput, _compare_abbreviation_list
@@ -63,6 +65,7 @@ def abbreviation_checker_e2e():
 def _compare_abbreviations_section_found(
     output: AbbreviationCheckOutput, state: TaskState
 ) -> bool:
+    """Deterministic: the "Abbreviations section found" boolean matches the target."""
     return (
         str(output.abbreviations_section_found).lower()
         == state.metadata.get("target_abbreviations_section_found", "").lower()
@@ -81,6 +84,13 @@ _COMPARE_FIELDS = [
 def _compare_abbreviation_list(
     output: AbbreviationCheckOutput, state: TaskState
 ) -> Score:
+    """Deterministic match of the extracted abbreviations list against the target.
+
+    Each occurrence is compared on its abbreviation, occurrence number, inline
+    definition, line span, Abbreviations-section definition and ignored flag,
+    scored as DeepDiff similarity (``deep_diff_score``, order ignored), so 1.0
+    is an exact match and a partial match scores between 0 and 1.
+    """
     expected_items: list[dict[str, Any]] = state.metadata.get(
         "target_abbreviations", []
     )

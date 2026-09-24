@@ -19,6 +19,8 @@ from lib.services.docx.paragraph_refs import (
     paragraph_ordinals,
 )
 
+from tests.unit.services.lean_docx import new_document
+
 # A body paragraph, a two-cell table, an empty paragraph, two paragraphs that
 # read alike, and a paragraph inside a content control: everything that makes
 # the two libraries' paragraph lists differ.
@@ -27,7 +29,7 @@ _SHARED = "The results are significant."
 
 @pytest.fixture
 def mixed_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph("First body paragraph.")
     table = document.add_table(rows=1, cols=2)
     table.cell(0, 0).text = "Cell one"

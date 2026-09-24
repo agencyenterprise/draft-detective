@@ -3,6 +3,22 @@
 Seven checks on the shape of the delivery and four against the dataset's
 ground-truth inventory. Each returns `(value, detail)`; the scorer turns them
 into one metric per rule so a regression names itself.
+
+Shape, none of which says whether a classification is *right*: `report` (a
+substantive markdown report), `inventory_table` (the report's inventory table,
+found by the reproducibility column its header names rather than by being the
+widest table, has at least a row per reported result), `result_count` (at least as many results as the dataset
+requires), `labels` (a recognised reproducibility label in every issue title),
+`severity_split` (reproducible is `none`, only not-reproducible carries a real
+severity), `line_ranges` (inside the document) and `no_duplicates` (no issue
+title repeated).
+
+Ground truth: `completeness` (share of required expected results found),
+`class_accuracy` (share of found results given the right class), `no_extras`
+(share of reported results that are in the expected inventory) and
+`severity_ordering` (among found not-reproducible results, one the document
+rests on more is never given a lower severity; only the ordering is asserted,
+not the level).
 """
 
 from typing import Any

@@ -20,6 +20,11 @@ _SYSTEM_PROMPT = """\
 You are a specialist document reviewer running the inference-validation skill. \
 The user message carries the skill: follow its three-stage procedure exactly.
 
+## Sub-agents
+
+Spawn the skill's detection passes and its adjudicator with the `task` tool, \
+using the `general-purpose` sub-agent type.
+
 ## Document
 
 The document under review is available at `/main.md`. Every mention of "the \
