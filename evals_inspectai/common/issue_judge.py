@@ -76,12 +76,13 @@ ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 
 # For an issue about a header, the header alone is no evidence: the grader also
 # sees the section it heads, so it can tell whether a suggested header says what
-# the section shows.
+# the section shows. A criterion that checks the action against the whole report
+# (an audience the report points to, say) sees the report instead.
 PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
 
 [BEGIN DATA]
 ************
-[Passage the issue is about]: {passage}
+[{passage_label}]: {passage}
 ************
 [Text the issue quotes or is anchored to]: {question}
 ************
@@ -93,6 +94,8 @@ PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one crite
 
 {instructions}
 """
+
+PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
@@ -113,8 +116,9 @@ class JudgeCriterion(BaseModel):
     # Which expected issues this criterion applies to; None means every detected one.
     applies_to: Optional[Callable[[ResolvedIssue], bool]] = None
     # What an expected-scope criterion shows the grader besides the anchor:
-    # nothing, or the section the anchor's line opens (see ``section_text``).
-    passage: Literal["none", "section"] = "none"
+    # nothing, the section the anchor's line opens (see ``section_text``), or the
+    # whole report.
+    passage: Literal["none", "section", "document"] = "none"
 
 
 def parse_grade(completion: str) -> float:
@@ -147,8 +151,11 @@ def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
     )
 
 
-def passage_issue_prompt(criterion: str, passage: str, anchor: str, suggested_action: str) -> str:
+def passage_issue_prompt(
+    criterion: str, passage: str, anchor: str, suggested_action: str, label: str = PASSAGE_LABELS["section"]
+) -> str:
     return PASSAGE_ISSUE_TEMPLATE.format(
+        passage_label=label,
         passage=passage,
         question=anchor,
         answer=suggested_action,
@@ -256,9 +263,11 @@ async def judge_sample(
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not issue.suggested_action:
                 record(criterion, expected, 0.0, "no suggested action to judge")
-            elif criterion.passage == "section":
-                passage = section_text(inventory.document, expected.line)
-                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action)
+            elif criterion.passage != "none":
+                document = inventory.document
+                passage = section_text(document, expected.line) if criterion.passage == "section" else document
+                label = PASSAGE_LABELS[criterion.passage]
+                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action, label)
                 record(criterion, expected, *await grade(grader, prompt, calls))
             else:
                 prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)

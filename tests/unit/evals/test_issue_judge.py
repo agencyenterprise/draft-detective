@@ -187,6 +187,20 @@ async def test_section_passage_criterion_shows_the_grader_the_section():
 
 
 @pytest.mark.asyncio
+async def test_document_passage_criterion_shows_the_grader_the_whole_report():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="fits", criterion="Fits the report.", scope="expected", passage="document")
+    expected = ResolvedIssue(id="findings", title="Target Audience Missing", anchor="Scores rose 5 points.", line=5)
+    issue = IssueItem(title="Target Audience Missing", start_line=5, end_line=5, suggested_action="Name district leaders.")
+    inventory = ResolvedInventory(document=SECTION_DOC, expected_issues=[expected], decoys=[])
+
+    await judge_sample(cast(Model, grader), [issue], inventory, [criterion])
+
+    assert f"[The full report]: {SECTION_DOC}" in grader.prompts[0]
+    assert "[Passage the issue is about]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
 async def test_default_expected_criterion_prompt_is_unchanged():
     grader = _Grader()
     issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Name who established the institute.")

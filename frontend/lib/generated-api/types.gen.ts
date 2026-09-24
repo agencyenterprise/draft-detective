@@ -4222,6 +4222,7 @@ export const WorkflowRunType = {
   ReviewerResponseMemos: 'reviewer_response_memos',
   ReviewerCoverageReport: 'reviewer_coverage_report',
   ActiveVoice: 'active_voice',
+  AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
   NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',

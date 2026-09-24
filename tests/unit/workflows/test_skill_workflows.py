@@ -115,6 +115,7 @@ def test_presets_carry_the_skills_that_name_them():
         "active_voice",
         "concision_precision",
         "writing_consistency",
+        "audience_fit",
         "narrative_synthesis",
         "headers_skimmability",
     }
