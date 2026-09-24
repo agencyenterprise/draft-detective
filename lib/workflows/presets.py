@@ -45,10 +45,12 @@ WORKFLOW_PRESETS: list[PresetConfig] = [
         label="Editorial Review",
         description=(
             "The editorial department's language checks: who does what, every "
-            "sentence earning its length, one voice throughout, and neutral tone."
+            "sentence earning its length, one voice throughout, words that fit "
+            "the reader, and neutral tone."
         ),
         # The skill-declared language checks (active voice, concision and
-        # precision, writing consistency) add themselves from their frontmatter.
+        # precision, writing consistency, audience fit) add themselves from
+        # their frontmatter.
         workflows=[
             WorkflowRunType.ADVOCACY_TONE_V2,
         ],

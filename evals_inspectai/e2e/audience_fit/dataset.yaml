@@ -1,0 +1,344 @@
+# Eval samples for the audience_fit workflow, in inventory form: one expected issue per audience
+# problem (missing, too vague, conflicting) and per paragraph or passage of technical language a
+# non-technical audience would stop on, plus decoys the check must leave alone. The workflow proposes
+# no edits, so no expectation here names one. "Technical Language" as an expected title also matches
+# "Technical Language: Move to Appendix" (titles match as whole words), so a paragraph that could
+# fairly be reported either way names the shared prefix. See evals_inspectai/common/issue_inventory.py.
+
+# ---- target audience: missing -----------------------------------------------------------------
+- input: |
+    # Staffing Rural Health Clinics
+
+    ## About This Report
+
+    This report describes how 14 rural health clinics in three states filled nursing vacancies between 2021 and 2024. The research was funded by a state health foundation.
+
+    ## Introduction
+
+    Rural clinics lose nurses faster than urban hospitals and take longer to replace them. We studied how clinics that kept their vacancy rates low recruited and held on to staff.
+
+    We interviewed 31 clinic managers and surveyed 260 nurses. Clinics that offered housing help filled vacancies in half the time of those that did not.
+
+    ## Recommendations
+
+    State health departments should fund housing stipends for nurses who take rural posts, and clinic networks should share recruiters across sites.
+  expected_issues:
+  - id: clinics_missing
+    title: Target Audience Missing
+    anchor: Rural clinics lose nurses faster than urban hospitals
+    severity: medium
+  decoys:
+  - anchor: We interviewed 31 clinic managers and surveyed 260 nurses
+    reason: plain_method
+  notes: No sentence says who the report is for. The recommendations point at state health departments and clinic networks, which the suggested action may offer; the issue sits on the introduction's first paragraph.
+
+# ---- target audience: too vague ---------------------------------------------------------------
+- input: |
+    # Broadband Subsidies and School Homework Gaps
+
+    ## About This Report
+
+    This report is intended for policymakers. It reviews how two federal broadband subsidies reached households with school-age children in 2023 and 2024.
+
+    ## Introduction
+
+    Students without home internet complete less homework than their classmates. We compared enrollment in the two subsidies across 120 school districts and found that districts which helped families apply enrolled twice as many households.
+
+    The two subsidies were launched in different years. About one in six of the districts' students had no home connection when the first one opened.
+  expected_issues:
+  - id: policymakers_bare
+    title: Target Audience Too Vague
+    anchor: This report is intended for policymakers.
+    severity: medium
+  decoys:
+  - anchor: About one in six of the districts' students had no home connection
+    reason: plain_numbers
+  notes: The bare label EEI names as too vague. School districts are the ones the finding points to, so a correct suggested action may quote the finding sentence; the plain-numbers decoy is a background sentence it has no reason to cite.
+
+# ---- target audience: specific enough ---------------------------------------------------------
+- input: |
+    # Credential Programs for Displaced Workers
+
+    ## About This Report
+
+    This report is intended for state workforce development offices that run training programs under WIOA.
+
+    ## Introduction
+
+    Workers displaced by plant closures often enroll in short credential programs. We followed 1,200 WIOA participants in two states and tracked credential attainment and earnings for two years after they enrolled.
+
+    Participants who finished a credential earned 14 percent more in the second year than those who did not.
+  decoys:
+  - anchor: This report is intended for state workforce development offices
+    reason: specific_audience
+  - anchor: tracked credential attainment and earnings
+    reason: audience_vocabulary
+  notes: Clean. One specific audience; WIOA and credential attainment are that audience's working terms.
+
+# ---- target audience: conflict ----------------------------------------------------------------
+- input: |
+    # Bus Rapid Transit Corridors
+
+    ## About This Report
+
+    This report is written for federal transportation officials who decide which transit capital projects receive grants.
+
+    ## Introduction
+
+    Bus rapid transit lines cost less to build than rail but carry fewer riders. This report is written for neighborhood residents and the community groups that represent them in corridor planning. We compared six corridors opened since 2015 on cost, ridership and travel time.
+  expected_issues:
+  - id: federal_vs_residents
+    title: Target Audience Conflict
+    anchor: This report is written for neighborhood residents and the community groups
+    severity: medium
+  notes: Grant-making federal officials and neighborhood residents are substantively different readers.
+- input: |
+    # Teacher Induction Programs
+
+    ## About This Report
+
+    This report is intended for state education agency staff who oversee teacher induction.
+
+    ## Introduction
+
+    New teachers who receive structured mentoring leave the profession at lower rates. We wrote this report for staff at state education agencies and for the researchers who advise them on induction policy. We reviewed induction programs in nine states and interviewed 40 program coordinators.
+  decoys:
+  - anchor: We wrote this report for staff at state education agencies and for the researchers who advise them
+    reason: reworded_audience
+  notes: Clean. Reworded, with a secondary group added; not a conflict.
+
+# ---- technical audience -----------------------------------------------------------------------
+- input: |
+    # Hospital Mergers and Commercial Prices
+
+    ## About This Report
+
+    This report is intended for health economists and researchers who study hospital markets.
+
+    ## Findings
+
+    We estimate a difference-in-differences regression with hospital and year fixed effects, clustering standard errors by market. Commercial prices at acquired hospitals rose 6 percent relative to controls (β = 0.058, SE = 0.017), and the event-study coefficients show no pre-trend.
+  decoys:
+  - anchor: We estimate a difference-in-differences regression with hospital and year fixed effects
+    reason: technical_audience
+  - anchor: β = 0.058, SE = 0.017
+    reason: technical_audience
+  notes: Clean. The stated audience is technical, so regression language and Greek letters belong in the main body.
+- input: |
+    # A Bounded Estimator for Survey Nonresponse
+
+    ## Introduction
+
+    Survey nonresponse biases estimates when the people who respond differ from those who do not. We propose an estimator that bounds this bias using auxiliary administrative data, and we derive its asymptotic variance.
+
+    ## Method
+
+    Let Y denote the outcome and R the response indicator. Under monotone missingness, the estimator is consistent for the sharp bounds on E[Y], and a bootstrap yields valid confidence intervals.
+  expected_issues:
+  - id: method_paper_missing
+    title: Target Audience Missing
+    anchor: Survey nonresponse biases estimates when the people who respond
+    severity: medium
+  decoys:
+  - anchor: the estimator is consistent for the sharp bounds on E[Y]
+    reason: technical_audience
+  - anchor: we derive its asymptotic variance
+    reason: technical_audience
+  notes: No audience is stated, so it is missing; but the document is about a new research method, so the inferred audience is technical and its notation is not flagged.
+
+# ---- technical language for a policy audience -------------------------------------------------
+- input: |
+    # Summer Reading Programs
+
+    ## About This Report
+
+    This report is intended for school district leaders deciding whether to fund summer reading programs.
+
+    ## Findings
+
+    We compared 48 schools that ran a summer program with 52 that did not. Students in program schools gained more in reading over the summer than students in the other schools.
+
+    The effect on reading scores was statistically significant (p < 0.01) in a regression controlling for prior achievement and school fixed effects.
+
+    We also used propensity-score matching, which pairs each program school with a similar school that did not run the program, to check that the gains were not driven by which schools chose to apply.
+
+    Appendix A reports the full regression estimates.
+  expected_issues:
+  - id: p_value_regression
+    title: Technical Language
+    anchor: The effect on reading scores was statistically significant (p < 0.01)
+    severity: low
+  decoys:
+  - anchor: We compared 48 schools that ran a summer program with 52 that did not
+    reason: plain_method
+  - anchor: We also used propensity-score matching, which pairs each program school with a similar school
+    reason: explained_term
+  - anchor: Appendix A reports the full regression estimates
+    reason: appendix_pointer
+  notes: One jargon paragraph between plain ones. The matching method is explained where it is used, and the pointer to the appendix is what the check asks for.
+- input: |
+    # Wildfire Smoke and Emergency Department Visits
+
+    ## About This Report
+
+    This report is written for county public health directors who issue smoke advisories.
+
+    ## Findings
+
+    Emergency department visits for asthma rose on days when smoke pushed fine-particle levels above the federal standard. We modeled daily visits with a distributed lag nonlinear model, and the cumulative relative risk over a five-day lag window was 1.21 (95% CI 1.12 to 1.31).
+
+    Visits rose most among children under 5 and adults over 65. Advisories issued a day before the smoke arrived were followed by smaller rises than advisories issued on the day.
+  expected_issues:
+  - id: dlnm
+    title: Technical Language
+    anchor: We modeled daily visits with a distributed lag nonlinear model
+    severity: low
+  decoys:
+  - anchor: Visits rose most among children under 5 and adults over 65
+    reason: plain_numbers
+  notes: Epidemiological terms of art for health directors who issue advisories; the plain alternative keeps 1.21 (21 percent more visits over five days).
+
+# ---- technical passage ------------------------------------------------------------------------
+- input: |
+    # Property Tax Relief for Older Homeowners
+
+    ## About This Report
+
+    This report is intended for state legislative staff drafting property tax relief bills.
+
+    ## Chapter 1: Background
+
+    About 38 percent of the state's homeowners are 65 or older, and property taxes on their homes rose by a third between 2015 and 2024.
+
+    ## Chapter 2: Approach
+
+    We used county assessor records for 2015 to 2024 and state income tax filings for the same households.
+
+    We estimate the effect of the credit with a regression discontinuity design at the age-65 eligibility threshold, using a local linear specification with a triangular kernel and a bandwidth chosen by the Calonico, Cattaneo and Titiunik procedure.
+
+    The running variable is the older owner's age in months. We test for manipulation with a McCrary density test and show that covariates are balanced within the bandwidth; the estimates are robust to halving and doubling it.
+
+    ## Chapter 3: Findings
+
+    Homeowners who became eligible for the credit were 4 percentage points less likely to sell their homes in the next three years.
+  expected_issues:
+  - id: rd_passage
+    title: "Technical Language: Move to Appendix"
+    anchor: We estimate the effect of the credit with a regression discontinuity design
+    severity: medium
+  decoys:
+  - anchor: We used county assessor records for 2015 to 2024
+    reason: plain_method
+  - anchor: About 38 percent of the state's homeowners are 65 or older
+    reason: plain_numbers
+  notes: Two consecutive paragraphs of estimation detail. The upshot for legislative staff is the finding sentence, which a correct suggested action may quote as what to keep, so the plain-numbers decoy is a background sentence instead.
+
+# ---- audience's own vocabulary ----------------------------------------------------------------
+- input: |
+    # Attendance Interventions in High-Poverty Schools
+
+    ## About This Report
+
+    This report is intended for school principals and district attendance officers in Title I schools.
+
+    ## Findings
+
+    Chronic absenteeism fell from 31 percent to 24 percent in the 18 schools that assigned each chronically absent student an adult mentor. Students with an IEP gained as much as their classmates.
+
+    Principals said that home visits worked best when the mentor already knew the family. Schools that paired the mentors with a weekly attendance team meeting kept the gains into the second year.
+  decoys:
+  - anchor: Chronic absenteeism fell from 31 percent to 24 percent
+    reason: audience_vocabulary
+  - anchor: Students with an IEP gained as much as their classmates
+    reason: audience_vocabulary
+  notes: Clean. Title I, chronic absenteeism and IEP are school leaders' working terms.
+
+# ---- appendix and quoted wording --------------------------------------------------------------
+- input: |
+    # Apprenticeship Wage Outcomes
+
+    ## About This Report
+
+    This report is intended for state apprenticeship agencies and the employers who sponsor apprentices.
+
+    ## Findings
+
+    Apprentices who completed their programs earned $9,200 more in the third year than similar workers who did not enroll. One sponsor told us, "We needed the propensity-score results before our board would fund a second cohort."
+
+    ## Appendix C: Estimation
+
+    We match apprentices to nonparticipants on propensity scores estimated by logistic regression on age, prior earnings and industry, and report average treatment effects on the treated with bootstrapped standard errors.
+  decoys:
+  - anchor: We needed the propensity-score results before our board would fund a second cohort
+    reason: quoted
+  - anchor: We match apprentices to nonparticipants on propensity scores
+    reason: appendix
+  notes: Clean. The only technical wording in the main body is inside a quotation; the estimation detail is in an appendix.
+
+# ---- audience missing, inferred non-technical, with technical language -------------------------
+- input: |
+    # Jail Diversion for People with Mental Illness
+
+    ## Introduction
+
+    Many people booked into county jails have a serious mental illness. We evaluated a program that diverts them to treatment before arraignment in two counties.
+
+    ## Findings
+
+    Participants were rebooked less often than similar people who were not diverted. Using inverse probability of treatment weighting to balance the groups on observables, the hazard ratio for rebooking within a year was 0.71.
+
+    ## Recommendations
+
+    The county board should extend the program to the third court district and fund two more case managers.
+  expected_issues:
+  - id: jail_missing
+    title: Target Audience Missing
+    anchor: Many people booked into county jails have a serious mental illness
+    severity: medium
+  - id: iptw_hazard
+    title: Technical Language
+    anchor: Using inverse probability of treatment weighting to balance the groups
+    severity: low
+  notes: No audience is stated; the recommendations point to a county board, a non-technical reader, so the weighting and hazard-ratio language is flagged too.
+
+# ---- clean policy document --------------------------------------------------------------------
+- input: |
+    # School Bus Driver Shortages
+
+    ## About This Report
+
+    This report is written for district transportation directors and the school boards that set their budgets.
+
+    ## Findings
+
+    Districts that raised starting pay for bus drivers by at least $3 an hour filled 80 percent of their open routes within a year. Districts that did not filled about half. Drivers we interviewed most often cited split shifts, not pay, as the reason they left.
+  decoys:
+  - anchor: filled 80 percent of their open routes within a year
+    reason: plain_numbers
+  - anchor: Drivers we interviewed most often cited split shifts
+    reason: plain_method
+  notes: Clean. A specific audience and plain findings.
+
+# ---- section-length document ------------------------------------------------------------------
+- input: file://e2e/audience_fit/files/transit_fare_report.md
+  expected_issues:
+  - id: stakeholders_vague
+    title: Target Audience Too Vague
+    anchor: It should be of interest to policymakers and other stakeholders.
+    severity: medium
+  - id: did_passage
+    title: "Technical Language: Move to Appendix"
+    anchor: we fit a difference-in-differences model with route and month fixed effects
+    severity: medium
+  - id: significance_ci
+    title: Technical Language
+    anchor: The estimates are statistically significant at the 1 percent level
+    severity: low
+  decoys:
+  - anchor: The estimating equation is ln(R_rt)
+    reason: appendix
+  - anchor: 62 percent of riders said they had made trips they would not otherwise have made
+    reason: plain_numbers
+  - anchor: boarding times fell once drivers no longer handled fares
+    reason: plain_method
+  notes: The audience is named only as bare labels in both About This and the introduction; the suggested action can point to city transit agencies and councils considering a pilot. Two consecutive paragraphs of model detail in Chapter 2, one significance paragraph in Chapter 3, and an appendix with the equation.
