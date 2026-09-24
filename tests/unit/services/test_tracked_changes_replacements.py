@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import Dict, Tuple
 
 import pytest
-from docx import Document as PythonDocxDocument
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import apply_tracked_changes
 
+from tests.unit.services.lean_docx import new_document
 from tests.unit.services.tracked_changes_support import (
     make_edit as _edit,
     plan_edits as _plan,
@@ -26,7 +26,7 @@ _JOINED_LINE_RANGES: Dict[int, Tuple[int, int]] = {0: (1, 1)}
 
 @pytest.fixture
 def joined_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_JOINED_MARKDOWN)
     path = tmp_path / "joined.docx"
     document.save(str(path))
@@ -149,7 +149,7 @@ _SPACED_PARAGRAPH = "This is a bad result."
 
 @pytest.fixture
 def spaced_docx_path(tmp_path: Path) -> Path:
-    document = PythonDocxDocument()
+    document = new_document()
     document.add_paragraph(_SPACED_PARAGRAPH)
     path = tmp_path / "spaced.docx"
     document.save(str(path))
