@@ -11,8 +11,9 @@ appendix content and pointers, quoted wording).
 The workflow proposes no edits, so the edit-hygiene keys are left out. Each
 audience issue is reported once per document and each technical paragraph
 once, so a reported issue covers at most one expected issue (``one_to_one``).
-Scorers: the reusable ``issue_checks`` and ``decoy_checks``, and two judged
-criteria on the suggested action.
+Scorers: the reusable ``issue_checks`` and ``decoy_checks``, this workflow's
+own ``overflow_checks`` on the cap of technical-language issues, and two
+judged criteria on the suggested action.
 
 Run (backend must be running)::
 
@@ -22,12 +23,15 @@ Run (backend must be running)::
 from pathlib import Path
 
 from inspect_ai import Task, task
+from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
 from evals_inspectai.common.issue_checks import (
     DETECTION_DESCRIPTIONS,
+    PER_KEY_METRICS,
     decoy_checks,
     decoy_descriptions,
+    deterministic_scorer,
     issue_check_keys,
     issue_checks,
 )
@@ -40,10 +44,26 @@ from evals_inspectai.common.issue_inventory import (
 )
 from evals_inspectai.common.issue_judge import judged_criteria
 from evals_inspectai.common.issue_viewer import issue_viewer_config
-from evals_inspectai.e2e.audience_fit.criteria import JUDGE_CRITERIA, JUDGE_DESCRIPTIONS, SCORE_LABELS
+from evals_inspectai.e2e.audience_fit.criteria import (
+    JUDGE_CRITERIA,
+    JUDGE_DESCRIPTIONS,
+    SCORE_LABELS,
+)
+from evals_inspectai.e2e.audience_fit.overflow import (
+    OVERFLOW_DESCRIPTIONS,
+    OVERFLOW_KEYS,
+    OVERFLOW_LABELS,
+    overflow_scores,
+)
 
 WORKFLOW_TYPE = "audience_fit"
 DATASET = Path(__file__).parent / "dataset.yaml"
+
+
+@scorer(metrics=PER_KEY_METRICS)
+def overflow_checks() -> Scorer:
+    """This workflow's own deterministic check: the cap on technical-language issues and its summary."""
+    return deterministic_scorer(overflow_scores)
 
 
 @task
@@ -58,7 +78,10 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
     reasons = list(decoy_reasons(records))
     edits, titles = expects_edits(records), expects_titles(records)
     keys = issue_check_keys(edits, titles)
-    own = [("judged_criteria", c.key) for c in JUDGE_CRITERIA]
+    own = [
+        *(("overflow_checks", key) for key in OVERFLOW_KEYS),
+        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
+    ]
     return Task(
         dataset=inventory_dataset(records, DATASET),
         metadata={
@@ -68,8 +91,11 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
                 "are expected. A NaN metric value means the sample gave that check nothing to judge."
             ),
             "metrics": {
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
+                "issue_checks": {
+                    k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys
+                },
                 "decoy_checks": decoy_descriptions(reasons),
+                "overflow_checks": OVERFLOW_DESCRIPTIONS,
                 "judged_criteria": JUDGE_DESCRIPTIONS,
             },
         },
@@ -77,8 +103,15 @@ def audience_fit_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
         scorer=[
             issue_checks(edits=edits, one_to_one=True, titles=titles),
             decoy_checks(reasons),
+            overflow_checks(),
             judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True),
         ],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(reasons, edits, extra=own, labels=SCORE_LABELS, titles=titles),
+        viewer=issue_viewer_config(
+            reasons,
+            edits,
+            extra=own,
+            labels={**SCORE_LABELS, **OVERFLOW_LABELS},
+            titles=titles,
+        ),
     )

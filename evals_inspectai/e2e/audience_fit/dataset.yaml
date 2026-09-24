@@ -346,3 +346,85 @@
   - anchor: boarding times fell once drivers no longer handled fares
     reason: plain_method
   notes: The audience is named only as bare labels in both About This and the introduction; the suggested action can point to city transit agencies and councils considering a pilot. Two consecutive paragraphs of model detail in Chapter 2, one significance paragraph in Chapter 3, and an appendix with the equation.
+
+# ---- more technical paragraphs than the cap -------------------------------------------------
+- input: file://e2e/audience_fit/files/school_meals_report.md
+  expected_issues:
+  - id: treatment_indicator
+    title: Technical Language
+    anchor: "coefficient on the treatment indicator"
+    severity: low
+  - id: heteroskedasticity
+    title: Technical Language
+    anchor: "robust to heteroskedasticity"
+    severity: low
+  - id: instrumental_variable
+    title: Technical Language
+    anchor: "instrumental variable approach"
+    severity: low
+  - id: endogeneity
+    title: Technical Language
+    anchor: "endogeneity-robust"
+    severity: low
+  - id: fixed_effects
+    title: Technical Language
+    anchor: "school fixed effects"
+    severity: low
+  - id: confidence_interval
+    title: Technical Language
+    anchor: "95 percent confidence interval"
+    severity: low
+  - id: p_value
+    title: Technical Language
+    anchor: "p = 0.08"
+    severity: low
+  - id: multilevel_model
+    title: Technical Language
+    anchor: "multilevel model"
+    severity: low
+  - id: intraclass_correlation
+    title: Technical Language
+    anchor: "intraclass correlation"
+    severity: low
+  - id: regression_discontinuity
+    title: Technical Language
+    anchor: "regression discontinuity"
+    severity: low
+  - id: bonferroni
+    title: Technical Language
+    anchor: "Bonferroni correction"
+    severity: low
+  - id: winsorized
+    title: Technical Language
+    anchor: "winsorized at the 99th percentile"
+    severity: low
+  - id: propensity_score
+    title: Technical Language
+    anchor: "propensity score matching"
+    severity: low
+  - id: attenuation_bias
+    title: Technical Language
+    anchor: "attenuation bias"
+    severity: low
+  - id: bootstrap
+    title: Technical Language
+    anchor: "a bootstrap over district budgets"
+    severity: low
+  - id: synthetic_control
+    title: Technical Language
+    anchor: "synthetic control"
+    severity: low
+    required: false
+  - id: covariate_balance
+    title: Technical Language
+    anchor: "Covariate balance"
+    severity: low
+    required: false
+  decoys:
+  - anchor: community eligibility provision
+    reason: audience_vocabulary
+  - anchor: Chronic absence fell in 139 of the 212 districts
+    reason: audience_vocabulary
+  - anchor: Districts that bought from local farms paid about 6 percent more per meal
+    reason: plain_numbers
+  notes: 'Seventeen main-body paragraphs each carry one technical term, alternating with plain paragraphs across four chapters so none forms a passage. The first 15 in document order are reported one issue each; the last two (synthetic control, covariate balance) go in one "Technical Language: Further Paragraphs" summary, which is why they are optional here and the overflow checks score the cap, the order and the summary.'

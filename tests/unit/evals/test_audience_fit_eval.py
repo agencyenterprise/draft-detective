@@ -1,5 +1,6 @@
-"""The Audience Fit eval: its dataset, task and which issues each judged criterion applies to."""
+"""The Audience Fit eval: its dataset, task, which issues each judged criterion applies to, and the overflow check."""
 
+import math
 from pathlib import Path
 
 from evals_inspectai.common.issue_inventory import (
@@ -11,6 +12,13 @@ from evals_inspectai.common.issue_inventory import (
 )
 from evals_inspectai.e2e.audience_fit.audience_fit_e2e import audience_fit_e2e
 from evals_inspectai.e2e.audience_fit.criteria import JUDGE_CRITERIA
+from evals_inspectai.e2e.audience_fit.overflow import (
+    CAP,
+    OVERFLOW_KEYS,
+    overflow_scores,
+    technical_paragraphs,
+)
+from evals_inspectai.common.simple_deep_agent_types import IssueItem
 
 DATASET = Path("evals_inspectai/e2e/audience_fit/dataset.yaml")
 
@@ -21,7 +29,7 @@ def _expected(title: str) -> ResolvedIssue:
 
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
-    assert len(records) == 15
+    assert len(records) == 16
     expected = [e for r in records for e in r.expected_issues]
     assert {e.title for e in expected} == {
         "Target Audience Missing",
@@ -45,11 +53,22 @@ def test_dataset_is_well_formed():
     assert expects_edits(records) is False
     assert expects_titles(records) is True
     assert all(e.edit_expected is None and e.edit is None for e in expected)
+    # Exactly one record has more technical paragraphs than the cap; those past it are optional,
+    # since one summary issue reports them all.
+    overflow = [r for r in records if len(technical_paragraphs(r)) > CAP]
+    assert len(overflow) == 1
+    paragraphs = technical_paragraphs(overflow[0])
+    assert all(e.required for e in paragraphs[:CAP]) and not any(
+        e.required for e in paragraphs[CAP:]
+    )
 
 
 def test_each_criterion_applies_to_its_own_issues():
     by_key = {c.key: c for c in JUDGE_CRITERIA}
-    plain, audience = by_key["action_plain_alternative"], by_key["action_specific_audience"]
+    plain, audience = (
+        by_key["action_plain_alternative"],
+        by_key["action_specific_audience"],
+    )
     assert plain.applies_to is not None and audience.applies_to is not None
     assert plain.applies_to(_expected("Technical Language"))
     assert plain.applies_to(_expected("Technical Language: Move to Appendix"))
@@ -63,9 +82,97 @@ def test_each_criterion_applies_to_its_own_issues():
 
 def test_task_composes_the_inventory_scorers_and_its_judged_criteria():
     t = audience_fit_e2e()
-    assert len(t.dataset) == 15 and len(t.scorer) == 3
+    assert len(t.dataset) == 16 and len(t.scorer) == 4
     columns = [c.id for c in t.viewer.task_samples_view.columns]
     assert "score__judged_criteria__action_plain_alternative" in columns
     assert "score__decoy_checks__no_fp_technical_audience" in columns
+    assert "score__overflow_checks__overflow_cap" in columns
     # No edits are expected, so no edit-hygiene column is emitted.
     assert not any("edit_" in c for c in columns)
+
+
+def _overflow_inventory():
+    records = load_inventory_records(DATASET)
+    return next(r for r in records if len(technical_paragraphs(r)) > CAP)
+
+
+def _single(expected) -> IssueItem:
+    return IssueItem(
+        title="Technical Language",
+        description=f"Uses {expected.anchor}.",
+        severity="low",
+        start_line=expected.line,
+        end_line=expected.line,
+    )
+
+
+def _summary(
+    rest, title="Technical Language: Further Paragraphs", severity="low"
+) -> IssueItem:
+    return IssueItem(
+        title=title,
+        description="; ".join(
+            f"line {e.line}: {e.anchor}, in plain words ..." for e in rest
+        ),
+        severity=severity,
+        start_line=min(e.line for e in rest),
+        end_line=max(e.line for e in rest),
+    )
+
+
+def test_overflow_passes_the_first_fifteen_plus_one_summary():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    issues = [_single(e) for e in paragraphs[:CAP]] + [_summary(paragraphs[CAP:])]
+    values, _ = overflow_scores(issues, inventory)
+    assert values == {key: 1.0 for key in OVERFLOW_KEYS}
+
+
+def test_overflow_fails_a_run_that_reports_every_paragraph_on_its_own():
+    inventory = _overflow_inventory()
+    values, _ = overflow_scores(
+        [_single(e) for e in technical_paragraphs(inventory)], inventory
+    )
+    assert values["overflow_cap"] == 0.0 and values["overflow_summary_title"] == 0.0
+    assert values["overflow_summary_covers_rest"] == 0.0
+
+
+def test_overflow_fails_a_run_that_keeps_the_wrong_fifteen():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    # The last 15 kept, the first two summarized: under the cap, but not the first in document order.
+    issues = [_single(e) for e in paragraphs[2:]] + [_summary(paragraphs[:2])]
+    values, explanation = overflow_scores(issues, inventory)
+    assert values["overflow_cap"] == 1.0 and values["overflow_first_in_order"] == 0.0
+    assert values["overflow_summary_covers_rest"] == 0.0
+    assert paragraphs[0].id in explanation
+
+
+def test_overflow_fails_a_summary_with_the_wrong_title_severity_or_range():
+    inventory = _overflow_inventory()
+    paragraphs = technical_paragraphs(inventory)
+    first, rest = paragraphs[:CAP], paragraphs[CAP:]
+    wrong_title, _ = overflow_scores(
+        [_single(e) for e in first]
+        + [_summary(rest, title="Technical Language: Summary")],
+        inventory,
+    )
+    assert wrong_title["overflow_summary_title"] == 0.0
+    wrong_severity, _ = overflow_scores(
+        [_single(e) for e in first] + [_summary(rest, severity="medium")], inventory
+    )
+    assert (
+        wrong_severity["overflow_summary_title"] == 0.0
+        and wrong_severity["overflow_summary_covers_rest"] == 1.0
+    )
+    short = _summary(rest)
+    short.end_line = rest[0].line
+    too_short, _ = overflow_scores([_single(e) for e in first] + [short], inventory)
+    assert too_short["overflow_summary_covers_rest"] == 0.0
+
+
+def test_overflow_is_not_scored_on_other_samples():
+    records = load_inventory_records(DATASET)
+    ordinary = next(r for r in records if 0 < len(technical_paragraphs(r)) <= CAP)
+    values, _ = overflow_scores([], ordinary)
+    assert all(math.isnan(v) for v in values.values())

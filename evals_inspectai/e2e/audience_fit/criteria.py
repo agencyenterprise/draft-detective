@@ -63,4 +63,7 @@ JUDGE_CRITERIA = [
     ),
 ]
 
-SCORE_LABELS = {"action_plain_alternative": "Plain alternative", "action_specific_audience": "Specific audience"}
+SCORE_LABELS = {
+    "action_plain_alternative": "Plain alternative",
+    "action_specific_audience": "Specific audience",
+}
