@@ -118,12 +118,16 @@
     ## Findings
 
     We estimate a difference-in-differences regression with hospital and year fixed effects, clustering standard errors by market. Commercial prices at acquired hospitals rose 6 percent relative to controls (β = 0.058, SE = 0.017), and the event-study coefficients show no pre-trend.
+
+    ## Appendix A: Data
+
+    Prices come from commercial claims for 2012 to 2022, aggregated to the hospital-year level.
   decoys:
   - anchor: We estimate a difference-in-differences regression with hospital and year fixed effects
     reason: technical_audience
   - anchor: β = 0.058, SE = 0.017
     reason: technical_audience
-  notes: Clean. The stated audience is technical, so regression language and Greek letters belong in the main body.
+  notes: Clean. The stated audience is technical, so regression language and Greek letters belong in the main body. The appendix is there so that a run which reads technical content as belonging in an appendix whatever the audience has somewhere to send it, and is caught.
 - input: |
     # A Bounded Estimator for Survey Nonresponse
 
