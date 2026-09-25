@@ -15,7 +15,8 @@ Record shape (YAML)::
     - input: file://e2e/active_voice/files/report.md   # or inline markdown
       expected_issues:
         - title: Passive Voice                       # title a correct run uses; omit for free-form titles
-          anchor: "Studies were identified through"    # verbatim quote that locates the issue (see .anchor)
+          anchor: "Studies were identified through"    # verbatim quote that locates the issue (see .anchor);
+                                                       # omit for an issue about something absent
           id: studies_identified                       # optional label for score explanations
           edit_expected: true                          # true: an edit must be attached; false: none may be
           edit:                                        # phrases a correct edit carries / avoids
@@ -24,6 +25,7 @@ Record shape (YAML)::
       decoys:
         - anchor: "The scope is limited to"
           reason: stative                              # free-form; names the rule that would misfire
+      target_answer: "..."                             # optional free-text expectation for a model-graded scorer
 
 Nothing here knows what a check is about. What counts as an issue, what an
 edit must do beyond keeping the text intact, and what a decoy reason means are
@@ -31,7 +33,10 @@ the workflow's business; its task module and scorers supply those (see
 ``evals_inspectai/e2e/active_voice/``).
 
 ``line`` is resolved from the anchor at load time; a record may set it
-explicitly when the anchor repeats.
+explicitly when the anchor repeats. An expected issue about something the
+document lacks (a missing section, a missing caption rule) has no sentence to
+quote: it omits the anchor, names a title instead, and is matched on the title
+alone, wherever the reported issue sits.
 """
 
 from pathlib import Path
@@ -39,7 +44,7 @@ from typing import Optional, Sequence
 
 import yaml
 from inspect_ai.dataset import MemoryDataset, Sample
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from evals_inspectai.common.loaders import resolve_input
 
@@ -67,22 +72,25 @@ class ExpectedIssue(BaseModel):
             "its line bracketed, and title_correct is not scored for the issue."
         ),
     )
-    anchor: str = Field(
+    anchor: Optional[str] = Field(
+        default=None,
         description=(
             "Verbatim text from the document that locates the issue, unique in the "
             "document unless `line` is set. It resolves the line the issue is on, and "
             "the issue counts as detected when a reported issue quotes it (in its "
             "description, long description, suggested action or an edit's original text) "
-            "or brackets its line."
-        )
+            "or brackets its line. Omit for an issue about something the document lacks: "
+            "the issue then needs a title, has no line, and counts as detected when a "
+            "reported issue carries that title, wherever it sits."
+        ),
     )
     id: Optional[str] = Field(
         default=None,
         description=(
             "Short label used in score explanations ('missing studies_identified', "
             "'rates_tracked: 1/2 replacements ...') and to tell expected issues apart. Defaults to "
-            "the anchor, so it must be set when the same anchor is used twice with explicit lines; "
-            "the loader rejects a record whose resolved ids repeat."
+            "the anchor (the title when there is none), so it must be set when the same anchor is "
+            "used twice with explicit lines; the loader rejects a record whose resolved ids repeat."
         ),
     )
     line: Optional[int] = Field(default=None, description="1-indexed document line; resolved from the anchor when omitted")
@@ -107,6 +115,14 @@ class ExpectedIssue(BaseModel):
             "sentence that must not be reported is a decoy, not an optional expected issue."
         ),
     )
+
+    @model_validator(mode="after")
+    def _located_or_titled(self) -> "ExpectedIssue":
+        if self.anchor is None and self.title is None:
+            raise ValueError("an expected issue needs an anchor, a title, or both")
+        if self.anchor is None and self.line is not None:
+            raise ValueError("`line` locates an anchor; an expected issue without one cannot set it")
+        return self
 
 
 class Decoy(BaseModel):
@@ -135,11 +151,30 @@ class InventoryRecord(BaseModel):
     )
     decoys: list[Decoy] = Field(default_factory=list, description="Sentences a correct run leaves alone")
     notes: Optional[str] = Field(default=None, description="Why the record exists or how it was labelled; not scored")
+    target_answer: Optional[str] = Field(
+        default=None,
+        description="Free-text expectation for a model-graded scorer, passed as the sample's target; the checks here ignore it",
+    )
 
 
 class ResolvedIssue(ExpectedIssue):
-    line: int  # type: ignore[assignment]  # resolved, so no longer optional
-    id: str  # type: ignore[assignment]  # defaulted from the anchor, so no longer optional
+    # `line` stays optional: an expected issue without an anchor has none.
+    id: str  # type: ignore[assignment]  # defaulted from the anchor or title, so no longer optional
+
+
+class AnchoredIssue(ResolvedIssue):
+    """A resolved expected issue that has an anchor, so its line is known."""
+
+    anchor: str  # type: ignore[assignment]  # present, so no longer optional
+    line: int  # type: ignore[assignment]  # resolved from the anchor, so no longer optional
+
+
+def anchored(expected: ResolvedIssue) -> AnchoredIssue:
+    """``expected`` typed as having an anchor and a line, for a check that only makes
+    sense on a located issue; raises for an issue about something the document lacks."""
+    if expected.anchor is None or expected.line is None:
+        raise ValueError(f"expected issue {expected.id!r} has no anchor, so it has no line to check")
+    return AnchoredIssue(**expected.model_dump())
 
 
 class ResolvedInventory(BaseModel):
@@ -153,6 +188,7 @@ class ResolvedInventory(BaseModel):
     # kinds with fixed titles. Set by ``load_inventory_records``; the pairing uses it
     # so an untitled expected issue prefers a free-form report over one of these kinds.
     named_titles: list[str] = Field(default_factory=list)
+    target_answer: Optional[str] = None
 
 
 def normalize(text: str) -> str:
@@ -189,15 +225,24 @@ def locate_anchor(lines: list[str], anchor: str, label: str) -> int:
     return hits[0]
 
 
+def _resolve_line(lines: list[str], expected: ExpectedIssue, label: str) -> Optional[int]:
+    """The line an expected issue's anchor sits on, or None when it has no anchor."""
+    if expected.anchor is None:
+        return None
+    line = expected.line or locate_anchor(lines, expected.anchor, f"expected issue {label!r}")
+    if normalize(expected.anchor) not in normalize(lines[line - 1]):
+        raise ValueError(f"expected issue {label!r}: anchor is not on line {line}")
+    return line
+
+
 def resolve_record(record: InventoryRecord) -> ResolvedInventory:
     document = resolve_input(record.input)
     lines = document.split("\n")
     issues = []
     for expected in record.expected_issues:
-        label = expected.id or expected.anchor
-        line = expected.line or locate_anchor(lines, expected.anchor, f"expected issue {label!r}")
-        if normalize(expected.anchor) not in normalize(lines[line - 1]):
-            raise ValueError(f"expected issue {label!r}: anchor is not on line {line}")
+        label = expected.id or expected.anchor or expected.title
+        assert label is not None  # the model requires an anchor or a title
+        line = _resolve_line(lines, expected, label)
         issues.append(ResolvedIssue(**{**expected.model_dump(), "line": line, "id": label}))
     repeated = sorted({i.id for i in issues if sum(1 for j in issues if j.id == i.id) > 1})
     if repeated:
@@ -213,6 +258,7 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         expected_issues=issues,
         decoys=record.decoys,
         notes=record.notes,
+        target_answer=record.target_answer,
     )
 
 
@@ -240,6 +286,19 @@ def expects_titles(records: Sequence[ResolvedInventory]) -> bool:
     return any(e.title is not None for r in records for e in r.expected_issues)
 
 
+def expects_anchors(records: Sequence[ResolvedInventory]) -> bool:
+    """Whether any expected issue in the dataset has an anchor: if none does, every
+    issue is about something the document lacks and ``anchor_in_range`` has nothing
+    to score."""
+    return any(e.anchor is not None for r in records for e in r.expected_issues)
+
+
+def expects_severities(records: Sequence[ResolvedInventory]) -> bool:
+    """Whether any expected issue in the dataset declares a severity: if none does,
+    ``severity_correct`` has nothing to score."""
+    return any(e.severity is not None for r in records for e in r.expected_issues)
+
+
 def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
     """Whether any expected issue in the dataset says something about proposed
     edits (``edit_expected`` or ``edit``): the workflow proposes edits and the
@@ -249,9 +308,14 @@ def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
 
 
 def inventory_to_sample(inventory: ResolvedInventory) -> Sample:
-    """A resolved inventory becomes a Sample whose input is the document and
+    """A resolved inventory becomes a Sample whose input is the document, whose
+    target is the record's free-text expectation (empty when it has none), and
     whose metadata carries the inventory for the scorers."""
-    return Sample(input=inventory.document, target="", metadata={"inventory": inventory.model_dump()})
+    return Sample(
+        input=inventory.document,
+        target=inventory.target_answer or "",
+        metadata={"inventory": inventory.model_dump()},
+    )
 
 
 def inventory_dataset(records: Sequence[ResolvedInventory], path: Path) -> MemoryDataset:

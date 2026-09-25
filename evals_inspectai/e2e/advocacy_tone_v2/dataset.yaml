@@ -1,0 +1,903 @@
+# Eval samples for the advocacy_tone_v2 workflow, in inventory form (see
+# evals_inspectai/common/issue_inventory.py). The workflow reports one issue per genuine occurrence,
+# bracketing the offending sentence, titled by kind: "Trigger Words Detected" (severity low), "Advocacy
+# Language Detected" and "Subjective Tone Detected" (both medium). A sentence the skill must leave alone
+# is a decoy tagged with the carve-out that applies. A sentence that fairly reads as a second kind as well
+# carries that second kind as an optional expected issue (`required: false`). The workflow proposes no
+# edits, so no expectation names one. Every paragraph is on one line, so a sentence never spans lines.
+
+# ---- short report, one Findings sentence swapped (samples 1-14) -------------------------------
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    The intervention obviously works, so further analysis is unnecessary.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: obviously_works
+    title: Trigger Words Detected
+    anchor: The intervention obviously works
+    severity: low
+  - id: unnecessary_analysis_subjective
+    title: Subjective Tone Detected
+    anchor: further analysis is unnecessary
+    severity: medium
+    required: false
+  notes: '''obviously'' asserts certainty with no evidence cited: a trigger word, severity low. ''further analysis
+    is unnecessary'' is also a dismissive evaluative judgment, so a Subjective Tone issue on the same sentence is
+    acceptable but not expected.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    Section 4 of the regulation states that workers must always wear protective equipment when handling hazardous materials.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  decoys:
+  - anchor: workers must always wear protective equipment
+    reason: quoted_regulation
+  notes: Clean. 'always' and 'must' sit inside a factual statement of what a regulation says, the skill's do-not-flag
+    case for factual mentions of legal terms and existing obligations.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    We believe stricter enforcement of these regulations would yield better outcomes overall.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: we_believe
+    title: Advocacy Language Detected
+    anchor: We believe stricter enforcement
+    severity: medium
+  - id: better_outcomes_subjective
+    title: Subjective Tone Detected
+    anchor: would yield better outcomes overall
+    severity: medium
+    required: false
+  notes: '''We believe'' frames a recommendation for stricter enforcement as the authors'' opinion, with no evidence
+    cited: advocacy, medium. ''better outcomes overall'' is an unqualified evaluative claim, so a Subjective Tone
+    issue on the same sentence is acceptable but not expected.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    The results are remarkably impressive, and the team's tireless dedication makes this one of the most exciting breakthroughs the field has ever seen.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: remarkably_impressive
+    title: Subjective Tone Detected
+    anchor: The results are remarkably impressive
+    severity: medium
+  notes: Value judgments and emotional language ('remarkably impressive', 'tireless dedication', 'most exciting
+    breakthroughs') in place of a neutral statement of the result. No listed trigger word or advocacy phrase, so
+    subjective tone, medium.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    The study collected 240 responses from three sites and applied a stratified sampling design.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  notes: Clean. A plain factual sentence with no listed word and no value judgment.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    It is urgent that policymakers act now to close these gaps before the next funding cycle.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: urgent_act_now
+    title: Advocacy Language Detected
+    anchor: It is urgent that policymakers act now
+    severity: medium
+  notes: '''urgent'' and the call to ''act now'' carry the authors'' own push for urgency, with no evidence cited:
+    advocacy, medium.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    Agencies must prioritize funding for these programs above all else.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: agencies_must_prioritize
+    title: Advocacy Language Detected
+    anchor: Agencies must prioritize funding
+    severity: medium
+  - id: above_all_else_subjective
+    title: Subjective Tone Detected
+    anchor: above all else
+    severity: medium
+    required: false
+  notes: '''must'' asserts the authors'' own obligation, not an existing rule, with no evidence cited: advocacy,
+    medium. ''above all else'' is an absolute value judgment, so a Subjective Tone issue on the same sentence is
+    acceptable but not expected.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    Addressing this problem requires a fundamental restructuring of the program.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: requires_restructuring
+    title: Advocacy Language Detected
+    anchor: requires a fundamental restructuring
+    severity: medium
+  notes: '''requires'' states what ought to be done (a restructuring) rather than how something works, with no
+    evidence cited: advocacy, medium.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    It is essential to expand funding for the program.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: essential_to_expand
+    title: Advocacy Language Detected
+    anchor: It is essential to expand funding
+    severity: medium
+  notes: '''essential'' asserts an obligation to expand funding, a position rather than a result, with no evidence
+    cited: advocacy, medium.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    Policymakers must act to ensure equitable access for all recipients.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues:
+  - id: must_act_to_ensure
+    title: Advocacy Language Detected
+    anchor: Policymakers must act to ensure equitable access
+    severity: medium
+  notes: '''must act to ensure'' pushes a recommendation with no evidence cited. It is the authors'' normative push,
+    not the methods-language ''ensure'' that describes how data quality was kept: advocacy, medium.'
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    The analysis focused on critical infrastructure sectors such as energy and water.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  decoys:
+  - anchor: critical infrastructure sectors
+    reason: term_of_art
+  notes: Clean. 'critical infrastructure' is a term-of-art noun phrase the skill names as not flagged.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    The measurement procedure requires two trained operators.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  decoys:
+  - anchor: The measurement procedure requires two trained operators
+    reason: technical_requirement
+  notes: Clean. 'requires' states a technical requirement of a procedure, the skill's own example of a factual use.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    To ensure data quality, all responses were validated against source records.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  decoys:
+  - anchor: To ensure data quality
+    reason: methods_language
+  notes: Clean. Methods-language 'ensure' describing how data quality was kept, the skill's own example.
+- input: |
+    # Operations Research Report
+
+    ## Background
+
+    The study examined operations across three sites between 2018 and 2023. Data were collected via instrumented sensors and quarterly audits.
+
+    ## Findings
+
+    Under the current statute, agencies must submit annual reports.
+
+    ## Methods
+
+    A stratified sampling scheme was applied across the three sites.
+  expected_issues: []
+  decoys:
+  - anchor: agencies must submit annual reports
+    reason: existing_obligation
+  notes: Clean. 'must' describes an obligation under an existing statute, a factual statement rather than the
+    authors' own advocacy.
+
+# ---- several findings of different kinds in one report ----------------------------------------
+- input: |
+    # Eviction Diversion in Three Counties
+
+    ## Summary
+
+    This report examines eviction diversion programs in Adams, Baker, and Clay counties between 2021 and 2024. We compare case outcomes for tenants who entered diversion with those who went directly to a hearing.
+
+    ## Data and Methods
+
+    We obtained court filing records for 8,412 eviction cases and linked them to program enrollment files. To ensure consistent matching, two analysts reviewed every record that linked on name alone.
+
+    We interviewed 22 program staff and 35 tenants. Interview transcripts were coded in two rounds by separate analysts.
+
+    ## Findings
+
+    Tenants who entered diversion were less likely to receive an eviction judgment: 31 percent did, compared with 58 percent of tenants who went directly to a hearing.
+
+    The mediation sessions undoubtedly changed how landlords viewed their tenants.
+
+    Diversion cases took a median of 47 days to close, compared with 29 days for cases that went directly to a hearing.
+
+    ## Discussion
+
+    In our opinion, diversion should replace the standard hearing process in every county in the state.
+
+    The county's earlier approach was heartless, and its record before diversion is a shameful chapter in local history.
+
+    Tenants chose whether to enter diversion, so the comparison may overstate the program's effect.
+  expected_issues:
+  - id: undoubtedly_changed
+    title: Trigger Words Detected
+    anchor: The mediation sessions undoubtedly changed
+    severity: low
+  - id: in_our_opinion
+    title: Advocacy Language Detected
+    anchor: In our opinion, diversion should replace
+    severity: medium
+  - id: heartless
+    title: Subjective Tone Detected
+    anchor: The county's earlier approach was heartless
+    severity: medium
+  decoys:
+  - anchor: To ensure consistent matching
+    reason: methods_language
+  - anchor: the comparison may overstate the program's effect
+    reason: hedged_claim
+  notes: One finding of each kind. 'undoubtedly' asserts a change in landlords' views that nothing in the report
+    measures (trigger, low); 'In our opinion' frames a statewide recommendation as opinion (advocacy, medium);
+    'heartless' and 'shameful chapter' are value judgments with no listed word (subjective tone, medium). The
+    methods 'ensure' and the closing hedge are neutral.
+
+# ---- recommendations: the authors' own push next to a quoted statute ---------------------------
+- input: |
+    # Youth Apprenticeship Funding in the State Workforce System
+
+    ## Introduction
+
+    This report reviews how the state distributed federal youth workforce funds in program years 2020 through 2023, and how many participants completed an apprenticeship.
+
+    ## Data
+
+    We used participant records from all 12 local workforce boards. The registered apprenticeship program requires each apprentice to log 2,000 hours of on-the-job training before completion.
+
+    ## Findings
+
+    Of 3,140 youth enrolled in funded programs, 1,210 (39 percent) completed an apprenticeship within two years.
+
+    Completion was 46 percent in programs with a paid pre-apprenticeship phase and 31 percent in programs without one.
+
+    Local boards spent 78 percent of youth funds on out-of-school youth.
+
+    ## Recommendations
+
+    Under Section 129 of the Workforce Innovation and Opportunity Act, local areas must spend at least 75 percent of youth funds on out-of-school youth.
+
+    The state could add a paid pre-apprenticeship phase to more programs, given the 15-point difference in completion reported above.
+
+    The state must immediately double its apprenticeship budget, whatever the cost.
+
+    It is critical that the legislature act before the 2027 session, or a generation of young workers will be lost.
+  expected_issues:
+  - id: must_double_budget
+    title: Advocacy Language Detected
+    anchor: The state must immediately double its apprenticeship budget
+    severity: medium
+  - id: whatever_the_cost_subjective
+    title: Subjective Tone Detected
+    anchor: whatever the cost
+    severity: medium
+    required: false
+  - id: critical_legislature
+    title: Advocacy Language Detected
+    anchor: It is critical that the legislature act
+    severity: medium
+  - id: generation_lost_subjective
+    title: Subjective Tone Detected
+    anchor: a generation of young workers will be lost
+    severity: medium
+    required: false
+  decoys:
+  - anchor: local areas must spend at least 75 percent
+    reason: existing_obligation
+  - anchor: requires each apprentice to log 2,000 hours
+    reason: existing_obligation
+  - anchor: given the 15-point difference in completion reported above
+    reason: supported_recommendation
+  notes: Two advocacy findings in the Recommendations section, each the authors' own obligation or urgency with
+    no evidence ('must immediately double ... whatever the cost'; 'It is critical that the legislature act').
+    'a generation of young workers will be lost' is also emotional language, and 'whatever the cost' an absolute
+    value judgment like 'above all else' in sample 7, so a Subjective Tone issue on either sentence is acceptable. Next to them, 'must' in the WIOA sentence and 'requires' in Data describe existing
+    rules, and the pre-apprenticeship recommendation rests on the report's own finding, so all three are left alone.
+
+# ---- "the policy clearly states X" versus "X is clearly the best approach" ---------------------
+- input: |
+    # Replacing School Bus Fleets: Options for Riverside Unified
+
+    ## Background
+
+    Riverside Unified operates 64 diesel school buses, 22 of which are more than 15 years old. The state clean transportation plan offers grants to districts that replace diesel buses.
+
+    Section 4.2 of the state clean transportation plan clearly states that grant funds may cover up to 80 percent of the purchase price of an electric bus.
+
+    ## Options
+
+    Option A replaces the 22 oldest buses with new diesel buses at an estimated cost of $3.1 million.
+
+    Option B replaces the same 22 buses with electric buses at an estimated cost of $7.9 million before grants and $2.4 million after grants, plus $600,000 for charging equipment.
+
+    Option C keeps the current fleet and increases maintenance spending by $250,000 a year.
+
+    ## Analysis
+
+    Over a 12-year service life, estimated fuel and maintenance costs are $4.2 million for Option A, $1.9 million for Option B, and $6.0 million for Option C.
+
+    Option B is clearly the best approach for the district.
+
+    Everyone knows that electric buses are safer for children than diesel buses.
+
+    These estimates assume current electricity prices and may change if rates rise.
+  expected_issues:
+  - id: clearly_best
+    title: Trigger Words Detected
+    anchor: Option B is clearly the best approach
+    severity: low
+  - id: best_approach_subjective
+    title: Subjective Tone Detected
+    anchor: the best approach for the district
+    severity: medium
+    required: false
+  - id: everyone_knows
+    title: Advocacy Language Detected
+    anchor: Everyone knows that electric buses are safer
+    severity: medium
+  decoys:
+  - anchor: clearly states that grant funds may cover
+    reason: factual_policy_mention
+  - anchor: may change if rates rise
+    reason: hedged_claim
+  notes: The skill's own pair. 'the plan clearly states that grant funds may cover ...' describes what a policy
+    document says and is left alone; 'Option B is clearly the best approach' is the skill's example of a trigger
+    word (low). 'the best approach', ranked on criteria the report never states, is also a value judgment, so a
+    Subjective Tone issue on that sentence is acceptable, as for 'better outcomes overall' in sample 3.
+    'Everyone knows' asserts a safety claim the report gives no evidence for (advocacy, medium).
+
+# ---- matches inside skipped sections -----------------------------------------------------------
+- input: |
+    # Telehealth Use Among Medicare Beneficiaries, 2020-2023
+
+    ## Summary
+
+    We analyzed claims for 1.2 million Medicare beneficiaries to describe how telehealth visits changed after pandemic-era payment rules took effect.
+
+    ## Findings
+
+    Telehealth visits rose from 0.3 percent of outpatient visits in 2019 to 14 percent in April 2020, then settled near 5 percent in 2023.
+
+    Rural beneficiaries used telehealth less often than urban beneficiaries in each year of the study period.
+
+    Older patients will never be comfortable with video visits.
+
+    ## Acknowledgments
+
+    We are deeply grateful to the extraordinary staff at the Center for Claims Research, without whom this work would never have been possible.
+
+    ## About the Authors
+
+    Dana Whitfield is undoubtedly the foremost expert on Medicare payment policy in the country.
+
+    ## References
+
+    Morales, T. (2022). Why Congress Must Act Now on Telehealth. Health Affairs Forefront.
+
+    ## Appendix A: Data Handling
+
+    ### A.1 Record Linkage
+
+    Analysts must always verify beneficiary identifiers against the enrollment file before linking claims. We believe this step is essential.
+  expected_issues:
+  - id: never_comfortable
+    title: Trigger Words Detected
+    anchor: Older patients will never be comfortable
+    severity: low
+  decoys:
+  - anchor: deeply grateful to the extraordinary staff
+    reason: skipped_section
+  - anchor: undoubtedly the foremost expert
+    reason: skipped_section
+  - anchor: Why Congress Must Act Now on Telehealth
+    reason: skipped_section
+  - anchor: Analysts must always verify beneficiary identifiers
+    reason: skipped_section
+  - anchor: We believe this step is essential
+    reason: skipped_section
+  notes: One finding in the body ('never' as an unsupported universal claim, trigger, low). Every other listed
+    word sits under a heading containing acknowledgment, author, reference or appendix (A.1 is a subsection of
+    Appendix A), which the skill says to skip.
+
+# ---- fully clean: every carve-out in one report -------------------------------------------------
+- input: |
+    # Wait Times at Urgent Care Clinics in the Metro Region
+
+    ## Introduction
+
+    This report describes wait times at 18 urgent care clinics in the metro region between January 2022 and June 2024. It was prepared for the regional health department.
+
+    ## Data
+
+    Clinics reported arrival and discharge times for 412,000 visits. To ensure comparability across clinics, we excluded visits that lacked a discharge time (2.1 percent of records).
+
+    The state reporting rule requires clinics to submit visit logs within 30 days of the end of each quarter.
+
+    ## Methods
+
+    We estimated median wait times by clinic, month, and hour of arrival. Differences between clinics were tested against a critical value of 1.96.
+
+    ## Results
+
+    The median wait was 38 minutes across all clinics. Waits were longest on Monday evenings, when the median reached 61 minutes.
+
+    Eleven percent of patients surveyed had never visited an urgent care clinic before.
+
+    Clinics that added a second triage nurse had median waits 9 minutes shorter than clinics that did not.
+
+    ## Discussion
+
+    These results suggest that triage staffing may affect wait times, although clinics that added a nurse may differ from the others in ways the data do not capture.
+
+    The findings may not apply to clinics outside the metro region, where patient volumes are lower.
+  expected_issues: []
+  decoys:
+  - anchor: 18 urgent care clinics in the metro region
+    reason: term_of_art
+  - anchor: critical value of 1.96
+    reason: term_of_art
+  - anchor: To ensure comparability across clinics
+    reason: methods_language
+  - anchor: requires clinics to submit visit logs
+    reason: existing_obligation
+  - anchor: had never visited an urgent care clinic before
+    reason: descriptive_usage
+  - anchor: suggest that triage staffing may affect wait times
+    reason: hedged_claim
+  notes: Clean. 'urgent care' and 'critical value' are terms of art; 'ensure' is methods language; 'requires'
+    describes an existing reporting rule; 'never' reports a survey count rather than asserting a certainty;
+    the Discussion hedges its claims.
+
+# ---- subjective tone with no listed word --------------------------------------------------------
+- input: |
+    # Library Branch Hours After the 2023 Budget Cuts
+
+    ## Background
+
+    In July 2023 the city reduced library funding by 12 percent. The library system responded by closing six of its 24 branches on Sundays and Mondays.
+
+    ## Findings
+
+    Weekly visits fell by 18 percent at the six branches with reduced hours and by 3 percent at the other branches.
+
+    Children's program attendance at the six branches fell from 2,300 to 1,650 per month.
+
+    The city council's decision was a callous betrayal of the families who depend on these branches.
+
+    Branch managers recorded 410 patron requests for Sunday hours in the first month.
+
+    ## Discussion
+
+    The drop in visits was concentrated in branches that serve neighborhoods with the lowest household incomes.
+
+    The library's leadership handled the cuts with admirable grace and deserves enormous credit.
+
+    It is possible that some patrons moved to branches with unchanged hours; the data do not track individual patrons.
+  expected_issues:
+  - id: callous_betrayal
+    title: Subjective Tone Detected
+    anchor: a callous betrayal of the families
+    severity: medium
+  - id: admirable_grace
+    title: Subjective Tone Detected
+    anchor: handled the cuts with admirable grace
+    severity: medium
+  decoys:
+  - anchor: It is possible that some patrons moved
+    reason: hedged_claim
+  notes: Two subjective-tone findings found only by reading, since neither sentence holds a listed word ('callous
+    betrayal'; 'admirable grace ... enormous credit'). The rest is neutral reporting, and the closing sentence
+    hedges.
+
+# ---- "it is clear that", "ensuring", "always" --------------------------------------------------
+- input: |
+    # Child Care Access for Essential Workers
+
+    ## Introduction
+
+    During the 2020-2021 emergency, the state paid for child care for essential workers such as hospital staff and grocery employees. This report reviews who used the program and what happened when it ended.
+
+    ## Background
+
+    Current state law requires licensed child care centers to keep one staff member for every four infants.
+
+    ## Findings
+
+    About 41,000 children were enrolled at the program's peak in January 2021. Enrollment fell to 9,000 within three months of the program's end.
+
+    Parents who lost the subsidy always return to informal care arrangements.
+
+    It is clear that the program's end drove parents out of the workforce.
+
+    ## Recommendations
+
+    Ensuring that every working family can afford child care should be the state's first priority.
+
+    The state could collect employment data at re-enrollment to measure whether parents stayed employed after a subsidy ends.
+  expected_issues:
+  - id: always_return
+    title: Trigger Words Detected
+    anchor: Parents who lost the subsidy always return
+    severity: low
+  - id: it_is_clear_that
+    title: Advocacy Language Detected
+    anchor: It is clear that the program's end drove parents
+    severity: medium
+  - id: ensuring_priority
+    title: Advocacy Language Detected
+    anchor: Ensuring that every working family can afford child care
+    severity: medium
+  decoys:
+  - anchor: essential workers such as hospital staff
+    reason: term_of_art
+  - anchor: requires licensed child care centers to keep one staff member
+    reason: existing_obligation
+  notes: '''always'' is a universal claim the report has no data for (trigger, low). ''It is clear that'' asserts
+    a causal claim the enrollment counts do not establish (advocacy, medium). ''Ensuring ... should be the state''s
+    first priority'' is the authors'' normative push (advocacy, medium). ''essential workers'' is a term of art and
+    the staffing ratio is an existing legal rule.'
+
+# ---- fully clean: a policy mention, a technical "must", terms of art -------------------------
+- input: |
+    # Vaccine Storage Practices in Rural Pharmacies
+
+    ## Background
+
+    State pharmacy rules set storage conditions for vaccines kept on site. The state vaccine program's storage guide clearly states that refrigerated vaccines must be kept between 2°C and 8°C.
+
+    ## Methods
+
+    We visited 57 pharmacies in 12 rural counties between March and August 2024. Temperature loggers recorded refrigerator temperatures every 15 minutes for 30 days.
+
+    Each logger must be calibrated against a reference thermometer before placement. To ensure accurate readings, loggers were placed in the center of the refrigerator.
+
+    ## Results
+
+    Refrigerators in 49 of the 57 pharmacies stayed within the 2°C to 8°C range for the full 30 days. The remaining eight recorded at least one excursion above 8°C, lasting from 20 minutes to 6 hours.
+
+    Pharmacies that used dedicated vaccine refrigerators recorded no excursions. Those that used household combination units accounted for all eight.
+
+    Two pharmacies reported that they had never received the state's storage guide.
+
+    ## Discussion
+
+    The results suggest that the type of refrigerator may matter more than staff practices, though the sample of pharmacies with household units is small.
+
+    Hospitals in the region store vaccines in critical care units and central pharmacies, which were outside the scope of this study.
+  expected_issues: []
+  decoys:
+  - anchor: clearly states that refrigerated vaccines must be kept
+    reason: factual_policy_mention
+  - anchor: Each logger must be calibrated against a reference thermometer
+    reason: technical_requirement
+  - anchor: To ensure accurate readings
+    reason: methods_language
+  - anchor: had never received the state's storage guide
+    reason: descriptive_usage
+  - anchor: critical care units
+    reason: term_of_art
+  - anchor: the type of refrigerator may matter more than staff practices
+    reason: hedged_claim
+  notes: Clean. The storage guide 'clearly states' a rule (a factual policy mention); the logger 'must be calibrated'
+    is a technical requirement; 'ensure' is methods language; 'never received' reports what two pharmacies said;
+    'critical care units' is a term of art; the Discussion hedges.
+
+# ---- certainty words and opinion framing in one report -----------------------------------------
+- input: |
+    # Four-Day School Weeks in Rural Districts
+
+    ## Introduction
+
+    Since 2015, 31 rural districts in the state have moved to a four-day school week. This report compares attendance, test scores, and teacher retention in those districts with 62 similar districts that kept a five-day week.
+
+    ## Data
+
+    We used state administrative data for school years 2014-15 through 2022-23. Teacher retention is the share of teachers who returned to the same district the following year.
+
+    ## Findings
+
+    Attendance rates were similar in both groups, at 94 percent. Math scores in four-day districts were 0.04 standard deviations lower on average; reading scores did not differ.
+
+    Teacher retention was 86 percent in four-day districts and 81 percent in five-day districts.
+
+    The four-day week will definitely help rural districts recruit teachers in the coming decade.
+
+    ## Discussion
+
+    Without doubt, the small drop in math scores is a price worth paying.
+
+    We believe the state should allow any district to adopt a four-day week without prior approval.
+
+    Parents in several districts told us the extra day was used for medical appointments and family work. We did not survey parents systematically, so these accounts may not be representative.
+  expected_issues:
+  - id: definitely_recruit
+    title: Trigger Words Detected
+    anchor: will definitely help rural districts recruit teachers
+    severity: low
+  - id: without_doubt
+    title: Advocacy Language Detected
+    anchor: Without doubt, the small drop in math scores
+    severity: medium
+  - id: price_worth_paying_subjective
+    title: Subjective Tone Detected
+    anchor: is a price worth paying
+    severity: medium
+    required: false
+  - id: we_believe_four_day
+    title: Advocacy Language Detected
+    anchor: We believe the state should allow any district
+    severity: medium
+  decoys:
+  - anchor: these accounts may not be representative
+    reason: hedged_claim
+  notes: '''definitely'' predicts recruitment gains the retention figures do not establish (trigger, low). ''Without
+    doubt'' presents a trade-off as settled (advocacy, medium); ''a price worth paying'' is also a value judgment,
+    so a Subjective Tone issue on that sentence is acceptable. ''We believe the state should allow'' is an opinion-framed
+    recommendation (advocacy, medium). The parent accounts are hedged.'
+
+# ---- "requires" as a push versus "requires" as a rule or method ------------------------------
+- input: |
+    # Lead Testing in School Drinking Water
+
+    ## Background
+
+    A 2022 state law requires every public school to test each drinking water outlet for lead once every three years.
+
+    ## Methods
+
+    Samples were first-draw samples collected after water had sat in the pipes for at least eight hours. The laboratory method requires a 250-milliliter sample from each outlet.
+
+    Results were compared with the state action level of 5 parts per billion.
+
+    ## Results
+
+    Of 14,200 outlets tested in 610 schools, 1,130 (8 percent) exceeded the action level. At least one outlet exceeded it in 290 schools (48 percent).
+
+    Schools built before 1986 accounted for 91 percent of exceedances.
+
+    Replacing every older fixture would certainly eliminate the problem within two years.
+
+    ## Discussion
+
+    Closing this gap requires an immediate overhaul of how the state funds school building repairs.
+
+    The state's handling of the issue has been appalling, and the officials involved have shown breathtaking indifference to children's health.
+
+    The testing covered only the outlets schools identified, so some outlets may have been missed.
+  expected_issues:
+  - id: certainly_eliminate
+    title: Trigger Words Detected
+    anchor: would certainly eliminate the problem
+    severity: low
+  - id: requires_overhaul
+    title: Advocacy Language Detected
+    anchor: Closing this gap requires an immediate overhaul
+    severity: medium
+  - id: appalling
+    title: Subjective Tone Detected
+    anchor: handling of the issue has been appalling
+    severity: medium
+  decoys:
+  - anchor: A 2022 state law requires every public school
+    reason: existing_obligation
+  - anchor: The laboratory method requires a 250-milliliter sample
+    reason: technical_requirement
+  - anchor: some outlets may have been missed
+    reason: hedged_claim
+  notes: '''certainly'' promises an outcome no data in the report support (trigger, low). ''requires an immediate
+    overhaul'' is the authors'' own call for action (advocacy, medium), while the other two ''requires'' state an
+    existing law and a laboratory method. ''appalling'' and ''breathtaking indifference'' are emotional judgments
+    (subjective tone, medium).'
+
+# ---- an authors' note and a bibliography, "urgent" as a push -----------------------------------
+- input: |
+    # Heat-Related Illness Among Outdoor Workers
+
+    ## A Note from the Authors
+
+    We believe this is the most important workplace safety problem of the next decade, and it is urgent that readers take it seriously.
+
+    ## Summary
+
+    This report uses emergency department records from 2018 to 2023 to describe heat-related illness among outdoor workers in the state.
+
+    ## Findings
+
+    Emergency department visits for heat-related illness among outdoor workers rose from 1,420 in 2018 to 2,310 in 2023. Construction and agriculture accounted for 68 percent of visits.
+
+    Visits were concentrated on hot days: 41 percent of visits occurred on the 9 percent of workdays when the heat index exceeded 100°F.
+
+    Employers absolutely ignore heat warnings when deadlines are tight.
+
+    ## Policy Context
+
+    The state has no heat standard for outdoor work. A federal rule proposed in 2024 would have employers provide shade and rest breaks when the heat index reaches 80°F.
+
+    It is urgent that the state adopt its own heat standard this year.
+
+    ## Bibliography
+
+    Rivera, L. (2023). Heat Is Absolutely the Defining Labor Issue. Labor Studies Quarterly, 12(2), 44-61.
+  expected_issues:
+  - id: absolutely_ignore
+    title: Trigger Words Detected
+    anchor: Employers absolutely ignore heat warnings
+    severity: low
+  - id: urgent_heat_standard
+    title: Advocacy Language Detected
+    anchor: It is urgent that the state adopt its own heat standard
+    severity: medium
+  decoys:
+  - anchor: most important workplace safety problem of the next decade
+    reason: skipped_section
+  - anchor: Heat Is Absolutely the Defining Labor Issue
+    reason: skipped_section
+  notes: '''absolutely'' asserts employer behaviour the records say nothing about (trigger, low); ''It is urgent that
+    the state adopt'' is the authors'' push for urgency (advocacy, medium). The same kinds of wording in ''A Note
+    from the Authors'' and the Bibliography sit under headings containing author and bibliography, which the skill
+    skips.'
+
+# ---- fully clean body; every listed word is in a skipped section -------------------------------
+- input: |
+    # Community College Transfer Rates
+
+    ## Summary
+
+    This report tracks students who started at the state's 16 community colleges in fall 2018 and measures how many transferred to a four-year university within four years.
+
+    ## Findings
+
+    Of 48,300 students in the cohort, 11,600 (24 percent) transferred within four years. Students who completed an associate degree before transferring made up 58 percent of transfers.
+
+    Transfer rates ranged from 14 percent to 37 percent across colleges. Colleges with guaranteed-admission agreements had rates 6 points higher on average, though these colleges also enrolled more students who said they intended to transfer.
+
+    ## Acknowledgments
+
+    We thank the college registrars, who always answered our questions promptly, and the state higher education office, whose support was absolutely essential to this project.
+
+    ## About the Authors
+
+    Priya Raman leads the institute's postsecondary research team. In our opinion, she is the most gifted analyst of her generation.
+
+    ## References
+
+    Lopez, M., and Grant, K. (2020). Transfer Students Must Never Be an Afterthought. Community College Review, 48(3), 201-224.
+  expected_issues: []
+  decoys:
+  - anchor: who always answered our questions promptly
+    reason: skipped_section
+  - anchor: absolutely essential to this project
+    reason: skipped_section
+  - anchor: In our opinion, she is the most gifted analyst
+    reason: skipped_section
+  - anchor: Transfer Students Must Never Be an Afterthought
+    reason: skipped_section
+  notes: Clean. The body is neutral; every trigger word, advocacy phrase and value judgment sits under an
+    Acknowledgments, About the Authors or References heading, which the skill skips.

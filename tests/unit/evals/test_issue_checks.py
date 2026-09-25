@@ -5,10 +5,14 @@ expected hit on the wrong paragraph, a decoy flagged, an edit that drops a
 number or strands a comma, an edit attached where none is expected.
 """
 
+import json
 import math
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 
 import pytest
+from inspect_ai.solver import TaskState
 
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 from evals_inspectai.common.issue_checks import (
@@ -19,15 +23,19 @@ from evals_inspectai.common.issue_checks import (
     decoy_scores,
     issue_detection_scores,
     edit_checks,
+    edits_for,
     extra_edit_scores,
     hit_issue,
+    issues_from_state,
 )
 from evals_inspectai.common.issue_inventory import (
     Decoy,
+    ExpectedIssue,
     InventoryRecord,
     ResolvedIssue,
     ResolvedInventory,
     locate_anchor,
+    inventory_to_sample,
     overlaps,
     resolve_record,
 )
@@ -386,6 +394,103 @@ def test_extra_edit_scores_are_keyed_by_check_name_and_nan_without_edits():
     assert values == {"edit_mentions_team": 1.0}
     values, _ = extra_edit_scores([_issue(description="“Data were collected”")], _inventory([f]), {"mentions_team": lambda e: True})
     assert math.isnan(values["edit_mentions_team"])
+
+
+# --- expected issues without an anchor ---------------------------------------------
+
+
+def _absent(**kw) -> ResolvedIssue:
+    """An expected issue about something the document lacks: a title, no anchor, no line."""
+    return ResolvedIssue(**{"id": "no_results", "title": "Missing Section: Results", **kw})
+
+
+def test_an_expected_issue_needs_an_anchor_or_a_title():
+    with pytest.raises(ValueError, match="an anchor, a title, or both"):
+        ExpectedIssue()
+    with pytest.raises(ValueError, match="cannot set it"):
+        ExpectedIssue(title="Missing Section: Results", line=3)
+
+
+def test_an_expected_issue_without_an_anchor_resolves_to_no_line_and_is_labelled_by_its_title():
+    record = InventoryRecord(input=DOC, expected_issues=[{"title": "Missing Section: Results"}])
+    [expected] = resolve_record(record).expected_issues
+    assert expected.line is None and expected.id == "Missing Section: Results"
+
+
+def test_an_expected_issue_without_an_anchor_is_hit_by_its_title_wherever_the_issue_sits():
+    f = _absent()
+    assert hit_issue(f, [_issue(title="Missing Section: Results", start=1, end=1)]) == 0
+    assert hit_issue(f, [_issue(title="Missing Section: Methods", description="no Results heading", start=1, end=1)]) is None
+
+
+def test_anchorless_expected_issues_are_matched_one_to_one_by_title():
+    results, references = _absent(), _absent(id="no_refs", title="Missing Section: References")
+    issues = [_issue(title="Missing Section: References", start=1, end=1), _issue(title="Missing Section: Results", start=1, end=1)]
+    values, _ = issue_detection_scores(issues, _inventory([results, references]), edits=False, one_to_one=True)
+    assert values["recall"] == 1.0 and values["precision"] == 1.0
+
+
+def test_a_false_positive_beside_an_anchorless_hit_costs_precision():
+    issues = [_issue(title="Missing Section: Results", start=1, end=1), _issue(title="Missing Section: Methods", start=1, end=1)]
+    values, _ = issue_detection_scores(issues, _inventory([_absent()]), edits=False)
+    assert values["recall"] == 1.0 and values["precision"] == 0.5
+
+
+def test_title_and_line_are_not_scored_for_an_expected_issue_without_an_anchor():
+    """Its title is how it was matched and it has no line, so neither says anything about the run."""
+    values, _ = issue_detection_scores([_issue(title="Missing Section: Results", start=1, end=1)], _inventory([_absent()]), edits=False)
+    assert math.isnan(values["title_correct"]) and math.isnan(values["anchor_in_range"])
+
+    anchored = _expected(id="anchored")
+    issues = [_issue(title="Missing Section: Results", start=1, end=1), _issue(description="“Data were collected”", start=1, end=1)]
+    values, note = issue_detection_scores(issues, _inventory([_absent(), anchored]), edits=False)
+    assert values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0, "only the anchored issue is scored"
+    assert "anchored: lines 1-1 do not bracket line 5" in note
+
+
+def test_every_edit_of_the_matching_issue_belongs_to_an_expected_issue_without_an_anchor():
+    edits = [_edit("Data were collected", "The team collected data"), _edit("We then coded", "Then we coded")]
+    assert edits_for(_absent(), _issue(title="Missing Section: Results", edits=edits)) == edits
+
+
+def test_keys_that_cannot_be_scored_are_left_out():
+    assert issue_check_keys(edits=False, anchors=False) == ("recall", "precision", "f0_5", "clean_document_untouched", "severity_correct")
+    assert "severity_correct" not in issue_check_keys(edits=False, severities=False)
+    values, _ = issue_detection_scores(
+        [_issue(title="Missing Section: Results")], _inventory([_absent()]), edits=False, anchors=False, severities=False
+    )
+    assert set(values) == {"recall", "precision", "f0_5", "clean_document_untouched"}
+
+
+def test_the_record_target_answer_becomes_the_sample_target():
+    record = resolve_record(InventoryRecord(input=DOC, target_answer="Report nothing."))
+    assert inventory_to_sample(record).target == "Report nothing."
+    assert inventory_to_sample(resolve_record(InventoryRecord(input=DOC))).target == ""
+
+
+# --- reading issues from the workflow state ---------------------------------------------
+
+
+def _state_with(completion: str) -> TaskState:
+    return cast(TaskState, SimpleNamespace(output=SimpleNamespace(completion=completion)))
+
+
+def test_issues_are_read_from_every_named_result_field_together():
+    state = _state_with(json.dumps({
+        "preface_result": {"issues": [{"title": "Preface: Defines Scope Missing"}]},
+        "authors_result": {"issues": [{"title": "Author Bio Issue: Jane Smith"}, {"title": "Author Bio Issue: John Doe"}]},
+        "result": None,
+    }))
+    issues, error = issues_from_state(state, ("preface_result", "authors_result"))
+    assert error is None
+    assert [i.title for i in issues] == ["Preface: Defines Scope Missing", "Author Bio Issue: Jane Smith", "Author Bio Issue: John Doe"]
+    assert issues_from_state(state) == ([], None), "the default field is null here, so it contributes nothing"
+
+
+def test_an_unparseable_state_is_reported_not_read_as_no_issues():
+    for completion in ("not json", "[]", json.dumps({"result": {"issues": "nope"}})):
+        issues, error = issues_from_state(_state_with(completion))
+        assert issues == [] and error is not None and error.startswith("could not parse the workflow state")
 
 
 # --- edits ------------------------------------------------------------------------
