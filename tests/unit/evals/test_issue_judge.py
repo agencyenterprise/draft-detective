@@ -209,3 +209,20 @@ async def test_default_expected_criterion_prompt_is_unchanged():
 
     assert grader.prompts[0].startswith("You are grading one reviewer issue against one criterion.\n\n[BEGIN DATA]\n************\n[Sentence the issue is about]:")
     assert "[Passage the issue is about]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("passage", ["section", "document"])
+async def test_an_issue_without_an_anchor_is_graded_against_the_whole_report(passage):
+    """It has no line to open a section and no text to quote, so the grader sees the
+    report and is told there is nothing to quote rather than an empty string."""
+    grader = _Grader()
+    absent = ResolvedIssue(id="no_methods", title="Missing Section: Methods")
+    issue = IssueItem(title="Missing Section: Methods", start_line=1, end_line=1, suggested_action="Describe the treaty data.")
+    criterion = JudgeCriterion(key="fits", criterion="Fits the report.", scope="expected", passage=passage)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(absent), [criterion])
+
+    assert values == {"fits": 1.0}
+    assert "[The full report]: # Title" in grader.prompts[0]
+    assert "(nothing: the issue reports that the document lacks something, under the title 'Missing Section: Methods')" in grader.prompts[0]
