@@ -30,6 +30,7 @@ from inspect_ai.solver import TaskState
 from pydantic import BaseModel, ConfigDict
 
 from evals_inspectai.common.issue_checks import (
+    DEFAULT_RESULTS,
     PER_KEY_METRICS,
     edits_for,
     hit_pairs,
@@ -291,17 +292,23 @@ async def judge_sample(
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def judged_criteria(criteria: Sequence[JudgeCriterion], calls: int = 1, one_to_one: bool = False) -> Scorer:
+def judged_criteria(
+    criteria: Sequence[JudgeCriterion],
+    calls: int = 1,
+    one_to_one: bool = False,
+    results: Sequence[str] = DEFAULT_RESULTS,
+) -> Scorer:
     """A workflow's judged criteria, one focused grader call per item.
 
     The grader is Inspect's ``grader`` model role (``--model-role grader=...``),
     falling back to the repo's default grader model. ``calls`` grader calls are
-    made per item and the median grade kept. ``one_to_one`` must match what the
-    workflow's ``issue_checks`` uses, so both layers pair the same reports.
+    made per item and the median grade kept. ``one_to_one`` and ``results`` must
+    match what the workflow's ``issue_checks`` uses, so both layers pair the same
+    reports read from the same state fields.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
-        issues, error = issues_from_state(state)
+        issues, error = issues_from_state(state, results)
         if error:
             return Score(value={c.key: 0.0 for c in criteria}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)

@@ -1,12 +1,15 @@
 # Eval samples for the about_this_ger workflow, in inventory form (see
 # evals_inspectai/common/issue_inventory.py). The workflow runs two validators, preface and authors, and the
-# eval scores their issues together (titles tell them apart). The seed document passes every rule; each
-# other sample removes or breaks one rule. A preface rule that fails is about something the preface lacks,
-# so its issue has no anchor and is matched on its "Preface: <rule> Missing" title; the same goes for a
-# missing preface or authors section. An author issue is anchored on the bio it is about and matched on the
-# stable "Author Bio Issue" part of its title, since the skill puts the author's name after it as written in
-# the bio (with or without "Dr."). The skill gives every issue severity medium. `target_answer` is the
-# free-text expectation the model-graded scorer reads.
+# eval scores their issues together (titles tell them apart). A preface element that fails is about something
+# the preface lacks, so its issue has no anchor and is matched on its "Preface: <rule> Missing" title; the same
+# goes for a missing preface or authors section. An author issue is anchored on the bio it is about and matched
+# on the stable "Author Bio Issue" part of its title, since the skill puts the author's name after it as written
+# in the bio (with or without "Dr."); the eval's own checks read the name. Both skills give every issue severity
+# medium. Where one author fails two rules the skill allows one issue per rule or one combined issue, so the
+# second rule's issue is optional (required: false). Decoys are bios a correct run leaves alone, tagged with the
+# rule that would misfire; each sits on a bio with no expected issue. The skills propose no edits.
+
+# ---- the seed report and its ablations: each breaks one rule -------------------------------
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -28,9 +31,7 @@
 
     Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
   expected_issues: []
-  target_answer: The preface satisfies all six rules (context, objectives, audience, literature, contribution, scope)
-    and both author bios are exactly three sentences with position, affiliation, research focus, and a Ph.D. The
-    agent should report zero issues from both the preface validator and the authors validator.
+  notes: 'Clean seed. The preface establishes context, states objectives, names its audience, cites prior work, states its contribution and defines its scope; both bios are three sentences with a position, an affiliation, a research focus and a Ph.D.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -55,9 +56,7 @@
   - id: establishes_context
     title: 'Preface: Establishes Context Missing'
     severity: medium
-  target_answer: 'The preface does not establish the context or motivation for the study. Objectives, audience,
-    literature situating, contribution, and scope are all present. The author bios are clean. The agent should report
-    exactly one preface issue titled ''Preface: Establishes Context Missing'' and zero author issues.'
+  notes: 'The seed without its context sentence: nothing says why the study was undertaken. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -82,9 +81,7 @@
   - id: explains_objectives
     title: 'Preface: Explains Objectives Missing'
     severity: medium
-  target_answer: 'The preface lacks an explicit statement of the publication''s objectives or research questions.
-    The other five rules are satisfied and both author bios are clean. Expect exactly one preface issue: ''Preface:
-    Explains Objectives Missing''.'
+  notes: 'The seed without its objectives sentence: no aim or research question is stated. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -109,8 +106,7 @@
   - id: identifies_audience
     title: 'Preface: Identifies Audience Missing'
     severity: medium
-  target_answer: 'The preface never names or describes the intended readership. The other five rules pass and the
-    author bios are clean. Expect exactly one preface issue: ''Preface: Identifies Audience Missing''.'
+  notes: 'The seed without its audience sentence: no readership is named or described. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -135,9 +131,7 @@
   - id: situates_within_literature
     title: 'Preface: Situates Within Literature Missing'
     severity: medium
-  target_answer: 'The preface does not reference any prior work or position the study in the existing research landscape.
-    The other five rules pass and the author bios are clean. Expect exactly one preface issue: ''Preface: Situates
-    Within Literature Missing''.'
+  notes: 'The seed without its literature sentence: no prior work or research landscape is mentioned. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -162,9 +156,7 @@
   - id: states_contribution
     title: 'Preface: States Contribution Missing'
     severity: medium
-  target_answer: 'The preface does not articulate a novel contribution, finding, or advance over existing work.
-    The other five rules pass and the author bios are clean. Expect exactly one preface issue: ''Preface: States
-    Contribution Missing''.'
+  notes: 'The seed without its contribution sentence: no new finding, method or advance is claimed. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -189,8 +181,7 @@
   - id: defines_scope
     title: 'Preface: Defines Scope Missing'
     severity: medium
-  target_answer: 'The preface does not define the study''s scope, boundaries, or exclusions. The other five rules
-    pass and the author bios are clean. Expect exactly one preface issue: ''Preface: Defines Scope Missing''.'
+  notes: 'The seed without its scope sentence: no boundaries, limits or exclusions are stated. The other five elements and both bios pass.'
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -211,10 +202,7 @@
   - id: no_preface
     title: No preface section found
     severity: medium
-  target_answer: The document jumps from the title straight into Methodology with no preface, introduction, executive
-    summary, or 'About This' section at all. The author bios are clean. The preface validator should report a single
-    issue 'No preface section found' and skip evaluating the six rules; the authors validator should report zero
-    issues.
+  notes: "The seed with no preface, introduction or About This section: the title leads straight into Methodology. The preface skill reports only 'No preface section found' and evaluates no rule. Both bios pass."
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -240,10 +228,7 @@
     title: Author Bio Issue
     anchor: She also serves on the editorial board
     severity: medium
-  target_answer: 'The preface is clean. John Doe''s bio is exactly three sentences and satisfies all four rules.
-    Jane Smith''s bio is four sentences (one too many) but contains position, affiliation, research focus, and a
-    Ph.D. The agent should report exactly one author issue titled ''Author Bio Issue: Dr. Jane Smith'' identifying
-    the sentence-count failure, and zero preface issues.'
+  notes: "Jane Smith's bio has four sentences (an extra one on an editorial board); it states position, affiliation, research focus and a Ph.D., so only the sentence count fails. John Doe's bio and the preface pass."
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -269,9 +254,7 @@
     title: Author Bio Issue
     anchor: Jane Smith works on a wide range of climate-related topics
     severity: medium
-  target_answer: 'The preface is clean. Doe''s bio is fine. Jane Smith''s bio is three sentences and mentions her
-    Ph.D. and research focus, but never names a position or institutional affiliation. Expect exactly one author
-    issue ''Author Bio Issue: Jane Smith'' identifying the missing position and affiliation, and zero preface issues.'
+  notes: "Jane Smith's bio says she 'works on a wide range of climate-related topics' but names no position or institution, so Rule 2 fails; it is three sentences with a research focus and a Ph.D. The preface and John Doe's bio pass."
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -297,10 +280,7 @@
     title: Author Bio Issue
     anchor: She has authored numerous publications and policy briefs
     severity: medium
-  target_answer: 'The preface is clean. Doe''s bio is fine. Jane Smith''s bio has position, affiliation, three sentences,
-    and a Ph.D., but never describes a research focus, interest area, or area of expertise — it only says she has
-    authored publications and policy briefs. Expect exactly one author issue ''Author Bio Issue: Dr. Jane Smith''
-    identifying the missing research focus, and zero preface issues.'
+  notes: "Jane Smith's bio replaces her research focus with a count of publications, so Rule 3 fails; position, affiliation, three sentences and a Ph.D. are present. The preface and John Doe's bio pass."
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -326,10 +306,7 @@
     title: Author Bio Issue
     anchor: She has authored more than thirty publications
     severity: medium
-  target_answer: 'The preface is clean. Doe''s bio is fine. Jane Smith''s bio has position, affiliation, research
-    focus, and three sentences, but never mentions a highest academic degree (no Ph.D., M.A., M.D., etc.) and does
-    not use a ''Dr.'' honorific. Expect exactly one author issue ''Author Bio Issue: Jane Smith'' identifying the
-    missing degree, and zero preface issues.'
+  notes: "Jane Smith's bio names no degree and carries no 'Dr.', so Rule 4 fails; position, affiliation, research focus and three sentences are present. The preface and John Doe's bio pass."
 - input: |
     # Coastal Adaptation Cost-Effectiveness Study
 
@@ -348,7 +325,342 @@
   - id: no_authors_section
     title: No "About the Authors" section found
     severity: medium
-  target_answer: The preface is clean. There is no 'About the Authors', 'Author Biographies', 'Contributors', or
-    similar section anywhere in the document. The authors validator should report a single issue 'No "About the
-    Authors" section found' (with start_line and end_line both equal to 1, not the whole-document range) and skip
-    evaluating the four bio rules; the preface validator should report zero issues.
+  notes: 'The seed with no author biography section under any heading the skill lists. The authors skill reports only ''No "About the Authors" section found'' and evaluates no rule. The preface passes.'
+
+# ---- reports of their own: several failures, several authors, headings, counting traps ------
+- input: |
+    # Groundwater Pricing and Farm Water Use in the Central Valley
+
+    ## Preface
+
+    Groundwater levels in California's Central Valley have fallen sharply over the past two decades, and the state's 2014 groundwater law now requires local agencies to bring basins into balance. This report sets out to estimate how farmers would change their pumping if agencies charged a per-acre-foot fee, and to identify fee levels that would meet sustainability targets. It builds on earlier work by Bruno and Jessoe (2021), who estimated the price elasticity of agricultural water demand from electricity records, and on the Public Policy Institute of California's basin-level assessments. Its main contribution is a field-level demand model that links pumping records to crop choices, which earlier studies could only approximate at the district level.
+
+    ## Data and Methods
+
+    We combined metered pumping records for 1,840 fields in three groundwater sustainability agencies with satellite crop maps for 2016–2023. A discrete-continuous choice model estimates how crop mix and irrigation intensity respond to the marginal cost of water.
+
+    ## Findings
+
+    A fee of $60 per acre-foot would reduce pumping by an estimated 14 percent, mostly by shifting fields from alfalfa to fallow or to less water-intensive crops. Permanent crops such as almonds responded little in the short run.
+
+    ## About the Authors
+
+    Dr. Luis Herrera is a senior economist at the Western Water Policy Center. His research focuses on agricultural water markets and groundwater regulation. He holds a Ph.D. in agricultural and resource economics from the University of California, Davis.
+
+    Megan Ishikawa is a policy analyst at the Western Water Policy Center. Her work centres on how local agencies design and enforce groundwater allocations. She received an M.A. in public policy from the University of Chicago.
+  expected_issues:
+  - id: audience
+    title: 'Preface: Identifies Audience Missing'
+    severity: medium
+  - id: scope
+    title: 'Preface: Defines Scope Missing'
+    severity: medium
+  notes: Two preface elements fail at once, under the "Preface" heading. The preface gives the context (falling
+    groundwater, the 2014 law), the objectives, prior work (Bruno and Jessoe, PPIC) and the contribution (a
+    field-level model), but names no readership and states no boundary or exclusion; the three agencies and the
+    study years appear only in Data and Methods, not in the preface. Both bios pass.
+- input: |
+    # Hospital Price Transparency Compliance, 2021–2024
+
+    ## Introduction
+
+    Federal rules have required hospitals to post their negotiated prices online since January 2021, yet early audits found that many hospitals posted incomplete or unusable files. This report assesses how far hospital compliance has improved and whether posted prices can support comparison shopping by patients. It is written for federal and state regulators, health plan benefit designers and patient advocates who rely on these files. It extends the compliance audits published by Turquoise Health and by Jiang et al. (2023), which examined only the first year of the rule. The report's contribution is the first four-year panel of compliance scores, built with a scoring method that separates missing files from files that are present but unusable. The analysis covers general acute-care hospitals in the 20 most populous states and does not assess price accuracy, critical-access hospitals or ambulatory surgery centres.
+
+    ## Approach
+
+    We downloaded each hospital's machine-readable file every six months and scored it against the rule's required data elements.
+
+    ## Results
+
+    Full compliance rose from 21 percent of hospitals in 2021 to 58 percent in 2024. Files that were present but unusable remained common among hospitals in large systems.
+
+    ## Contributors
+
+    Dr. Rachel Adeyemi is a health economist at the Northgate Health Policy Institute. Her research examines hospital pricing and insurer–provider bargaining. She holds a Ph.D. in health policy from Harvard University.
+
+    Kevin Marsh is a research associate at the Northgate Health Policy Institute, where he studies price transparency regulation. He built the compliance scoring tool used in this report.
+
+    Sofia Lindqvist is a data scientist at the Northgate Health Policy Institute. Her work focuses on large-scale collection and cleaning of health care price data. She earned an M.S. in statistics from the University of Washington.
+  expected_issues:
+  - id: marsh_sentence_count
+    title: Author Bio Issue
+    anchor: He built the compliance scoring tool
+    severity: medium
+  - id: marsh_degree
+    title: Author Bio Issue
+    anchor: Kevin Marsh is a research associate
+    severity: medium
+    required: false
+  notes: One author fails two rules, under the "Introduction" and "Contributors" headings. Kevin Marsh's bio has
+    two sentences (position, affiliation and research focus all sit in the first) and names no degree, so the
+    sentence count and the highest degree both fail. The skill lets the run report one issue per failed rule or
+    one issue listing both, so the degree issue is optional; a split run matches both, a combined one matches the
+    sentence-count issue. The preface and the other two bios pass.
+- input: |
+    # Eviction Filings After the End of Pandemic Protections
+
+    ## About This Report
+
+    When federal and state eviction moratoria expired in 2021 and 2022, housing advocates warned of a surge in filings, but courts in different states reported sharply different trends. This report aims to measure how eviction filings changed after the moratoria ended and which local policies were associated with smaller increases. It is intended for state and local housing officials, court administrators and legal aid organizations. It draws on the Eviction Lab's national filing series and on earlier evaluations of right-to-counsel programmes in New York City and San Francisco. The report contributes new court-record data for 38 counties that had no public filing series before 2023. It covers residential eviction filings from January 2019 through December 2024 and does not examine informal evictions or commercial tenancies.
+
+    ## Data
+
+    We collected docket-level filing records from 38 county courts and matched them to local policy changes.
+
+    ## Findings
+
+    Filings returned to 85 percent of their prepandemic level by 2024. Counties with emergency rental assistance or right-to-counsel programmes saw smaller rebounds.
+
+    ## About the Authors
+
+    Dr. Aisha Rahman is a senior policy researcher at the Urban Housing Research Center. Her research focuses on housing instability, eviction and emergency rental assistance. She holds a Ph.D. in sociology from Princeton University.
+
+    Daniel Kowalski is a staff attorney and senior fellow at the Urban Housing Research Center. He studies how procedural rules in housing courts, e.g., notice periods and mediation requirements, shape case outcomes. He holds a J.D. from Georgetown University Law Center.
+
+    Grace Liu is an associate policy researcher at the Urban Housing Research Center. She has contributed to several of the center's reports and presented at national conferences. She received an M.P.P. from the University of Michigan.
+
+    Dr. Tomás Ferreira is a senior statistician at the Urban Housing Research Center. His expertise lies in record linkage and small-area estimation for administrative court data. He earned a Ph.D. in biostatistics from Johns Hopkins University.
+  expected_issues:
+  - id: liu_research_focus
+    title: Author Bio Issue
+    anchor: She has contributed to several of the center's reports
+    severity: medium
+  decoys:
+  - anchor: He studies how procedural rules in housing courts
+    reason: abbreviation_periods
+    title: Author Bio Issue
+  notes: Four authors, the third failing. Grace Liu's bio gives a position, an affiliation, three sentences and
+    an M.P.P., but says only that she contributed to reports and presented at conferences, with no research
+    focus, so Rule 3 fails. Daniel Kowalski's bio is three sentences once "e.g.," and "J.D." are not taken as
+    sentence ends. The other bios and the preface pass.
+- input: |
+    # Four-Day School Weeks in Rural Missouri
+
+    ## About This Publication
+
+    Over the past decade, more than a quarter of Missouri's school districts have moved to a four-day week, most citing tight budgets and difficulty recruiting teachers. This publication aims to estimate how the switch affected student achievement, teacher retention and district spending. It is written for school board members, state education officials and legislators weighing limits on the practice. Its contribution is a comparison of districts that adopted the four-day week with similar districts that did not, using six years of data from before and after adoption. The analysis is limited to rural districts that switched between 2017 and 2021 and does not address urban or suburban districts or effects on families' child-care costs.
+
+    ## Method
+
+    We matched 61 adopting districts to 122 comparison districts on enrollment, spending and prior test scores and compared their trends.
+
+    ## Results
+
+    Achievement growth in mathematics was slightly slower in adopting districts, while teacher turnover fell by four percentage points. Spending savings averaged less than 2 percent.
+
+    ## About the Author
+
+    Nathan Brooks is a policy researcher at the Heartland Education Policy Institute. His research focuses on school finance and the rural teacher labor market. He holds an M.P.P. from the Harris School of Public Policy at the University of Chicago.
+  expected_issues:
+  - id: literature
+    title: 'Preface: Situates Within Literature Missing'
+    severity: medium
+  decoys:
+  - anchor: Nathan Brooks is a policy researcher
+    reason: professional_degree
+    title: Author Bio Issue
+  notes: A single author under "About the Author", and a preface under "About This Publication" that states
+    context, objectives, audience, contribution and scope but mentions no prior study or research landscape, so
+    Rule 4 of the preface fails. Nathan Brooks's bio passes; an M.P.P. is his highest degree, and the skill asks
+    for the highest academic degree, not a doctorate.
+- input: |
+    # Wildfire Smoke and Outdoor Worker Health in Oregon
+
+    ## Executive Summary
+
+    Wildfire smoke now reaches hazardous levels in Oregon for several weeks most summers, and the state adopted a permanent smoke-exposure rule for outdoor workers in 2022. This report aims to assess whether that rule reduced smoke-related illness among farm and construction workers during its first two fire seasons. It is intended for occupational safety regulators, employers of outdoor workers and worker advocacy groups. It builds on California's evaluations of its 2019 emergency smoke standard and on the epidemiological literature linking fine particulate matter to acute respiratory illness. The report provides the first estimate of the rule's effect on workers' compensation claims and emergency visits, using claims linked to daily smoke forecasts. It covers the 2022 and 2023 fire seasons and agricultural and construction workers only, and it does not assess indoor workers or long-term health effects.
+
+    ## Methods
+
+    We linked workers' compensation claims and emergency department visits to county-level daily air quality readings and compared smoke days before and after the rule took effect.
+
+    ## Findings
+
+    Smoke-related respiratory claims on hazardous air days fell by roughly a third after the rule took effect. Compliance with respirator provision was lowest among small agricultural employers.
+
+    ## Author Biographies
+
+    Dr. Hannah Okoro is an occupational epidemiologist at the Pacific Northwest Environmental Health Institute. Her research covers heat and smoke exposure among outdoor workers, e.g., farmworkers and wildland firefighters. She holds an M.P.H. from Emory University and a Ph.D. in epidemiology from the University of Washington.
+
+    Marcus Bell is a senior policy analyst at the Pacific Northwest Environmental Health Institute, where he works with Dr. Okoro on workplace safety standards. His work focuses on the design and enforcement of occupational safety regulation, i.e., how rules are written, inspected and penalised. He received a B.A. in economics from Reed College and an M.A. in public policy from Oregon State University.
+
+    Dr. Yuki Tanaka is an assistant professor of environmental health at Oregon State University. She studies how low-cost sensors and satellite estimates can improve air pollution exposure assessment. She earned her Ph.D. in environmental engineering from Stanford University.
+  expected_issues: []
+  decoys:
+  - anchor: Dr. Hannah Okoro is an occupational epidemiologist
+    reason: abbreviation_periods
+    title: Author Bio Issue
+  - anchor: Marcus Bell is a senior policy analyst
+    reason: abbreviation_periods
+    title: Author Bio Issue
+  notes: Clean, under the "Executive Summary" and "Author Biographies" headings. Each bio is three sentences once
+    the abbreviations are read as the skill says (Dr., e.g., i.e., M.P.H., Ph.D., B.A., M.A.); "Dr. Okoro" inside
+    Marcus Bell's first sentence is followed by a capital and is still no sentence end. The preface states all six
+    elements.
+- input: |
+    # Broadband Subsidies and Rural Telehealth Use
+
+    ## About This Report
+
+    Rural hospitals and clinics expanded telehealth rapidly during the pandemic, but many patients in their service areas lacked a home broadband connection fast enough for video visits. This report aims to estimate whether the federal Affordable Connectivity Program increased telehealth use among rural Medicare beneficiaries. It is intended for federal broadband and health officials, rural health networks and state broadband offices deciding whether to fund successor programs. It builds on the Federal Communications Commission's broadband deployment reports and on prior studies of the digital divide in telehealth, such as Chen and Wu (2022). The report contributes the first link between program enrollment by zip code and Medicare telehealth claims. It covers rural zip codes in 12 states from 2021 through 2023 and does not examine audio-only visits or private insurance claims.
+
+    ## Methods
+
+    We compared changes in telehealth claims across zip codes with high and low program enrollment, controlling for provider availability.
+
+    ## Findings
+
+    Zip codes in the top quartile of enrollment saw telehealth video visits rise 11 percent faster than those in the bottom quartile. Effects were largest for behavioral health visits.
+
+    ## About the Authors
+
+    Dr. Olivia Grant is a senior health services researcher at the Rural Health Policy Center. Her research focuses on access to care in rural areas and the adoption of telehealth. She holds a Ph.D. in health services research from the University of Minnesota.
+
+    Ethan Cole is a policy analyst at the Rural Health Policy Center. His work centres on broadband policy and federal subsidy programs. He holds an M.P.A. from Syracuse University.
+
+    Priya Nair provided research assistance.
+  expected_issues: []
+  decoys:
+  - anchor: Priya Nair provided research assistance
+    reason: short_paragraph
+    title: Author Bio Issue
+  notes: Clean. The author section ends with a 39-character line crediting a research assistant; the skill says
+    to ignore paragraphs shorter than about 50 characters, so it is no bio and gets no issue. Both real bios and
+    the preface pass (an M.P.A. is Ethan Cole's highest degree).
+- input: |
+    # Container Port Congestion and Retail Prices
+
+    ## About This Report
+
+    In 2021 and 2022, backlogs at the ports of Los Angeles and Long Beach left hundreds of container ships waiting offshore, and retailers warned that shipping delays would push up shelf prices. This report aims to measure how much of the rise in retail goods prices during that period can be attributed to port congestion. It is written for trade and transportation policymakers, port authorities and economists who study inflation. It builds on the Federal Reserve Bank of New York's Global Supply Chain Pressure Index and on recent studies of shipping costs and import prices. The report contributes estimates at the product level, linking container dwell times to price changes for 240 imported goods. It covers goods imported through West Coast ports between 2019 and 2023 and does not address air freight or services prices.
+
+    ## Approach
+
+    We matched vessel-level dwell times to customs records and scanner price data for imported consumer goods.
+
+    ## Findings
+
+    Port congestion accounts for roughly one-fifth of the increase in prices of imported durable goods in 2021. Its effect faded within six months of backlogs clearing.
+
+    ## About the Authors
+
+    Dr. Samuel Osei is a senior fellow at the Center for Trade and Logistics Research. His research focuses on maritime shipping, port operations and supply chain resilience. He previously advised the federal Maritime Administration on port investment priorities.
+
+    Laura Jensen is an economist at the Center for Trade and Logistics Research. She studies import prices and the pass-through of shipping costs to consumers. She holds an M.S. in economics from the London School of Economics.
+  expected_issues:
+  - id: osei_degree
+    title: Author Bio Issue
+    anchor: Dr. Samuel Osei is a senior fellow
+    severity: medium
+  notes: Samuel Osei is styled "Dr." but his bio names no degree. Rule 4 asks the bio to mention the highest
+    academic degree, with named degrees as examples (Ph.D., M.A., M.D.); the skill lists "Dr." only among
+    abbreviations that do not end a sentence, and the title does not say which doctorate he holds, so Rule 4
+    fails. Laura Jensen's bio and the preface pass.
+- input: |
+    # Congestion Pricing and Transit Ridership in Stockholm and London
+
+    ## Preface
+
+    New York City began charging vehicles to enter lower Manhattan in January 2025, and other large cities are considering similar charges, yet evidence on how congestion pricing affects public transit comes mostly from the first years of European schemes. This report aims to estimate how transit ridership changed in Stockholm and London in the decade after each city introduced congestion charges, and what drove those changes. It is intended for city transportation officials, transit agency planners and state legislators considering congestion pricing. It builds on Eliasson's (2014) evaluation of the Stockholm trial and on Transport for London's annual monitoring reports, which cover only the first years of each scheme. The report's contribution is a consistent ten-year comparison of the two cities that separates the effect of the charge from fare changes and service expansions. It covers bus and rail ridership within each charging zone and does not examine air quality, retail sales or equity effects.
+
+    ## Methods
+
+    We assembled monthly ridership by line for both cities and used synthetic control methods to estimate ridership without the charge.
+
+    ## Findings
+
+    Transit ridership into the charging zones was 6 to 9 percent higher after ten years than the synthetic controls predicted. About half of the gain in London came from bus service added with charge revenue.
+
+    ## The Authors
+
+    Dr. Ingrid Svensson is a professor of transport economics at the Nordic Institute for Urban Studies. Her research focuses on road pricing, public transit demand and the evaluation of urban transport policy. She holds a Ph.D. in economics from the Stockholm School of Economics.
+
+    James Whitfield is a senior transport planner at the Metropolitan Mobility Research Group in London. His work centres on transit service planning and the use of congestion charge revenue. He earned an M.Sc. in transport planning from University College London.
+  expected_issues: []
+  notes: Clean, on a different topic, under the "Preface" and "The Authors" headings. The preface states context,
+    objectives, audience, prior work, contribution and scope; both bios are three sentences with a position, an
+    affiliation, a research focus and a named degree.
+- input: |
+    # School Meal Participation After Universal Free Meals in Maine
+
+    ## Introduction
+
+    Maine became one of the first states to offer free school breakfast and lunch to every student regardless of income in 2022, after federal pandemic waivers expired. Advocates argued that removing means testing would reduce stigma and paperwork, while critics questioned the cost. This report is intended for state education and agriculture officials, school nutrition directors and legislators in states considering similar programs. It builds on evaluations of the federal Community Eligibility Provision, which found that universal meals raised participation in high-poverty schools. Its contribution is the first statewide analysis covering every district, including the low-poverty districts that community eligibility never reached. It covers the 2019–20 through 2023–24 school years and does not examine meal quality or student health outcomes.
+
+    ## Data
+
+    We used monthly meal counts reported by every Maine school food authority, linked to enrollment and district poverty rates.
+
+    ## Results
+
+    Lunch participation rose from 51 percent to 69 percent of enrolled students, with the largest gains in districts where fewer than 30 percent of students had previously qualified for free meals.
+  expected_issues:
+  - id: objectives
+    title: 'Preface: Explains Objectives Missing'
+    severity: medium
+  - id: no_authors_section
+    title: No "About the Authors" section found
+    severity: medium
+  notes: Both validators fail. The "Introduction" preface gives context, audience, prior work, contribution and
+    scope, but states no aim, goal or research question, so Rule 2 fails. The report has no author biography
+    section, so the authors skill reports only the 'section not found' issue.
+- input: |
+    # Community College Dual Enrollment in Texas
+
+    ## About This Report
+
+    This report aims to estimate whether taking community college courses in high school raises the chance that Texas students complete a college credential within six years. It is intended for state higher education officials, school district leaders and community college administrators who set dual-enrollment policy. It builds on An's (2013) national estimates of dual-enrollment effects and on the Community College Research Center's studies of dual-enrollment pathways. The report contributes separate estimates for students from low-income families and for students in rural districts. It covers students who graduated from Texas public high schools between 2012 and 2016 and does not examine career and technical education courses taken outside a college.
+
+    ## Methods
+
+    We followed each graduating cohort for six years using linked state education and workforce records and compared dual-enrollment students with similar classmates.
+
+    ## Findings
+
+    Dual-enrollment students were 9 percentage points more likely to earn a credential within six years, and the gap was largest for low-income students.
+
+    ## About the Authors
+
+    Dr. Elena Vasquez is a senior policy researcher at the Texas Education Research Consortium. Her research focuses on college access and the transition from high school to college. She holds a Ph.D. in education policy from the University of Texas at Austin.
+
+    Brian Holloway is a senior economist with more than fifteen years of experience in education research. His work examines the returns to community college credentials and workforce training. He holds a Ph.D. in labor economics from Texas A&M University.
+
+    Nadia Farouk is a research analyst at the Texas Education Research Consortium. She studies how school districts partner with community colleges to deliver dual-enrollment courses. She earned an M.A. in sociology from Rice University.
+  expected_issues:
+  - id: context
+    title: 'Preface: Establishes Context Missing'
+    severity: medium
+  - id: holloway_affiliation
+    title: Author Bio Issue
+    anchor: Brian Holloway is a senior economist
+    severity: medium
+  notes: Both validators fail. The preface opens with its aim and never says why the study was undertaken (no
+    problem, gap or situation), so Rule 1 fails. Brian Holloway's bio names a position (senior economist) but no
+    institution; Texas A&M is where he took his degree, not an affiliation, and the skill asks for both, so Rule 2
+    fails. The other two bios pass.
+- input: |
+    # State Data Breach Notification Laws and Consumer Harm
+
+    ## About This Report
+
+    Every state now requires companies to notify consumers after a data breach, but the laws differ widely in their deadlines, their definitions of personal information and whether they require notice to a state regulator. This report aims to assess whether stricter notification requirements are associated with lower rates of identity theft after breaches. It is intended for state legislators, attorneys general and privacy regulators revising their breach laws. It builds on Romanosky, Telang and Acquisti's (2011) study of breach laws and identity theft and on the National Conference of State Legislatures' compilations of state statutes. The report contributes a new index of statutory strictness that codes 14 provisions of each state's law as amended through 2024. It covers breaches reported between 2015 and 2024 and does not examine federal sector-specific rules such as those for health or financial data.
+
+    ## Methods
+
+    We coded each state's statute and linked the index to identity theft reports filed with the Federal Trade Commission.
+
+    ## Findings
+
+    States in the strictest third of the index had 12 percent fewer identity theft reports per breached record than states in the most lenient third. Short notification deadlines mattered more than notice to regulators.
+
+    ## About the Author
+
+    Caroline Mercer is a senior policy fellow at the Center for Technology and Law. Her research focuses on consumer privacy law and state regulation of data security. She holds a J.D. from Yale Law School.
+  expected_issues: []
+  decoys:
+  - anchor: Caroline Mercer is a senior policy fellow
+    reason: professional_degree
+    title: Author Bio Issue
+  notes: Clean, a single author under "About the Author". Caroline Mercer's bio is three sentences with a position,
+    an affiliation, a research focus and a J.D., her highest degree; "J.D." ends the last sentence and is no extra
+    break. The preface states all six elements.

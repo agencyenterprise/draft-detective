@@ -4,11 +4,17 @@
 #
 # An issue about one element is anchored where it sits: an untitled label or unlabeled table on that line, an
 # unreferenced figure or table on its caption, a missing one on the body sentence that cites it. It is matched
-# on the stable part of its title (the rule), since the skill fills in the label itself. A numbering issue
-# concerns the sequence as a whole and could reasonably sit on any of the figures involved, so it has no anchor
-# and is matched on "Inconsistent Numbering" alone. Decoys are elements a correct run leaves alone, tagged with
-# the rule exception that applies. The skill sets no severity. `target_answer` is the free-text expectation the
-# model-graded scorer reads.
+# on the stable part of its title (the rule), since the skill fills in the label itself; the label the anchor
+# carries is what the title check in criteria.py expects the title to name. A numbering issue concerns the
+# sequence as a whole and could reasonably sit on any of the figures involved, so it has no anchor and is
+# matched on "Inconsistent Numbering" alone. Decoys are elements a correct run leaves alone, tagged with the
+# rule exception that applies; a decoy with a title is flagged only by an issue of that kind.
+#
+# Severity follows the issues skill where its scale names the finding: a body reference to a figure or table
+# the document lacks is a broken or unresolvable reference (high); an unreferenced figure or table and
+# inconsistent numbering are medium. A missing title fits neither description squarely ("absent mandatory
+# element" or "rule violation that affects readability"), so its severity is not checked. The skill proposes
+# no edits, so no record says anything about edits.
 - input: |
     # Urban Mobility Survey: Annual Report
 
@@ -56,9 +62,8 @@
 
     Investment in transit infrastructure reduced car dependency across all three districts.
   expected_issues: []
-  target_answer: The document has two figures (Figure 1, Figure 2) and one table (Table 1). All three have descriptive
-    titles, are numbered sequentially, and all body references resolve to elements that exist in the document. The
-    agent should report zero issues.
+  notes: Clean. Two figures and one table, each captioned, numbered in sequence and cited in the body; every body
+    reference resolves.
 - input: |
     # Quarterly Sales Performance Report
 
@@ -96,9 +101,8 @@
   - id: figure_2_untitled
     title: Figure/Table Missing Title
     anchor: 'Figure 2:'
-  target_answer: 'Figure 1 has a proper descriptive title. Figure 2 is labelled only as ''Figure 2:'' with no descriptive
-    title or caption following the label — the label appears alone on a line with nothing after the colon. The agent
-    should report exactly one issue: ''Figure/Table Missing Title: Figure 2''.'
+  notes: Figure 2 is labelled only 'Figure 2:' with nothing after the colon, so it has no title (Rule 1). Figure 1
+    is fine.
 - input: |
     # Biodiversity Survey: Wetland Species Inventory
 
@@ -147,11 +151,10 @@
   expected_issues:
   - id: table_2_unreferenced
     title: Unreferenced Figure/Table
+    severity: medium
     anchor: 'Table 2: Seasonal species occurrence index'
-  target_answer: 'Figure 1 and Table 1 each have proper titles and are referenced in their respective sections.
-    Table 2 has a descriptive title and is properly numbered, but it is never cited or mentioned anywhere in the
-    body text — the Seasonal Patterns section introduces the section without a callout such as ''see Table 2'' or
-    ''as shown in Table 2''. The agent should report exactly one issue: ''Unreferenced Figure/Table: Table 2''.'
+  notes: 'Table 2 is titled and numbered but never cited: the Seasonal Patterns section introduces the topic without
+    a callout (Rule 3). Figure 1 and Table 1 are fine.'
 - input: |
     # Water Quality Assessment: Industrial Zone Study
 
@@ -195,39 +198,35 @@
   expected_issues:
   - id: figure_2_missing
     title: Missing Figure/Table
+    severity: high
     anchor: Figure 2 provides a comparison of dissolved oxygen
   - id: table_2_missing
     title: Missing Figure/Table
+    severity: high
     anchor: Table 2 details the heavy metal concentrations
-  target_answer: 'Table 1 and Figure 1 exist in the document with proper titles and callouts in their respective
-    sections. The ''Dissolved Oxygen and Heavy Metals'' section references Figure 2 and Table 2 but neither exists
-    in the document. The agent should report exactly two issues: ''Missing Figure/Table: Figure 2'' and ''Missing
-    Figure/Table: Table 2''.'
+  notes: 'The Dissolved Oxygen and Heavy Metals section cites Figure 2 and Table 2, neither of which exists (Rule
+    4): one missing-element issue each, on the citing sentence. Table 1 and Figure 1 are fine.'
 - input: file://files/RAND_RRA4036-1.md
   expected_issues: []
   decoys:
   - anchor: TABLE 3.1
     reason: conversion_artifact
-  target_answer: The RAND biodefense report uses chapter-based numbering (TABLE S.1, FIGURE 2.1, TABLE 3.1, TABLE
-    3.2, etc.) which is a valid consistent scheme. TABLE 3.1 has a bare label on one line but is immediately followed
-    by the section heading 'Common Interventions to Prevent Vital Worker Incapacitation from Biological Threats',
-    which serves as its title — this is a PDF-to-markdown conversion artefact rather than a genuine missing caption.
-    All figures and tables are referenced in the body text and no body references point to non-existent elements.
-    The agent should report zero issues.
+  notes: Clean. A published report with chapter numbering (TABLE S.1, FIGURE 2.1, TABLE 3.1 ...), a valid scheme.
+    TABLE 3.1's bare label is followed by a heading that serves as its title, a PDF-to-markdown artefact rather than
+    a missing caption. Every element is cited and every citation resolves.
 - input: file://files/RAND_RRA4636-1.md
   expected_issues:
   - id: figure_12_unreferenced
     title: Unreferenced Figure/Table
+    severity: medium
     anchor: Figure 12. The major trade partners of the US in 2024
   decoys:
   - anchor: Benchmark performances of GPT3, GPT-4 and GPT-5
     reason: referenced_in_body
-  target_answer: 'The RAND Europe AGI report has twelve figures (Figure 1–12), all with descriptive titles and sequential
-    numbering. Figures 1–11 are each cited in the body text with an explicit callout. Figure 12 (''The major trade
-    partners of the US in 2024'') appears in the document but is never explicitly referenced in the body text —
-    the surrounding text discusses EU trade weight in general terms without a callout such as ''see Figure 12''.
-    Figure 12 is also absent from the table of figures. The agent should report exactly one issue: ''Unreferenced
-    Figure/Table: Figure 12''. Figure 2 is cited in the body text (''see Figure 2'') and must not be flagged.'
+  notes: A published report with twelve captioned, sequentially numbered figures. Figures 1-11 are cited in the body;
+    Figure 12 ('The major trade partners of the US in 2024') is not, the surrounding text discussing EU trade weight
+    without a callout, and it is also absent from the list of figures (Rule 3). Figure 2 is cited ('see Figure 2')
+    and must not be flagged.
 - input: |
     # Renewable Energy Adoption: Regional Overview
 
@@ -276,10 +275,9 @@
   expected_issues:
   - id: figure_2_twice
     title: Inconsistent Numbering
-  target_answer: 'The document has three figures but only two distinct numbers — Figure 1 (survey regions) appears
-    once, and Figure 2 is used twice: once for solar installation rates and once for wind installation rates. Both
-    uses of Figure 2 have descriptive titles and are referenced in their respective sections. The agent should report
-    exactly one issue: ''Inconsistent Numbering: Figure 2 appears twice''.'
+    severity: medium
+  notes: Figure 2 is used twice, for solar and for wind installation rates, so three figures carry two numbers (Rule
+    2). Both are captioned and cited.
 - input: |
     # Urban Air Quality Report: Multi-City Study
 
@@ -343,11 +341,9 @@
   expected_issues:
   - id: figure_3_before_2
     title: Inconsistent Numbering
-  target_answer: 'The document has four figures (Figure 1, Figure 2, Figure 3, Figure 4), all with descriptive titles
-    and all referenced in their respective sections. All four numbers are present with no gaps. However, the figures
-    do not appear in numerical order — Figure 3 (PM2.5 concentrations) appears in the document before Figure 2 (NO2
-    concentrations). The agent should report exactly one issue: ''Inconsistent Numbering: Figures are out of order
-    (Figure 3 appears before Figure 2)''.'
+    severity: medium
+  notes: All four figures are present, captioned and cited with no gap, but Figure 3 (PM2.5) appears before Figure
+    2 (NO2), so the sequential scheme is out of order (Rule 2).
 - input: |
     # Coastal Erosion Study: Annual Monitoring Report
 
@@ -394,10 +390,9 @@
   expected_issues:
   - id: figure_3_skipped
     title: Inconsistent Numbering
-  target_answer: 'The document has three figures (Figure 1, Figure 2, Figure 4), all with descriptive titles and
-    all referenced in the body text. However, Figure 3 is absent — the numbering jumps from Figure 2 to Figure 4
-    with no Figure 3 anywhere in the document. The agent should report exactly one issue: ''Inconsistent Numbering:
-    Figure numbering skips from Figure 2 to Figure 4''.'
+    severity: medium
+  notes: 'Figures 1, 2 and 4: numbering skips Figure 3, which appears nowhere (Rule 2). All three are captioned and
+    cited.'
 - input: |
     # Regional Healthcare Infrastructure Report
 
@@ -462,16 +457,15 @@
     anchor: '**Figure 2**'
   - id: table_2_unreferenced
     title: Unreferenced Figure/Table
+    severity: medium
     anchor: 'Table 2: Patient outcome indicators by district'
   - id: figure_3_missing
     title: Missing Figure/Table
+    severity: high
     anchor: Figure 3 details the breakdown of capital funding
-  target_answer: 'The document has three figures and two tables. Figure 1 and Table 1 are properly titled and referenced.
-    Figure 2 has a bare ''**Figure 2**'' label with no descriptive title. Table 2 has a descriptive title but is
-    never cited in the body text — the Patient Outcomes section introduces it with no callout. The Funding Allocation
-    section references Figure 3 but no Figure 3 exists anywhere in the document. The agent should report exactly
-    three issues: ''Figure/Table Missing Title: Figure 2'', ''Unreferenced Figure/Table: Table 2'', and ''Missing
-    Figure/Table: Figure 3''.'
+  notes: 'Three rules fail in one document: ''**Figure 2**'' has no title (Rule 1); Table 2 is titled but never cited,
+    the Patient Outcomes section opening with it directly (Rule 3); the Funding Allocation section cites Figure 3,
+    which does not exist (Rule 4). Figure 1 and Table 1 are fine.'
 - input: |
     # Climate Policy Brief: Summary of Key Findings
 
@@ -495,8 +489,7 @@
 
     Carbon pricing and renewable subsidies remain the primary policy levers for emissions reduction. Greater international coordination on emissions trading could improve efficiency and reduce carbon leakage.
   expected_issues: []
-  target_answer: The document contains no figures or tables. There are no labels, captions, or body-text references
-    to any figure or table anywhere in the document. The agent should report zero issues.
+  notes: Clean. No figures or tables, and no labels, captions or references to any.
 - input: |
     # Soil Contamination Survey: Site Assessment Report
 
@@ -539,19 +532,15 @@
     anchor: '| Sample ID | Lead (mg/kg)'
   - id: unlabeled_table_unnumbered
     title: Inconsistent Numbering
+    severity: medium
   - id: unlabeled_table_unreferenced
     title: Unreferenced Figure/Table
+    severity: medium
     anchor: '| Sample ID | Lead (mg/kg)'
     required: false
-  notes: Rule 2 flags a table with no number, so the unlabeled table is also a numbering issue. The body calls it
-    'the results' without a numbered callout; whether that counts as a reference is debatable, so an Unreferenced
-    issue is optional.
-  target_answer: The document contains two tables. Table 1 is properly labeled, titled, and referenced in the body
-    text. The second table in the Contamination Levels section has no label or title — it begins directly with the
-    markdown table row with no preceding 'Table X' label or caption, and the body text refers to it only as 'the
-    results' with no numbered callout. The agent should report a 'Figure/Table Missing Title' issue for it and,
-    since Rule 2 flags a table with no number at all, an 'Inconsistent Numbering' issue. An 'Unreferenced Figure/Table'
-    issue is acceptable but not required, since the body does refer to the table as 'the results'.
+  notes: The second table (Contamination Levels) has no label or caption, so it has no title (Rule 1) and, since Rule
+    2 flags a table with no number at all, a numbering issue too. The body calls it 'the results' without a numbered
+    callout; whether that counts as a reference is debatable, so an Unreferenced issue is optional. Table 1 is fine.
 - input: |
     # Network Security Assessment Report
 
@@ -603,10 +592,8 @@
   decoys:
   - anchor: Abbreviations
     reason: abbreviation_table
-  target_answer: The document has one table (Table 1) and one figure (Figure 1), both with proper titles and body-text
-    references. The Abbreviations section contains a two-column table mapping abbreviations to their definitions
-    — this is a standard abbreviation/acronym table and must be excluded from all figures-and-tables rules. It should
-    not be flagged for missing a title, number, or body-text reference. The agent should report zero issues.
+  notes: Clean. Table 1 and Figure 1 are captioned and cited. The Abbreviations section's two-column table is excluded
+    from every rule.
 - input: |
     # Annual Climate Monitoring Report
 
@@ -672,15 +659,12 @@
   expected_issues:
   - id: figure_2_skipped
     title: Inconsistent Numbering
+    severity: medium
   decoys:
   - anchor: List of Abbreviations
     reason: abbreviation_table
-  target_answer: 'The document has two figures (Figure 1, Figure 3) and one table (Table 1), all with proper titles
-    and body-text references. However, figure numbering skips from Figure 1 to Figure 3 with no Figure 2 anywhere
-    in the document. The List of Abbreviations section contains a two-column table mapping abbreviations to descriptions
-    — this is a standard abbreviation table and must be excluded from all figures-and-tables rules (it should not
-    be flagged for missing title, number, or body-text reference). The agent should report exactly one issue: ''Inconsistent
-    Numbering: Figure numbering skips from Figure 1 to Figure 3''.'
+  notes: Figure numbering skips from Figure 1 to Figure 3 with no Figure 2 anywhere (Rule 2). The List of Abbreviations
+    table is excluded from every rule. Table 1 is fine.
 - input: |
     # Flood Risk Assessment: Regional Study
 
@@ -760,11 +744,9 @@
   decoys:
   - anchor: Figure A.1
     reason: appendix_prefix
-  target_answer: The body uses sequential numbering (Figure 1, Figure 2, Table 1) while the appendices use section/appendix-prefixed
-    numbering matching their appendix letter (Appendix A → Figure A.1, Table A.1; Appendix B → Figure B.1). This
-    is a single consistent scheme — the appendix prefix simply identifies the section and must NOT be flagged as
-    'mixed formats' or 'two numbering formats'. Every figure and table has a descriptive title, each appendix prefix
-    matches its section, and all elements are referenced in the body text. The agent should report zero issues.
+  notes: Clean. Sequential numbering in the body (Figure 1, Figure 2, Table 1) with appendix-prefixed numbering that
+    matches each appendix (A.1 in Appendix A, B.1 in Appendix B) is one valid scheme, not a mix. Every element is
+    captioned and cited.
 - input: |
     # Manufacturing Defect Analysis
 
@@ -810,12 +792,10 @@
   expected_issues:
   - id: figure_3_1_mixed_scheme
     title: Inconsistent Numbering
-  target_answer: 'The document has no chapters or appendices — it is a flat report. Figure 1 and Figure 2 use plain
-    sequential numbering, but Figure 3 is labelled ''Figure 3.1'', a chapter/section-prefixed style. Because there
-    is no chapter or appendix ''3'' for the prefix to correspond to, this is a genuine arbitrary mix of two numbering
-    schemes within the same element type and section, not a valid section-prefixed scheme. The agent should report
-    exactly one issue with the title ''Inconsistent Numbering: ...'' describing that Figure 3.1 mixes a chapter/section-style
-    number into an otherwise plain sequential scheme.'
+    severity: medium
+  notes: 'A flat report with no chapters or appendices: Figures 1 and 2 are sequential, then ''Figure 3.1'', whose
+    prefix corresponds to no chapter or appendix. That is an arbitrary mix within one element type and section (Rule
+    2).'
 - input: |
     # Groundwater Monitoring Report
 
@@ -857,11 +837,9 @@
   expected_issues:
   - id: appendix_b_prefix_a
     title: Inconsistent Numbering
-  target_answer: 'The body uses sequential numbering (Figure 1, Figure 2). The appendix is labelled ''Appendix B'',
-    but its figure is numbered ''Figure A.1'' — the prefix ''A'' does not match the appendix letter ''B''. Section/appendix-prefixed
-    numbering is only consistent when the prefix matches its section; here it does not. The agent should report
-    exactly one issue with the title ''Inconsistent Numbering: ...'' describing that the figure in Appendix B carries
-    an ''A'' prefix instead of ''B''.'
+    severity: medium
+  notes: The appendix is Appendix B but its figure is numbered A.1, so the prefix does not match its section (Rule
+    2). The body figures are fine.
 - input: |
     # Bridge Inspection Report
 
@@ -901,11 +879,9 @@
   expected_issues:
   - id: figure_a_2_skipped
     title: Inconsistent Numbering
-  target_answer: 'The body has Figure 1. Appendix A uses correct section-prefixed numbering (Figure A.x), so the
-    appendix prefix itself is valid and must not be flagged as a format change. However, within Appendix A the numbering
-    skips from Figure A.1 to Figure A.3 with no Figure A.2 anywhere. This is a gap within the prefixed sequence.
-    The agent should report exactly one issue with the title ''Inconsistent Numbering: ...'' describing that Appendix
-    A skips from A.1 to A.3 with no A.2.'
+    severity: medium
+  notes: Appendix A's prefixed numbering is valid, but it skips from Figure A.1 to Figure A.3 with no A.2 anywhere
+    (Rule 2). The prefix itself must not be flagged.
 - input: |
     # Materials Science Textbook: Selected Chapters
 
@@ -954,11 +930,8 @@
   decoys:
   - anchor: Figure 1.1
     reason: chapter_prefix
-  target_answer: 'The textbook uses chapter-prefixed numbering throughout: Chapter 1 contains Figure 1.1 and Table
-    1.1, Chapter 2 contains Figure 2.1 and Table 2.1. The first digit is the chapter number and the trailing digit
-    is the sequence within the chapter — a single consistent by-chapter scheme. Every figure and table has a descriptive
-    title, each prefix matches its chapter, and all are referenced in the body text. The agent should report zero
-    issues.'
+  notes: Clean. Chapter-prefixed numbering throughout (Figure 1.1 and Table 1.1 in Chapter 1, Figure 2.1 and Table
+    2.1 in Chapter 2), each prefix matching its chapter. Every element is captioned and cited.
 - input: |
     ![](files/figures/ft_logo.png)
 
@@ -976,10 +949,8 @@
 
     Storage recovered through the autumn but did not reach the spring peak. The Authority will review its summer release schedule before the next water year.
   expected_issues: []
-  target_answer: The document has one figure, Figure 1, which is captioned, numbered and referenced in the text.
-    The cover carries the water authority's logo, a decorative image with no caption. A logo is not a figure and
-    must not be reported as missing a title or as unreferenced; viewing the image is how to tell. No issues should
-    be reported.
+  notes: Clean. Figure 1 is captioned, numbered and cited. The cover logo is decorative, not a figure, and must not
+    be flagged under any rule; viewing the image is how to tell.
 - input: |
     # Inspection Protocol Review
 
@@ -991,10 +962,9 @@
 
     The protocol adds a second visual check before packaging. Its cost is roughly one additional operator-hour per shift at each plant.
   expected_issues: []
-  target_answer: 'The document has one figure. Its caption, ''Figure 1: Defect rate by plant before and after the
-    inspection protocol (percent)'', is rendered inside the image rather than as a separate paragraph, and the body
-    references Figure 1. Viewing the image shows the caption, so no missing-title issue should be reported. No issues
-    should be reported.'
+  notes: 'Clean. Figure 1''s caption (''Figure 1: Defect rate by plant before and after the inspection protocol (percent)'')
+    is rendered inside the image rather than as a paragraph, and the body cites Figure 1. Viewing the image shows
+    the caption, so there is no missing title.'
 - input: |
     # Transit Ridership Update
 
@@ -1016,7 +986,568 @@
   expected_issues:
   - id: figure_2_placeholder
     title: 'Missing Figure/Table: Figure 2'
-  target_answer: Figure 1 is a real chart with a caption and a body reference and is fine. Figure 2 is captioned
-    and referenced, but the image under its caption is a grey placeholder box reading 'CHART TO BE INSERTED' with
-    no chart content, so the figure the body cites is not actually present in the document. Exactly one issue should
-    be reported, for Figure 2 being missing. Figure 1 must not be flagged.
+    severity: high
+  notes: Figure 2 is captioned and cited, but its image is a grey placeholder reading 'CHART TO BE INSERTED', so the
+    figure the body cites is not present (Rule 4, per the skill's section on viewing figures). Figure 1 is a real
+    chart and is fine. Matched on the full title, since the issue may sit on the caption, the image or the citing
+    sentence.
+
+# ---- label and reference variants, supplementary numbering, multiple failures -------------------
+- input: |
+    # Pollinator Decline in Orchard Landscapes
+
+    ## Background
+
+    Wild bee visits to apple blossoms were recorded at 18 orchards during the 2024 flowering season. Orchards were grouped by the share of semi-natural habitat within 1 km (Fig. 1).
+
+    **Fig. 1: Orchard groups by share of semi-natural habitat within 1 km**
+
+    | Group  | Orchards | Semi-natural habitat (%) |
+    |--------|----------|--------------------------|
+    | Low    | 6        | under 5                  |
+    | Medium | 6        | 5–15                     |
+    | High   | 6        | over 15                  |
+
+    ## Visitation Rates
+
+    Visitation rose with habitat share. As Fig. 2 shows, orchards in the high group received more than twice as many wild bee visits per 100 flowers as those in the low group.
+
+    **Fig. 2: Wild bee visits per 100 flowers, by orchard group**
+
+    | Group  | Visits per 100 flowers |
+    |--------|------------------------|
+    | Low    | 3.1                    |
+    | Medium | 4.9                    |
+    | High   | 6.8                    |
+
+    Fruit set followed the same pattern; Table 1 gives the values by group.
+
+    **Table 1: Fruit set by orchard group (% of flowers)**
+
+    | Group  | Fruit set |
+    |--------|-----------|
+    | Low    | 21        |
+    | Medium | 27        |
+    | High   | 33        |
+
+    ## Conclusion
+
+    Retaining semi-natural habitat near orchards is associated with higher wild bee visitation and fruit set.
+  expected_issues: []
+  decoys:
+  - anchor: 'Fig. 2: Wild bee visits per 100 flowers'
+    reason: abbreviated_reference
+    title: Unreferenced Figure/Table
+  - anchor: habitat within 1 km (Fig. 1).
+    reason: abbreviated_reference
+    title: Missing Figure/Table
+  notes: Clean. Figures are labelled and cited with the abbreviation "Fig.", which the skill names as a label and a
+    reference form (Rules 1 and 4), and every element is captioned, numbered and cited. Neither figure is
+    unreferenced, and "Fig. 1" is not a reference to a missing figure.
+- input: |
+    # Sleep Duration and Academic Performance in Secondary School Students
+
+    ## Methods
+
+    We surveyed 2,140 students in years 9 to 12 at 14 schools. Self-reported weeknight sleep was grouped into three bands (Table 1). Response rates by school are given in the supplementary material (Table S1).
+
+    **Table 1: Weeknight sleep bands and share of respondents**
+
+    | Band        | Hours | Share (%) |
+    |-------------|-------|-----------|
+    | Short       | < 7   | 38        |
+    | Recommended | 7–9   | 55        |
+    | Long        | > 9   | 7         |
+
+    ## Results
+
+    Figure 1 shows mean grade point average by sleep band. Students in the recommended band had the highest mean GPA, and the difference from the short band held after adjusting for year group and school (Figure S1).
+
+    **Figure 1: Mean grade point average by weeknight sleep band**
+
+    | Band        | Mean GPA |
+    |-------------|----------|
+    | Short       | 2.9      |
+    | Recommended | 3.2      |
+    | Long        | 3.0      |
+
+    ## Conclusion
+
+    Short weeknight sleep is common among these students and is associated with lower grades.
+
+    ## Supplementary Material
+
+    **Table S1: Survey response rate by school (%)**
+
+    | Schools | Response rate |
+    |---------|---------------|
+    | A–E     | 71–84         |
+    | F–J     | 65–79         |
+    | K–N     | 58–73         |
+
+    **Figure S1: Adjusted difference in mean GPA relative to the short sleep band (95% CI)**
+
+    | Band        | Difference | 95% CI         |
+    |-------------|------------|----------------|
+    | Recommended | +0.24      | 0.18 to 0.30   |
+    | Long        | +0.08      | −0.01 to 0.17  |
+  expected_issues: []
+  decoys:
+  - anchor: Figure S1
+    reason: supplementary_prefix
+  - anchor: Table S1
+    reason: supplementary_prefix
+  notes: 'Clean. Supplementary items numbered separately as Table S1 and Figure S1 are an accepted scheme (Rule 2),
+    not a mix with the body''s Table 1 and Figure 1, and each is cited in the body in parentheses, "(Table S1)" and
+    "(Figure S1)", the form Rule 3 gives as an example.'
+- input: |
+    # Home Energy Retrofit Pilot: Interim Evaluation
+
+    ## Programme
+
+    The pilot funded insulation and heat-pump retrofits in 320 homes across two towns. Table 1 lists the measures installed.
+
+    **Table 1: Retrofit measures installed, by town**
+
+    | Measure              | Ashby | Corran |
+    |----------------------|-------|--------|
+    | Loft insulation      | 118   | 94     |
+    | Cavity wall          | 72    | 61     |
+    | Air-source heat pump | 41    | 36     |
+
+    ## Energy Savings
+
+    Metered gas use fell by a median of 23 percent in the first winter after retrofit (Figure 1). Savings were larger in homes that received both insulation and a heat pump; the breakdown by measure combination is in Table S1, and savings by pre-retrofit energy rating band are in Table S2.
+
+    **Figure 1: Median change in metered gas use, first winter after retrofit (%)**
+
+    | Town   | Change |
+    |--------|--------|
+    | Ashby  | −25    |
+    | Corran | −21    |
+
+    ## Next Steps
+
+    The final evaluation will add a second winter of metering data and a survey of household comfort.
+
+    ## Supplementary Tables
+
+    **Table S1: Median change in gas use by measure combination (%)**
+
+    | Combination              | Change |
+    |--------------------------|--------|
+    | Insulation only          | −17    |
+    | Heat pump only           | −28    |
+    | Insulation and heat pump | −39    |
+  expected_issues:
+  - id: table_s2_missing
+    title: Missing Figure/Table
+    severity: high
+    anchor: savings by pre-retrofit energy rating band are in Table S2
+  decoys:
+  - anchor: 'Table S1: Median change in gas use'
+    reason: supplementary_prefix
+  notes: The Energy Savings section cites Table S2, but the supplementary tables hold only Table S1 (Rule 4, which
+    applies to supplementary labels like any other). Table S1 is present and cited, and its S-numbering is valid.
+- input: |
+    # Library Services Usage Review, 2025
+
+    ## Branch Visits
+
+    Visits recovered at all five branches in 2025 but remain below 2019 levels at three of them (Table 1).
+
+    **Table 1: Annual visits by branch, 2019 and 2025 (thousands)**
+
+    | Branch    | 2019 | 2025 |
+    |-----------|------|------|
+    | Central   | 412  | 398  |
+    | Eastgate  | 186  | 171  |
+    | Hillside  | 94   | 101  |
+    | Riverside | 128  | 117  |
+    | Westbrook | 77   | 82   |
+
+    ## Digital Lending
+
+    E-book and audiobook loans grew in each of the last three years while print loans declined (see Table 2). Digital formats now account for 41 percent of all lending.
+
+    **Table 2**
+
+    | Format    | 2023  | 2024  | 2025  |
+    |-----------|-------|-------|-------|
+    | Print     | 1,210 | 1,185 | 1,160 |
+    | E-book    | 540   | 610   | 690   |
+    | Audiobook | 190   | 245   | 310   |
+
+    ## Recommendations
+
+    The service should shift part of its acquisitions budget toward digital formats while keeping print collections at the central branch.
+  expected_issues:
+  - id: table_2_untitled
+    title: Figure/Table Missing Title
+    anchor: '**Table 2**'
+  decoys:
+  - anchor: 'Table 1: Annual visits by branch'
+    reason: parenthetical_reference
+    title: Unreferenced Figure/Table
+  notes: Table 2 has a number but no title or caption, only the bold label (Rule 1); it is numbered and cited, so it
+    fails nothing else. Table 1 is cited only in parentheses, "(Table 1)", which Rule 3 counts as a body reference.
+- input: |
+    # Community Health Worker Programme: Year One Review
+
+    ## Reach
+
+    Community health workers made 6,820 household visits in the first year. Figure 1 shows visits by quarter.
+
+    **Figure 1: Household visits by quarter, year one**
+
+    | Quarter | Visits |
+    |---------|--------|
+    | Q1      | 1,240  |
+    | Q2      | 1,610  |
+    | Q3      | 1,830  |
+    | Q4      | 2,140  |
+
+    ## Referrals
+
+    Of the households visited, 14 percent were referred to a clinic. The figure below breaks referrals down by reason.
+
+    **Figure: Clinic referrals by reason (share of all referrals, %)**
+
+    | Reason             | Share |
+    |--------------------|-------|
+    | Maternal care      | 34    |
+    | Chronic disease    | 29    |
+    | Child immunisation | 22    |
+    | Other              | 15    |
+
+    ## Retention
+
+    Worker retention was high: 47 of the 52 workers recruited were still active at year end (Figure 2).
+
+    **Figure 2: Community health workers recruited and active at year end, by district**
+
+    | District | Recruited | Active |
+    |----------|-----------|--------|
+    | North    | 18        | 17     |
+    | South    | 20        | 18     |
+    | East     | 14        | 12     |
+  expected_issues:
+  - id: referrals_figure_unnumbered
+    title: Inconsistent Numbering
+    severity: medium
+  - id: referrals_figure_unreferenced
+    title: Unreferenced Figure/Table
+    severity: medium
+    anchor: 'Figure: Clinic referrals by reason'
+    required: false
+  decoys:
+  - anchor: 'Figure: Clinic referrals by reason'
+    reason: captioned_unnumbered
+    title: Figure/Table Missing Title
+  notes: The referrals figure has a descriptive caption but no number, which Rule 2 flags ("a figure or table has no
+    number at all"). It is not missing a title, so a Rule 1 issue on it is a false positive. The body refers to it
+    as "the figure below" without a label; whether that counts as a reference is debatable, so an Unreferenced issue
+    is optional, as for the unlabelled table in another record.
+- input: |
+    # School Transport Eligibility Review
+
+    ## Eligible Pupils
+
+    The county provides free transport to pupils who live beyond the statutory walking distance. Figure 1 shows the number of eligible pupils in each district.
+
+    **Figure 1: Pupils eligible for free school transport, by district (district codes as defined in Table 2)**
+
+    | District | Eligible pupils |
+    |----------|-----------------|
+    | D1       | 1,420           |
+    | D2       | 980             |
+    | D3       | 2,115           |
+    | D4       | 640             |
+
+    ## Costs
+
+    Table 1 sets out the annual transport cost per eligible pupil. Costs are highest in D3, where routes are longest.
+
+    **Table 1: Annual transport cost per eligible pupil, by district (GBP)**
+
+    | District | Cost  |
+    |----------|-------|
+    | D1       | 1,050 |
+    | D2       | 1,180 |
+    | D3       | 1,640 |
+    | D4       | 1,290 |
+
+    ## District Codes
+
+    **Table 2: District codes and the areas they cover**
+
+    | Code | Area                     |
+    |------|--------------------------|
+    | D1   | Northern market towns    |
+    | D2   | Eastern coastal parishes |
+    | D3   | Western upland parishes  |
+    | D4   | County town and suburbs  |
+
+    ## Conclusion
+
+    Route length drives cost, and the review recommends consolidating routes in D3.
+  expected_issues:
+  - id: table_2_caption_only
+    title: Unreferenced Figure/Table
+    severity: medium
+    anchor: 'Table 2: District codes and the areas they cover'
+  notes: The only mention of Table 2 is inside Figure 1's caption. Rule 3 says cross-references in the captions of
+    other figures or tables do not count as body references, so Table 2 is unreferenced. Figure 1 and Table 1 are
+    cited in the body.
+- input: |
+    # Regional Broadband Rollout: Progress Report
+
+    ## Coverage
+
+    Gigabit-capable coverage reached 64 percent of premises by March 2025. Table 1 shows coverage by county.
+
+    **Table 1: Gigabit-capable coverage by county, March 2025 (% of premises)**
+
+    | County   | Coverage |
+    |----------|----------|
+    | Ardshire | 71       |
+    | Bellmoor | 58       |
+    | Carrow   | 63       |
+
+    Take-up has lagged coverage. Table 2 compares take-up across the same counties.
+
+    **Table 2: Take-up of gigabit services, March 2025 (% of covered premises)**
+
+    | County   | Take-up |
+    |----------|---------|
+    | Ardshire | 34      |
+    | Bellmoor | 27      |
+    | Carrow   | 31      |
+
+    ## Costs
+
+    The average build cost per premises fell in each year of the programme, as shown in Figure 2. Table 4 breaks the cost down by area type; rural premises remain the most expensive to connect.
+
+    **Table 4: Average build cost per premises by area type (GBP)**
+
+    | Area type | 2023  | 2024  | 2025  |
+    |-----------|-------|-------|-------|
+    | Urban     | 410   | 380   | 360   |
+    | Rural     | 1,920 | 1,760 | 1,640 |
+
+    **Figure 1: Premises connected per quarter, 2023–2025 (thousands)**
+
+    | Quarter | Connected |
+    |---------|-----------|
+    | 2023 Q1 | 12        |
+    | 2024 Q1 | 19        |
+    | 2025 Q1 | 26        |
+
+    ## Acronyms
+
+    | Acronym | Meaning                   |
+    |---------|---------------------------|
+    | FTTP    | Fibre to the premises     |
+    | ISP     | Internet service provider |
+    | RDF     | Rural delivery fund       |
+
+    ## Conclusion
+
+    The programme is on track for coverage but needs a take-up campaign in Bellmoor.
+  expected_issues:
+  - id: table_3_skipped
+    title: Inconsistent Numbering
+    severity: medium
+  - id: figure_1_unreferenced
+    title: Unreferenced Figure/Table
+    severity: medium
+    anchor: 'Figure 1: Premises connected per quarter'
+  - id: figure_2_missing
+    title: Missing Figure/Table
+    severity: high
+    anchor: as shown in Figure 2
+  decoys:
+  - anchor: Acronyms
+    reason: abbreviation_table
+  notes: 'Three rules fail at once: tables run 1, 2, 4 with no Table 3 (Rule 2); Figure 1 is captioned but never
+    cited (Rule 3); the Costs section cites Figure 2, which does not exist and is not Figure 1, whose content is
+    connections rather than cost (Rule 4). The Acronyms table is excluded from every rule.'
+- input: |
+    # Freight Logistics Study
+
+    ## Chapter 1: Freight Volumes
+
+    Rail and road freight volumes were compiled for 2015–2024. Figure 1.1 shows the modal split over the period.
+
+    **Figure 1.1: Freight modal split, 2015–2024 (% of tonne-km)**
+
+    | Year | Road | Rail | Inland water |
+    |------|------|------|--------------|
+    | 2015 | 78   | 17   | 5            |
+    | 2020 | 76   | 19   | 5            |
+    | 2024 | 73   | 22   | 5            |
+
+    Table 1.1 lists the busiest freight corridors by annual tonnage.
+
+    **Table 1.1: Busiest freight corridors by annual tonnage (million tonnes)**
+
+    | Corridor      | Tonnage |
+    |---------------|---------|
+    | Port–Midlands | 48      |
+    | North–South   | 36      |
+    | East Coast    | 29      |
+
+    ## Chapter 2: Rail Capacity
+
+    Rail's growing share has put pressure on terminal capacity. Figure 2.1 shows terminal utilisation by region.
+
+    **Figure 2.1: Rail freight terminal utilisation by region (%)**
+
+    | Region   | Utilisation |
+    |----------|-------------|
+    | North    | 91          |
+    | Midlands | 87          |
+    | South    | 78          |
+
+    Planned capacity additions are summarised in Table 3.1.
+
+    **Table 3.1: Planned rail freight terminal capacity additions, 2025–2030**
+
+    | Terminal  | Added capacity (lifts per year) | Opening |
+    |-----------|---------------------------------|---------|
+    | Hamsfield | 120,000                         | 2026    |
+    | Low Moor  | 85,000                          | 2028    |
+  expected_issues:
+  - id: table_3_1_in_chapter_2
+    title: Inconsistent Numbering
+    severity: medium
+  decoys:
+  - anchor: 'Table 1.1: Busiest freight corridors'
+    reason: chapter_prefix
+  notes: By-chapter numbering is valid, but the table in Chapter 2 is numbered 3.1 and the report has no Chapter 3,
+    so its prefix does not match its section (Rule 2). The other chapter-prefixed labels match their chapters.
+- input: |
+    # Hospital Discharge Delays: Winter 2024–25
+
+    ## Scale of Delays
+
+    On an average day in January, 1,140 patients who were medically fit to leave remained in hospital. Figures 1 and 2 show how this total varied across the winter and between trusts.
+
+    **Figure 1: Patients medically fit for discharge but still in hospital, daily average by month**
+
+    | Month    | Patients |
+    |----------|----------|
+    | November | 860      |
+    | December | 1,010    |
+    | January  | 1,140    |
+    | February | 980      |
+
+    **Figure 2: Delayed discharges per 100 beds by trust, January 2025**
+
+    | Trust     | Per 100 beds |
+    |-----------|--------------|
+    | Northgate | 9.4          |
+    | St Anne's | 7.1          |
+    | Valley    | 5.8          |
+
+    ## Causes
+
+    The most common reason for delay was waiting for a care home place (Table 1). Tables 2 and 3 break the waits down by care type and by local authority.
+
+    **Table 1: Reasons for delayed discharge, January 2025 (% of delayed patients)**
+
+    | Reason                  | Share |
+    |-------------------------|-------|
+    | Care home place         | 41    |
+    | Home care package       | 33    |
+    | Assessment not complete | 26    |
+
+    **Table 2: Median wait by care type, January 2025 (days)**
+
+    | Care type    | Median wait |
+    |--------------|-------------|
+    | Residential  | 11          |
+    | Nursing      | 14          |
+    | Home care    | 8           |
+
+    **Table 3: Median wait by local authority, January 2025 (days)**
+
+    | Local authority | Median wait |
+    |-----------------|-------------|
+    | Eastshire       | 12          |
+    | Westford        | 9           |
+
+    ## Conclusion
+
+    Delays are driven mainly by the supply of social care placements rather than by hospital processes.
+  expected_issues: []
+  decoys:
+  - anchor: 'Figure 2: Delayed discharges per 100 beds'
+    reason: plural_reference
+    title: Unreferenced Figure/Table
+  - anchor: 'Table 3: Median wait by local authority'
+    reason: plural_reference
+    title: Unreferenced Figure/Table
+  notes: Clean. Figure 2 and Table 3 are cited only in plural references ("Figures 1 and 2", "Tables 2 and 3"), which
+    cite each figure and table named, so every element is referenced (Rule 3), captioned and numbered in sequence.
+- input: |
+    # Urban Heat Island Monitoring: Summer 2025
+
+    ## Network
+
+    Temperature loggers were installed at 40 sites across the city (Fig. 1).
+
+    **Fig. 1: Logger sites by land-cover class**
+
+    | Land cover   | Sites |
+    |--------------|-------|
+    | Dense urban  | 14    |
+    | Suburban     | 12    |
+    | Parks        | 8     |
+    | Rural fringe | 6     |
+
+    ## Night-time Temperatures
+
+    Dense urban sites were on average 3.8 °C warmer than rural fringe sites at 03:00 (Fig. 2). The gap widened during the July heatwave, when it reached 5.6 °C; hourly profiles for the heatwave week are plotted in Fig. 3.
+
+    **Fig. 2: Mean 03:00 temperature by land-cover class, June–August 2025 (°C)**
+
+    | Land cover   | Mean temperature |
+    |--------------|------------------|
+    | Dense urban  | 19.4             |
+    | Suburban     | 17.9             |
+    | Parks        | 16.8             |
+    | Rural fringe | 15.6             |
+
+    ## Implications
+
+    Tree planting in dense urban districts should be prioritised in the next greening programme.
+  expected_issues:
+  - id: fig_3_missing
+    title: Missing Figure/Table
+    severity: high
+    anchor: hourly profiles for the heatwave week are plotted in Fig. 3
+  notes: The body cites "Fig. 3", which Rule 4 names as a reference form, but the document holds only Fig. 1 and
+    Fig. 2. Both of those are captioned, numbered and cited in the abbreviated form.
+- input: |
+    # Transit Ridership Note
+
+    ## Weekday ridership
+
+    Weekday ridership grew on every line in 2025, led by the Red line. Figure 1 summarises average weekday ridership by line.
+
+    ![](files/figures/ft_ridership.png)
+
+    Ridership on the Orange line remains below its 2019 level, and the service review will consider frequency changes there.
+  expected_issues:
+  - id: figure_1_uncaptioned_image
+    title: Figure/Table Missing Title
+  - id: figure_1_unlabelled_image
+    title: Inconsistent Numbering
+    severity: medium
+    required: false
+  notes: The chart the body calls Figure 1 is an image with no caption beside it, and the image itself carries no
+    caption either (only axis labels), so the figure has no title (Rule 1). The skill says to view such an image
+    before reporting, since the caption may be inside it. The figure's own label is missing too, so a numbering
+    issue is acceptable but not required. Matched on the rule alone, since the issue may sit on the image or on the
+    citing sentence.
