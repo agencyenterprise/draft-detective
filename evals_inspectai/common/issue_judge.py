@@ -223,7 +223,8 @@ def section_text(document: str, line: int) -> str:
 
 
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
-    return _paragraph_text(document.split("\n"), expected.line)
+    # An expected issue without an anchor has no line, so no paragraph to show.
+    return _paragraph_text(document.split("\n"), expected.line) if expected.line is not None else ""
 
 
 async def judge_sample(
@@ -265,12 +266,14 @@ async def judge_sample(
                 record(criterion, expected, 0.0, "no suggested action to judge")
             elif criterion.passage != "none":
                 document = inventory.document
-                passage = section_text(document, expected.line) if criterion.passage == "section" else document
-                label = PASSAGE_LABELS[criterion.passage]
-                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action, label)
+                # An expected issue without an anchor has no line to open a section: it gets the document.
+                line = expected.line if criterion.passage == "section" else None
+                passage = section_text(document, line) if line is not None else document
+                label = PASSAGE_LABELS["section" if line is not None else "document"]
+                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor or "", issue.suggested_action, label)
                 record(criterion, expected, *await grade(grader, prompt, calls))
             else:
-                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
+                prompt = issue_prompt(criterion.criterion, expected.anchor or "", issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 
     return (

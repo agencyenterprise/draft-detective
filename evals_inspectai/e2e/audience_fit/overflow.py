@@ -19,8 +19,9 @@ import math
 from typing import Optional, Sequence
 
 from evals_inspectai.common.issue_inventory import (
+    AnchoredIssue,
     ResolvedInventory,
-    ResolvedIssue,
+    anchored,
     normalize,
 )
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
@@ -62,7 +63,7 @@ def _text(issue: IssueItem) -> str:
     )
 
 
-def _covers(issue: IssueItem, expected: ResolvedIssue) -> bool:
+def _covers(issue: IssueItem, expected: AnchoredIssue) -> bool:
     return (
         normalize(expected.anchor) in _text(issue)
         or issue.start_line <= expected.line <= issue.end_line
@@ -70,8 +71,8 @@ def _covers(issue: IssueItem, expected: ResolvedIssue) -> bool:
 
 
 def unmatched(
-    paragraphs: Sequence[ResolvedIssue], singles: Sequence[IssueItem]
-) -> list[ResolvedIssue]:
+    paragraphs: Sequence[AnchoredIssue], singles: Sequence[IssueItem]
+) -> list[AnchoredIssue]:
     """The paragraphs left without an issue of their own under a maximum one-to-one matching.
 
     Kuhn's augmenting paths: one broad issue covering several paragraphs can
@@ -92,15 +93,15 @@ def unmatched(
     return [e for p, e in enumerate(paragraphs) if not claim(p, set())]
 
 
-def technical_paragraphs(inventory: ResolvedInventory) -> list[ResolvedIssue]:
+def technical_paragraphs(inventory: ResolvedInventory) -> list[AnchoredIssue]:
     """The expected paragraph-level technical-language issues, in document order."""
-    kept = [e for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE]
+    kept = [anchored(e) for e in inventory.expected_issues if e.title == PARAGRAPH_TITLE]
     return sorted(kept, key=lambda e: e.line)
 
 
 def overflow_split(
     inventory: ResolvedInventory,
-) -> Optional[tuple[list[ResolvedIssue], list[ResolvedIssue]]]:
+) -> Optional[tuple[list[AnchoredIssue], list[AnchoredIssue]]]:
     """The first ``CAP`` technical paragraphs and the rest; None unless the inventory expects more than ``CAP``."""
     expected = technical_paragraphs(inventory)
     return (expected[:CAP], expected[CAP:]) if len(expected) > CAP else None

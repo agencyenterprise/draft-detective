@@ -24,7 +24,7 @@ from evals_inspectai.common.issue_checks import (
     inventory_from_state,
     issues_from_state,
 )
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
+from evals_inspectai.common.issue_inventory import AnchoredIssue, ResolvedInventory
 from evals_inspectai.common.issue_judge import grade
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
@@ -74,7 +74,7 @@ def summary_text(issue: IssueItem) -> str:
     return "\n\n".join(p for p in parts if p)
 
 
-def summary_prompt(paragraph: str, expected: ResolvedIssue, summary: IssueItem) -> str:
+def summary_prompt(paragraph: str, expected: AnchoredIssue, summary: IssueItem) -> str:
     return SUMMARY_TEMPLATE.format(
         question=paragraph,
         term=expected.anchor,

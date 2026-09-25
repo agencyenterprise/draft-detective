@@ -11,7 +11,9 @@ under a name of its own).
 
 1. **Detection.** Each expected issue is *hit* when a reported issue with its
    title quotes its anchor or brackets its line, or an issue under another title
-   quotes its anchor (a mislabel, recorded by the title metric, not recall). Several expected issues may hit the
+   quotes its anchor (a mislabel, recorded by the title metric, not recall); an
+   expected issue with no anchor (something the document lacks) is hit by any
+   reported issue with its title. Several expected issues may hit the
    same issue (a check that reports one issue per paragraph). From the hits:
    recall over required expected issues, precision over reported issues, and F0.5,
    which weights precision twice as much as recall, following the convention
@@ -30,6 +32,7 @@ A metric is ``NaN`` when the sample gives it nothing to judge: Inspect leaves
 a NaN key out of that metric's mean and counts the sample as unscored for it.
 """
 
+import json
 import math
 import re
 from typing import Callable, Mapping, Optional, Sequence
@@ -38,7 +41,7 @@ from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
-from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit, SimpleDeepAgentOutput
+from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem, ProposedEdit
 from evals_inspectai.common.issue_inventory import (
     Decoy,
     ResolvedIssue,
@@ -70,11 +73,18 @@ EDIT_KEYS: tuple[str, ...] = (
     "edit_punctuation",
 )
 
-def issue_check_keys(edits: bool = True, titles: bool = True) -> tuple[str, ...]:
-    """The keys ``issue_checks(edits=..., titles=...)`` emits, for viewer columns and
-    descriptions: the detection keys, without ``title_correct`` when the inventory names
-    no titles, plus the edit-hygiene keys when the workflow proposes edits."""
-    detection = DETECTION_KEYS if titles else tuple(k for k in DETECTION_KEYS if k != "title_correct")
+def issue_check_keys(
+    edits: bool = True, titles: bool = True, anchors: bool = True, severities: bool = True
+) -> tuple[str, ...]:
+    """The keys ``issue_checks(edits=..., titles=..., anchors=..., severities=...)`` emits,
+    for viewer columns and descriptions: the detection keys, without ``title_correct``
+    when the inventory names no titles or anchors no issue (an issue without an anchor is
+    matched on its title, so that title is right by construction), without
+    ``anchor_in_range`` when it anchors no issue and without ``severity_correct`` when it
+    declares no severity, plus the edit-hygiene keys when the workflow proposes edits."""
+    keep = {"title_correct": titles and anchors, "anchor_in_range": anchors, "severity_correct": severities}
+    dropped = {k for k, kept in keep.items() if not kept}
+    detection = tuple(k for k in DETECTION_KEYS if k not in dropped)
     return detection + EDIT_KEYS if edits else detection
 
 
@@ -89,13 +99,13 @@ NOT_APPLICABLE = math.nan
 # says what each column checks. A value of NaN means the sample gave the check
 # nothing to judge, and Inspect leaves it out of the mean.
 DETECTION_DESCRIPTIONS: dict[str, str] = {
-    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title).",
+    "recall": "Share of required expected issues covered by a reported issue (same title and the anchor quoted or its line bracketed, or the anchor quoted under another title; the title alone for an expected issue with no anchor).",
     "precision": "Share of reported issues that cover at least one expected issue.",
     "f0_5": "F-beta with beta 0.5: precision weighted twice as much as recall, as in grammatical-error detection.",
     "clean_document_untouched": "On a sample with no expected issues: 1 if nothing was reported, 0 otherwise.",
-    "title_correct": "Of the covered expected issues that name a title, share reported under it. NaN when the inventory names none (free-form titles).",
+    "title_correct": "Of the covered expected issues that name a title and have an anchor, share reported under it. NaN when the inventory names none (free-form titles); an issue without an anchor is matched on its title, so it is left out.",
     "severity_correct": "Of the covered expected issues that declare a severity, share reported with it.",
-    "anchor_in_range": "Of the covered expected issues, share whose anchor line lies inside the reported line range.",
+    "anchor_in_range": "Of the covered expected issues that have an anchor, share whose anchor line lies inside the reported line range.",
 }
 EDIT_DESCRIPTIONS: dict[str, str] = {
     "edit_present_when_expected": "For expected issues marked edit_expected: true, share that got at least one proposed edit.",
@@ -161,11 +171,16 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] =
     issue under a claimed title is evidence for that other kind first: it
     still counts, ranked below every free-form report, so an extra issue of a
     named kind on the same sentence cannot stand in for the free-form one.
+
+    An expected issue with no anchor has no text to quote and no line: the
+    title alone reports it, at the strongest tier.
     """
     penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
+    if expected.anchor is None:
+        return 0 if same_title else None
     quoted = normalize(expected.anchor) in _issue_text(issue)
-    in_range = issue.start_line <= expected.line <= issue.end_line
+    in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
     if same_title and quoted:
         tier = 0
     elif same_title and in_range:
@@ -223,9 +238,18 @@ def edits_for(expected: ResolvedIssue, issue: IssueItem) -> list[ProposedEdit]:
 
     Matched on text, never on line alone: a paragraph-level issue carries the
     edits for every sentence on that line, and each must be judged against
-    its own expected.
+    its own expected. An expected issue with no anchor has no sentence to
+    match, so every edit of the issue that reports it is its own.
     """
-    return [e for e in issue.edits if overlaps(expected.anchor, e.original_text)]
+    if expected.anchor is None:
+        return list(issue.edits)
+    anchor = expected.anchor
+    return [e for e in issue.edits if overlaps(anchor, e.original_text)]
+
+
+def _line_text(lines: Sequence[str], line: Optional[int]) -> str:
+    """The text of a 1-indexed line, or "" when there is no such line."""
+    return lines[line - 1] if line is not None and 0 < line <= len(lines) else ""
 
 
 def fraction(values: Sequence[float]) -> float:
@@ -336,9 +360,8 @@ def edit_checks(
         else the expected issue's line."""
         if 0 < e.start_line <= len(lines) and e.start_line != expected.line:
             return lines[e.start_line - 1]
-        return lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
+        return _line_text(lines, expected.line)
 
-    line_text = lines[expected.line - 1] if 0 < expected.line <= len(lines) else ""
     on_line = [float(normalize(e.original_text) in normalize(line_of(e))) for e in edits]
     out["edit_quote_on_line"] = (fraction(on_line), f"{expected.id}: {int(sum(on_line))}/{len(edits)} quotes found verbatim on their line")
 
@@ -513,19 +536,22 @@ def issue_detection_scores(
     edits: bool = True,
     one_to_one: bool = False,
     titles: bool = True,
+    anchors: bool = True,
+    severities: bool = True,
 ) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
-    Keys: ``issue_check_keys(edits, titles)``; NaN where a sample gives a key
-    nothing to judge. A workflow that never proposes edits passes
-    ``edits=False``, and one whose inventory names no titles ``titles=False``,
-    so its scores (and the log viewer's columns) carry no keys it can never
-    score. ``one_to_one`` holds a workflow that must report each expected issue
+    Keys: ``issue_check_keys(edits, titles, anchors, severities)``; NaN where a
+    sample gives a key nothing to judge. A workflow that never proposes edits
+    passes ``edits=False``, and one whose inventory names no titles, anchors no
+    issue or declares no severity passes ``titles``, ``anchors`` or
+    ``severities=False``, so its scores (and the log viewer's columns) carry no
+    keys it can never score. ``one_to_one`` holds a workflow that must report each expected issue
     separately to that (see ``pairs``).
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
-    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits, titles)}
+    values: dict[str, float] = {key: NOT_APPLICABLE for key in issue_check_keys(edits, titles, anchors, severities)}
     notes: list[str] = []
 
     hits, pairs = hit_pairs(issues, inventory, one_to_one)
@@ -550,13 +576,16 @@ def issue_detection_scores(
         notes.append("clean document: " + ("nothing reported" if not issues else f"{len(issues)} issue(s) reported"))
 
     if pairs:
-        if titles:
-            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title])
-        values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
-        values["anchor_in_range"] = fraction([float(i.start_line <= e.line <= i.end_line) for e, i in pairs])
+        if titles and anchors:
+            values["title_correct"] = fraction([float(_title_matches(i, e.title)) for e, i in pairs if e.title and e.anchor])
+        if severities:
+            values["severity_correct"] = fraction([float(i.severity == e.severity) for e, i in pairs if e.severity])
+        located = [(e, i, e.line) for e, i in pairs if e.line is not None]
+        if anchors:
+            values["anchor_in_range"] = fraction([float(i.start_line <= line <= i.end_line) for _, i, line in located])
         notes += [f"{e.id}: reported as {i.title!r}, not under {e.title!r}" for e, i in pairs if e.title and not _title_matches(i, e.title)]
         notes += [f"{e.id}: severity {i.severity}, expected {e.severity}" for e, i in pairs if e.severity and i.severity != e.severity]
-        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {e.line}" for e, i in pairs if not i.start_line <= e.line <= i.end_line]
+        notes += [f"{e.id}: lines {i.start_line}-{i.end_line} do not bracket line {line}" for e, i, line in located if not i.start_line <= line <= i.end_line]
     if pairs and edits:
         collected: dict[str, list[float]] = {}
         for e, i in pairs:
@@ -628,28 +657,43 @@ PER_KEY_METRICS = {"*": [mean(), stderr()]}
 Scoring = Callable[[Sequence[IssueItem], ResolvedInventory], tuple[dict[str, float], str]]
 
 
-def issues_from_state(state: TaskState) -> tuple[list[IssueItem], Optional[str]]:
-    """The issues a workflow run reported, from the API state the solver captured."""
+# Where a single-agent workflow's state keeps its issues (``SimpleDeepAgentState.result``).
+DEFAULT_RESULTS: tuple[str, ...] = ("result",)
+
+
+def issues_from_state(
+    state: TaskState, results: Sequence[str] = DEFAULT_RESULTS
+) -> tuple[list[IssueItem], Optional[str]]:
+    """The issues a workflow run reported, from the API state the solver captured.
+
+    ``results`` names the state fields holding an ``AgentCheckResult``; a
+    workflow that runs several agents (one field each) is read as the issues of
+    all of them together. A field that is absent or null contributes none.
+    """
     try:
-        output = SimpleDeepAgentOutput.model_validate_json(state.output.completion)
-    except ValidationError as e:
+        output = json.loads(state.output.completion)
+        if not isinstance(output, dict):
+            raise ValueError(f"expected a JSON object, got {type(output).__name__}")
+        checks = [AgentCheckResult.model_validate(output[key]) for key in results if output.get(key)]
+    except ValueError as e:  # JSONDecodeError and pydantic's ValidationError are both ValueErrors
         return [], f"could not parse the workflow state: {e}"
-    return (output.result.issues if output.result else []), None
+    return [issue for check in checks for issue in check.issues], None
 
 
 def inventory_from_state(state: TaskState) -> ResolvedInventory:
     return ResolvedInventory.model_validate(state.metadata["inventory"])
 
 
-def deterministic_scorer(scoring: Scoring) -> Scorer:
+def deterministic_scorer(scoring: Scoring, results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
     """Wrap a ``(issues, inventory) -> (values, explanation)`` function as a scorer.
 
+    ``results`` says which state fields hold the issues (see ``issues_from_state``).
     A run whose state cannot be parsed scores 0 on every key the function
     would have produced, with the parse error as the explanation.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
-        issues, error = issues_from_state(state)
+        issues, error = issues_from_state(state, results)
         values, explanation = scoring(issues, inventory_from_state(state))
         if error:
             return Score(value={key: 0.0 for key in values}, explanation=error)
@@ -659,23 +703,37 @@ def deterministic_scorer(scoring: Scoring) -> Scorer:
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def issue_checks(edits: bool = True, one_to_one: bool = False, titles: bool = True) -> Scorer:
+def issue_checks(
+    edits: bool = True,
+    one_to_one: bool = False,
+    titles: bool = True,
+    anchors: bool = True,
+    severities: bool = True,
+    results: Sequence[str] = DEFAULT_RESULTS,
+) -> Scorer:
     """Reported issues against the expected ones: recall, precision, F0.5, lines,
-    titles unless ``titles`` is False (an inventory that names none), plus edit
+    titles unless ``titles`` is False (an inventory that names none), the anchor
+    line unless ``anchors`` is False (an inventory that anchors none), severity
+    unless ``severities`` is False (an inventory that declares none), plus edit
     presence and text integrity unless ``edits`` is False (a workflow that
     proposes no edits). ``one_to_one`` makes a reported issue cover at most one
     expected issue, for a workflow that must report each occurrence separately.
+    ``results`` names the state fields the issues are read from.
     The same keys for every sample of an eval."""
     return deterministic_scorer(
-        lambda issues, inventory: issue_detection_scores(issues, inventory, edits, one_to_one, titles)
+        lambda issues, inventory: issue_detection_scores(
+            issues, inventory, edits, one_to_one, titles, anchors, severities
+        ),
+        results,
     )
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def decoy_checks(reasons: Sequence[str]) -> Scorer:
+def decoy_checks(reasons: Sequence[str], results: Sequence[str] = DEFAULT_RESULTS) -> Scorer:
     """False positives by decoy reason, ``no_fp_<reason>``.
 
     ``reasons`` is the dataset-wide list, so every sample's score carries the
-    same keys, which Inspect requires of dict-valued scores.
+    same keys, which Inspect requires of dict-valued scores. ``results`` names
+    the state fields the issues are read from.
     """
-    return deterministic_scorer(lambda issues, inventory: decoy_scores(issues, inventory, reasons))
+    return deterministic_scorer(lambda issues, inventory: decoy_scores(issues, inventory, reasons), results)

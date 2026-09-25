@@ -1,81 +1,68 @@
+"""E2E eval for the About This (GER) workflow, on the issue-inventory structure.
+
+The workflow runs two validators, one on the preface and one on the author
+biographies, and keeps each one's issues in its own state field
+(``preface_result``, ``authors_result``). The eval reads both together: the
+titles already say which validator an issue came from. A failed preface rule
+is about something the preface lacks, so its expected issue has no anchor and
+is matched on its title; an author issue is anchored on the bio it is about.
+
+Scorers:
+
+- ``issue_checks``: recall, precision, F0.5, the clean document left alone,
+  severity, and for author issues the title and whether the issue brackets
+  the bio. Every sample breaks at most one rule, so the skill's allowance to
+  split or combine one author's failed rules never changes the expected
+  count; one reported issue covers at most one expected (``one_to_one``).
+- ``model_graded_check``: the free-text ``target_answer`` per sample, graded
+  C / P / I.
+
+Run (backend must be running)::
+
+    uv run inspect eval evals_inspectai/e2e/about_this_ger/about_this_ger_e2e.py --epochs 3
+"""
+
 from pathlib import Path
-from typing import Optional
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import Sample, json_dataset
-from inspect_ai.scorer import Score
-from inspect_ai.solver import TaskState
-from pydantic import BaseModel
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.comparers import deep_diff_score
-from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
-from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult
+from evals_inspectai.common.issue_checks import DETECTION_DESCRIPTIONS, issue_check_keys, issue_checks
+from evals_inspectai.common.issue_inventory import inventory_dataset, load_inventory_records
+from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.scorers import model_graded_check
 
-
-class AboutThisGerOutput(BaseModel):
-    """Local mirror of AboutThisGerState fields returned by the API."""
-
-    preface_result: Optional[AgentCheckResult] = None
-    authors_result: Optional[AgentCheckResult] = None
-
-
-def _record_to_sample(record: dict) -> Sample:
-    return Sample(
-        input=resolve_input(record["input"]),
-        target=record.get("target_answer", ""),
-        metadata={
-            "target_preface_issue_titles": record.get(
-                "target_preface_issue_titles", []
-            ),
-            "target_authors_issue_titles": record.get(
-                "target_authors_issue_titles", []
-            ),
-        },
-    )
+WORKFLOW_TYPE = "about_this_ger"
+DATASET = Path(__file__).parent / "dataset.yaml"
+# The state fields holding each validator's AgentCheckResult.
+RESULTS = ("preface_result", "authors_result")
 
 
 @task
-def about_this_ger_e2e():
-    dataset = json_dataset(
-        str(Path(__file__).parent / "dataset.json"),
-        _record_to_sample,
-    )
-
+def about_this_ger_e2e(timeout_s: float = 600) -> Task:
+    """Run About This (GER) on every sample and score both validators against the inventory."""
+    records = load_inventory_records(DATASET)
+    keys = issue_check_keys(edits=False)
+    judge = ("model_graded_check", "model_graded_check")
     return Task(
-        dataset=dataset,
-        fail_on_error=0.2,
-        solver=api_workflow_agent(
-            "about_this_ger", timeout_s=600, item_messages_key="agent_conversations"
-        ),
+        dataset=inventory_dataset(records, DATASET),
+        metadata={
+            "ground_truth": (
+                "Inventory: one expected issue per broken rule, across both validators. Preface rules and missing "
+                "sections are matched on their title (no anchor, since the content is absent); author issues are "
+                "anchored on the bio. The seed document expects none. A NaN metric value means the sample gave "
+                "that check nothing to judge."
+            ),
+            "metrics": {
+                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
+                "model_graded_check": {"model_graded_check": "The sample's target_answer, graded C / P / I by the grader model."},
+            },
+        },
+        solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="agent_conversations"),
         scorer=[
-            structured_output_scorer(AboutThisGerOutput, _compare_preface_titles),
-            structured_output_scorer(AboutThisGerOutput, _compare_authors_titles),
+            issue_checks(edits=False, one_to_one=True, results=RESULTS),
             model_graded_check(partial_credit=True),
         ],
+        fail_on_error=0.2,
+        viewer=issue_viewer_config([], edits=False, extra=[judge], labels={"model_graded_check": "Judge"}),
     )
-
-
-def _compare_preface_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
-    """Deterministic match of the flagged preface / "About This" issue titles
-    against the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
-    expected: list[str] = state.metadata.get("target_preface_issue_titles", [])
-    actual = (
-        [issue.title for issue in output.preface_result.issues]
-        if output.preface_result
-        else []
-    )
-    return deep_diff_score(expected, actual)
-
-
-def _compare_authors_titles(output: AboutThisGerOutput, state: TaskState) -> Score:
-    """Deterministic match of the flagged author-biography issue titles against
-    the target, as DeepDiff similarity (``deep_diff_score``, order ignored)."""
-    expected: list[str] = state.metadata.get("target_authors_issue_titles", [])
-    actual = (
-        [issue.title for issue in output.authors_result.issues]
-        if output.authors_result
-        else []
-    )
-    return deep_diff_score(expected, actual)
