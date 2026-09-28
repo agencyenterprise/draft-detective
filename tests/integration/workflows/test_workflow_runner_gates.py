@@ -98,8 +98,10 @@ class Harness:
     async def _get_run(self, project_id, workflow_type, **kwargs):
         return self.existing.get(workflow_type)
 
-    def _config(self, project, workflow_type, openai_api_key=None):
-        return get_config_type(workflow_type)(project_id=str(self.project.id))
+    def _config(self, project, workflow_type, openai_api_key=None, model=None):
+        return get_config_type(workflow_type)(
+            project_id=str(self.project.id), model=model
+        )
 
     def patches(self):
         return (
@@ -501,8 +503,8 @@ async def test_approve_project_gate_schedules_released_runs():
         ) as release,
         patch(
             "lib.api.services.workflow_runner.create_workflow_config",
-            side_effect=lambda p, t, k=None: get_config_type(t)(
-                project_id=str(project.id)
+            side_effect=lambda p, t, k=None, model=None: get_config_type(t)(
+                project_id=str(project.id), model=model
             ),
         ),
     ):
@@ -520,6 +522,44 @@ async def test_approve_project_gate_schedules_released_runs():
     assert item.workflow_run_id == str(released.id)
     assert item.thread_id == released.langgraph_thread_id
     assert item.config.type == CLAIM
+
+
+@pytest.mark.asyncio
+async def test_model_override_is_kept_on_the_awaiting_run_and_used_on_release(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+    )
+    harness = Harness()
+    harness.request.model = "openai:gpt-5.6-sol"
+    _, background_tasks = await _start(harness)
+
+    # The claim run waits; its dependencies run now, on the same model.
+    assert CLAIM not in _scheduled_types(background_tasks)
+    assert {item.config.model for item in _scheduled_items(background_tasks)} == {
+        "openai:gpt-5.6-sol"
+    }
+    [awaiting] = [call for call in harness.created if call["type"] == CLAIM]
+    assert awaiting["status"] == WorkflowRunStatus.AWAITING_APPROVAL
+    assert awaiting["model"] == "openai:gpt-5.6-sol"
+
+    released = _run(harness.project.id, CLAIM, WorkflowRunStatus.PENDING)
+    released.model = awaiting["model"]
+    release_tasks = BackgroundTasks()
+    with (
+        _stack(harness.patches()),
+        patch(
+            "lib.api.services.workflow_runner.release_runs_awaiting_approval",
+            new=AsyncMock(return_value=[released]),
+        ),
+    ):
+        await approve_project_gate(
+            harness.project, WorkflowGate.REFERENCE_REVIEW, harness.user, release_tasks
+        )
+
+    (item,) = _scheduled_items(release_tasks)
+    assert item.config.model == "openai:gpt-5.6-sol"
 
 
 @pytest.mark.asyncio

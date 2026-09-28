@@ -119,6 +119,15 @@ def _assert_api_key_available(
         )
 
 
+def _assert_model_override_allowed(model: str | None) -> None:
+    """Raise HTTP 422 when a request names a model and the server does not allow it."""
+    if model is not None and not env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE:
+        raise HTTPException(
+            status_code=422,
+            detail="This server does not accept a workflow model override (ALLOW_WORKFLOW_MODEL_OVERRIDE is off).",
+        )
+
+
 def _should_skip_existing(
     existing_run: WorkflowRun | None,
     workflow_type: WorkflowRunType,
@@ -243,6 +252,7 @@ async def _prepare_workflow_items(
         get_config_type(wt).requires_api_key() for wt in resolved_workflow_types
     )
     _assert_api_key_available(user, request.openai_api_key, any_requires_key)
+    _assert_model_override_allowed(request.model)
 
     workflow_run_ids: List[str] = []
     auto_run_items: List[AutoRunWorkflowItem] = []
@@ -339,6 +349,7 @@ async def _prepare_workflow_items(
                 type=workflow_type,
                 thread_id=str(uuid.uuid4()),
                 revision=revision,
+                model=request.model,
             )
             workflow_run_ids.append(awaiting_run_id)
             logger.info(
@@ -348,7 +359,7 @@ async def _prepare_workflow_items(
             continue
 
         workflow_config = create_workflow_config(
-            project, workflow_type, request.openai_api_key
+            project, workflow_type, request.openai_api_key, request.model
         )
 
         if awaiting_run is not None:
@@ -370,6 +381,7 @@ async def _prepare_workflow_items(
                 type=workflow_type,
                 thread_id=thread_id,
                 revision=revision,
+                model=request.model,
             )
 
         workflow_run_ids.append(workflow_run_id)
@@ -408,6 +420,7 @@ async def start_workflow_run(
     )
 
     _assert_api_key_available(user, config.openai_api_key, config.requires_api_key())
+    _assert_model_override_allowed(config.model)
 
     await assert_project_has_main_file(config.project_id, project.current_revision)
 
@@ -435,6 +448,7 @@ async def start_workflow_run(
         type=config.type,
         thread_id=thread_id,
         revision=revision,
+        model=config.model,
     )
 
     if unsatisfied_gates:
@@ -621,10 +635,13 @@ async def approve_project_gate(
 
     # Configs are rebuilt from the project; the per-request API key (if any)
     # was only ever used to check availability at start time. Resolution at
-    # run time falls back to the user's stored key or the server key.
+    # run time falls back to the user's stored key or the server key. The model
+    # override is the one exception: it is kept on the run for exactly this.
     items = [
         AutoRunWorkflowItem(
-            config=create_workflow_config(project, WorkflowRunType(run.type)),
+            config=create_workflow_config(
+                project, WorkflowRunType(run.type), model=run.model
+            ),
             thread_id=run.langgraph_thread_id,
             workflow_run_id=str(run.id),
         )

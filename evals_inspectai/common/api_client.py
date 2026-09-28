@@ -17,6 +17,7 @@ from evals_inspectai.common.errors import (
     WorkflowCompletionError,
     check_workflow_errors,
 )
+from evals_inspectai.common.model_override import check_model_used, requested_model
 
 logger = logging.getLogger(__name__)
 
@@ -344,6 +345,8 @@ async def start_workflow(config: dict[str, Any]) -> str:
     Returns:
         The workflow_run_id of the newly created run.
 
+    The eval's ``--model``, if any, is added as the config's ``model``.
+
     Note:
         This endpoint takes the `WorkflowConfig` union, which is untagged: a
         payload carrying only `type` and `project_id` validates against the
@@ -351,6 +354,10 @@ async def start_workflow(config: dict[str, Any]) -> str:
         config with fields unique to the target workflow, or use
         `start_workflow_types`, whose endpoint takes an explicit request model.
     """
+    model = requested_model()
+    if model:
+        config = {**config, "model": model}
+
     async with _build_client() as client:
         resp = await client.post("/api/workflows/start", json=config)
         resp.raise_for_status()
@@ -395,6 +402,8 @@ async def start_workflow_types(project_id: str, workflow_types: list[str]) -> No
     project by type. That is what the other e2e suites do, and it keeps this
     helper usable for the multi-workflow case where the ids would need pairing
     back up with their types anyway.
+
+    The eval's ``--model``, if any, is sent as the run's model override.
     """
     payload: dict[str, Any] = {
         "project_id": project_id,
@@ -403,6 +412,9 @@ async def start_workflow_types(project_id: str, workflow_types: list[str]) -> No
     openai_api_key = os.environ.get("EVAL_API_OPENAI_API_KEY")
     if openai_api_key:
         payload["openai_api_key"] = openai_api_key
+    model = requested_model()
+    if model:
+        payload["model"] = model
 
     async with _build_client() as client:
         resp = await client.post("/api/workflows/start-multiple", json=payload)
@@ -449,6 +461,7 @@ async def poll_workflow_run_until_complete(
             if status == "completed":
                 logger.info("Workflow run %s completed", workflow_run_id)
                 check_workflow_errors(run_detail.get("state") or {})
+                check_model_used(run_detail)
                 return run_detail
             if status in TERMINAL_FAILURE_STATUSES:
                 # A run that has failed or been cancelled will never reach
@@ -514,6 +527,7 @@ async def poll_until_complete(
                         run.get("id"),
                     )
                     check_workflow_errors(run_detail.get("state") or {})
+                    check_model_used(run_detail)
                     return run_detail
                 if status in TERMINAL_FAILURE_STATUSES:
                     # A failed or cancelled run will never reach "completed",

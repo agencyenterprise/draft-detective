@@ -28,6 +28,7 @@ from evals_inspectai.common.api_client import (
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import model_graded_check
+from evals_inspectai.common.model_override import output_model_name
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def claim_reference_validation_v2_e2e_solver(
         )
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
-            model="api",
+            model=output_model_name(run_detail),
         )
         return state
 

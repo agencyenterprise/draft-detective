@@ -205,6 +205,7 @@ async def create_workflow_run(
     type: WorkflowRunType,
     thread_id: str,
     revision: int = 1,
+    model: Optional[str] = None,
 ) -> str:
     """Create a new workflow run record."""
     now = datetime.utcnow()
@@ -215,6 +216,7 @@ async def create_workflow_run(
             status=status,
             type=type,
             revision=revision,
+            model=model,
             completed_at=now if status == WorkflowRunStatus.COMPLETED else None,
         )
         session.add(run)

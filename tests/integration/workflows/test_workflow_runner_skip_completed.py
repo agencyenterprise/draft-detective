@@ -79,7 +79,7 @@ async def run_workflow_with_mocks(
     async def mock_get_run(proj_id, workflow_type, **kwargs):
         return runs.get(workflow_type, None)
 
-    def mock_config_factory(project, workflow_type, openai_api_key=None):
+    def mock_config_factory(project, workflow_type, openai_api_key=None, model=None):
         return create_mock_config(project_id_str, workflow_type)
 
     # Create a mock project object

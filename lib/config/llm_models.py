@@ -40,6 +40,12 @@ class LLMModel(BaseModel):
         return self.model_name.replace(":", "/")
 
     @staticmethod
+    def from_model_name(model_name: str) -> "LLMModel":
+        """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol')."""
+        provider, _, name = model_name.rpartition(":")
+        return LLMModel(provider=provider, name=name)
+
+    @staticmethod
     def from_inspectai_name(inspectai_name: str) -> "LLMModel":
         """Create an LLMModel from an InspectAI model name (e.g. 'openai/gpt-5.2')."""
         if "/" in inspectai_name:

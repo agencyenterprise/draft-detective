@@ -75,6 +75,22 @@ uv run dev.py
 uv run inspect eval evals_inspectai/e2e/abbreviation_checker/abbreviation_checker_e2e.py
 ```
 
+### Choosing the workflow model
+
+Without `--model`, every agent runs on its own model. `--model` switches all of
+the run's agents to another one, and the log records it as the eval's model:
+
+```bash
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py \
+  --model openai/gpt-5.6-sol --model-role grader=openai/gpt-5.4
+```
+
+The API server must be started with `ALLOW_WORKFLOW_MODEL_OVERRIDE=true`; any
+model LangChain can build is then accepted (Inspect's `google/...` is sent as
+`google_genai:...`). A sample fails if its run was not served by the requested
+model.
+Graders are unaffected: they use the `grader` role, or their own default.
+
 ## Viewing Results
 
 Launch the Inspect AI log viewer to browse evaluation results interactively:

@@ -61,6 +61,9 @@ class LangChainAgent(BaseAgent):
 
     def __init__(self, context: ContextSchema):
         self.context = context
+        # Shadows the class-level model for this instance only, when the run
+        # names one (an eval comparing models on the same pipeline).
+        self.model = context.agent_model(self.model)
 
     def _resolve_api_key(self) -> str | None:
         """User context key wins; falls back to per-model override. OpenAI only."""
