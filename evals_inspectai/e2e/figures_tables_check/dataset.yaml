@@ -211,6 +211,7 @@
   decoys:
   - anchor: TABLE 3.1
     reason: conversion_artifact
+    title: Figure/Table Missing Title
   notes: Clean. A published report with chapter numbering (TABLE S.1, FIGURE 2.1, TABLE 3.1 ...), a valid scheme.
     TABLE 3.1's bare label is followed by a heading that serves as its title, a PDF-to-markdown artefact rather than
     a missing caption. Every element is cited and every citation resolves.
@@ -223,6 +224,7 @@
   decoys:
   - anchor: Benchmark performances of GPT3, GPT-4 and GPT-5
     reason: referenced_in_body
+    title: Unreferenced Figure/Table
   notes: A published report with twelve captioned, sequentially numbered figures. Figures 1-11 are cited in the body;
     Figure 12 ('The major trade partners of the US in 2024') is not, the surrounding text discussing EU trade weight
     without a callout, and it is also absent from the list of figures (Rule 3). Figure 2 is cited ('see Figure 2')

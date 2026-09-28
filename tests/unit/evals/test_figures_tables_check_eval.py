@@ -3,7 +3,7 @@
 import math
 from pathlib import Path
 
-from evals_inspectai.common.issue_checks import issue_detection_scores
+from evals_inspectai.common.issue_checks import decoy_scores, issue_detection_scores
 from evals_inspectai.common.issue_inventory import (
     ResolvedInventory,
     ResolvedIssue,
@@ -153,3 +153,19 @@ def test_own_checks_are_nan_with_nothing_to_judge():
     numbering = ResolvedIssue(id="skip", title=NUMBERING)
     values, _ = title_scores([IssueItem(title="Inconsistent Numbering: Table 3 skipped")], _inventory(numbering))
     assert values["known_titles"] == 1.0 and math.isnan(values["title_names_element"])
+
+
+def test_a_false_positive_on_a_cited_figure_is_caught_at_its_caption_without_a_full_quote():
+    """Figure 2 of the published report is cited in the body: an Unreferenced issue placed on
+    its caption flags the decoy even when it does not reproduce the whole caption."""
+    record = next(r for r in load_inventory_records(DATASET) if any(d.reason == "referenced_in_body" for d in r.decoys))
+    caption_line = next(n for n, line in enumerate(record.document.split("\n"), 1) if line.startswith("Figure 2. Benchmark"))
+    issue = IssueItem(
+        title="Unreferenced Figure/Table: Figure 2",
+        description="Figure 2 is present and captioned, but the body text does not cite it.",
+        severity="medium",
+        start_line=caption_line,
+        end_line=caption_line,
+    )
+    values, _ = decoy_scores([issue], record, decoy_reasons([record]))
+    assert values["no_fp_referenced_in_body"] == 0.0
