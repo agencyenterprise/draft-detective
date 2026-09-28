@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="render-size" content="1440x1000" />
+  <title>Mockup: Document Explorer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <script src="./mockup.js"></script>
+</head>
+<!-- Synthetic example. The document, its authors and its findings are invented for illustration. -->
+<body>
+<div class="flex h-[1000px] flex-col overflow-hidden border">
+
+  <!-- App bar -->
+  <header class="relative flex h-11 shrink-0 items-center gap-1 border-b px-3">
+    <a class="px-3 text-[15px] font-bold tracking-tight text-primary">Draft Detective</a>
+    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+      <div class="flex w-full max-w-md min-w-0 items-center justify-center px-2">
+        <span class="truncate text-sm font-semibold">Four-Day Workweek Pilots in Municipal Government</span>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="flex size-7 items-center justify-center rounded-md text-muted-foreground"><i data-lucide="circle-help" class="size-4"></i></span>
+      <span class="flex size-7 items-center justify-center rounded-md text-muted-foreground"><i data-lucide="moon" class="size-4"></i></span>
+      <span class="flex items-center gap-1 pl-1">
+        <span class="flex size-[26px] items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">JE</span>
+        <i data-lucide="chevron-down" class="size-3.5 text-muted-foreground"></i>
+      </span>
+    </div>
+  </header>
+
+  <!-- Project header -->
+  <div class="flex h-12 shrink-0 items-center gap-3 border-b px-3">
+    <nav class="flex h-full shrink-0 items-center">
+      <span class="relative flex h-full items-center gap-1.5 px-3 text-[13px] font-medium text-foreground after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-primary">Document Explorer</span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">References <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">14</span></span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Files <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">6</span></span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Assessments <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">6</span></span>
+      <span class="flex h-full items-center gap-1.5 px-3 text-[13px] text-muted-foreground">Peer Review <span class="font-mono text-[11px] tabular-nums text-muted-foreground/70">2</span></span>
+    </nav>
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md bg-primary px-2.5 text-xs font-medium text-primary-foreground shadow-xs"><i data-lucide="play" class="size-3.5"></i>Run assessments</span>
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium shadow-xs"><i data-lucide="download" class="size-3.5"></i>Export</span>
+      <span class="inline-flex h-7 items-center gap-1.5 rounded-md border bg-background px-2.5 text-xs font-medium shadow-xs">Revision 2<i data-lucide="chevron-down" class="size-3.5 text-muted-foreground"></i></span>
+      <span class="flex size-9 items-center justify-center rounded-md"><i data-lucide="ellipsis-vertical" class="size-4"></i></span>
+    </div>
+  </div>
+
+  <div class="flex min-h-0 flex-1">
+    <!-- Left rail -->
+    <aside class="flex w-72 shrink-0 flex-col border-r bg-sidebar">
+      <div class="px-3 py-4">
+        <div class="mb-2 flex items-center px-2">
+          <span class="font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Filter issues</span>
+        </div>
+        <div class="space-y-px">
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 rounded-[2px] bg-red-500"></span>High<span class="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">1</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 rounded-[2px] bg-amber-500"></span>Medium<span class="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">2</span></div>
+          <div class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm"><span class="block size-2 rounded-[2px] bg-blue-500"></span>Low<span class="ml-auto font-mono text-[11px] tabular-nums text-muted-foreground">2</span></div>
+        </div>
+        <div class="mt-3 space-y-1 px-2">
+          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+            <span class="relative inline-flex h-[1.15rem] w-8 scale-90 items-center rounded-full bg-input"><span class="ml-px block size-4 rounded-full bg-background shadow-sm"></span></span>Passing checks<span class="ml-auto font-mono text-[11px] tabular-nums">4</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+            <span class="relative inline-flex h-[1.15rem] w-8 scale-90 items-center rounded-full bg-input"><span class="ml-px block size-4 rounded-full bg-background shadow-sm"></span></span>Resolved<span class="ml-auto font-mono text-[11px] tabular-nums">0</span>
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2 rounded-md px-2 py-1.5 text-sm">
+          <i data-lucide="list-filter" class="size-3 text-muted-foreground"></i>Assessments<span class="ml-auto text-xs text-muted-foreground">All 6</span><i data-lucide="chevron-right" class="size-3.5 text-muted-foreground"></i>
+        </div>
+      </div>
+      <div class="border-t"></div>
+      <div class="flex-1 px-3 py-4">
+        <div class="mb-2 px-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Document outline</div>
+        <div class="space-y-px">
+          <div class="flex items-center gap-2 rounded-md py-1.5 pr-2 text-sm" style="padding-left:0.5rem"><span class="w-6 font-mono text-[10px] text-muted-foreground">1</span><span class="truncate">Four-Day Workweek Pilots…</span><span class="ml-auto flex gap-[3px]"><span class="size-1.5 rounded-full bg-blue-500"></span></span></div>
+          <div class="flex items-center gap-2 rounded-md py-1.5 pr-2 text-sm" style="padding-left:1.25rem"><span class="w-6 font-mono text-[10px] text-muted-foreground">9</span><span class="truncate">Summary</span></div>
+          <div class="flex items-center gap-2 rounded-md bg-foreground/8 py-1.5 pr-2 text-sm" style="padding-left:1.25rem"><span class="w-6 font-mono text-[10px] text-muted-foreground">15</span><span class="truncate">Findings</span><span class="ml-auto flex gap-[3px]"><span class="size-1.5 rounded-full bg-red-500"></span><span class="size-1.5 rounded-full bg-blue-500"></span><span class="size-1.5 rounded-full bg-amber-500"></span><span class="size-1.5 rounded-full bg-amber-500"></span></span></div>
+          <div class="flex items-center gap-2 rounded-md py-1.5 pr-2 text-sm" style="padding-left:1.25rem"><span class="w-6 font-mono text-[10px] text-muted-foreground">27</span><span class="truncate">Recommendations</span></div>
+          <div class="flex items-center gap-2 rounded-md py-1.5 pr-2 text-sm" style="padding-left:1.25rem"><span class="w-6 font-mono text-[10px] text-muted-foreground">36</span><span class="truncate">References</span></div>
+        </div>
+      </div>
+      <div class="border-t p-3">
+        <div class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground"><i data-lucide="circle-help" class="size-4"></i>Help</div>
+      </div>
+    </aside>
+
+    <!-- Main column -->
+    <main class="flex min-w-0 flex-1 flex-col">
+      <div class="flex h-10 shrink-0 items-center gap-2 border-b px-2">
+        <span class="flex size-7 items-center justify-center rounded-md"><i data-lucide="panel-left" class="size-4"></i></span>
+        <span class="truncate text-xs text-muted-foreground">5 sections · 44 lines · 5 issues</span>
+        <div class="ml-auto flex items-center gap-2">
+          <div class="flex items-center gap-0.5 rounded-md border p-0.5">
+            <span class="flex size-5 items-center justify-center rounded-sm text-muted-foreground"><i data-lucide="chevron-up" class="size-3.5"></i></span>
+            <span class="px-1 font-mono text-[11px] tabular-nums text-muted-foreground">5/5</span>
+            <span class="flex size-5 items-center justify-center rounded-sm text-muted-foreground"><i data-lucide="chevron-down" class="size-3.5"></i></span>
+          </div>
+          <div class="flex items-center gap-1 rounded-md border p-0.5">
+            <span class="flex items-center gap-1.5 rounded-sm bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground"><i data-lucide="columns-2" class="size-3.5"></i>Margin</span>
+            <span class="flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-medium text-muted-foreground"><i data-lucide="list-filter" class="size-3.5"></i>List</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative h-full overflow-hidden px-5 py-5 text-sm break-words">
+        <div id="doc" class="relative mx-auto max-w-[calc(3rem_+_46rem_+_26rem_+_1px)]">
+          <div class="grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div></div>
+            <hgroup class="mb-6 border-b pb-4">
+              <h1 class="text-lg font-semibold tracking-tight text-balance">Four-Day Workweek Pilots in Municipal Government</h1>
+              <p class="mt-1 text-xs text-muted-foreground">Jordan Ellis, Priya Raman</p>
+            </hgroup>
+          </div>
+
+          <div class="mt-7 mb-2 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">9</span></div>
+            <div class="flex min-w-0 gap-2"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span><h2 class="text-lg font-semibold tracking-tight">Summary</h2></div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">11</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span>
+              <p class="leading-[1.7]">Between 2023 and 2024, six mid-sized cities moved part of their municipal workforce to a 32-hour, four-day schedule with no change in pay. This report reviews what the pilots measured and what the results can tell other cities.</p>
+            </div>
+          </div>
+
+          <div class="mt-7 mb-2 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">15</span></div>
+            <div class="flex min-w-0 gap-2"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span><h2 class="text-lg font-semibold tracking-tight">Findings</h2></div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]" data-line="17">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">17</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-red-500"></span>
+              <p class="-mx-2 rounded-sm px-2 leading-[1.7] underline decoration-muted-foreground/50 decoration-dotted underline-offset-4">Sick-leave use dropped by 18 percent across the pilot cities, which shows that the four-day week caused a lasting improvement in staff health.</p>
+            </div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]" data-line="19">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">19</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-blue-500"></span>
+              <p class="-mx-2 rounded-sm px-2 leading-[1.7] underline decoration-muted-foreground/50 decoration-dotted underline-offset-4">It was decided by the steering committee that call-centre staff would be excluded from the pilot, because minimum phone coverage could not otherwise be guaranteed.</p>
+            </div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]" data-line="21">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">21</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-amber-500"></span>
+              <p class="-mx-2 rounded-sm px-2 leading-[1.7] underline decoration-muted-foreground/50 decoration-dotted underline-offset-4">Any city that still refuses to adopt a four-day week is simply ignoring overwhelming evidence.</p>
+            </div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]" data-line="23">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">23</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-amber-500"></span>
+              <p class="-mx-2 rounded-sm bg-amber-50 px-2 leading-[1.7] underline decoration-muted-foreground/50 decoration-dotted underline-offset-4">Service-request backlogs fell in five of the six cities during the pilot year. Compressed schedules consistently improve service delivery in every department that adopts them (Okafor and Brandt, 2022).</p>
+            </div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">25</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span>
+              <p class="leading-[1.7]">Resident satisfaction surveys were run in four of the six cities. Scores were flat in three and rose slightly in one, and none of the surveys had a comparison group.</p>
+            </div>
+          </div>
+
+          <div class="mt-7 mb-2 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">27</span></div>
+            <div class="flex min-w-0 gap-2"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span><h2 class="text-lg font-semibold tracking-tight">Recommendations</h2></div>
+          </div>
+          <div class="mb-3 grid grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]">
+            <div class="pt-[0.15em] pr-2 text-right select-none"><span class="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">29</span></div>
+            <div class="flex min-w-0 gap-2 self-start"><span class="w-[2px] shrink-0 rounded-full bg-transparent"></span>
+              <ul class="list-disc pl-8 leading-[1.7]">
+                <li class="mb-1">City managers should run any new pilot for at least two budget cycles and publish the service metrics they track.</li>
+                <li class="mb-1">Departments with fixed coverage requirements should pilot staggered schedules before a four-day week.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Margin layer -->
+          <div class="pointer-events-none absolute inset-y-0 right-0 w-[calc(26rem_+_1px)] pl-4">
+            <div id="doc-level" class="absolute top-0 right-0 left-4">
+              <p class="mb-1.5 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">About the whole document</p>
+              <div class="relative mb-1">
+                <div class="w-full rounded-md px-2 py-1.5 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-blue-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Headers &amp; Skimmability</span></span>
+                  <span class="mt-0.5 block text-[13px] leading-snug font-medium">No bottom line up front</span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">The Summary describes what the report covers but never states its main finding.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="margin-note absolute right-0 left-4" data-anchor="23">
+              <div class="relative mb-1.5">
+                <span class="absolute top-3.5 -left-6 h-px w-6 bg-amber-500 opacity-60"></span>
+                <div class="rounded-md border border-amber-400 bg-amber-50">
+                  <div class="w-full px-2.5 pt-2 text-left">
+                    <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-amber-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Claim Reference Validation</span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L23</span></span>
+                    <span class="mt-0.5 flex items-start gap-2"><span class="flex-1 text-[13px] leading-snug font-medium">Partially supported: the claim is broader than its source</span><span class="shrink-0 font-mono text-[10px] text-amber-800 uppercase">Medium</span></span>
+                  </div>
+                  <div class="space-y-2 px-2.5 pt-1.5 pb-2">
+                    <div class="text-xs leading-relaxed text-foreground/80">
+                      <p class="mb-1">Okafor and Brandt (2022) report faster case handling in three of the five departments they studied and no change in the other two. The sentence says compressed schedules improve delivery in <em>every</em> department, which the source does not support.</p>
+                    </div>
+                    <div class="rounded border border-dashed bg-background/60 px-2 py-1.5">
+                      <p class="mb-1 flex items-center gap-1 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase"><i data-lucide="lightbulb" class="size-3"></i> Suggested action</p>
+                      <div class="text-xs leading-relaxed">Narrow the claim to what the source found, for example "improved case handling in three of the five departments studied".</div>
+                    </div>
+                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground"><i data-lucide="chevron-down" class="size-3"></i> Show details</span>
+                    <div><span class="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">View full assessment report <i data-lucide="arrow-up-right" class="size-3"></i></span></div>
+                    <div class="flex items-center gap-1.5 pt-0.5">
+                      <span class="inline-flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground shadow-xs"><i data-lucide="check" class="size-3"></i> Mark resolved</span>
+                      <span class="ml-auto flex items-center gap-0.5 text-muted-foreground">
+                        <span class="flex h-6 w-6 items-center justify-center"><i data-lucide="thumbs-up" class="h-3 w-3"></i></span>
+                        <span class="flex h-6 w-6 items-center justify-center"><i data-lucide="thumbs-down" class="h-3 w-3"></i></span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="margin-note absolute right-0 left-4" data-anchor="19">
+              <div class="relative mb-1">
+                <div class="w-full rounded-md px-2 py-1.5 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-blue-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Active Voice &amp; Clear Actors</span><span class="-my-1 inline-flex shrink-0 items-center px-0.5 py-1 text-muted-foreground"><i data-lucide="pencil-line" class="size-3"></i></span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L19</span></span>
+                  <span class="mt-0.5 block text-[13px] leading-snug font-medium">Passive voice hides the actor</span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">"It was decided by the steering committee" names the actor only at the end of a passive clause.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="margin-note absolute right-0 left-4" data-anchor="17">
+              <div class="relative mb-1">
+                <div class="w-full rounded-md px-2 py-1.5 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-red-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Internal Inference Validation</span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L17</span></span>
+                  <span class="mt-0.5 block text-[13px] leading-snug font-medium">A correlation is presented as a cause</span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">The drop in sick leave has no comparison group, so it cannot show the schedule caused it.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="margin-note absolute right-0 left-4" data-anchor="21">
+              <div class="relative mb-1">
+                <div class="w-full rounded-md px-2 py-1.5 text-left">
+                  <span class="flex items-center gap-1.5"><span class="block size-1.5 shrink-0 rounded-full bg-amber-500"></span><span class="truncate font-mono text-[10px] tracking-wide text-muted-foreground uppercase">Advocacy &amp; Tone</span><span class="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">L21</span></span>
+                  <span class="mt-0.5 block text-[13px] leading-snug font-medium">Advocacy language</span>
+                  <span class="mt-0.5 block truncate text-[12px] leading-snug text-muted-foreground">"Simply ignoring overwhelming evidence" argues for a position rather than reporting the findings.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+  // Mirror the app's margin layout: each note starts level with its paragraph and
+  // is pushed down only when it would overlap the note above it.
+  window.layoutMockup = () => {
+    const doc = document.getElementById('doc');
+    let floor = document.getElementById('doc-level').offsetHeight + 8;
+    const notes = [...document.querySelectorAll('.margin-note')].sort((a, b) => a.dataset.anchor - b.dataset.anchor);
+    for (const note of notes) {
+      const row = doc.querySelector(`[data-line="${note.dataset.anchor}"]`);
+      const top = Math.max(row.offsetTop, floor);
+      note.style.top = `${top}px`;
+      floor = top + note.offsetHeight + 4;
+    }
+  };
+</script>
+</body>
+</html>

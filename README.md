@@ -125,7 +125,7 @@ Some analyses are experimental and hidden by default in the web app (enable "Exp
 
 Python backend (FastAPI + LangGraph agent workflows) with a Next.js frontend. Documents are ingested through a processing pipeline; each analysis is a LangGraph workflow that emits findings back into the document.
 
-![Architecture diagram](docs/architecture.png)
+![Architecture diagram](docs/images/architecture.png)
 
 ## Development
 

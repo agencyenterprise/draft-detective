@@ -140,52 +140,67 @@ class SavedFile(NamedTuple):
 
 
 async def _download_direct_url(url: str) -> SavedFile | None:
-    """Download content from URL. Returns SavedFile if successful, None otherwise."""
+    """Download content from URL. Returns SavedFile if successful, None otherwise.
+
+    Any failure of the direct fetch falls back to Jina, which fetches from its own
+    network. A blocked egress path usually drops the connection (connect error or
+    timeout) instead of answering with an HTTP status, so the fallback cannot be
+    limited to status errors.
+    """
     try:
-
-        # Download the file and check content type
-        async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
-            logger.info("Downloading %s", url)
-            response = await client.get(url, follow_redirects=True)
-            response.raise_for_status()
-
-            # Check if the response is a PDF based on Content-Type header
-            content_type = response.headers.get("Content-Type", "").lower()
-
-            if content_type.startswith("application/pdf"):
-                # Save as PDF
-                content = response.content
-
-                if len(content) == 0:
-                    logger.warning("Downloaded PDF from %s is empty", url)
-                    return None
-
-                filename = await _save_content(content, "pdf")
-                logger.info(
-                    "Saved PDF from %s (%d bytes, final URL %s) as %s",
-                    url,
-                    len(content),
-                    response.url,
-                    filename,
-                )
-                return SavedFile(filename=filename, content_type="application/pdf")
-            else:
-                # Not a PDF, use Jina to convert to markdown
-                logger.info(
-                    "Non-PDF content from %s (Content-Type %r, HTTP %d); converting via Jina",
-                    url,
-                    content_type or "missing",
-                    response.status_code,
-                )
-                return await _download_with_jina_api(url)
-
-    except httpx.HTTPStatusError as exc:
+        response = await _fetch_pdf_directly(url)
+    except Exception as exc:
         logger.warning(
             "Direct fetch of %s failed (%s); falling back to Jina",
             url,
-            _describe_http_error(exc),
+            _describe_error(exc),
         )
         return await _download_with_jina_api(url)
+
+    if response is None:
+        return await _download_with_jina_api(url)
+
+    filename = await _save_content(response.content, "pdf")
+    logger.info(
+        "Saved PDF from %s (%d bytes, final URL %s) as %s",
+        url,
+        len(response.content),
+        response.url,
+        filename,
+    )
+    return SavedFile(filename=filename, content_type="application/pdf")
+
+
+async def _fetch_pdf_directly(url: str) -> httpx.Response | None:
+    """GET the URL; return the response if it is a non-empty PDF, None if it is not a PDF.
+
+    Raises on any fetch failure, including an empty PDF body.
+    """
+    async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
+        logger.info("Downloading %s", url)
+        response = await client.get(url, follow_redirects=True)
+        response.raise_for_status()
+
+    content_type = response.headers.get("Content-Type", "").lower()
+    if not content_type.startswith("application/pdf"):
+        logger.info(
+            "Non-PDF content from %s (Content-Type %r, HTTP %d); converting via Jina",
+            url,
+            content_type or "missing",
+            response.status_code,
+        )
+        return None
+
+    if not response.content:
+        raise ValueError(f"Downloaded PDF from {url} is empty")
+    return response
+
+
+def _describe_error(exc: Exception) -> str:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return _describe_http_error(exc)
+    # Timeouts often stringify to '', so name the exception class explicitly.
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _describe_http_error(exc: httpx.HTTPStatusError) -> str:

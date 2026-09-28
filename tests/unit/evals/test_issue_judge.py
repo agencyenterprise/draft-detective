@@ -4,9 +4,9 @@ import math
 from typing import cast
 
 import pytest
-from inspect_ai.model import Model
+from inspect_ai.model import ContentImage, ContentText, Model
 
-from evals_inspectai.common.issue_judge import JudgeCriterion, judge_sample, section_text
+from evals_inspectai.common.issue_judge import JudgeCriterion, grader_input, judge_sample, section_text
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
@@ -209,3 +209,33 @@ async def test_default_expected_criterion_prompt_is_unchanged():
 
     assert grader.prompts[0].startswith("You are grading one reviewer issue against one criterion.\n\n[BEGIN DATA]\n************\n[Sentence the issue is about]:")
     assert "[Passage the issue is about]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("passage", ["section", "document"])
+async def test_an_issue_without_an_anchor_is_graded_against_the_whole_report(passage):
+    """It has no line to open a section and no text to quote, so the grader sees the
+    report and is told there is nothing to quote rather than an empty string."""
+    grader = _Grader()
+    absent = ResolvedIssue(id="no_methods", title="Missing Section: Methods")
+    issue = IssueItem(title="Missing Section: Methods", start_line=1, end_line=1, suggested_action="Describe the treaty data.")
+    criterion = JudgeCriterion(key="fits", criterion="Fits the report.", scope="expected", passage=passage)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(absent), [criterion])
+
+    assert values == {"fits": 1.0}
+    assert "[The full report]: # Title" in grader.prompts[0]
+    assert "(nothing: the issue reports that the document lacks something, under the title 'Missing Section: Methods')" in grader.prompts[0]
+
+
+def test_a_prompt_that_embeds_a_figure_attaches_the_image():
+    """The grader would otherwise see only the figure's path."""
+    prompt = "[The full report]: ![](files/figures/ft_logo.png)\nFigure 1 shows it.\n![](files/figures/ft_logo.png)"
+    request = grader_input(prompt)
+    assert isinstance(request, list) and len(request) == 1
+    content = request[0].content
+    assert isinstance(content, list)
+    assert [type(c).__name__ for c in content] == ["ContentText", "ContentText", "ContentImage"], "one image, once"
+    assert isinstance(content[1], ContentText) and content[1].text == "Image files/figures/ft_logo.png:"
+    assert isinstance(content[2], ContentImage) and content[2].image.startswith("data:image/png;base64,")
+    assert grader_input("No figures here.") == "No figures here."
