@@ -6,7 +6,7 @@ from inspect_ai.dataset import MemoryDataset, Sample
 from pydantic import BaseModel, ConfigDict, Field
 
 from evals_inspectai.common.loaders import resolve_input, yaml_dataset
-from evals_inspectai.e2e.reference_text_extractor.matching import appears_in, haystack
+from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText
 
 
 class ReferenceRecord(BaseModel):
@@ -24,8 +24,8 @@ class ReferenceRecord(BaseModel):
 
 def not_in_document(references: list[str], document: str) -> list[str]:
     """The references whose text does not appear in the document after normalization."""
-    hay = haystack(document.split("\n"))
-    return [r for r in references if not appears_in(r, hay)]
+    text = DocumentText(document.split("\n"))
+    return [r for r in references if not text.contains(r)]
 
 
 def record_to_sample(raw: dict) -> Sample:

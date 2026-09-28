@@ -12,7 +12,7 @@ from evals_inspectai.e2e.reference_text_extractor.criteria import (
     ExtractedReference,
     reference_scores,
 )
-from evals_inspectai.e2e.reference_text_extractor.matching import appears_in, compact, haystack, match
+from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText, compact, match
 from evals_inspectai.e2e.reference_text_extractor.records import (
     ReferenceRecord,
     not_in_document,
@@ -101,10 +101,69 @@ def test_normalization_evens_out_conversion_noise():
 
 
 def test_document_check_allows_list_markers_and_resolved_placeholders():
-    hay = haystack(["- Anthropic. 2025a. 'First.' As of 3", "- December 2025: https://a.example", "- ---. 2025b. 'Second Title Here.'"])
-    assert appears_in("Anthropic. 2025a. 'First.' As of 3 December 2025: https://a.example", hay)
-    assert appears_in("Anthropic. 2025b. 'Second Title Here.'", hay)
-    assert not appears_in("Anthropic. 2026. 'Third Title Not There.'", hay)
+    text = DocumentText(["- Anthropic. 2025a. 'First.' As of 3", "- December 2025: https://a.example", "- ---. 2025b. 'Second Title Here.'"])
+    assert text.contains("Anthropic. 2025a. 'First.' As of 3 December 2025: https://a.example")
+    assert text.contains("Anthropic. 2025b. 'Second Title Here.'")
+    assert not text.contains("Anthropic. 2026. 'Third Title Not There.'")
+
+
+WORKS_CITED = [
+    "## Works Cited",
+    "",
+    "Thompson, R. & Davis, K. (2022). Transformer Models for Clinical Text Understanding. Journal of Biomedical Informatics, 125, 103967.",
+    "",
+    "---. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.",
+    "",
+    "Chen, Y., Liu, H. (2023). Deep Learning Methods. Radiology, 306(2), 412-425.",
+]
+
+
+def test_a_placeholder_resolves_only_to_the_previous_entrys_author():
+    text = DocumentText(WORKS_CITED)
+    assert text.contains("Thompson, R. & Davis, K. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.")
+    assert not text.contains("Invented, X. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.")
+    assert not text.contains("Chen, Y., Liu, H. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.")
+
+
+def test_adjacent_entries_joined_together_are_not_the_documents_text():
+    text = DocumentText(WORKS_CITED)
+    assert not text.contains(
+        "Thompson, R. & Davis, K. (2022). Transformer Models for Clinical Text Understanding. Journal of Biomedical "
+        "Informatics, 125, 103967. Chen, Y., Liu, H. (2023). Deep Learning Methods."
+    )
+    assert not text.contains("JAMIA. Chen, Y., Liu, H. (2023). Deep Learning Methods.")
+    # Hanging-indent lists put each entry on its own line with no blank line between.
+    hanging = DocumentText(["Adams, B. (2019). First Title. Press.", "Baker, C. (2020). Second Title. Press."])
+    assert hanging.contains("Adams, B. (2019). First Title. Press.")
+    assert not hanging.contains("Adams, B. (2019). First Title. Press. Baker, C. (2020). Second Title. Press.")
+
+
+def test_a_wrapped_entry_and_a_split_url_stay_one_entry():
+    text = DocumentText([
+        "Health Office, 'Serum Repository,' webpage, last updated July 22, 2024. As of May 5, 2025:",
+        "",
+        "https://www.health.example/Topics/AFHSD/",
+        "",
+        "Functional-Support/Serum-Repository",
+        "",
+        "Ivers, P. (2021). A Title That Wraps",
+        "Onto the Next Line. Journal, 3(1), 1-9. doi: 10.1000/xyz",
+        "Jones, Q. (2022). Next Entry. Press.",
+    ])
+    assert text.contains(
+        "Health Office, 'Serum Repository,' webpage, last updated July 22, 2024. As of May 5, 2025: "
+        "https://www.health.example/Topics/AFHSD/Functional-Support/Serum-Repository"
+    )
+    assert text.contains("Ivers, P. (2021). A Title That Wraps Onto the Next Line. Journal, 3(1), 1-9. doi: 10.1000/xyz")
+    assert not text.contains("doi: 10.1000/xyz Jones, Q. (2022). Next Entry. Press.")
+
+
+def test_a_line_range_check_resolves_a_placeholder_from_outside_the_range():
+    text = DocumentText(WORKS_CITED)
+    resolved = "Thompson, R. & Davis, K. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA."
+    assert text.contains(resolved, 5, 5), "the author on line 3 is outside the range but still resolves the placeholder"
+    assert not text.contains(resolved, 7, 7)
+    assert not text.contains("Invented, X. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.", 5, 5)
 
 
 def test_matching_is_one_to_one_and_prefers_identical_texts():

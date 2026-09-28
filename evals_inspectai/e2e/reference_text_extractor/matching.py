@@ -8,17 +8,19 @@ with or without a space (a URL split over two lines). ``normalize`` removes
 those; ``compact`` also drops every space, and is what "identical" and
 "verbatim" compare.
 
-The skill changes an entry in two ways, and the document checks allow for
-both: it removes an entry number or list marker (so the document's lines are
-read without one), and it replaces a repeated-author placeholder (``---.``,
-``———.``, ``___``) with the previous entry's author (so a reference may begin
-with an author the document gives only as a placeholder).
+The skill changes an entry in three ways, and the document checks allow for
+each: it removes an entry number or list marker (so the document's lines are
+read without one), it merges an entry split across lines (so a reference may
+span several lines, but only lines of the same entry: see ``DocumentText``),
+and it replaces a repeated-author placeholder (``---.``, ``———.``, ``___``)
+with the previous entry's author (so a reference may begin with an author the
+document gives only as a placeholder, provided it is that previous author).
 """
 
 import html
 import re
 from collections import Counter
-from typing import Optional, Sequence
+from typing import Callable, Optional, Sequence
 
 _MD_ESCAPE_RE = re.compile(r"\\([\\`*_{}\[\]()#+\-.!|<>~])")
 _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
@@ -49,28 +51,123 @@ def compact(text: str) -> str:
     return "".join(normalize(text).split())
 
 
-def haystack(lines: Sequence[str]) -> str:
-    """Document lines as one compacted string, each line without a leading list marker."""
-    return "".join(compact(_LIST_MARKER_RE.sub("", line)) for line in lines)
+# A paragraph or list item that carries on the previous entry rather than opening one:
+# it starts with a URL, a DOI, a lowercase letter, a digit or punctuation (compacted text).
+_CONTINUATION_RE = re.compile(r"^(?:https?://|www\.|doi[:.]|[a-z0-9(\[<:;,.)\]/])")
+_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s")
+# How an entry's last line ends when the entry is complete: a full stop, or a closing
+# URL, URL remainder (a last token with a slash or a web file extension, as when a URL
+# is split over lines) or DOI, since reference styles that end on the link carry no
+# final full stop.
+_ENDS_ENTRY_RE = re.compile(
+    r"(?:[.?!]|(?:https?://|www\.)\S+|\S*/\S*|\S+\.(?:pdf|html?|aspx?|php)|doi:\s*\S+)$", re.I
+)
 
 
-def _after_placeholder(ref: str, hay: str) -> bool:
-    """Whether ``ref`` is some author followed by text that follows a placeholder in ``hay``."""
-    for match in _PLACEHOLDER_RE.finditer(hay):
-        start = match.end()
-        if start >= len(hay):
-            continue
-        for k in range(1, len(ref) - _MIN_TAIL + 1):
-            if ref[k] == hay[start] and hay.startswith(ref[k:], start):
+class _Entry:
+    """One entry of the document as the skill reads it: its compacted text, which lines
+    each stretch of that text comes from, and, for an entry opening with a
+    repeated-author placeholder, the placeholder's length and the entry it repeats."""
+
+    def __init__(self) -> None:
+        self.text = ""
+        self.pieces: list[tuple[int, int, int]] = []  # (1-indexed line, start, end) in text
+        self.last_line = ""  # normalized text of the entry's last line
+        self.placeholder = 0
+        self.author_source = ""
+
+    def add(self, number: int, line: str) -> None:
+        piece = compact(line)
+        self.pieces.append((number, len(self.text), len(self.text) + len(piece)))
+        self.text += piece
+        self.last_line = normalize(line)
+
+    def lines(self, start: int, end: int) -> tuple[int, int]:
+        """The first and last document line holding ``text[start:end]``."""
+        covered = [n for n, s, e in self.pieces if s < end and e > start]
+        return covered[0], covered[-1]
+
+
+def _continues(entry: _Entry, line: str) -> bool:
+    """Whether ``line`` carries on ``entry`` rather than opening the next one: it opens
+    like the rest of a reference (a URL, lowercase text, a URL fragment split onto its
+    own line), or the entry has not ended (no final full stop, closing URL or DOI), as
+    when a line wraps or a conversion splits one reference over two bullets."""
+    text = compact(line)
+    if _PLACEHOLDER_RE.match(text):
+        return False
+    fragment = " " not in normalize(line) and "/" in text
+    return bool(_CONTINUATION_RE.match(text)) or fragment or not _ENDS_ENTRY_RE.search(entry.last_line)
+
+
+class DocumentText:
+    """A document's lines grouped into entries, so a reference is looked for within one
+    entry and never across two. Each line opens an entry unless ``_continues`` says it
+    carries on the one above (a wrapped line, a split URL, a reference split over two
+    bullets); a heading stands alone."""
+
+    def __init__(self, lines: Sequence[str]) -> None:
+        self.entries: list[_Entry] = []
+        current: Optional[_Entry] = None
+        for number, line in enumerate(lines, 1):
+            if not line.strip():
+                continue
+            heading = bool(_HEADING_RE.match(line))
+            body = _LIST_MARKER_RE.sub("", line)
+            if heading or current is None or not _continues(current, body):
+                current = self._open(body, heading)
+            current.add(number, body)
+            if heading:
+                current = None
+
+    def _open(self, body: str, heading: bool) -> _Entry:
+        entry = _Entry()
+        placeholder = None if heading else _PLACEHOLDER_RE.match(compact(body))
+        if placeholder:
+            entry.placeholder = placeholder.end()
+            source = next((e for e in reversed(self.entries) if e.text and not e.placeholder), None)
+            entry.author_source = source.text if source else ""
+        self.entries.append(entry)
+        return entry
+
+    def contains(self, reference: str, start_line: Optional[int] = None, end_line: Optional[int] = None) -> bool:
+        """Whether the reference's text is one entry's text, or part of it, directly or with
+        the entry's repeated-author placeholder resolved to the previous entry's author;
+        with a line range, only when the matched text lies within those lines."""
+        ref = compact(reference)
+        if not ref:
+            return False
+
+        def within(entry: _Entry, start: int, end: int) -> bool:
+            if start_line is None or end_line is None:
                 return True
-    return False
+            first, last = entry.lines(start, end)
+            return start_line <= first and last <= end_line
 
+        for entry in self.entries:
+            at = entry.text.find(ref)
+            while at >= 0:
+                if within(entry, at, at + len(ref)):
+                    return True
+                at = entry.text.find(ref, at + 1)
+            if entry.placeholder and entry.author_source and self._resolves(ref, entry, within):
+                return True
+        return False
 
-def appears_in(reference: str, hay: str) -> bool:
-    """Whether the reference's text is in ``hay`` (a ``haystack``), directly or after a
-    repeated-author placeholder the reference has resolved."""
-    ref = compact(reference)
-    return bool(ref) and (ref in hay or _after_placeholder(ref, hay))
+    @staticmethod
+    def _resolves(ref: str, entry: _Entry, within: Callable[[_Entry, int, int], bool]) -> bool:
+        """Whether ``ref`` is the previous entry's author followed by the text after this
+        entry's placeholder: the author must open the previous entry and end at a word
+        boundary in it, so a reference cannot substitute an author of its own."""
+        tail = entry.text[entry.placeholder:]
+        source = entry.author_source
+        for k in range(1, min(len(ref) - _MIN_TAIL, len(source)) + 1):
+            author, rest = ref[:k], ref[k:]
+            ends_author = k == len(source) or not source[k].isalnum()
+            if ends_author and source.startswith(author) and tail.startswith(rest):
+                if within(entry, entry.placeholder, entry.placeholder + len(rest)):
+                    return True
+        return False
 
 
 def _tokens(text: str) -> Counter[str]:

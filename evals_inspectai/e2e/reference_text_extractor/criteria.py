@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.scorers import failed_score
-from evals_inspectai.e2e.reference_text_extractor.matching import appears_in, compact, haystack, match
+from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText, compact, match
 
 NAN = math.nan
 # How many missing or extra references an explanation names, and how much of each.
@@ -87,13 +87,15 @@ def _listed(label: str, texts: Sequence[str]) -> list[str]:
     return [f"{label} {len(texts)}: {shown}{more}"]
 
 
-def _in_lines(ref: ExtractedReference, lines: Sequence[str]) -> Optional[bool]:
-    """Whether the reference's text lies within its own line range; None when it names none."""
+def _in_lines(ref: ExtractedReference, document: DocumentText, line_count: int) -> Optional[bool]:
+    """Whether the reference's text lies within its own line range; None when it names none.
+    Read against the whole document, so a repeated-author placeholder in range still
+    resolves to the previous entry's author outside it."""
     if ref.start_line is None or ref.end_line is None:
         return None
-    if not 1 <= ref.start_line <= ref.end_line <= len(lines):
+    if not 1 <= ref.start_line <= ref.end_line <= line_count:
         return False
-    return appears_in(ref.text, haystack(lines[ref.start_line - 1 : ref.end_line]))
+    return document.contains(ref.text, ref.start_line, ref.end_line)
 
 
 def reference_scores(
@@ -115,11 +117,11 @@ def reference_scores(
     inexact = [texts[i] for i, j in pairs if compact(texts[i]) != compact(expected[j])]
 
     lines = document.split("\n")
-    hay = haystack(lines)
-    in_document = [appears_in(r.text, hay) for r in extracted]
+    text = DocumentText(lines)
+    in_document = [text.contains(r.text) for r in extracted]
     verbatim = [r for r, ok in zip(extracted, in_document) if ok]
     invented = [r.text for r, ok in zip(extracted, in_document) if not ok]
-    placed = [(r, ok) for r in verbatim if (ok := _in_lines(r, lines)) is not None]
+    placed = [(r, ok) for r in verbatim if (ok := _in_lines(r, text, len(lines))) is not None]
     misplaced = [f"{r.start_line}-{r.end_line}: {r.text}" for r, ok in placed if not ok]
 
     recall = _fraction(len(pairs), len(expected))
