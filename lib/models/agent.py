@@ -14,7 +14,8 @@ from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LLM_TIMEOUT = 300
+DEFAULT_LLM_TIMEOUT = 240
+DEFAULT_LLM_MAX_RETRIES = 4
 
 
 class ReasoningDict(TypedDict):
@@ -31,6 +32,7 @@ class BaseAgent(ABC):
         - model: LLMModel
         - temperature: float
         - timeout: int = DEFAULT_LLM_TIMEOUT (optional, has default)
+        - max_retries: int = DEFAULT_LLM_MAX_RETRIES (optional, has default)
         - output_schema: Optional[type[BaseModel]] = None (optional)
         - reasoning: Optional[ReasoningDict] = None (optional, should be for example: {"effort": "low", "summary": "auto"})
     """
@@ -40,6 +42,7 @@ class BaseAgent(ABC):
     model: LLMModel
     temperature: float
     timeout: int = DEFAULT_LLM_TIMEOUT
+    max_retries: int = DEFAULT_LLM_MAX_RETRIES
     reasoning: Optional[ReasoningDict] = None
     output_schema: Optional[type[BaseModel]] = None
 
@@ -73,7 +76,7 @@ class LangChainAgent(BaseAgent):
             "model": self.model.model_name,
             "temperature": self.temperature,
             "timeout": self.timeout,
-            "max_retries": 4,
+            "max_retries": self.max_retries,
             "rate_limiter": self.get_rate_limiter(),
         }
 

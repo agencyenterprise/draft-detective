@@ -25,6 +25,13 @@ from lib.workflows.context import ContextSchema
 # A few searches and a handful of reads for a long section.
 RECURSION_LIMIT = 60
 
+# Each turn is a search, a read, or the final answer, and normally returns in
+# seconds. A turn that runs for minutes is a runaway, and resending the same
+# request repeats it, so fail it early (below the 240s gateway cutoff seen in
+# production) and retry once rather than four times.
+REQUEST_TIMEOUT_SECONDS = 180
+MAX_RETRIES = 1
+
 
 class AbbreviationsSectionExtraction(BaseModel):
     sections: List[AbbreviationsSectionRange] = Field(
@@ -70,6 +77,8 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
     model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
+    timeout = REQUEST_TIMEOUT_SECONDS
+    max_retries = MAX_RETRIES
 
     async def ainvoke(
         self,

@@ -209,3 +209,16 @@ class TestReadAbbreviationsSection:
         result = await self._run(AbbreviationsSectionExtraction())
         assert result["abbreviations_section_found"] is False
         assert result["abbreviations_section_ranges"] == []
+
+    @pytest.mark.asyncio
+    async def test_agent_is_skipped_when_no_line_mentions_the_section(self):
+        # A long draft with no Abbreviations section kept the agent searching
+        # until the LLM gateway timed out every retry, for 20 minutes.
+        agent = SimpleNamespace(ainvoke=AsyncMock())
+        markdown = "# Report\n\nThe NATO alliance. DTSA reviews export licenses under ITAR."
+        with patch.object(read_abbreviations_section, "AbbreviationsSectionExtractorAgent", return_value=agent):
+            result = await read_abbreviations_section.read_abbreviations_section_node.__wrapped__(
+                _state(), _runtime(markdown)
+            )
+        agent.ainvoke.assert_not_called()
+        assert result == {"abbreviations_section_found": False}

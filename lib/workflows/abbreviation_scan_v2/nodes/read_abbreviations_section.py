@@ -16,6 +16,7 @@ from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationsSectionRange,
     LineRange,
 )
+from lib.workflows.abbreviation_scan_v2.section_candidates import find_candidate_lines
 from lib.workflows.abbreviation_scan_v2.state import AbbreviationScanV2State
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -31,6 +32,11 @@ async def read_abbreviations_section_node(
     markdown = (main_file.markdown or "") if main_file else ""
     if not markdown.strip():
         return {}
+    if not find_candidate_lines(markdown):
+        # Nothing the agent could find; skip it rather than let it search a
+        # long document until the LLM gateway times out.
+        logger.info("[AbbreviationScanV2] No line mentions an Abbreviations section; skipping the agent")
+        return {"abbreviations_section_found": False}
 
     result, messages = await AbbreviationsSectionExtractorAgent(runtime.context).ainvoke(
         {"markdown": markdown}
