@@ -6,6 +6,90 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.4] - 2026-09-28
+
+### Added
+- Added a “Demo video” section to the GitHub Pages project overview embedding a new three-minute walkthrough video.
+- Added new static HTML mockups, a rendering script, and newly rendered PNG images for the GitHub Pages overview.
+
+### Changed
+- Refactored four e2e eval suites (`about_this_ger`, `advocacy_tone_v2`, `document_structure`, `figures_tables_check`) to score against issue inventories instead of DeepDiff title-similarity scoring.
+- Updated those four eval suites with 48 new samples, two judged criteria per suite on suggested actions, and deterministic workflow-specific checks.
+- Updated issue-inventory tooling to support optional anchors, additional flags for anchors and severities, and passing new flags through the viewer.
+- Rewrote the GitHub Pages project overview to focus on design and architecture, updated sections to match current code, and replaced outdated screenshots with synthetic ones.
+- Updated `README.md` to point the architecture image at `docs/images/architecture.png`.
+
+### Fixed
+- Updated the reference downloader to fall back to the Jina reader on any direct-fetch failure and to avoid calling Jina twice in certain non-PDF failure cases.
+- Added unit tests covering Jina fallback behavior for connection errors, timeouts, HTTP errors, empty PDFs, and blocked access scenarios.
+
+### Removed
+- Removed the outdated 5-minute demo video from the GitHub Pages overview.
+- Removed 10 old images from the docs, including `architecture.png`, `document-processing-pipeline.png`, and eight `*-ex1.png` / `*-ex2.png` screenshots.
+
+
+## [v2.0.3] - 2026-09-24
+
+### Added
+- Added assessment presets to the workflow picker, including Standard Review and Editorial Review.
+- Added an Audience Fit experimental check for target audience and technical language, included in the Editorial Review preset.
+- Added a Headers & Skimmability check with an issue-inventory eval, and included it in the Editorial Review preset.
+- Added a Narrative & Synthesis check with an Inspect eval, and included it in the Editorial Review preset.
+- Added publishing of the Inspect AI log viewer on GitHub Pages for committed eval logs in `docs/evals/`.
+- Added replay of backend agent conversations into the Inspect transcript for E2E evals.
+
+### Changed
+- Re-ran the seven editorial-check evals, replaced the recorded logs, and slimmed `docs/eval-scores.md` to focus on the current baseline.
+- Extended Recommendation Check to flag vague, unaddressed, and over-long recommendations, and updated its eval dataset and recorded log.
+- Removed runtime-specific details from skill files and moved required runtime details into workflow system prompts.
+- Cached mypy results between CI runs.
+- Updated the frontend security scan workflow to scan the pnpm lockfile and the Dockerfile base image instead of building the frontend image.
+- Updated backend CI to precompile bytecode and size pytest workers to the runner.
+- Updated tracked-changes and edit-export tests to build documents from a lean python-docx template.
+
+### Fixed
+- Fixed scrolling on the assessments step of the new-project wizard so scrolling over the fixed footer no longer scrolls the whole page and breaks layout.
+- Added a PDF quality notice on upload in the new-project wizard when the selected document is a PDF.
+
+
+## [v2.0.2] - 2026-09-23
+
+### Added
+- Added parallel, chunked abbreviation extraction that fans out across line-range chunks and assembles a single catalogue.
+- Added new abbreviation-scan v2 workflow components for chunking, per-chunk extraction, catalogue assembly, and updated state schema.
+- Added a shared document section splitter so multiple workflows can use the same section logic.
+- Added new abbreviation-scan tests covering chunk extraction, catalogue, layout, and nodes.
+- Added Codex plugin support.
+- Added a Codex marketplace catalog.
+- Added proposed edits to issues with inline diffs.
+- Added skill-declared workflows with the Active Voice check and inventory evals.
+- Added Concision & Precision and Writing Consistency checks with evals.
+- Added a document explorer UI that replaces assessment chips with a searchable popover.
+- Added a redesigned assessment picker and wizard as single-column lists.
+- Added support for `/mcp` and `/mcp/`.
+
+### Changed
+- Changed abbreviation-scan to skip the Abbreviations/Glossary section and blank ranges during chunking.
+- Changed abbreviation-scan to compute document-wide catalogue fields in code, including occurrence numbering and definition handling.
+- Changed abbreviation-scan skill documentation to exempt footnotes/endnotes and additional exempt classes (legal citations, Latin shorthand, statistical notation, magnitude suffixes, state codes in addresses, product/model names, and document identifiers).
+- Regenerated the frontend generated API for the new state schema.
+- Moved the Recommendation Check onto the issue-inventory eval.
+- Improved LLM error diagnostics and HTTP attempt logging.
+- Applied proposed edits as tracked changes in the DOCX export.
+- Bumped soupsieve from 2.8.4 to 2.9.
+
+### Fixed
+- Fixed abbreviation-scan production failures on large documents by replacing the single-agent flow with chunked parallel extraction.
+- Fixed frontend rendering of paired dollar amounts as inline math.
+- Fixed MCP OAuth issuer for Claude Desktop (FastMCP 4).
+- Fixed abbreviation-scan by capping `record_abbreviations` batches at 50 occurrences.
+- Fixed flaky untouched-DOCX assertions in tracked-changes tests.
+
+### Removed
+- Removed the old single-agent abbreviation checker flow and its associated recording tool.
+- Removed a superseded eval report and unreferenced logs.
+
+
 ## [v2.0.1] - 2026-09-23
 
 ### Added
