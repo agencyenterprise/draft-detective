@@ -183,7 +183,6 @@ class CitationValidatorAgent(LangChainAgent):
     name = "Citation Validator"
     description = "Validate citations in a document section against reference files"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     async def ainvoke(

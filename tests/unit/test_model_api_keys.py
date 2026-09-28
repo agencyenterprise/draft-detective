@@ -24,7 +24,6 @@ class _TestAgent(LangChainAgent):
 
     name = "Test Agent"
     description = "Test"
-    temperature = 0.0
     timeout = 60
     reasoning = None
     output_schema = None

@@ -87,8 +87,10 @@ uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_chec
 
 The API server must be started with `ALLOW_WORKFLOW_MODEL_OVERRIDE=true`; any
 model LangChain can build is then accepted (Inspect's `google/...` is sent as
-`google_genai:...`). A sample fails if its run was not served by the requested
-model.
+`google_genai:...`). Each agent's reasoning effort is passed in the provider's
+own terms: OpenAI's `reasoning`, and adaptive thinking plus `effort` on Claude,
+which needs a Claude 4.6 or later model. A sample fails if its run was not
+served by the requested model.
 Graders are unaffected: they use the `grader` role, or their own default.
 
 ## Viewing Results

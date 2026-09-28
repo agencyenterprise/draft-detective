@@ -358,8 +358,13 @@ async def _prepare_workflow_items(
             )
             continue
 
+        # A run already waiting keeps the model it was created with, the one its
+        # row records, as it does when approve_project_gate releases it.
         workflow_config = create_workflow_config(
-            project, workflow_type, request.openai_api_key, request.model
+            project,
+            workflow_type,
+            request.openai_api_key,
+            awaiting_run.model if awaiting_run is not None else request.model,
         )
 
         if awaiting_run is not None:

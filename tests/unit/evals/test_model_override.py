@@ -9,6 +9,7 @@ from evals_inspectai.common import model_override
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.model_override import (
     check_model_used,
+    is_model,
     output_model_name,
     requested_model,
 )
@@ -76,3 +77,41 @@ def test_output_model_is_what_served_the_run():
         assert output_model_name(_run_detail(None, [])) == "api"
     with _active("openai/gpt-5.6-sol"):
         assert output_model_name(_run_detail("openai:gpt-5.6-sol", [])) == "openai:gpt-5.6-sol"
+
+
+@pytest.mark.parametrize(
+    "served, name, same",
+    [
+        ("gpt-5.6-sol", "gpt-5.6-sol", True),
+        ("gpt-5.6-sol-2026-08-01", "gpt-5.6-sol", True),
+        ("claude-sonnet-4-5-20250929", "claude-sonnet-4-5", True),
+        ("gpt-5.6-sol-mini", "gpt-5.6-sol", False),
+        ("gpt-5.6-sol-mini-2026-08-01", "gpt-5.6-sol", False),
+        ("gpt-5.6-solar", "gpt-5.6-sol", False),
+    ],
+)
+def test_a_model_matches_itself_or_its_dated_release(served: str, name: str, same: bool):
+    assert is_model(served, name) is same
+
+
+def test_a_model_with_a_longer_name_fails_the_check():
+    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="served by"):
+        check_model_used(_run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol-mini"]))
+
+
+def test_an_unpriced_model_in_the_replies_still_fails_the_check():
+    detail = _run_detail("openai:gpt-5.6-sol", ["gpt-5.6-sol"])
+    detail["state"] = {
+        "chunks": [
+            {"messages": [
+                {"type": "human", "content": "hi"},
+                {
+                    "type": "ai",
+                    "usage_metadata": {"input_tokens": 1},
+                    "response_metadata": {"model_name": "some-unpriced-model"},
+                },
+            ]}
+        ]
+    }
+    with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="some-unpriced-model"):
+        check_model_used(detail)

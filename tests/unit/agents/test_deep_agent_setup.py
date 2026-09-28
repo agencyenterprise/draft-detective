@@ -27,7 +27,6 @@ class TestModelConstruction:
 
         kwargs = init.call_args.kwargs
         assert kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
-        assert kwargs["temperature"] == 0.0
         assert kwargs["max_retries"] == 4
         assert kwargs["rate_limiter"] is not None, "share the project's rate limiter"
         assert "output_version" not in kwargs, "batch agents keep the default layout"

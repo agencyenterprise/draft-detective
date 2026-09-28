@@ -75,7 +75,6 @@ class ReferenceExtractorV2Agent(LangChainAgent):
     name = "Reference Extractor v2"
     description = "Extract bibliographic references using intelligent document search"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(

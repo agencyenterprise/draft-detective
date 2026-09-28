@@ -9,6 +9,7 @@ nothing is forwarded and every agent keeps its own model.
 The server has to allow the override (``ALLOW_WORKFLOW_MODEL_OVERRIDE=true``).
 """
 
+import re
 from typing import Any, Optional
 
 from inspect_ai.model import get_model
@@ -19,6 +20,10 @@ NO_MODEL = "none"
 
 # Inspect provider names that LangChain's init_chat_model spells differently.
 LANGCHAIN_PROVIDERS = {"google": "google_genai"}
+
+# The date a provider may append to the model it was asked for: OpenAI's
+# "-2026-08-01", Anthropic's "-20250929".
+DATED_SUFFIX = r"-(\d{4}-\d{2}-\d{2}|\d{8})"
 
 
 def requested_model() -> Optional[str]:
@@ -35,9 +40,40 @@ def requested_model() -> Optional[str]:
 
 
 def served_models(run_detail: dict[str, Any]) -> list[str]:
-    """The models the run's LLM calls reported, from its cost breakdown."""
+    """The models the run's LLM replies reported.
+
+    Read from the replies in the run's state, because the cost breakdown drops any
+    model it has no price for, which is exactly where an override can land. The
+    breakdown is kept as well, for callers that already moved the messages out of
+    the state into the transcript.
+    """
     cost = run_detail.get("cost") or {}
-    return sorted((cost.get("by_model") or {}).keys())
+    found = set((cost.get("by_model") or {}).keys())
+    _collect_reply_models(run_detail.get("state"), found)
+    return sorted(found)
+
+
+def _collect_reply_models(node: Any, found: set[str]) -> None:
+    """Add the model named by every serialized AI reply under `node` (a reply carries usage)."""
+    if isinstance(node, list):
+        for item in node:
+            _collect_reply_models(item, found)
+        return
+    if not isinstance(node, dict):
+        return
+    if "usage_metadata" in node:
+        metadata = node.get("response_metadata")
+        if isinstance(metadata, dict):
+            name = metadata.get("model_name") or metadata.get("model")
+            if name:
+                found.add(str(name))
+    for value in node.values():
+        _collect_reply_models(value, found)
+
+
+def is_model(served: str, name: str) -> bool:
+    """Whether a provider's reported model is `name` itself, or `name` with its date."""
+    return re.fullmatch(re.escape(name) + f"({DATED_SUFFIX})?", served) is not None
 
 
 def output_model_name(run_detail: dict[str, Any]) -> str:
@@ -50,8 +86,8 @@ def check_model_used(run_detail: dict[str, Any]) -> None:
 
     The recorded model catches a run started without the override (a start path
     that dropped it); the served models catch an agent that ignored it. Providers
-    report the bare model name, often with a date suffix, so that is what they are
-    compared on.
+    report the bare model name, sometimes with a date suffix, so that is what they
+    are compared on.
     """
     requested = requested_model()
     if requested is None:
@@ -63,7 +99,7 @@ def check_model_used(run_detail: dict[str, Any]) -> None:
             f"Run {run.get('id')} was started with model {recorded!r}, not {requested!r}."
         )
     name = requested.partition(":")[2]
-    others = [m for m in served_models(run_detail) if not m.startswith(name)]
+    others = [m for m in served_models(run_detail) if not is_model(m, name)]
     if others:
         raise WorkflowCompletionError(
             f"Run {run.get('id')} asked for {requested!r} but was served by {others}."

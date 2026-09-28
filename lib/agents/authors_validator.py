@@ -52,7 +52,6 @@ class AuthorsValidatorAgent(LangChainAgent):
     name = "Authors Validator"
     description = "Validate author biographies against publication rules"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     async def ainvoke(

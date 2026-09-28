@@ -93,7 +93,6 @@ class ReferenceValidatorV2Agent(LangChainAgent):
     name = "Reference Validator V2"
     description = "Validate a list of references in a document, by searching for their online presence."
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(

@@ -15,10 +15,12 @@ from lib.api.services.workflow_runner import (
 from lib.config.llm_models import (
     LLMModel,
     claude_3_5_sonnet_model,
+    gemini_2_flash_model,
     gpt_5_6_sol_model,
     gpt_5_6_terra_model,
+    web_search_tool,
 )
-from lib.models.agent import LangChainAgent
+from lib.models.agent import LangChainAgent, ReasoningDict
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
@@ -39,7 +41,6 @@ def _context(model_override: LLMModel | None = None) -> ContextSchema:
 class _TerraAgent(LangChainAgent):
     name = "Test Agent"
     description = "Test"
-    temperature = 0.0
     model = gpt_5_6_terra_model
 
     async def ainvoke(self, prompt_kwargs: dict, config: Any = None) -> Any:
@@ -82,6 +83,56 @@ def test_agent_runs_on_the_override_without_changing_its_class():
     assert agent.get_init_chat_model_kwargs()["model"] == "openai:gpt-5.6-sol"
     assert _TerraAgent.model == gpt_5_6_terra_model
     assert _TerraAgent(_context()).model == gpt_5_6_terra_model
+
+
+REASONING: ReasoningDict = {"effort": "medium", "summary": "auto"}
+
+
+def _kwargs(model: LLMModel | None, reasoning: ReasoningDict | None) -> dict:
+    agent = _TerraAgent(_context(model))
+    agent.reasoning = reasoning
+    return agent.get_init_chat_model_kwargs()
+
+
+def test_openai_gets_its_reasoning_and_no_temperature():
+    kwargs = _kwargs(None, REASONING)
+    assert kwargs["reasoning"] == REASONING
+    assert "temperature" not in kwargs
+    assert "temperature" not in _kwargs(None, None)
+
+
+def test_claude_thinks_adaptively_at_the_agents_effort():
+    kwargs = _kwargs(claude_3_5_sonnet_model, {"effort": "high", "summary": "auto"})
+    assert kwargs["thinking"] == {"type": "adaptive", "display": "summarized"}
+    assert kwargs["effort"] == "high"
+    assert "temperature" not in kwargs and "reasoning" not in kwargs
+
+
+def test_claude_without_reasoning_does_not_think():
+    kwargs = _kwargs(claude_3_5_sonnet_model, None)
+    assert "thinking" not in kwargs and "effort" not in kwargs
+    assert "temperature" not in kwargs
+
+
+def test_other_providers_run_without_reasoning():
+    kwargs = _kwargs(gemini_2_flash_model, REASONING)
+    assert "reasoning" not in kwargs and "thinking" not in kwargs
+    assert "temperature" not in kwargs
+
+
+def test_each_provider_gets_its_own_web_search_declaration():
+    assert web_search_tool(gpt_5_6_sol_model) == {"type": "web_search"}
+    assert web_search_tool(claude_3_5_sonnet_model) == {
+        "type": "web_search_20250305",
+        "name": "web_search",
+    }
+    assert web_search_tool(gemini_2_flash_model) == {"google_search": {}}
+
+
+@pytest.mark.parametrize("provider", ["", "mistralai"])
+def test_web_search_is_refused_for_a_provider_without_a_declaration(provider: str):
+    with pytest.raises(ValueError, match="No web-search tool"):
+        web_search_tool(LLMModel(provider=provider, name="some-model"))
 
 
 def test_create_context_resolves_the_configured_model():

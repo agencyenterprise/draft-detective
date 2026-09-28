@@ -117,7 +117,6 @@ def build_llm(
 
     kwargs: dict[str, Any] = {
         "model": model.model_name,
-        "temperature": 0.0,
         "timeout": REQUEST_TIMEOUT,
         "max_retries": 4,
         "rate_limiter": get_rate_limiter(hash_api_key(resolved or "default")),

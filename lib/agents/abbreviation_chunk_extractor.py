@@ -96,7 +96,6 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
     name = "Abbreviation Chunk Extractor"
     description = "Catalogue every abbreviation occurrence in one line range of a document"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(

@@ -75,7 +75,6 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
     name = "Abbreviations Section Extractor"
     description = "Find a document's Abbreviations section and read its entries"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
     timeout = REQUEST_TIMEOUT_SECONDS
     max_retries = MAX_RETRIES

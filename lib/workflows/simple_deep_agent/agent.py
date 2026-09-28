@@ -82,7 +82,6 @@ class SimpleDeepAgent(LangChainAgent):
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and records issues through tools"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     def __init__(

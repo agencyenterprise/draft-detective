@@ -269,6 +269,31 @@ async def test_awaiting_run_is_released_in_place_when_gate_was_approved_meanwhil
     }
 
 
+@pytest.mark.asyncio
+async def test_a_released_awaiting_run_keeps_the_model_its_row_records(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(
+        "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+    )
+    project_id = uuid4()
+    awaiting = _run(project_id, CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
+    awaiting.model = "openai:gpt-5.6-sol"
+    harness = Harness(
+        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
+    )
+    harness.request.model = "openai:gpt-5.6-luna"
+
+    _, background_tasks = await _start(harness)
+
+    [claim] = [
+        item
+        for item in _scheduled_items(background_tasks)
+        if item.workflow_run_id == str(awaiting.id)
+    ]
+    assert claim.config.model == "openai:gpt-5.6-sol"
+
+
 # ---------------------------------------------------------------------------
 # MCP path: run_multiple_workflows_blocking
 # ---------------------------------------------------------------------------

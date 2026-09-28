@@ -30,7 +30,6 @@ class BaseAgent(ABC):
         - name: str
         - description: str
         - model: LLMModel
-        - temperature: float
         - timeout: int = DEFAULT_LLM_TIMEOUT (optional, has default)
         - max_retries: int = DEFAULT_LLM_MAX_RETRIES (optional, has default)
         - output_schema: Optional[type[BaseModel]] = None (optional)
@@ -40,7 +39,6 @@ class BaseAgent(ABC):
     name: str
     description: str
     model: LLMModel
-    temperature: float
     timeout: int = DEFAULT_LLM_TIMEOUT
     max_retries: int = DEFAULT_LLM_MAX_RETRIES
     reasoning: Optional[ReasoningDict] = None
@@ -77,14 +75,11 @@ class LangChainAgent(BaseAgent):
     def get_init_chat_model_kwargs(self) -> dict:
         init_kwargs = {
             "model": self.model.model_name,
-            "temperature": self.temperature,
             "timeout": self.timeout,
             "max_retries": self.max_retries,
             "rate_limiter": self.get_rate_limiter(),
+            **self._generation_kwargs(),
         }
-
-        if self.reasoning:
-            init_kwargs["reasoning"] = self.reasoning
 
         api_key = self._resolve_api_key()
         if api_key:
@@ -92,12 +87,37 @@ class LangChainAgent(BaseAgent):
 
         return init_kwargs
 
+    def _generation_kwargs(self) -> dict[str, Any]:
+        """The agent's reasoning effort, in the terms its provider takes.
+
+        OpenAI takes it as `reasoning`; Claude as adaptive thinking plus `effort`.
+        Other providers run without it. No `temperature` is set anywhere: the
+        reasoning models the agents run on reject it.
+        """
+        provider = self.model.provider
+        if provider == "openai":
+            return {"reasoning": self.reasoning} if self.reasoning else {}
+        if provider == "anthropic":
+            if not self.reasoning:
+                return {}
+            return {
+                "thinking": {"type": "adaptive", "display": "summarized"},
+                "effort": self.reasoning["effort"],
+            }
+        return {}
+
     def create_llm(self) -> BaseChatModel:
         init_kwargs = self.get_init_chat_model_kwargs()
 
         llm = init_chat_model(**init_kwargs)
         if self.output_schema:
-            llm = llm.with_structured_output(self.output_schema)
+            # Claude's default is a forced tool call, which does not hold it to the
+            # schema: it returned a nested object as a JSON string. Its native
+            # structured output does. OpenAI's default already is that.
+            if self.model.provider == "anthropic":
+                llm = llm.with_structured_output(self.output_schema, method="json_schema")
+            else:
+                llm = llm.with_structured_output(self.output_schema)
 
         return llm
 
