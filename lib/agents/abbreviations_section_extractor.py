@@ -14,6 +14,8 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.deep_agent_setup import agent_input
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.config.llm_models import gpt_5_6_luna_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -90,6 +92,7 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
         total_lines = markdown.count("\n") + 1
         agent = create_deep_agent(
             model=self.llm,
+            middleware=[ReadFileLineNumbersMiddleware()],
             context_schema=ContextSchema,
             response_format=AutoStrategy(AbbreviationsSectionExtraction),
         )
@@ -103,7 +106,7 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
             ),
         ]
         result = await agent.ainvoke(
-            {"files": {"/main.md": create_file_data(markdown)}, "messages": messages},
+            agent_input(files={"/main.md": create_file_data(markdown)}, messages=messages),
             config={"recursion_limit": RECURSION_LIMIT, **(config or {})},
         )
         return result["structured_response"], result["messages"]

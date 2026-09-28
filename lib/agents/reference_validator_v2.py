@@ -9,6 +9,8 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.deep_agent_setup import agent_input
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
@@ -102,6 +104,7 @@ class ReferenceValidatorV2Agent(LangChainAgent):
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
         deep_agent = create_deep_agent(
             model=self.llm,
+            middleware=[ReadFileLineNumbersMiddleware()],
             tools=[web_search_tool(self.model)],
             context_schema=ContextSchema,
             response_format=AutoStrategy(BibliographyItemValidationV2),
@@ -109,15 +112,15 @@ class ReferenceValidatorV2Agent(LangChainAgent):
         )
 
         result = await deep_agent.ainvoke(
-            {
-                "files": await self.context.file_artifacts_service.get_deepagent_backend_files(
+            agent_input(
+                files=await self.context.file_artifacts_service.get_deepagent_backend_files(
                     include_skills=True,
                 ),
-                "messages": [
+                messages=[
                     SystemMessage(content=_SYSTEM_PROMPT),
                     HumanMessage(content=prompt_kwargs["reference"]),
                 ],
-            },
+            ),
             config=config,
         )
 

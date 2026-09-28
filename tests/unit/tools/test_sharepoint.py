@@ -21,6 +21,7 @@ from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from deepagents.backends.utils import file_data_to_string
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
@@ -63,9 +64,9 @@ def mounted(result: Any) -> dict[str, Any]:
 
 
 def body_of(files: dict[str, Any], path: str) -> str:
-    """A mounted file's text, joined back from the lines the vfs stores."""
+    """A mounted file's text."""
 
-    return "\n".join(files[path]["content"])
+    return file_data_to_string(files[path])
 
 
 def message_of(result: Any) -> str:

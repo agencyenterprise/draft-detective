@@ -31,6 +31,7 @@ from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import RECURSION_LIMIT, build_llm, build_skill_files
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import (
@@ -218,6 +219,7 @@ def build_chat_agent(
         model=build_llm(
             model, api_key, reasoning=CHAT_REASONING, output_version="v1"
         ),
+        middleware=[ReadFileLineNumbersMiddleware()],
         tools=[web_search_tool(model)],
         skills=["/skills/"],
         system_prompt=SYSTEM_PROMPT,

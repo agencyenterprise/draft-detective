@@ -45,12 +45,14 @@ from pydantic import BaseModel, Field
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
+    agent_input,
     DEFAULT_MODEL,
     RECURSION_LIMIT,
     build_llm,
     build_skill_files,
     tool_names,
 )
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -283,6 +285,7 @@ async def answer_question(
         async with get_checkpointer() as saver:
             agent = create_deep_agent(
                 model=build_llm(model, api_key),
+                middleware=[ReadFileLineNumbersMiddleware()],
                 tools=[
                     open_document_for(graph_token),
                     check_document_for(graph_token),
@@ -298,13 +301,13 @@ async def answer_question(
 
             with propagate_attributes(user_id=user_id):
                 result = await agent.ainvoke(
-                    {
+                    agent_input(
                         # Skills only. Documents arrive through the tool and stay in the
                         # thread's own files; skills have to be mounted up front because
                         # a tool cannot add them later.
-                        "files": build_skill_files(),
-                        "messages": [HumanMessage(content=prompt)],
-                    },
+                        files=build_skill_files(),
+                        messages=[HumanMessage(content=prompt)],
+                    ),
                     config=run_config,
                 )
     except Exception as error:  # noqa: BLE001 - the caller decides what to do

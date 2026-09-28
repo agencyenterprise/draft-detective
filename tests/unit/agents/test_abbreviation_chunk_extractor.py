@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import pytest
+from deepagents.backends.utils import file_data_to_string
 from langchain.agents.structured_output import StructuredOutputValidationError
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -78,7 +79,7 @@ async def test_document_is_mounted_and_the_full_conversation_is_returned(monkeyp
 
     assert result is found
     assert list(captured["payload"]["files"]) == ["/main.md"]
-    assert captured["payload"]["files"]["/main.md"]["content"] == MARKDOWN.split("\n")
+    assert file_data_to_string(captured["payload"]["files"]["/main.md"]) == MARKDOWN
     assert captured["config"]["recursion_limit"] == RECURSION_LIMIT
     assert captured["create"]["response_format"].schema is ChunkExtractionResult
     # The full conversation is kept, system prompt included, so a run can be reconstructed.

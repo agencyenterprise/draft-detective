@@ -13,6 +13,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
+from lib.agents.deep_agent_setup import agent_input
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent, ReasoningDict
@@ -144,21 +146,20 @@ class SimpleDeepAgent(LangChainAgent):
 
         deep_agent = create_deep_agent(
             model=self.llm,
+            middleware=[ReadFileLineNumbersMiddleware()],
             tools=tools,
             context_schema=ContextSchema,
             skills=["/skills/"],
         )
 
-        # deepagents types the compiled graph's context as None instead of
-        # threading `context_schema` through; the runtime accepts it fine.
-        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
-            {
-                "files": files,
-                "messages": [
+        result = await deep_agent.ainvoke(
+            agent_input(
+                files=files,
+                messages=[
                     SystemMessage(content=self._system_prompt),
                     HumanMessage(content=self._user_prompt),
                 ],
-            },
+            ),
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
             context=self.context,
         )

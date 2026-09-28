@@ -19,12 +19,14 @@ requiring a particular document path.
 """
 
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Sequence
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from deepagents.backends.utils import create_file_data
+from langchain.agents.middleware import InputAgentState
 from langchain.chat_models import BaseChatModel, init_chat_model
+from langchain_core.messages import BaseMessage
 
 from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
@@ -83,6 +85,16 @@ def build_skill_files(
         virtual_path = "/" + path.relative_to(PROJECT_ROOT).as_posix()
         files[virtual_path] = create_file_data(clean(path.read_text(encoding="utf-8")))
     return files
+
+
+def agent_input(files: dict[str, Any], messages: Sequence[BaseMessage]) -> InputAgentState:
+    """A deep agent's input: its conversation plus the files mounted for it.
+
+    `files` is the filesystem middleware's state. The runtime takes it, but the
+    compiled graph types its input as LangChain's `InputAgentState`, which only
+    declares `messages`, hence the cast.
+    """
+    return cast(InputAgentState, {"files": files, "messages": list(messages)})
 
 
 def build_agent_files(document_text: str) -> dict[str, Any]:

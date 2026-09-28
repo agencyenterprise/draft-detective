@@ -8,6 +8,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
@@ -58,13 +59,12 @@ class Reviewer2Agent(LangChainAgent):
         # markdown carries their `draftdetective://` srcs.
         deep_agent = create_deep_agent(
             model=self.llm,
+            middleware=[ReadFileLineNumbersMiddleware()],
             tools=[view_image],
             context_schema=ContextSchema,
         )
 
-        # deepagents types the compiled graph's context as None instead of
-        # threading `context_schema` through; the runtime accepts it fine.
-        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
+        result = await deep_agent.ainvoke(
             {
                 "messages": [
                     SystemMessage(
