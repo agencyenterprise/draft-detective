@@ -12,6 +12,7 @@ def create_workflow_config(
     project: Project,
     workflow_type: WorkflowRunType,
     openai_api_key: str | None = None,
+    model: str | None = None,
 ) -> WorkflowConfig:
     """
     Create a workflow-specific config from the given parameters.
@@ -22,6 +23,7 @@ def create_workflow_config(
         project: The project to create the config for
         workflow_type: The type of workflow to create config for
         openai_api_key: Optional API key override
+        model: Optional model override for every agent in the run
 
     Returns:
         A workflow-specific config instance
@@ -35,6 +37,7 @@ def create_workflow_config(
         "type": workflow_type,
         "project_id": str(project.id),
         "openai_api_key": openai_api_key,
+        "model": model,
         "publication_date": (
             project.publication_date.isoformat() if project.publication_date else None
         ),

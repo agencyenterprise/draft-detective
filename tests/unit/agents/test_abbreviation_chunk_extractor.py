@@ -1,7 +1,6 @@
 """Tests for the per-chunk abbreviation extractor, without invoking the LLM."""
 
 import json
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -16,11 +15,13 @@ from lib.agents.abbreviation_chunk_extractor import (
     PartialChunkExtractionError,
     build_messages,
 )
+from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     ChunkExtractionResult,
     ChunkOccurrence,
 )
+from lib.workflows.context import ContextSchema
 
 MARKDOWN = "\n".join(f"line {n}" for n in range(1, 401))
 KWARGS: dict[str, Any] = {"markdown": MARKDOWN, "start_line": 10, "end_line": 42}
@@ -41,7 +42,8 @@ def _agent(monkeypatch, invoke) -> tuple[AbbreviationChunkExtractorAgent, dict]:
         return _DeepAgent()
 
     monkeypatch.setattr(abbreviation_chunk_extractor, "create_deep_agent", fake_create_deep_agent)
-    agent = AbbreviationChunkExtractorAgent(SimpleNamespace(openai_api_key=None))  # type: ignore[arg-type]
+    context = ContextSchema(project_id="p", file_artifacts_service=MockFileArtifactsService())
+    agent = AbbreviationChunkExtractorAgent(context)
     agent._llm = object()  # type: ignore[assignment]
     return agent, captured
 

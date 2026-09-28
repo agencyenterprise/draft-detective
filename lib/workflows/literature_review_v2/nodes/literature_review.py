@@ -101,7 +101,7 @@ async def literature_review(
         context=runtime.context,
         system_prompt=_SYSTEM_PROMPT,
         user_prompt=user_prompt,
-        tools=[web_search_tool(LiteratureReviewV2Agent.model)],
+        tools=[web_search_tool(runtime.context.agent_model(LiteratureReviewV2Agent.model))],
     )
     run = await agent.ainvoke({})
 

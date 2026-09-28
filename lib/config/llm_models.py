@@ -40,6 +40,17 @@ class LLMModel(BaseModel):
         return self.model_name.replace(":", "/")
 
     @staticmethod
+    def from_model_name(model_name: str) -> "LLMModel":
+        """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol').
+
+        A name without a provider parses with an empty one. Workflow start requests
+        refuse those, since agents pick their API key, reasoning settings and
+        web-search tool by the provider.
+        """
+        provider, _, name = model_name.rpartition(":")
+        return LLMModel(provider=provider, name=name)
+
+    @staticmethod
     def from_inspectai_name(inspectai_name: str) -> "LLMModel":
         """Create an LLMModel from an InspectAI model name (e.g. 'openai/gpt-5.2')."""
         if "/" in inspectai_name:
@@ -84,19 +95,27 @@ ALL_MODELS = {
 
 
 # Server-side web search is declared differently per provider: OpenAI's Responses API
-# takes a bare {"type": "web_search"}, while Anthropic needs a dated tool type and a
-# name. Passing the OpenAI shape to a Claude model raises KeyError('function') inside
-# LangChain's tool conversion, so the declaration has to follow the model. Build it
-# through this helper rather than writing the dict at the call site.
+# takes a bare {"type": "web_search"}, Anthropic needs a dated tool type and a name,
+# and Gemini grounds on Google Search. Passing the OpenAI shape to a Claude model
+# raises KeyError('function') inside LangChain's tool conversion, and to Gemini it
+# becomes an ordinary function that nothing ever executes, so the declaration has to
+# follow the model. Build it through this helper rather than writing the dict at the
+# call site.
 def web_search_tool(model: LLMModel) -> dict:
     """The server-side web-search tool declaration this model understands."""
 
-    if model.provider != "anthropic":
+    if model.provider == "openai":
         return {"type": "web_search"}
-    # Deliberately the basic variant even on models that support the newer
-    # web_search_20260209. That one performs dynamic filtering by running code
-    # execution internally, and LangChain does not round-trip the resulting
-    # `code_execution` blocks: the next turn is rejected with "code_execution tool use
-    # ... found without a corresponding code_execution_tool_result block". The basic
-    # variant returns only web_search blocks, which LangChain handles.
-    return {"type": "web_search_20250305", "name": "web_search"}
+    if model.provider == "anthropic":
+        # Deliberately the basic variant even on models that support the newer
+        # web_search_20260209. That one performs dynamic filtering by running code
+        # execution internally, and LangChain does not round-trip the resulting
+        # `code_execution` blocks: the next turn is rejected with "code_execution tool
+        # use ... found without a corresponding code_execution_tool_result block". The
+        # basic variant returns only web_search blocks, which LangChain handles.
+        return {"type": "web_search_20250305", "name": "web_search"}
+    if model.provider == "google_genai":
+        return {"google_search": {}}
+    raise ValueError(
+        f"No web-search tool is declared for provider {model.provider!r} (model {model})."
+    )

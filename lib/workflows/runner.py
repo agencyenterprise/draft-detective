@@ -9,6 +9,7 @@ from lib.services.workflow_orchestration import wait_for_dependencies
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
+from lib.config.llm_models import LLMModel
 from lib.models.user import User
 from lib.models.workflow_run import (
     WorkflowRunFailureReason,
@@ -329,6 +330,7 @@ def create_context(
         workflow_run_id=workflow_run_id,
         file_artifacts_service=file_artifacts_service,
         revision=revision,
+        model_override=LLMModel.from_model_name(config.model) if config.model else None,
     )
 
 

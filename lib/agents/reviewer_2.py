@@ -46,7 +46,6 @@ class Reviewer2Agent(LangChainAgent):
     name = "Reviewer 2"
     description = "Produce a rigorous peer review and rebuttal of a research document"
     model = gpt_5_6_terra_model
-    temperature = 0.3
     reasoning = {"effort": "medium", "summary": "auto"}
 
     async def ainvoke(

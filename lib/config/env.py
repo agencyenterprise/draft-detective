@@ -139,6 +139,16 @@ class Config(BaseModel):
         description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
     )
 
+    ALLOW_WORKFLOW_MODEL_OVERRIDE: bool = Field(
+        default=False,
+        description=(
+            "Whether a workflow start request may name the model its agents run on. "
+            "Any model is accepted once this is on. Meant for evals comparing "
+            "models; off by default so API and MCP callers cannot move a deploy "
+            "onto a pricier model or one its gateway does not serve."
+        ),
+    )
+
     # Jina Reader (https://r.jina.ai) turns web pages into markdown for the
     # reference downloader. Optional: without a key requests are anonymous, which
     # Jina rate-limits per source IP and which Cloudflare may challenge for
@@ -197,6 +207,10 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    ALLOW_WORKFLOW_MODEL_OVERRIDE=os.getenv(
+        "ALLOW_WORKFLOW_MODEL_OVERRIDE", "false"
+    ).lower()
+    == "true",
     JINA_API_KEY=os.getenv("JINA_API_KEY") or None,
     AZURE_CLIENT_ID=os.getenv("AZURE_CLIENT_ID"),
     AZURE_TENANT_ID=os.getenv("AZURE_TENANT_ID"),

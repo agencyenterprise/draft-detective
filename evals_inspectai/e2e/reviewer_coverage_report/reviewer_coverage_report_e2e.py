@@ -66,6 +66,7 @@ from evals_inspectai.common.review_assistant_scorers import (
     grade_criteria,
     structure_checks,
 )
+from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.e2e.reviewer_coverage_report.verdict_checks import (
     check_recommendation,
     check_verdict_table,
@@ -168,7 +169,7 @@ def reviewer_coverage_report_solver(
         # completion the scorers parse stays just the workflow result.
         await surface_conversations(state, workflow_state, _TARGET_WORKFLOW)
 
-        state.output = ModelOutput(completion=json.dumps(workflow_state), model="api")
+        state.output = ModelOutput(completion=json.dumps(workflow_state), model=output_model_name(run_detail))
         return state
 
     return solve

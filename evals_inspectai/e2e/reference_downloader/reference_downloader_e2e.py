@@ -18,6 +18,7 @@ from evals_inspectai.common.api_client import (
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.scorers import structured_output_scorer
+from evals_inspectai.common.model_override import output_model_name
 
 
 class ReferenceFetchItemOutput(BaseModel):
@@ -116,7 +117,7 @@ def _reference_downloader_api_agent(
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
-            model="api",
+            model=output_model_name(run_detail),
         )
         return state
 

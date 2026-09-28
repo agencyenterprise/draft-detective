@@ -31,6 +31,7 @@ from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
 from evals_inspectai.common.simple_deep_agent_types import SimpleDeepAgentOutput
+from evals_inspectai.common.model_override import output_model_name
 
 _TARGET_WORKFLOW = "live_reports_v2"
 
@@ -90,7 +91,7 @@ def live_reports_v2_solver(
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
-            model="api",
+            model=output_model_name(run_detail),
         )
         return state
 

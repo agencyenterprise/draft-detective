@@ -25,7 +25,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
-from lib.config.llm_models import web_search_tool
+from lib.config.llm_models import LLMModel, web_search_tool
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -117,10 +117,14 @@ class _BaseDeepAgentManifest(
         """
         return None
 
-    def agent_tools(self) -> list[dict]:
-        """Workflow tools handed to the agent alongside the issue reporter."""
+    def agent_tools(self, model: LLMModel) -> list[dict]:
+        """Workflow tools handed to the agent alongside the issue reporter.
+
+        ``model`` is the one the agent runs on, which the web-search declaration
+        has to match.
+        """
         if self.needs_web_search:
-            return [web_search_tool(SimpleDeepAgent.model)]
+            return [web_search_tool(model)]
         return []
 
     def _guard_result(self, message: str) -> DeepAgentResult:
@@ -155,7 +159,9 @@ class _BaseDeepAgentManifest(
                 user_prompt=manifest.resolve_user_prompt(),
                 report_issues=manifest.report_issues,
                 propose_edits=manifest.propose_edits,
-                tools=manifest.agent_tools(),
+                tools=manifest.agent_tools(
+                    runtime.context.agent_model(SimpleDeepAgent.model)
+                ),
                 reasoning_effort=manifest.reasoning_effort,
                 timeout=manifest.llm_timeout,
                 view_images=manifest.view_images,

@@ -24,6 +24,14 @@ class StartMultipleWorkflowsRequest(BaseModel):
     project_id: str
     workflow_types: List[WorkflowRunType]
     openai_api_key: str | None = None
+    model: str | None = Field(
+        default=None,
+        description=(
+            "LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every started "
+            "workflow runs on instead of its agents' own. Only accepted when the "
+            "server enables ALLOW_WORKFLOW_MODEL_OVERRIDE."
+        ),
+    )
 
 
 class StartMultipleWorkflowsResponse(BaseModel):

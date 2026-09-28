@@ -76,6 +76,7 @@ from evals_inspectai.common.review_assistant_scorers import (
     grade_criteria,
     report_structure,
 )
+from evals_inspectai.common.model_override import output_model_name
 
 _TARGET_WORKFLOW = "revision_planning_summary"
 
@@ -178,7 +179,7 @@ def revision_planning_summary_solver(
 
         state.output = ModelOutput(
             completion=json.dumps(workflow_state),
-            model="api",
+            model=output_model_name(run_detail),
         )
         return state
 

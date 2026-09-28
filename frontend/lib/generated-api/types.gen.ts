@@ -129,6 +129,12 @@ export type AbbreviationScanV2Config = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'abbreviation_scan_v2';
@@ -251,6 +257,12 @@ export type AboutThisGerConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -1002,6 +1014,12 @@ export type ClaimReferenceValidationV2Config = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'claim_reference_validation_v2';
@@ -1242,6 +1260,12 @@ export type DocumentProcessingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'document_processing';
@@ -1308,6 +1332,12 @@ export type DocumentSummarizationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -2758,6 +2788,12 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -2793,6 +2829,12 @@ export type ReferenceExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -3005,6 +3047,12 @@ export type ReferenceFileMatchingConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_file_matching';
@@ -3172,6 +3220,12 @@ export type ReferenceValidationV2WorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_validation_v2';
@@ -3201,6 +3255,12 @@ export type Reviewer2Config = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -3435,6 +3495,12 @@ export type SimpleDeepAgentConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * The workflow type, set per-manifest at runtime
    */
   type: WorkflowRunType;
@@ -3493,6 +3559,12 @@ export type StartMultipleWorkflowsRequest = {
    * Openai Api Key
    */
   openai_api_key?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every started workflow runs on instead of its agents' own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
 };
 
 /**
@@ -4060,6 +4132,12 @@ export type WorkflowRun = {
    */
   failure_message?: string | null;
   /**
+   * Model
+   *
+   * The model this run was asked to run every agent on, when the start request named one. Null means each agent's own model. Kept on the run so a run released later from a gate still runs on it.
+   */
+  model?: string | null;
+  /**
    * State Json
    *
    * Serialized WorkflowState; written after every node yield. Schema is the WorkflowState subclass for `type`.
@@ -4176,6 +4254,10 @@ export type WorkflowRunPublic = {
    * Failure Message
    */
   failure_message?: string | null;
+  /**
+   * Model
+   */
+  model?: string | null;
 };
 
 /**
@@ -4224,9 +4306,9 @@ export const WorkflowRunType = {
   ActiveVoice: 'active_voice',
   AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
+  HeadersSkimmability: 'headers_skimmability',
   NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',
-  HeadersSkimmability: 'headers_skimmability',
 } as const;
 
 /**
