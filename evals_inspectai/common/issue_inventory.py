@@ -118,6 +118,10 @@ class ExpectedIssue(BaseModel):
 
     @model_validator(mode="after")
     def _located_or_titled(self) -> "ExpectedIssue":
+        # A blank anchor or title would match everything: an empty title's pattern
+        # matches any reported title, an empty anchor is quoted by any issue.
+        if any(value is not None and not value.strip() for value in (self.anchor, self.title)):
+            raise ValueError("an expected issue's anchor and title, when given, must not be blank")
         if self.anchor is None and self.title is None:
             raise ValueError("an expected issue needs an anchor, a title, or both")
         if self.anchor is None and self.line is not None:

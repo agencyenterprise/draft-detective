@@ -407,6 +407,9 @@ def _absent(**kw) -> ResolvedIssue:
 def test_an_expected_issue_needs_an_anchor_or_a_title():
     with pytest.raises(ValueError, match="an anchor, a title, or both"):
         ExpectedIssue()
+    for blank in ({"title": ""}, {"title": "  "}, {"anchor": "", "title": "Passive Voice"}):
+        with pytest.raises(ValueError, match="must not be blank"):
+            ExpectedIssue(**blank)
     with pytest.raises(ValueError, match="cannot set it"):
         ExpectedIssue(title="Missing Section: Results", line=3)
 
@@ -488,7 +491,7 @@ def test_issues_are_read_from_every_named_result_field_together():
 
 
 def test_an_unparseable_state_is_reported_not_read_as_no_issues():
-    for completion in ("not json", "[]", json.dumps({"result": {"issues": "nope"}})):
+    for completion in ("not json", "[]", json.dumps({"result": {"issues": "nope"}}), json.dumps({"result": []}), json.dumps({"result": ""})):
         issues, error = issues_from_state(_state_with(completion))
         assert issues == [] and error is not None and error.startswith("could not parse the workflow state")
 

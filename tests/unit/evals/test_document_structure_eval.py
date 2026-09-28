@@ -21,8 +21,9 @@ from evals_inspectai.e2e.document_structure.document_structure_e2e import docume
 
 DATASET = Path("evals_inspectai/e2e/document_structure/dataset.yaml")
 DOC = (
-    "# Report\n\n## Appendix A: Tables\n\n"
-    "We compared renewal rates. Detailed regression tables are provided in the appendix. Nothing else.\n"
+    "# Report\n\n## Methods\n\n"
+    "We compared renewal rates. Detailed regression tables are provided in the appendix. Nothing else.\n\n"
+    "## Appendix A: Tables\n"
 )
 INVENTORY = ResolvedInventory(document=DOC, expected_issues=[], decoys=[])
 
@@ -60,6 +61,16 @@ def test_judged_criteria_read_the_suggested_action_against_the_whole_report():
 
 def test_appendix_mentions_skip_headings_and_split_sentences():
     assert appendix_mentions(DOC) == [(5, "Detailed regression tables are provided in the appendix.")]
+
+
+def test_appendix_mentions_leave_out_the_reference_list_and_the_appendix_itself():
+    doc = (
+        "# Report\n\n## Methods\n\nSite coordinates are listed in Appendix A.\n\n"
+        "## References\n\n1. City (2023). *Technical Appendix to the 2022 Study*.\n\n"
+        "## Appendix A: Sites\n\n### Notes\n\nSee the appendix table below.\n\n"
+        "## Conclusion\n\nThe appendix supports this.\n"
+    )
+    assert appendix_mentions(doc) == [(5, "Site coordinates are listed in Appendix A."), (19, "The appendix supports this.")]
 
 
 def test_titles_outside_the_skills_set_are_counted():

@@ -674,7 +674,8 @@ def issues_from_state(
         output = json.loads(state.output.completion)
         if not isinstance(output, dict):
             raise ValueError(f"expected a JSON object, got {type(output).__name__}")
-        checks = [AgentCheckResult.model_validate(output[key]) for key in results if output.get(key)]
+        # Only an absent or null field is skipped: any other value, even an empty one, must parse.
+        checks = [AgentCheckResult.model_validate(output[key]) for key in results if output.get(key) is not None]
     except ValueError as e:  # JSONDecodeError and pydantic's ValidationError are both ValueErrors
         return [], f"could not parse the workflow state: {e}"
     return [issue for check in checks for issue in check.issues], None

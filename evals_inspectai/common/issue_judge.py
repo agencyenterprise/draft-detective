@@ -20,7 +20,7 @@ import re
 import statistics
 from typing import Callable, Literal, Optional, Sequence
 
-from inspect_ai.model import Model, get_model
+from inspect_ai.model import ChatMessage, ChatMessageUser, Content, ContentImage, ContentText, Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
     DEFAULT_GRADE_PATTERN,
@@ -37,6 +37,7 @@ from evals_inspectai.common.issue_checks import (
     inventory_from_state,
     issues_from_state,
 )
+from evals_inspectai.common.loaders import local_images
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL, GRADE_VALUES
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.common.issue_inventory import ResolvedIssue, ResolvedInventory
@@ -127,9 +128,25 @@ def parse_grade(completion: str) -> float:
     return GRADE_VALUES.get(match.group(1), 0.0) if match else 0.0
 
 
+def grader_input(prompt: str) -> str | list[ChatMessage]:
+    """The prompt as the grader receives it. A passage that embeds a figure names
+    it only by path, so every local image the prompt references is attached after
+    the text, labelled with that path: a criterion about a caption or a chart can
+    then be judged against the figure itself rather than guessed from its path."""
+    images = local_images(prompt)
+    if not images:
+        return prompt
+    note = "\n\nThe images the data above references by path are attached below, each after its path."
+    content: list[Content] = [ContentText(text=prompt + note)]
+    for path, uri in images:
+        content += [ContentText(text=f"Image {path}:"), ContentImage(image=uri)]
+    return [ChatMessageUser(content=content)]
+
+
 async def grade(grader: Model, prompt: str, calls: int) -> tuple[float, str]:
     """The median grade over ``calls`` grader calls, plus the first reasoning."""
-    results = await asyncio.gather(*(grader.generate(prompt) for _ in range(calls)))
+    request = grader_input(prompt)
+    results = await asyncio.gather(*(grader.generate(request) for _ in range(calls)))
     return statistics.median(parse_grade(r.completion) for r in results), results[0].completion.strip()
 
 

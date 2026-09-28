@@ -55,14 +55,26 @@ def inline_local_images(markdown: str) -> str:
     """
 
     def to_data_uri(match: re.Match[str]) -> str:
-        path = _PROJECT_ROOT / match.group("path")
-        mime = _IMAGE_MIME_TYPES.get(path.suffix.lower())
-        if mime is None:
-            raise ValueError(f"unsupported image type in dataset input: {path.name}")
-        encoded = base64.b64encode(path.read_bytes()).decode()
-        return f"![{match.group('alt')}](data:{mime};base64,{encoded})"
+        return f"![{match.group('alt')}]({_data_uri(match.group('path'))})"
 
     return _LOCAL_IMAGE_RE.sub(to_data_uri, markdown)
+
+
+def local_images(markdown: str) -> list[tuple[str, str]]:
+    """Each local image the markdown references, once and in order, as
+    ``(path as written, base64 data URI)``: for handing the figures themselves to
+    a model that would otherwise see only their paths."""
+    paths = dict.fromkeys(m.group("path") for m in _LOCAL_IMAGE_RE.finditer(markdown))
+    return [(path, _data_uri(path)) for path in paths]
+
+
+def _data_uri(relative_path: str) -> str:
+    path = _PROJECT_ROOT / relative_path
+    mime = _IMAGE_MIME_TYPES.get(path.suffix.lower())
+    if mime is None:
+        raise ValueError(f"unsupported image type in dataset input: {path.name}")
+    encoded = base64.b64encode(path.read_bytes()).decode()
+    return f"data:{mime};base64,{encoded}"
 
 
 def yaml_dataset(

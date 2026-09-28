@@ -13,7 +13,7 @@ anything specific it proposes comes from the report itself.
 
 import math
 import re
-from typing import Sequence
+from typing import Optional, Sequence
 
 from evals_inspectai.common.issue_inventory import ResolvedInventory, normalize
 from evals_inspectai.common.issue_judge import JudgeCriterion
@@ -23,7 +23,9 @@ SECTIONS = ("About This", "Acknowledgements", "Methods", "Results", "Conclusion"
 TITLES = tuple(f"Missing Section: {name}" for name in SECTIONS)
 APPENDIX_TITLE = "Missing Section: Appendix"
 
-_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s")
+_HEADING_RE = re.compile(r"^\s{0,3}(#{1,6})\s+(.*)$")
+# Sections whose text is not the body: the reference list and the appendix itself.
+_NON_BODY_RE = re.compile(r"\b(?:references?|bibliography|works cited|sources|appendix|appendices|supplementary)\b", re.I)
 _APPENDIX_RE = re.compile(r"\bappendix\b", re.I)
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
 # Consecutive words an issue must share with the sentence to count as quoting it.
@@ -34,13 +36,33 @@ def _issue_text(issue: IssueItem) -> str:
     return normalize(" ".join([issue.description, issue.long_description or "", issue.suggested_action or ""]))
 
 
+def _body_lines(document: str) -> list[tuple[int, str]]:
+    """The 1-indexed non-heading lines outside a reference list or an appendix: a
+    heading naming one opens a region that runs to the next heading of the same or a
+    higher level, subsections included."""
+    body: list[tuple[int, str]] = []
+    skipped_from: Optional[int] = None  # level of the heading that opened a non-body region
+    for number, line in enumerate(document.split("\n"), 1):
+        heading = _HEADING_RE.match(line)
+        if heading is None:
+            if skipped_from is None:
+                body.append((number, line))
+            continue
+        level = len(heading.group(1))
+        if skipped_from is not None and level <= skipped_from:
+            skipped_from = None
+        if skipped_from is None and _NON_BODY_RE.search(heading.group(2)):
+            skipped_from = level
+    return body
+
+
 def appendix_mentions(document: str) -> list[tuple[int, str]]:
-    """The body sentences that mention an appendix, with their 1-indexed line: headings
-    are left out, since an appendix heading is the appendix itself, not a reference to it."""
+    """The body sentences that mention an appendix, with their 1-indexed line. Headings,
+    the reference list and the appendix's own text are left out: a cited work titled
+    "Technical Appendix" or an appendix heading is not a reference to this report's appendix."""
     return [
         (number, sentence)
-        for number, line in enumerate(document.split("\n"), 1)
-        if not _HEADING_RE.match(line)
+        for number, line in _body_lines(document)
         for sentence in _SENTENCE_RE.split(line)
         if _APPENDIX_RE.search(sentence)
     ]
