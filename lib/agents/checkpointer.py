@@ -11,8 +11,9 @@ Three non-obvious constraints, two of which fail silently:
   ``asyncio.Lock``, so sharing one serialises every concurrent run.
 - **Not ``from_conn_string``**, which holds a connection for a whole run.
 
-Connections: the SQLAlchemy engine is capped at 8 + 3 per process and this adds 4, so a
-4-worker deployment sits at 60 against a default limit of 100.
+Both connection pools are configured through environment settings. Budget per process:
+DATABASE_POOL_SIZE + DATABASE_MAX_OVERFLOW + CHECKPOINTER_POOL_MAX_SIZE.
+Defaults total 15; four backend processes can therefore use up to 60 connections.
 """
 
 import asyncio
@@ -34,14 +35,15 @@ logger = logging.getLogger(__name__)
 # locks live in one tenant-wide namespace, hence something distinctive rather than 1.
 SETUP_LOCK_KEY = 0x44445F4341
 
-# ``min_size=0`` so an unused process holds nothing; ``prepare_threshold=0`` because a
+# The default ``min_size=0`` means an unused process holds nothing; ``prepare_threshold=0`` because a
 # transaction-pooling proxy would break on prepared statements; ``autocommit`` and
 # ``dict_row`` are required by AsyncPostgresSaver.
 checkpointer_pool: AsyncConnectionPool[AsyncConnection[dict[str, Any]]] = (
     AsyncConnectionPool(
         conninfo=config.DATABASE_URL,
-        min_size=0,
-        max_size=4,
+        min_size=config.CHECKPOINTER_POOL_MIN_SIZE,
+        max_size=config.CHECKPOINTER_POOL_MAX_SIZE,
+        timeout=config.CHECKPOINTER_POOL_TIMEOUT,
         kwargs={
             "autocommit": True,
             "prepare_threshold": 0,

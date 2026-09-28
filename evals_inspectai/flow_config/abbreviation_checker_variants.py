@@ -13,17 +13,20 @@ from inspect_flow import FlowOptions, FlowSpec, FlowTask, models_matrix, tasks_m
 
 _EVAL_DIR = Path(__file__).resolve().parent.parent / "e2e" / "abbreviation_checker"
 _VARIANTS_DIR = _EVAL_DIR / "data" / "variants"
-_TASK = f"{_EVAL_DIR}/abbreviation_checker_e2e.py@abbreviation_checker_entries"
+_TASK = f"{_EVAL_DIR}/abbreviation_checker_e2e.py@abbreviation_checker_variants"
 
 
 def flow(
     backend: str = "remote",
     api_base_url: str | None = None,
     variants_dir: str | None = None,
-    model: str = "openai/gpt-5.6-terra",
+    model: str = "openai/gpt-5.6-terra-2026-07-09",
     epochs: int = 3,
+    max_tasks: int = 4,
 ) -> FlowSpec:
     """Use --arg backend=local to start repository code, or pass api_base_url."""
+    if max_tasks < 1:
+        raise ValueError("max_tasks must be at least 1")
     directory = Path(variants_dir).resolve() if variants_dir else _VARIANTS_DIR
     documents = sorted(
         document
@@ -38,7 +41,7 @@ def flow(
         )
     return FlowSpec(
         log_dir="logs",
-        options=FlowOptions(max_tasks=4),
+        options=FlowOptions(max_tasks=max_tasks),
         tasks=tasks_matrix(
             task=FlowTask(name=_TASK, epochs=epochs),
             args=[

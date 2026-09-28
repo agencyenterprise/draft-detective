@@ -153,6 +153,10 @@ def api_workflow_agent_file(
     return execute
 
 
+def _workflow_cache_key(path: Path, epoch: int) -> str:
+    return f"{path}::epoch={epoch}"
+
+
 @agent
 def api_workflow_agent_file_cached(
     workflow_type: str,
@@ -173,7 +177,7 @@ def api_workflow_agent_file_cached(
         if active is None:
             raise RuntimeError("Workflow cache requires an active Inspect sample")
         base_url = await resolve_base_url(local_backend, api_base_url)
-        key = f"{active.eval_id}::{base_url}::{workflow_type}::{path}::epoch={active.epoch}"
+        key = f"{active.eval_id}::{base_url}::{workflow_type}::{_workflow_cache_key(path, active.epoch)}"
         async with locks.setdefault(key, asyncio.Lock()):
             if key not in output_cache:
                 output_cache[key] = await _run_workflow(

@@ -39,3 +39,13 @@ def test_variants_require_documents(monkeypatch, tmp_path):
     monkeypatch.setattr(abbreviation_checker_variants, "_VARIANTS_DIR", tmp_path)
     with pytest.raises(ValueError, match="No Markdown variants"):
         abbreviation_checker_variants.flow()
+
+
+def test_variants_concurrency_is_configurable(tmp_path):
+    directory = tmp_path / "single"
+    directory.mkdir()
+    (directory / "variant.md").touch()
+    spec = abbreviation_checker_variants.flow(variants_dir=str(tmp_path), max_tasks=8)
+    assert spec.options.max_tasks == 8
+    with pytest.raises(ValueError, match="max_tasks"):
+        abbreviation_checker_variants.flow(variants_dir=str(tmp_path), max_tasks=0)

@@ -5,6 +5,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
+
+from lib.agents.abbreviation_chunk_extractor import AbbreviationChunkExtractorAgent
+from lib.agents.abbreviations_section_extractor import AbbreviationsSectionExtractorAgent
+
 from lib.config.env import config
 from lib.config.llm_models import (
     LLMModel,
@@ -20,6 +25,17 @@ class StubAgent(LangChainAgent):
 
     async def ainvoke(self, prompt_kwargs, config=None):
         raise NotImplementedError
+
+
+@pytest.mark.parametrize("agent_type", [AbbreviationChunkExtractorAgent, AbbreviationsSectionExtractorAgent])
+def test_chunked_abbreviation_agents_honor_eval_model(monkeypatch, agent_type):
+    context = SimpleNamespace(openai_api_key=None)
+    monkeypatch.delenv("EVAL_WORKFLOW_MODEL", raising=False)
+    assert agent_type(context).model == gpt_5_6_terra_model
+    monkeypatch.setenv("EVAL_WORKFLOW_MODEL", "openai/test-deployment")
+    agent = agent_type(context)
+    assert agent.get_init_chat_model_kwargs()["model"] == "openai:test-deployment"
+    assert agent_type.model == gpt_5_6_terra_model
 
 
 def test_azure_client_uses_azure_credentials_not_openai_context(monkeypatch):

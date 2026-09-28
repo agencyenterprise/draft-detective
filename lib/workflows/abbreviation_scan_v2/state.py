@@ -63,6 +63,13 @@ class AbbreviationItem(BaseModel):
     )
 
 
+class AbbreviationCheckOutput(BaseModel):
+    """Subset of workflow state returned as structured output by the abbreviation checker."""
+
+    abbreviations_section_found: bool = False
+    reasoning: str = ""
+
+
 class AbbreviationScanV2Config(BaseWorkflowConfig):
     """Configuration for abbreviation scan v2 workflow."""
 

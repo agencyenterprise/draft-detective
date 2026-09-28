@@ -279,14 +279,7 @@ async def test_real_inspect_run_scores_all_rows_and_extracts_fresh_each_epoch_an
         for sample in logs[0].samples:
             score = sample.scores["single_entry_scorer"]
             assert score.value == 1.0
-            assert set(score.metadata) == {
-                "TOTAL",
-                "TP",
-                "FP",
-                "TN",
-                "FN",
-                "characterization",
-            }
+            assert set(score.metadata) == {"TOTAL", "TP", "FP", "FN", "UNKNOWN_FP"}
             assert score.metadata["FP"] == score.metadata["FN"] == 0
             assert sample.metadata["structured_extraction"]["epoch"] == sample.epoch
             assert sample.metadata["structured_extraction"]["chunk_count"] == 1

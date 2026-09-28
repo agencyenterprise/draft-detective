@@ -16,8 +16,9 @@ def get_async_url(url: str) -> str:
 async_engine = create_async_engine(
     get_async_url(env_config.DATABASE_URL),
     echo=False,
-    pool_size=8,
-    max_overflow=3,
+    pool_size=env_config.DATABASE_POOL_SIZE,
+    max_overflow=env_config.DATABASE_MAX_OVERFLOW,
+    pool_timeout=env_config.DATABASE_POOL_TIMEOUT,
 )
 
 # Session factory

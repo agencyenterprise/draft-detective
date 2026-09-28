@@ -3,6 +3,7 @@ services:
   db:
     image: pgvector/pgvector:pg16
     container_name: ai-reviewer-db
+    command: ["postgres", "-c", "max_connections=${POSTGRES_MAX_CONNECTIONS:-100}"]
 
     restart: unless-stopped
     environment:

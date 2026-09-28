@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_core.runnables import RunnableConfig
 
 from lib.agents.structured_output_salvage import ai_message_text, salvage_models
-from lib.config.llm_models import gpt_5_6_terra_model
+from lib.config.llm_models import get_default_workflow_model, gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -99,6 +99,10 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
+    def __init__(self, context: ContextSchema):
+        super().__init__(context)
+        self.model = get_default_workflow_model()
+
     async def ainvoke(
         self,
         prompt_kwargs: dict,
@@ -151,4 +155,3 @@ def _salvage(error: StructuredOutputError) -> List[ChunkOccurrence]:
     if not isinstance(ai_message, AIMessage):
         return []
     return salvage_models(ai_message_text(ai_message), "occurrences", ChunkOccurrence)
-

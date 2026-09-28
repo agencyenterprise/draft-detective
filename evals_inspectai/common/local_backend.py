@@ -16,10 +16,36 @@ from urllib.parse import urlparse
 
 import httpx
 from dotenv import dotenv_values
+from inspect_ai.hooks import Hooks, RunEnd, TaskEnd, hooks
+from inspect_ai.log._samples import sample_active
+
+
+_backends_by_eval: dict[str, set["LocalBackend"]] = {}
+
+
+@hooks("local_backend_cleanup", "Stop eval-owned API servers when their task ends")
+class LocalBackendCleanup(Hooks):
+    async def on_task_end(self, data: TaskEnd) -> None:
+        await self._release(data.eval_id)
+
+    async def on_run_end(self, data: RunEnd) -> None:
+        # Inspect does not emit TaskEnd for failed/interrupted tasks.
+        for log in data.logs:
+            await self._release(log.eval.eval_id)
+
+    async def _release(self, eval_id: str) -> None:
+        backends = _backends_by_eval.pop(eval_id, set())
+        for backend in backends:
+            # A backend explicitly shared by concurrent tasks must remain alive
+            # until its last owner finishes.
+            if not any(backend in owners for owners in _backends_by_eval.values()):
+                await asyncio.to_thread(backend.shutdown)
 
 
 class LocalBackend:
-    """Start one API server lazily and stop it when the Inspect process exits.
+    """Start one API server lazily and stop it when its Inspect task ends.
+
+    Process-exit cleanup remains a fallback for interrupted evaluations.
 
     Args:
         model: Inspect AI model name (e.g. ``"openai/gpt-5.6-terra"``) to pass
@@ -47,6 +73,9 @@ class LocalBackend:
 
     async def ensure_started(self) -> str:
         async with self._lock:
+            active = sample_active()
+            if active is not None:
+                _backends_by_eval.setdefault(active.eval_id, set()).add(self)
             model = self._model or _active_model_name()
             if self._url and self._process and self._process.poll() is None:
                 if model != self._started_model:

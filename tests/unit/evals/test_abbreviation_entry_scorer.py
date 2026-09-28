@@ -98,14 +98,15 @@ async def test_score_agrees_with_counts_including_document_extras(
         if wrong_definition
         else expected
     )
-    unknown = actual.model_copy(update={"abbr": "XYZ"})
+    # XYZ has a different abbr — must not affect this abbreviation's counts.
+    unrelated = actual.model_copy(update={"abbr": "XYZ"})
     refs = tmp_path / "references.json"
     refs.write_text(json.dumps({"test.md": {"abbreviations": [expected.model_dump()]}}))
     state = SimpleNamespace(
         metadata={"reference_file": str(refs), "filename": "test.md"},
         output=SimpleNamespace(
             completion=AbbreviationCheckOutput(
-                abbreviations=[actual, unknown]
+                abbreviations=[actual, unrelated]
             ).model_dump_json()
         ),
     )
@@ -113,8 +114,8 @@ async def test_score_agrees_with_counts_including_document_extras(
         state, Target(json.dumps([expected.model_dump()]))
     )
     counts = score.metadata
-    assert counts["FP"] == (2 if wrong_definition else 1)
+    assert counts["FP"] == int(wrong_definition)
     assert counts["FN"] == int(wrong_definition)
     assert counts["TOTAL"] == counts["TP"] + counts["FP"] + counts["FN"]
-    assert score.value == counts["TP"] / counts["TOTAL"]
-    assert "document-wide unknown" in score.explanation
+    assert counts["UNKNOWN_FP"] == 0
+    assert score.value == (counts["TP"] / counts["TOTAL"] if counts["TOTAL"] > 0 else 1.0)

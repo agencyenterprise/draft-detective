@@ -210,6 +210,43 @@ nano .env  # or use your preferred editor
 ```
 For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md).
 
+### Database connection capacity
+
+Set these in `.env` (or the backend process environment):
+
+| Setting | Default | Scope |
+| --- | ---: | --- |
+| `DATABASE_POOL_SIZE` | 8 | Reusable SQLAlchemy connections per backend process |
+| `DATABASE_MAX_OVERFLOW` | 3 | Additional SQLAlchemy connections during bursts, per process |
+| `DATABASE_POOL_TIMEOUT` | 30 | Seconds to wait for a SQLAlchemy connection |
+| `CHECKPOINTER_POOL_MIN_SIZE` | 0 | Minimum checkpoint connections per process |
+| `CHECKPOINTER_POOL_MAX_SIZE` | 4 | Maximum checkpoint connections per process |
+| `CHECKPOINTER_POOL_TIMEOUT` | 30 | Seconds to wait for a checkpoint connection |
+| `POSTGRES_MAX_CONNECTIONS` | 100 | Server-wide connection limit for the Compose `db` service |
+
+Restart backends after changing pool settings. To apply the Compose server limit,
+run `docker compose up -d db`; this recreates/restarts the database container while
+retaining its data volume, temporarily interrupting database access. For a hosted
+database, configure the server limit through that database's administration tools.
+
+Budget up to `DATABASE_POOL_SIZE + DATABASE_MAX_OVERFLOW + CHECKPOINTER_POOL_MAX_SIZE`
+connections **per backend process**, plus headroom for other applications and
+administration. The defaults total 15 per process, or 60 for four local eval
+backends. Pool capacity is not the same as workflow concurrency: connections are
+borrowed for database operations, not held for the entire model call. Increasing
+pool sizes alone can exhaust the server limit sooner; keep both sides in balance.
+
+The variants Flow's task concurrency is also configurable:
+
+```bash
+uv run flow run evals_inspectai/flow_config/abbreviation_checker_variants.py \
+  --arg backend=local --arg max_tasks=8
+```
+
+Eight backend processes with the default pools can use up to 120 connections, so
+raise the server limit with suitable headroom or reduce per-process pool sizes
+before using that concurrency. Completed eval tasks release their backend servers.
+
 
 ## Development Workflow
 

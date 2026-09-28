@@ -14,7 +14,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.llm_models import gpt_5_6_terra_model
+from lib.config.llm_models import get_default_workflow_model, gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationSectionEntry,
@@ -70,6 +70,10 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
     model = gpt_5_6_terra_model
     temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
+
+    def __init__(self, context: ContextSchema):
+        super().__init__(context)
+        self.model = get_default_workflow_model()
 
     async def ainvoke(
         self,

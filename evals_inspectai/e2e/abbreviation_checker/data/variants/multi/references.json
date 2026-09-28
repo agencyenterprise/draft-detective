@@ -67378,16 +67378,6 @@
     "abbreviations_section_found": true,
     "abbreviations": [
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 1,
-        "line_start": 3,
-        "line_end": 3,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": true,
-        "ignored_reason": "front page / cover page"
-      },
-      {
         "abbr": "RAND",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -67418,36 +67408,6 @@
         "ignored_reason": "front page / cover page; corporation name"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "artificial intelligence",
-        "occurrence_number": 2,
-        "line_start": 25,
-        "line_end": 25,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 3,
-        "line_start": 27,
-        "line_end": 27,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 4,
-        "line_start": 29,
-        "line_end": 29,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "RAND",
         "inline_definition": "",
         "occurrence_number": 3,
@@ -67466,16 +67426,6 @@
         "abbreviations_section_definition": null,
         "ignored": true,
         "ignored_reason": "corporation name"
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 5,
-        "line_start": 31,
-        "line_end": 31,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
       },
       {
         "abbr": "CAST",
@@ -67488,72 +67438,12 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 6,
-        "line_start": 115,
-        "line_end": 115,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 7,
-        "line_start": 127,
-        "line_end": 127,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "IRT",
         "inline_definition": "",
         "occurrence_number": 1,
         "line_start": 133,
         "line_end": 133,
         "abbreviations_section_definition": "item response theory",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 8,
-        "line_start": 171,
-        "line_end": 171,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 9,
-        "line_start": 175,
-        "line_end": 175,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 10,
-        "line_start": 206,
-        "line_end": 206,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 11,
-        "line_start": 206,
-        "line_end": 206,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -67578,102 +67468,12 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 12,
-        "line_start": 237,
-        "line_end": 237,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 13,
-        "line_start": 237,
-        "line_end": 237,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 14,
-        "line_start": 241,
-        "line_end": 241,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 15,
-        "line_start": 245,
-        "line_end": 245,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 16,
-        "line_start": 247,
-        "line_end": 247,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 17,
-        "line_start": 251,
-        "line_end": 251,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "IRT",
         "inline_definition": "Item-Response Theory",
         "occurrence_number": 3,
         "line_start": 261,
         "line_end": 261,
         "abbreviations_section_definition": "item response theory",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 18,
-        "line_start": 262,
-        "line_end": 262,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 19,
-        "line_start": 263,
-        "line_end": 263,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 20,
-        "line_start": 265,
-        "line_end": 265,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -67728,56 +67528,6 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 21,
-        "line_start": 285,
-        "line_end": 285,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 22,
-        "line_start": 287,
-        "line_end": 287,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 23,
-        "line_start": 291,
-        "line_end": 291,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 24,
-        "line_start": 326,
-        "line_end": 326,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 25,
-        "line_start": 336,
-        "line_end": 336,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "HPCT",
         "inline_definition": "Human Pathogen Capabilities Test",
         "occurrence_number": 1,
@@ -67818,62 +67568,12 @@
         "ignored_reason": "corporation name"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 26,
-        "line_start": 340,
-        "line_end": 340,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 27,
-        "line_start": 346,
-        "line_end": 346,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "2PL",
         "inline_definition": "",
         "occurrence_number": 2,
         "line_start": 346,
         "line_end": 346,
         "abbreviations_section_definition": "two-parameter logistic model",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 28,
-        "line_start": 346,
-        "line_end": 346,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 29,
-        "line_start": 350,
-        "line_end": 350,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 30,
-        "line_start": 352,
-        "line_end": 352,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -67938,32 +67638,12 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 31,
-        "line_start": 380,
-        "line_end": 380,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "VCT",
         "inline_definition": "",
         "occurrence_number": 4,
         "line_start": 380,
         "line_end": 380,
         "abbreviations_section_definition": "Virology Capabilities Test",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 32,
-        "line_start": 388,
-        "line_end": 388,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -67978,16 +67658,6 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 34,
-        "line_start": 404,
-        "line_end": 404,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "LLM",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -67998,52 +67668,12 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 35,
-        "line_start": 437,
-        "line_end": 437,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 36,
-        "line_start": 443,
-        "line_end": 443,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "IRT",
         "inline_definition": "",
         "occurrence_number": 9,
         "line_start": 443,
         "line_end": 443,
         "abbreviations_section_definition": "item response theory",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 37,
-        "line_start": 455,
-        "line_end": 455,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 38,
-        "line_start": 461,
-        "line_end": 461,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -68074,16 +67704,6 @@
         "line_start": 481,
         "line_end": 481,
         "abbreviations_section_definition": "item response theory",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 39,
-        "line_start": 481,
-        "line_end": 481,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -68258,16 +67878,6 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 40,
-        "line_start": 519,
-        "line_end": 519,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "I/O",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -68294,16 +67904,6 @@
         "line_start": 560,
         "line_end": 560,
         "abbreviations_section_definition": "large language model",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 41,
-        "line_start": 560,
-        "line_end": 560,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": false,
         "ignored_reason": null
       },
@@ -68518,16 +68118,6 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 42,
-        "line_start": 643,
-        "line_end": 643,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "MMLU",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -68728,16 +68318,6 @@
         "ignored_reason": null
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 43,
-        "line_start": 685,
-        "line_end": 685,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "GPT",
         "inline_definition": "",
         "occurrence_number": 2,
@@ -68908,16 +68488,6 @@
         "ignored_reason": "References section"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 44,
-        "line_start": 774,
-        "line_end": 774,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": true,
-        "ignored_reason": "References section"
-      },
-      {
         "abbr": "ACM",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -69008,16 +68578,6 @@
         "ignored_reason": "References section"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 45,
-        "line_start": 786,
-        "line_end": 786,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": true,
-        "ignored_reason": "References section"
-      },
-      {
         "abbr": "RAND",
         "inline_definition": "",
         "occurrence_number": 7,
@@ -69048,16 +68608,6 @@
         "ignored_reason": "References section; corporation name"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 46,
-        "line_start": 788,
-        "line_end": 788,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": true,
-        "ignored_reason": "References section"
-      },
-      {
         "abbr": "NeurIPS",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -69074,16 +68624,6 @@
         "line_start": 790,
         "line_end": 790,
         "abbreviations_section_definition": null,
-        "ignored": true,
-        "ignored_reason": "References section"
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 47,
-        "line_start": 792,
-        "line_end": 792,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": true,
         "ignored_reason": "References section"
       },
@@ -69114,16 +68654,6 @@
         "line_start": 796,
         "line_end": 796,
         "abbreviations_section_definition": null,
-        "ignored": true,
-        "ignored_reason": "References section"
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 48,
-        "line_start": 796,
-        "line_end": 796,
-        "abbreviations_section_definition": "artificial intelligence",
         "ignored": true,
         "ignored_reason": "References section"
       },
@@ -69198,16 +68728,6 @@
         "ignored_reason": "corporation name"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 49,
-        "line_start": 806,
-        "line_end": 806,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "BBA",
         "inline_definition": "",
         "occurrence_number": 1,
@@ -69228,16 +68748,6 @@
         "ignored_reason": "corporation name"
       },
       {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 50,
-        "line_start": 808,
-        "line_end": 808,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
         "abbr": "Ph.D.",
         "inline_definition": "",
         "occurrence_number": 3,
@@ -69246,26 +68756,6 @@
         "abbreviations_section_definition": null,
         "ignored": true,
         "ignored_reason": "academic degree"
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 51,
-        "line_start": 812,
-        "line_end": 812,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
-      },
-      {
-        "abbr": "AI",
-        "inline_definition": "",
-        "occurrence_number": 52,
-        "line_start": 812,
-        "line_end": 812,
-        "abbreviations_section_definition": "artificial intelligence",
-        "ignored": false,
-        "ignored_reason": null
       },
       {
         "abbr": "2PL",
@@ -69290,7 +68780,567 @@
       {
         "abbr": "AI",
         "inline_definition": "",
+        "occurrence_number": 1,
+        "line_start": 3,
+        "line_end": 3,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "front page / cover page"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "artificial intelligence",
+        "occurrence_number": 2,
+        "line_start": 25,
+        "line_end": 25,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 3,
+        "line_start": 25,
+        "line_end": 25,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 4,
+        "line_start": 27,
+        "line_end": 27,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 5,
+        "line_start": 29,
+        "line_end": 29,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 6,
+        "line_start": 31,
+        "line_end": 31,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 7,
+        "line_start": 35,
+        "line_end": 35,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 8,
+        "line_start": 115,
+        "line_end": 115,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 9,
+        "line_start": 127,
+        "line_end": 127,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 10,
+        "line_start": 171,
+        "line_end": 171,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 11,
+        "line_start": 175,
+        "line_end": 175,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 12,
+        "line_start": 175,
+        "line_end": 175,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 13,
+        "line_start": 206,
+        "line_end": 206,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 14,
+        "line_start": 206,
+        "line_end": 206,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 15,
+        "line_start": 237,
+        "line_end": 237,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 16,
+        "line_start": 237,
+        "line_end": 237,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 17,
+        "line_start": 241,
+        "line_end": 241,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 18,
+        "line_start": 245,
+        "line_end": 245,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 19,
+        "line_start": 247,
+        "line_end": 247,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 20,
+        "line_start": 251,
+        "line_end": 251,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 21,
+        "line_start": 253,
+        "line_end": 253,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 22,
+        "line_start": 262,
+        "line_end": 262,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 23,
+        "line_start": 263,
+        "line_end": 263,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 24,
+        "line_start": 265,
+        "line_end": 265,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 25,
+        "line_start": 287,
+        "line_end": 287,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 26,
+        "line_start": 291,
+        "line_end": 291,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "image caption artifact"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 27,
+        "line_start": 326,
+        "line_end": 326,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 28,
+        "line_start": 336,
+        "line_end": 336,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 29,
+        "line_start": 340,
+        "line_end": 340,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 30,
+        "line_start": 346,
+        "line_end": 346,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 31,
+        "line_start": 346,
+        "line_end": 346,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 32,
+        "line_start": 350,
+        "line_end": 350,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 33,
+        "line_start": 352,
+        "line_end": 352,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 34,
+        "line_start": 380,
+        "line_end": 380,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 35,
+        "line_start": 388,
+        "line_end": 388,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 36,
+        "line_start": 404,
+        "line_end": 404,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 37,
+        "line_start": 437,
+        "line_end": 437,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 38,
+        "line_start": 443,
+        "line_end": 443,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 39,
+        "line_start": 455,
+        "line_end": 455,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 40,
+        "line_start": 455,
+        "line_end": 455,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 41,
+        "line_start": 461,
+        "line_end": 461,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 42,
+        "line_start": 481,
+        "line_end": 481,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 43,
+        "line_start": 519,
+        "line_end": 519,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 44,
+        "line_start": 520,
+        "line_end": 520,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 45,
+        "line_start": 560,
+        "line_end": 560,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 46,
+        "line_start": 643,
+        "line_end": 643,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 47,
+        "line_start": 685,
+        "line_end": 685,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 48,
+        "line_start": 774,
+        "line_end": 774,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "References section"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 49,
+        "line_start": 786,
+        "line_end": 786,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "References section"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 50,
+        "line_start": 788,
+        "line_end": 788,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "References section"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 51,
+        "line_start": 792,
+        "line_end": 792,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "References section"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 52,
+        "line_start": 796,
+        "line_end": 796,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": true,
+        "ignored_reason": "References section"
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
         "occurrence_number": 53,
+        "line_start": 806,
+        "line_end": 806,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 54,
+        "line_start": 808,
+        "line_end": 808,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 55,
+        "line_start": 812,
+        "line_end": 812,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 56,
+        "line_start": 812,
+        "line_end": 812,
+        "abbreviations_section_definition": "artificial intelligence",
+        "ignored": false,
+        "ignored_reason": null
+      },
+      {
+        "abbr": "AI",
+        "inline_definition": "",
+        "occurrence_number": 57,
         "line_start": 817,
         "line_end": 817,
         "abbreviations_section_definition": "artificial intelligence",

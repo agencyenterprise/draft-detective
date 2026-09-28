@@ -3,7 +3,7 @@ import os
 from typing import Optional
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 load_dotenv()
 
@@ -36,6 +36,18 @@ class Config(BaseModel):
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+    DATABASE_POOL_SIZE: int = Field(default=8, ge=1)
+    DATABASE_MAX_OVERFLOW: int = Field(default=3, ge=0)
+    DATABASE_POOL_TIMEOUT: float = Field(default=30, gt=0)
+    CHECKPOINTER_POOL_MIN_SIZE: int = Field(default=0, ge=0)
+    CHECKPOINTER_POOL_MAX_SIZE: int = Field(default=4, ge=1)
+    CHECKPOINTER_POOL_TIMEOUT: float = Field(default=30, gt=0)
+
+    @model_validator(mode="after")
+    def validate_database_pools(self):
+        if self.CHECKPOINTER_POOL_MIN_SIZE > self.CHECKPOINTER_POOL_MAX_SIZE:
+            raise ValueError("CHECKPOINTER_POOL_MIN_SIZE must not exceed CHECKPOINTER_POOL_MAX_SIZE")
+        return self
 
     # Authentication
     AUTH_SECRET: str = Field(
@@ -190,6 +202,12 @@ config = Config(
     POSTGRES_DB=os.environ["POSTGRES_DB"],
     POSTGRES_USER=os.environ["POSTGRES_USER"],
     POSTGRES_PASSWORD=os.environ["POSTGRES_PASSWORD"],
+    DATABASE_POOL_SIZE=int(os.getenv("DATABASE_POOL_SIZE", "8")),
+    DATABASE_MAX_OVERFLOW=int(os.getenv("DATABASE_MAX_OVERFLOW", "3")),
+    DATABASE_POOL_TIMEOUT=float(os.getenv("DATABASE_POOL_TIMEOUT", "30")),
+    CHECKPOINTER_POOL_MIN_SIZE=int(os.getenv("CHECKPOINTER_POOL_MIN_SIZE", "0")),
+    CHECKPOINTER_POOL_MAX_SIZE=int(os.getenv("CHECKPOINTER_POOL_MAX_SIZE", "4")),
+    CHECKPOINTER_POOL_TIMEOUT=float(os.getenv("CHECKPOINTER_POOL_TIMEOUT", "30")),
     AUTH_SECRET=os.environ["AUTH_SECRET"],
     AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
     AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),

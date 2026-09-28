@@ -2,12 +2,99 @@
 
 import asyncio
 import subprocess
+from types import SimpleNamespace
 from unittest.mock import ANY, AsyncMock, Mock
 
 import pytest
 from inspect_ai.model import get_model
 
 from evals_inspectai.common import local_backend as module
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fail", [False, True])
+async def test_inspect_task_completion_stops_backend(monkeypatch, tmp_path, fail):
+    from inspect_ai import Task, eval_async
+    from inspect_ai.dataset import Sample
+    from inspect_ai.solver import solver
+
+    monkeypatch.setattr(module, "_backends_by_eval", {})
+    monkeypatch.setattr(module, "_ensure_local_database", AsyncMock())
+    monkeypatch.setattr(module, "_free_port", lambda: 18765)
+    monkeypatch.setattr(module.LocalBackend, "_wait_for_health", AsyncMock())
+    process = Mock()
+    process.poll.return_value = None
+    monkeypatch.setattr(module.subprocess, "Popen", Mock(return_value=process))
+    backend = module.LocalBackend(model="mockllm/test", cwd=tmp_path)
+
+    @solver
+    def use_local_backend():
+        async def solve(state, generate):
+            await backend.ensure_started()
+            if fail:
+                raise RuntimeError("test task failure")
+            return state
+
+        return solve
+
+    try:
+        logs = await eval_async(
+            Task(dataset=[Sample(input="test")], solver=use_local_backend()),
+            model="mockllm/test",
+            log_dir=str(tmp_path / "eval-logs"),
+        )
+        assert logs[0].status == ("error" if fail else "success")
+        process.terminate.assert_called_once()
+        assert backend._process is None
+        assert not module._backends_by_eval
+    finally:
+        backend.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_task_end_releases_only_its_backend(monkeypatch, tmp_path):
+    monkeypatch.setattr(module, "_backends_by_eval", {})
+    monkeypatch.setattr(module, "_ensure_local_database", AsyncMock())
+    monkeypatch.setattr(module, "_free_port", lambda: 18765)
+    monkeypatch.setattr(module.LocalBackend, "_wait_for_health", AsyncMock())
+    processes = []
+
+    def spawn(*args, **kwargs):
+        process = Mock()
+        process.poll.return_value = None
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(module.subprocess, "Popen", spawn)
+    first = module.LocalBackend(model="openai/test", cwd=tmp_path)
+    second = module.LocalBackend(model="openai/test", cwd=tmp_path)
+    try:
+        monkeypatch.setattr(module, "sample_active", lambda: SimpleNamespace(eval_id="first"))
+        await first.ensure_started()
+        monkeypatch.setattr(module, "sample_active", lambda: SimpleNamespace(eval_id="second"))
+        await second.ensure_started()
+        await module.LocalBackendCleanup().on_task_end(SimpleNamespace(eval_id="first"))
+        processes[0].terminate.assert_called_once()
+        processes[1].terminate.assert_not_called()
+        assert first._process is None
+        assert "first" not in module._backends_by_eval
+        await module.LocalBackendCleanup().on_task_end(SimpleNamespace(eval_id="second"))
+        processes[1].terminate.assert_called_once()
+        assert not module._backends_by_eval
+    finally:
+        first.shutdown()
+        second.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_task_end_keeps_shared_backend_until_last_owner(monkeypatch):
+    backend = Mock()
+    monkeypatch.setattr(module, "_backends_by_eval", {"a": {backend}, "b": {backend}})
+    cleanup = module.LocalBackendCleanup()
+    await cleanup.on_task_end(SimpleNamespace(eval_id="a"))
+    backend.shutdown.assert_not_called()
+    await cleanup.on_task_end(SimpleNamespace(eval_id="b"))
+    backend.shutdown.assert_called_once()
 
 
 @pytest.mark.asyncio
