@@ -64,9 +64,8 @@ class LLMModel(BaseModel):
 #
 # The default tier: agents run on it unless they name a smaller one.
 gpt_5_6_terra_model = LLMModel(provider="openai", name="gpt-5.6-terra")
-# The smaller tier, for mostly mechanical extraction where the evals show no loss
-# against the default (the abbreviation checker's agents). Keep its reasoning
-# effort at "low": at "none" the abbreviation checker eval drops noticeably.
+# The smaller tier, for mostly mechanical tasks where the evals show no loss
+# against the default.
 gpt_5_6_luna_model = LLMModel(provider="openai", name="gpt-5.6-luna")
 # Not used by any workflow; offered in the /chat model picker (with the smaller
 # tier) so a reviewer can compare the tiers on a real question.
