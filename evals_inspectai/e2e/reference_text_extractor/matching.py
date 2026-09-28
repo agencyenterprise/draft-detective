@@ -29,9 +29,6 @@ _QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 _LIST_MARKER_RE = re.compile(r"^\s*(?:[-*+•]|\d{1,3}[.)]|\[\d{1,3}\]|\(\d{1,3}\))\s+")
 # A repeated-author placeholder in compacted text.
 _PLACEHOLDER_RE = re.compile(r"-{2,}|—+|–{2,}|_{2,}")
-# The shortest tail that must follow a placeholder for a reference to count as that entry.
-_MIN_TAIL = 15
-
 # Word-token Dice coefficient at or above which two references are the same entry.
 TOKEN_MATCH = 0.8
 # One compacted text inside the other counts as the same entry when the shorter is at
@@ -64,28 +61,63 @@ _ENDS_ENTRY_RE = re.compile(
 )
 
 
+# A year opening the part of an entry after its authors: "2020", "(2020)", "2025a".
+_YEAR_RE = re.compile(r"\(?\b(?:1[5-9]|20)\d{2}[a-z]?\b\)?")
+# A full stop closing a word of two or more letters (not an initial like "R."), followed by a space.
+_NAME_END_RE = re.compile(r"(?<=\w\w)\.(?= )")
+
+
 class _Entry:
-    """One entry of the document as the skill reads it: its compacted text, which lines
-    each stretch of that text comes from, and, for an entry opening with a
-    repeated-author placeholder, the placeholder's length and the entry it repeats."""
+    """One entry of the document as the skill reads it: its normalized text with its
+    lines joined by a space (``joins`` holds those spaces' positions, the only places a
+    reference may run two lines together without one), which line each stretch comes
+    from, and, for an entry opening with a repeated-author placeholder, where the text
+    after the placeholder starts and the author it stands for."""
 
     def __init__(self) -> None:
         self.text = ""
+        self.joins: set[int] = set()
         self.pieces: list[tuple[int, int, int]] = []  # (1-indexed line, start, end) in text
         self.last_line = ""  # normalized text of the entry's last line
-        self.placeholder = 0
-        self.author_source = ""
+        self.tail = 0  # for a placeholder entry, where the text after the placeholder starts
+        self.authors: tuple[str, ...] = ()  # for a placeholder entry, the spans the previous entry's author may take
 
     def add(self, number: int, line: str) -> None:
-        piece = compact(line)
+        piece = normalize(line)
+        if self.text:
+            self.joins.add(len(self.text))
+            self.text += " "
         self.pieces.append((number, len(self.text), len(self.text) + len(piece)))
         self.text += piece
-        self.last_line = normalize(line)
+        self.last_line = piece
 
     def lines(self, start: int, end: int) -> tuple[int, int]:
         """The first and last document line holding ``text[start:end]``."""
         covered = [n for n, s, e in self.pieces if s < end and e > start]
         return covered[0], covered[-1]
+
+    def author_spans(self) -> tuple[str, ...]:
+        """Where the entry's authors may end, each span without the punctuation and space
+        that follow it: before the first year (author-date styles: "Thompson, R. &
+        Davis, K. (2022)"), and at the first full stop closing a name rather than an
+        initial (notes-bibliography styles: "Marchetti, Lucia. *Title*, 1794")."""
+        cuts = [m.start() for m in (_YEAR_RE.search(self.text), _NAME_END_RE.search(self.text)) if m]
+        return tuple(dict.fromkeys(span for cut in cuts if (span := self.text[:cut].rstrip(" .,;:"))))
+
+
+def _align(ref: str, text: str, joins: set[int], start: int) -> Optional[int]:
+    """Where ``ref`` ends when it matches ``text`` from ``start``, or None: characters must
+    agree, except that a line-join space in ``text`` may be missing from ``ref``, as when
+    a URL split over two lines is merged without one. Spaces elsewhere must be kept."""
+    i, t = 0, start
+    while i < len(ref):
+        if t < len(text) and ref[i] == text[t]:
+            i, t = i + 1, t + 1
+        elif t in joins:
+            t += 1
+        else:
+            return None
+    return t
 
 
 def _continues(entry: _Entry, line: str) -> bool:
@@ -122,19 +154,20 @@ class DocumentText:
 
     def _open(self, body: str, heading: bool) -> _Entry:
         entry = _Entry()
-        placeholder = None if heading else _PLACEHOLDER_RE.match(compact(body))
+        placeholder = None if heading else _PLACEHOLDER_RE.match(normalize(body))
         if placeholder:
-            entry.placeholder = placeholder.end()
-            source = next((e for e in reversed(self.entries) if e.text and not e.placeholder), None)
-            entry.author_source = source.text if source else ""
+            entry.tail = placeholder.end()
+            source = next((e for e in reversed(self.entries) if e.text and not e.tail), None)
+            entry.authors = source.author_spans() if source else ()
         self.entries.append(entry)
         return entry
 
     def contains(self, reference: str, start_line: Optional[int] = None, end_line: Optional[int] = None) -> bool:
-        """Whether the reference's text is one entry's text, or part of it, directly or with
-        the entry's repeated-author placeholder resolved to the previous entry's author;
-        with a line range, only when the matched text lies within those lines."""
-        ref = compact(reference)
+        """Whether the reference's text is one entry's text, or part of it, with its spaces
+        (see ``_align``); a placeholder entry is read with the placeholder replaced by the
+        previous entry's full author, so the reference must start with exactly that
+        author. With a line range, only when the matched text lies within those lines."""
+        ref = normalize(reference)
         if not ref:
             return False
 
@@ -145,29 +178,28 @@ class DocumentText:
             return start_line <= first and last <= end_line
 
         for entry in self.entries:
-            at = entry.text.find(ref)
-            while at >= 0:
-                if within(entry, at, at + len(ref)):
+            if entry.tail:
+                if any(self._resolves(ref, author, entry, within) for author in entry.authors):
                     return True
-                at = entry.text.find(ref, at + 1)
-            if entry.placeholder and entry.author_source and self._resolves(ref, entry, within):
-                return True
+                continue
+            at = entry.text.find(ref[0])
+            while at >= 0:
+                stop = _align(ref, entry.text, entry.joins, at)
+                if stop is not None and within(entry, at, stop):
+                    return True
+                at = entry.text.find(ref[0], at + 1)
         return False
 
     @staticmethod
-    def _resolves(ref: str, entry: _Entry, within: Callable[[_Entry, int, int], bool]) -> bool:
-        """Whether ``ref`` is the previous entry's author followed by the text after this
-        entry's placeholder: the author must open the previous entry and end at a word
-        boundary in it, so a reference cannot substitute an author of its own."""
-        tail = entry.text[entry.placeholder:]
-        source = entry.author_source
-        for k in range(1, min(len(ref) - _MIN_TAIL, len(source)) + 1):
-            author, rest = ref[:k], ref[k:]
-            ends_author = k == len(source) or not source[k].isalnum()
-            if ends_author and source.startswith(author) and tail.startswith(rest):
-                if within(entry, entry.placeholder, entry.placeholder + len(rest)):
-                    return True
-        return False
+    def _resolves(ref: str, author: str, entry: _Entry, within: Callable[[_Entry, int, int], bool]) -> bool:
+        """Whether ``ref`` is ``author`` (one of the previous entry's full author spans)
+        followed by the text after this entry's placeholder, from its separating
+        punctuation on, so a reference can neither substitute an author of its own nor
+        drop co-authors."""
+        if not ref.startswith(author):
+            return False
+        stop = _align(ref[len(author):], entry.text, entry.joins, entry.tail)
+        return stop is not None and within(entry, entry.tail, max(stop, entry.tail + 1))
 
 
 def _tokens(text: str) -> Counter[str]:

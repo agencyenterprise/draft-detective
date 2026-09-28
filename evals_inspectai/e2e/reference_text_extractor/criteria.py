@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
 from evals_inspectai.common.scorers import failed_score
-from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText, compact, match
+from evals_inspectai.e2e.reference_text_extractor.matching import DocumentText, compact, match, normalize
 
 NAN = math.nan
 # How many missing or extra references an explanation names, and how much of each.
@@ -58,7 +58,7 @@ DESCRIPTIONS = {
     "precision": "Share of the extracted references paired with an expected one, optional entries left out; NaN when nothing was extracted.",
     "f1": "Harmonic mean of recall and precision; 0 when nothing expected was found; NaN when none is expected.",
     "clean_document_untouched": "On a document with no reference entries, 1 when nothing was extracted, else 0; NaN otherwise.",
-    "text_exact": "Of the paired references, share whose text is identical to the expected entry after normalization (entities, escapes, quotes and spacing); NaN when none was paired.",
+    "text_exact": "Of the paired references, share whose text is identical to the expected entry after normalization (entities, escapes, quotes, runs of spaces), a missing space tolerated only where the document joins two lines; NaN when none was paired.",
     "verbatim_in_document": "Share of the extracted references whose text the document contains (list markers ignored, a resolved repeated-author placeholder allowed); catches invented or rewritten entries; NaN when nothing was extracted.",
     "lines_bracket_text": "Of the extracted references that are verbatim in the document and name their lines, share whose text lies within those lines; NaN when there are none.",
 }
@@ -114,11 +114,17 @@ def reference_scores(
     extra = [texts[i] for i in unpaired if i not in tolerated]
     found = {j for _, j in pairs}
     missing = [e for j, e in enumerate(expected) if j not in found]
-    inexact = [texts[i] for i, j in pairs if compact(texts[i]) != compact(expected[j])]
-
     lines = document.split("\n")
     text = DocumentText(lines)
     in_document = [text.contains(r.text) for r in extracted]
+
+    def exact(i: int, j: int) -> bool:
+        """Identical after normalization, or differing only in spaces the document's line
+        joins allow: equal without spaces, and both the document's own text."""
+        a, b = texts[i], expected[j]
+        return normalize(a) == normalize(b) or (compact(a) == compact(b) and in_document[i] and text.contains(b))
+
+    inexact = [texts[i] for i, j in pairs if not exact(i, j)]
     verbatim = [r for r, ok in zip(extracted, in_document) if ok]
     invented = [r.text for r, ok in zip(extracted, in_document) if not ok]
     placed = [(r, ok) for r in verbatim if (ok := _in_lines(r, text, len(lines))) is not None]

@@ -239,3 +239,35 @@ def test_lines_must_hold_the_text():
 def test_every_key_is_emitted():
     values, _ = reference_scores(refs(*EXPECTED), EXPECTED, [], DOC)
     assert tuple(values) == KEYS
+
+
+def test_spaces_are_kept_except_where_the_document_joins_two_lines():
+    text = DocumentText([
+        "Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry. https://example.org/a/",
+        "b/c",
+    ])
+    assert text.contains("Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry. https://example.org/a/b/c")
+    assert text.contains("Smith, J. (2020). The Effects of Widgets on Gadgets. Journal of Widgetry. https://example.org/a/ b/c")
+    assert not text.contains("Smith,J.(2020).TheEffectsofWidgetsonGadgets.JournalofWidgetry.https://example.org/a/b/c")
+
+
+def test_a_placeholder_needs_the_previous_entrys_full_author():
+    text = DocumentText(WORKS_CITED)
+    assert not text.contains("Thompson. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA."), "co-author dropped"
+    assert not text.contains("Thompson, R. (2023). Large-Scale EHR Mining: Methods and Applications. JAMIA.")
+    chicago = DocumentText([
+        "Marchetti, Lucia. *The Odessa Exchange, 1794–1914*. Cambridge, MA: Harbour University Press, 1986.",
+        "",
+        "———. \"Russian Grain and Mediterranean Markets, 1774–1861.\" PhD diss., University of Pennsylvania, 1963.",
+    ])
+    assert chicago.contains("Marchetti, Lucia. \"Russian Grain and Mediterranean Markets, 1774–1861.\" PhD diss., University of Pennsylvania, 1963.")
+    assert not chicago.contains("Marchetti. \"Russian Grain and Mediterranean Markets, 1774–1861.\" PhD diss., University of Pennsylvania, 1963.")
+
+
+def test_a_spaceless_extraction_is_neither_exact_nor_verbatim():
+    doc = "\n".join(WORKS_CITED)
+    golden = "Chen, Y., Liu, H. (2023). Deep Learning Methods. Radiology, 306(2), 412-425."
+    spaceless = ExtractedReference(text=golden.replace(" ", ""))
+    values, _ = reference_scores([spaceless], [golden], [], doc)
+    assert values["recall"] == 1.0, "still paired with the entry it garbles"
+    assert values["text_exact"] == 0.0 and values["verbatim_in_document"] == 0.0
