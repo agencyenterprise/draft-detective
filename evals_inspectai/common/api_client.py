@@ -17,7 +17,11 @@ from evals_inspectai.common.errors import (
     WorkflowCompletionError,
     check_workflow_errors,
 )
-from evals_inspectai.common.model_override import check_model_used, requested_model
+from evals_inspectai.common.model_override import (
+    check_model_used,
+    note_served_models,
+    requested_model,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -461,6 +465,7 @@ async def poll_workflow_run_until_complete(
             if status == "completed":
                 logger.info("Workflow run %s completed", workflow_run_id)
                 check_workflow_errors(run_detail.get("state") or {})
+                note_served_models(run_detail)
                 check_model_used(run_detail)
                 return run_detail
             if status in TERMINAL_FAILURE_STATUSES:
@@ -527,6 +532,7 @@ async def poll_until_complete(
                         run.get("id"),
                     )
                     check_workflow_errors(run_detail.get("state") or {})
+                    note_served_models(run_detail)
                     check_model_used(run_detail)
                     return run_detail
                 if status in TERMINAL_FAILURE_STATUSES:

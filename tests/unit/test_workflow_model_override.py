@@ -52,7 +52,7 @@ def test_model_name_round_trips(model: LLMModel):
     assert LLMModel.from_model_name(model.model_name) == model
 
 
-def test_model_name_without_a_provider_leaves_it_to_langchain():
+def test_model_name_without_a_provider_parses_to_an_empty_one():
     assert LLMModel.from_model_name("gpt-5.6-sol") == LLMModel(provider="", name="gpt-5.6-sol")
 
 

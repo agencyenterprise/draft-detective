@@ -10,6 +10,7 @@ from evals_inspectai.common.errors import WorkflowCompletionError
 from evals_inspectai.common.model_override import (
     check_model_used,
     is_model,
+    note_served_models,
     output_model_name,
     requested_model,
 )
@@ -117,3 +118,19 @@ def test_an_unpriced_model_in_the_replies_still_fails_the_check():
     }
     with _active("openai/gpt-5.6-sol"), pytest.raises(WorkflowCompletionError, match="some-unpriced-model"):
         check_model_used(detail)
+
+
+def test_the_output_model_survives_the_replies_moving_to_the_transcript():
+    detail = _run_detail("openai:gpt-5.6-sol", [])
+    replies = [
+        {
+            "type": "ai",
+            "usage_metadata": {"input_tokens": 1},
+            "response_metadata": {"model_name": "some-unpriced-model"},
+        }
+    ]
+    detail["state"] = {"messages": replies}
+    note_served_models(detail)
+    detail["state"].pop("messages")  # what surface_conversations does
+    with _active("openai/gpt-5.6-sol"):
+        assert output_model_name(detail) == "some-unpriced-model"

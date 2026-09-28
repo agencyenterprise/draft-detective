@@ -41,16 +41,31 @@ def requested_model() -> Optional[str]:
     return f"{LANGCHAIN_PROVIDERS.get(provider, provider)}:{name}"
 
 
+# Where note_served_models keeps the models on a run detail.
+SERVED_MODELS_KEY = "served_models"
+
+
+def note_served_models(run_detail: dict[str, Any]) -> None:
+    """Record the models that served the run on its detail, while the replies are there.
+
+    Solvers move the replies out of the state into the transcript before they name
+    the sample's output model, so it has to be read before that. The poll helpers
+    call this as soon as a run completes.
+    """
+    run_detail[SERVED_MODELS_KEY] = served_models(run_detail)
+
+
 def served_models(run_detail: dict[str, Any]) -> list[str]:
     """The models the run's LLM replies reported.
 
     Read from the replies in the run's state, because the cost breakdown drops any
-    model it has no price for, which is exactly where an override can land. The
-    breakdown is kept as well, for callers that already moved the messages out of
-    the state into the transcript.
+    model it has no price for, which is exactly where an override can land. Merged
+    with what note_served_models recorded, for callers that already moved the
+    replies out of the state, and with the breakdown.
     """
     cost = run_detail.get("cost") or {}
     found = set((cost.get("by_model") or {}).keys())
+    found.update(run_detail.get(SERVED_MODELS_KEY) or [])
     _collect_reply_models(run_detail.get("state"), found)
     return sorted(found)
 

@@ -41,7 +41,12 @@ class LLMModel(BaseModel):
 
     @staticmethod
     def from_model_name(model_name: str) -> "LLMModel":
-        """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol')."""
+        """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol').
+
+        A name without a provider parses with an empty one. Workflow start requests
+        refuse those, since agents pick their API key, reasoning settings and
+        web-search tool by the provider.
+        """
         provider, _, name = model_name.rpartition(":")
         return LLMModel(provider=provider, name=name)
 
