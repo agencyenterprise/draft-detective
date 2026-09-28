@@ -116,7 +116,7 @@ Current scores for every suite are in the [eval scores report](./eval-scores.md)
 ## Technology
 
 - **Backend:** Python, FastAPI, LangGraph and deepagents, with LangChain model integrations. Assessments run as background tasks, and their state is saved in PostgreSQL.
-- **Models:** provider-agnostic. Every agent currently runs OpenAI's `gpt-5.6-terra`, and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
+- **Models:** provider-agnostic. Agents currently run OpenAI's `gpt-5.6-terra` (the abbreviation checker's run the cheaper `gpt-5.6-luna`), and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
 - **Documents:** Word, PDF, Markdown and text files, converted with MarkItDown, pypdfium2 and LibreOffice. Word export adds comments and tracked changes to the document.
 - **Frontend:** Next.js and React with shadcn/ui.
 - **Operations:** Google and Microsoft sign-in, optional Langfuse tracing, and deployment with Docker on Railway or Kubernetes (see [Railway deployment](./railway-deployment.md)).
