@@ -1,0 +1,549 @@
+# Eval samples for the document_structure (Document Contents) workflow, in inventory form (see
+# evals_inspectai/common/issue_inventory.py). Every issue this workflow reports is about a section the
+# document lacks, so no expected issue has an anchor: each is matched on its "Missing Section: <name>" title
+# alone, wherever the reported issue sits. A missing required section is high severity, per the issues
+# skill. The skill proposes no edits, so no record says anything about edits.
+
+# ---- main headings, the real reports, a sparse brief -----------------------------------------
+- input: |
+    # Research Report on Climate Adaptation
+
+    ## About This Report
+
+    This report examines climate adaptation strategies across coastal communities. It was produced by the Research Institute for Environmental Studies to inform policy decisions.
+
+    ## Acknowledgements
+
+    The authors thank the many researchers, government officials, and community members who contributed their time and expertise to this work. Funding was provided by the National Science Foundation.
+
+    ## Methods
+
+    We conducted a mixed-methods study combining quantitative analysis of sea-level data with qualitative interviews across 12 coastal communities. Data were collected between January and June 2024.
+
+    ## Results
+
+    Findings indicate that communities with dedicated adaptation plans experienced 40% fewer flood-related disruptions than those without. Early warning systems were the single most cost-effective intervention identified.
+
+    ## Conclusion
+
+    Coastal communities that invest in proactive adaptation measures are significantly better positioned to withstand climate shocks. Policymakers should prioritise funding for community-led adaptation planning.
+
+    ## References
+
+    1. IPCC, 2023. *Sixth Assessment Report: Impacts, Adaptation and Vulnerability*. Geneva: IPCC.
+    2. Jones, A., & Smith, B. (2022). Coastal resilience metrics. *Journal of Climate Policy*, 18(3), 45–67.
+  expected_issues: []
+  notes: Clean. Every required section is present under its main heading, and no appendix is referenced.
+- input: |
+    # Policy Brief on Urban Transport
+
+    ## Methods
+
+    We reviewed transport data from 20 cities and conducted stakeholder interviews with municipal planners.
+
+    ## Conclusion
+
+    Investing in public transit yields significant reductions in urban congestion and carbon emissions.
+  expected_issues:
+  - id: about_this
+    title: 'Missing Section: About This'
+    severity: high
+  - id: acknowledgements
+    title: 'Missing Section: Acknowledgements'
+    severity: high
+  - id: results
+    title: 'Missing Section: Results'
+    severity: high
+  - id: references
+    title: 'Missing Section: References'
+    severity: high
+  notes: Only Methods and Conclusion are present, so About This, Acknowledgements, Results and References are each
+    missing.
+- input: |
+    # Evaluation of Early Childhood Education Programmes
+
+    ## About This Report
+
+    This evaluation assesses the effectiveness of three early childhood education programmes funded by the European Commission.
+
+    ## Acknowledgements
+
+    We thank the programme coordinators and participating families for their cooperation throughout the data collection phase.
+
+    ## Methods
+
+    A quasi-experimental design compared outcomes for 1,200 children enrolled in the programmes against a matched control group over three years.
+
+    ## Results
+
+    Children in all three programmes showed significantly higher school-readiness scores compared to the control group. Programme C showed the largest effect size (d = 0.72).
+
+    Full statistical breakdowns are presented in Appendix A.
+
+    ## Conclusion
+
+    All three programmes demonstrated positive outcomes. Programme C should be prioritised for scale-up given its superior effect sizes.
+
+    ## References
+
+    1. Heckman, J. J. (2006). Skill formation and the economics of investing in disadvantaged children. *Science*, 312(5782), 1900–1902.
+    2. OECD (2021). *Starting Strong: Supporting Families and Children*. Paris: OECD Publishing.
+  expected_issues:
+  - id: appendix
+    title: 'Missing Section: Appendix'
+    severity: high
+  notes: All six sections are present, and the Results section refers to Appendix A, which the document does not
+    contain, so Appendix is missing.
+- input: file://files/RAND_RRA4036-1.md
+  expected_issues: []
+  notes: 'Clean. A published report with no heading literally called Results: its Summary presents the analysis
+    results, including Table S.1, which is a section presenting the key findings as the skill defines it. About
+    This Report, Acknowledgments, the analysis chapters, the Conclusion and the Bibliography cover the rest.'
+- input: file://files/RAND_RRA4636-1.md
+  expected_issues: []
+  notes: 'Clean. A published report with no heading literally called Results: it opens with a key-findings box whose
+    headings state the findings, and its analysis chapters are titled by what they find, which together present
+    the key findings as the skill defines them. The Introduction, Acknowledgements, Methodology, Conclusion and
+    References cover the rest.'
+
+# ---- alternative headings, all sections present ----------------------------------------
+- input: |
+    # Teacher Retention in Rural School Districts
+
+    ## Preface
+
+    This report examines why teachers leave rural districts in the state and what districts have tried in response. It was written for the state education department and district superintendents.
+
+    ## Acknowledgments
+
+    We thank the superintendents of the 14 participating districts and the teachers who took part in interviews. The study was funded by the Hollis Family Foundation.
+
+    ## Research Design
+
+    We combined state personnel records for 2018–2024 with 62 semi-structured interviews with current and former teachers. Retention was measured as the share of teachers who returned to the same district the following year.
+
+    ## Key Findings
+
+    Retention in rural districts averaged 81 percent, eight points below the state average. Former teachers most often cited housing costs and isolation, not pay, as the reason they left.
+
+    ## Discussion
+
+    Housing support may matter more than salary increases for rural retention. Districts that offered subsidised housing kept 88 percent of their teachers.
+
+    ## Works Cited
+
+    1. Ingersoll, R. (2021). *Teacher turnover in rural America*. Philadelphia: CPRE.
+    2. Morales, L. (2023). Housing and the rural teacher labor market. *Education Finance and Policy*, 18(2), 201–224.
+  expected_issues: []
+  notes: >-
+    Clean. Every section is present under a heading the skill lists as an alternative (Preface,
+    Acknowledgments, Research Design, Key Findings, Discussion, Works Cited).
+- input: |
+    # Community Health Worker Programs and Emergency Visits
+
+    ## Foreword
+
+    Community health worker programs have spread quickly, but evidence on whether they reduce emergency visits is thin. This report reviews one county's program to help other counties decide whether to adopt it.
+
+    ## Thanks
+
+    The county health department shared program records, and the regional hospital system provided visit data. Their staff answered many questions.
+
+    ## Data and Methods
+
+    We matched 3,400 program enrollees to 3,400 similar residents who did not enroll, using age, diagnosis and prior visits, and compared emergency visits over 18 months.
+
+    ## Outcomes
+
+    Enrollees made 23 percent fewer emergency visits than the matched group. The gap was largest for residents with diabetes and smallest for residents with asthma.
+
+    ## Recommendations
+
+    Counties considering a program should target residents with chronic conditions that need regular follow-up, such as diabetes, where the program's effect was largest.
+
+    ## Sources
+
+    - County Health Department, *Community Health Worker Program Records, 2021–2023*.
+    - Rivera, P., and Chen, M. (2022). Community health workers and acute care use. *Health Affairs*, 41(6), 812–820.
+  expected_issues: []
+  notes: >-
+    Clean. Every section is present under another listed alternative (Foreword, Thanks, Data and
+    Methods, Outcomes, Recommendations, Sources).
+- input: |
+    # Broadband Subsidies and Small Business Sales
+
+    #### Introduction
+
+    This report asks whether a state broadband subsidy raised online sales for small businesses in rural counties.
+
+    #### Approach
+
+    We compared sales tax records for 1,150 businesses in subsidised and unsubsidised counties before and after the program began.
+
+    #### Findings
+
+    Online sales grew 14 percent faster in subsidised counties. Businesses that had no website before the program saw the largest gains.
+
+    #### Conclusions
+
+    Subsidies helped most where businesses had not yet moved online, which suggests pairing them with help building a first website.
+
+    **Acknowledgements.** We are grateful to the state revenue department for access to anonymised sales tax records and to the rural development office for program data.
+
+    **References.** Kim, S. (2022). Rural broadband and firm growth. *Regional Science Review*, 30(4), 55–71. State Broadband Office (2023). *Program Report, Year Two*.
+  expected_issues: []
+  notes: >-
+    Clean. Sections are fourth-level headings, and Acknowledgements and References are bold-labelled
+    paragraphs rather than headings, which the skill accepts as a clearly labelled block.
+
+# ---- one section missing ------------------------------------------------------------------
+- input: |
+    # Evaluation of a Summer Reading Program
+
+    ## About This Report
+
+    This report evaluates the city library's summer reading program for children aged 6 to 10. In this report we briefly describe our methods before turning to what we found.
+
+    ## Acknowledgements
+
+    We thank the library's youth services staff and the families who took part.
+
+    ## Results
+
+    Participants lost less reading ground over the summer than non-participants: their spring-to-fall scores fell by 2 points on average, against 7 points for children who did not take part. The results were similar for boys and girls.
+
+    ## Conclusion
+
+    The program appears to limit summer reading loss, and the library should consider expanding it to more branches.
+
+    ## References
+
+    1. Alexander, K., Entwisle, D., and Olson, L. (2007). Lasting consequences of the summer learning gap. *American Sociological Review*, 72(2), 167–180.
+  expected_issues:
+  - id: methods
+    title: 'Missing Section: Methods'
+    severity: high
+  notes: >-
+    Methods is missing. The introduction says "we briefly describe our methods", but no section or
+    labelled block describes the data or analysis, so the mention does not satisfy the requirement.
+- input: |
+    # Transit Fare Changes and Ridership
+
+    ## About This Report
+
+    This report examines how the regional transit agency's 2024 fare changes affected ridership.
+
+    ## Acknowledgements
+
+    The transit agency provided fare-card data and answered our questions about the fare policy.
+
+    ## Methods of Payment
+
+    Riders can pay with a reloadable fare card, a mobile ticket, or cash on board. Since 2024, cash fares cost 50 cents more than card fares, and transfers are free only with a card or mobile ticket.
+
+    ## Findings
+
+    Weekday ridership fell 3 percent in the six months after the change, while the share of trips paid in cash fell from 18 to 9 percent.
+
+    ## Conclusion
+
+    The fare changes moved many riders from cash to cards at the cost of a small ridership decline. The agency should monitor whether riders without bank accounts are among those lost.
+
+    ## References
+
+    1. Regional Transit Agency (2024). *Fare Policy Update*.
+    2. Taylor, B. (2020). Fare policy and equity. *Transport Policy*, 95, 1–9.
+  expected_issues:
+  - id: methods
+    title: 'Missing Section: Methods'
+    severity: high
+  notes: >-
+    Methods is missing. "Methods of Payment" describes how riders pay, the subject of the report, not
+    the research methodology; nothing says how ridership was measured or analysed.
+- input: |
+    # Wildfire Smoke and School Attendance
+
+    ## Introduction
+
+    This report asks how wildfire smoke days affect school attendance in the western part of the state.
+
+    ## Acknowledgements
+
+    We thank the state education agency for attendance records and the air quality district for daily monitor data.
+
+    ## Methods
+
+    We linked daily attendance for 210 schools to the nearest air quality monitor for the 2019–2023 school years and compared attendance on smoke days with other days at the same school.
+
+    ## Results
+
+    Attendance fell by 1.8 percentage points on smoke days and by 3.1 points on days with the highest particulate readings. Elementary schools saw larger drops than high schools.
+
+    ## References
+
+    1. Burke, M., et al. (2022). Exposures and behavioural responses to wildfire smoke. *Nature Human Behaviour*, 6, 1351–1361.
+  expected_issues:
+  - id: conclusion
+    title: 'Missing Section: Conclusion'
+    severity: high
+  notes: >-
+    Conclusion is missing: the report ends after its results and references with no section drawing
+    conclusions, implications or recommendations.
+- input: |
+    # Food Bank Demand After Benefit Reductions
+
+    ## About This Report
+
+    This report examines how demand at the county's food banks changed after emergency food benefits ended in March 2023.
+
+    ## Methods
+
+    We analysed monthly visit logs from 11 food banks for 2022–2024 and interviewed their directors. Visit counts follow Hartman and Liu (2021), and the benefit timeline follows the state social services department (2023).
+
+    ## Results
+
+    Visits rose 34 percent in the six months after benefits ended, and first-time visitors made up almost half of the increase. Directors reported running short of fresh produce most weeks.
+
+    ## Conclusion
+
+    The end of emergency benefits sharply raised demand, and food banks will need more fresh food supply to meet it.
+  expected_issues:
+  - id: acknowledgements
+    title: 'Missing Section: Acknowledgements'
+    severity: high
+  - id: references
+    title: 'Missing Section: References'
+    severity: high
+  notes: >-
+    Acknowledgements and References are missing. The Methods section cites two sources in the text,
+    so a reference list is needed and absent.
+- input: |
+    # Heat Pump Adoption in Older Homes
+
+    ## Methods
+
+    We surveyed 1,020 owners of homes built before 1960 who applied for the state heat pump rebate between 2021 and 2024, and compared installation rates with applicants' home characteristics.
+
+    ## Acknowledgements
+
+    The state energy office shared rebate application data and helped us contact applicants.
+
+    ## Results
+
+    Sixty-two percent of applicants installed a heat pump within a year. Owners who also received a free energy audit installed at a higher rate (74 percent) than those who did not (55 percent).
+
+    ## Summary
+
+    Free energy audits appear to raise follow-through on heat pump rebates in older homes, and the energy office should consider offering them to every applicant.
+
+    ## References
+
+    1. State Energy Office (2024). *Heat Pump Rebate Program Report*.
+  expected_issues:
+  - id: about_this
+    title: 'Missing Section: About This'
+    severity: high
+  notes: >-
+    About This is missing: the report starts directly with Methods, with no preface, foreword or
+    introduction explaining its purpose. "Summary" at the end satisfies Conclusion.
+
+- input: |
+    # Evaluating a Guaranteed Income Pilot: Interim Report
+
+    ## About This Report
+
+    This interim report describes the design of the city's guaranteed income pilot, which pays 500 families $750 a month for two years. Results of the evaluation are expected in 2027.
+
+    ## Acknowledgements
+
+    The pilot is funded by the city and the Larkin Foundation. We thank the families who agreed to take part.
+
+    ## Methods
+
+    Families were chosen by lottery from 4,100 applicants, and 500 families who applied but were not chosen form the comparison group. Both groups complete a survey every six months on employment, housing and health.
+
+    ## Conclusion
+
+    The lottery design will let the evaluation attribute differences between the groups to the payments themselves. The final report will compare the groups on each survey measure.
+
+    ## References
+
+    1. West, S., et al. (2021). *Preliminary Analysis: SEED's First Year*. Stockton Economic Empowerment Demonstration.
+  expected_issues:
+  - id: results
+    title: 'Missing Section: Results'
+    severity: high
+  notes: >-
+    Results is missing: the report describes the pilot's design and says "Results of the evaluation are
+    expected in 2027", but no section presents findings. The word "Results" in the introduction does not
+    satisfy the requirement.
+
+# ---- the conditional appendix -------------------------------------------------------------
+- input: |
+    # Apprenticeship Completion in the Construction Trades
+
+    ## About This Report
+
+    This report looks at why apprentices in the construction trades do or do not finish their programs.
+
+    ## Acknowledgements
+
+    We thank the state apprenticeship council and the four trade unions that shared program records.
+
+    ## Methods
+
+    We followed 2,300 apprentices who started programs in 2018 and surveyed 410 of them. The survey instrument is reproduced in Appendix B.
+
+    ## Results
+
+    Fifty-eight percent finished within six years. Apprentices who had a mentor on their first job site were 1.6 times as likely to finish.
+
+    ## Conclusion
+
+    Assigning a mentor on the first job site is a low-cost way to raise completion.
+
+    ## References
+
+    1. Kuehn, D. (2019). Registered apprenticeship completion. *Industrial Relations*, 58(3), 402–431.
+
+    ## Appendix B: Survey Instrument
+
+    Q1. How many job sites have you worked on since starting your apprenticeship? Q2. Did someone on your first job site help you learn the trade?
+  expected_issues: []
+  notes: >-
+    Clean. The body refers to Appendix B, and Appendix B is present.
+- input: |
+    # Library Wi-Fi Hotspot Lending
+
+    ## About This Report
+
+    This report reviews the first year of the library system's program lending mobile Wi-Fi hotspots.
+
+    ## Acknowledgements
+
+    Branch managers across the library system collected the lending data for this report.
+
+    ## Methods
+
+    We analysed lending records for all 600 hotspots and surveyed 250 borrowers when they returned a device.
+
+    ## Results
+
+    Hotspots were checked out 91 percent of the time. Most borrowers used them for schoolwork or job applications.
+
+    ## Conclusion
+
+    Demand exceeds supply, and the library should add hotspots at the branches with the longest waiting lists.
+
+    ## References
+
+    1. Public Library Association (2023). *Digital Equity Programs Survey*.
+
+    ## Appendix: Borrower Survey Questions
+
+    Q1. What did you mainly use the hotspot for? Q2. Would you have had internet access at home without it?
+  expected_issues: []
+  notes: >-
+    Clean. An appendix is present, but the body never refers to it; the skill checks the appendix
+    only when the body mentions one, and a present appendix is never an issue.
+- input: |
+    # Medicaid Renewal Outreach
+
+    ## About This Report
+
+    This report evaluates text-message reminders the state sent to Medicaid enrollees before their coverage renewal date.
+
+    ## Acknowledgements
+
+    The state Medicaid agency provided enrollment records and message logs.
+
+    ## Methods
+
+    We compared renewal rates for 48,000 enrollees who received reminders with those of similar enrollees in counties that had not yet started sending them. Detailed regression tables are provided in the appendix.
+
+    ## Results
+
+    Enrollees who received reminders were 6 percentage points more likely to renew on time.
+
+    ## Conclusion
+
+    Text reminders are an inexpensive way to reduce coverage loss at renewal, and the state should send them in every county.
+
+    ## References
+
+    1. Sommers, B. (2020). Medicaid churning. *Health Affairs*, 39(1), 1–8.
+  expected_issues:
+  - id: appendix
+    title: 'Missing Section: Appendix'
+    severity: high
+  notes: >-
+    The body says "Detailed regression tables are provided in the appendix", lowercase and unnumbered,
+    but the document has no appendix, so Appendix is missing.
+- input: |
+    # Road Salt and Stream Chloride
+
+    ## About This Report
+
+    This report measures how winter road salt affects chloride levels in the county's streams.
+
+    ## Acknowledgements
+
+    The county highway department shared salt application records, and volunteers from the watershed council collected water samples.
+
+    ## Methods
+
+    We sampled 18 streams monthly from 2021 to 2024 and matched chloride readings to salt applied on nearby roads. Monitoring site coordinates are listed in Appendix A.
+
+    ## Results
+
+    Chloride levels in streams near major roads exceeded the chronic toxicity threshold in 9 of 12 winter months, against 1 of 12 for streams away from roads.
+
+    ## Conclusion
+
+    Reducing salt on roads near streams would do the most to lower chloride levels.
+
+    ## References
+
+    1. Kaushal, S. (2018). Freshwater salinization syndrome. *PNAS*, 115(4), E574–E583.
+
+    ## Supplementary Material
+
+    | Site | Latitude | Longitude |
+    |---|---|---|
+    | S1 | 42.31 | -83.72 |
+    | S2 | 42.28 | -83.69 |
+  expected_issues: []
+  notes: >-
+    Clean. The body refers to Appendix A and the monitoring sites are given under "Supplementary
+    Material", a heading the skill lists for the appendix.
+- input: |
+    # Recycling Contamination in Curbside Collection
+
+    ## About This Report
+
+    This report looks at how much non-recyclable material ends up in the city's curbside recycling bins and why.
+
+    ## Acknowledgements
+
+    The city's solid waste division provided audit data, and the regional sorting facility let us observe its lines.
+
+    ## Methods
+
+    We audited 400 bins across eight neighbourhoods in spring and fall 2024, sorting each bin's contents by material.
+
+    ## Results
+
+    One bin in five contained enough non-recyclable material to contaminate a load. Plastic bags were the most common contaminant.
+
+    ## Conclusion
+
+    Targeted outreach about plastic bags would remove the largest single source of contamination.
+
+    ## References
+
+    1. City Solid Waste Division (2023). *Technical Appendix to the 2022 Waste Characterization Study*.
+    2. Nguyen, T. (2021). Household sorting errors in single-stream recycling. *Waste Management*, 120, 45–53.
+  expected_issues: []
+  notes: >-
+    Clean. The only mention of an appendix is in the title of a cited work in the reference list, not
+    a reference from the body text to an appendix of this report, so the appendix check does not apply.

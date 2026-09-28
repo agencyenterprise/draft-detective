@@ -20,7 +20,7 @@ import re
 import statistics
 from typing import Callable, Literal, Optional, Sequence
 
-from inspect_ai.model import Model, get_model
+from inspect_ai.model import ChatMessage, ChatMessageUser, Content, ContentImage, ContentText, Model, get_model
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.scorer._model import (  # type: ignore[attr-defined]
     DEFAULT_GRADE_PATTERN,
@@ -30,12 +30,14 @@ from inspect_ai.solver import TaskState
 from pydantic import BaseModel, ConfigDict
 
 from evals_inspectai.common.issue_checks import (
+    DEFAULT_RESULTS,
     PER_KEY_METRICS,
     edits_for,
     hit_pairs,
     inventory_from_state,
     issues_from_state,
 )
+from evals_inspectai.common.loaders import local_images
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL, GRADE_VALUES
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.common.issue_inventory import ResolvedIssue, ResolvedInventory
@@ -126,9 +128,25 @@ def parse_grade(completion: str) -> float:
     return GRADE_VALUES.get(match.group(1), 0.0) if match else 0.0
 
 
+def grader_input(prompt: str) -> str | list[ChatMessage]:
+    """The prompt as the grader receives it. A passage that embeds a figure names
+    it only by path, so every local image the prompt references is attached after
+    the text, labelled with that path: a criterion about a caption or a chart can
+    then be judged against the figure itself rather than guessed from its path."""
+    images = local_images(prompt)
+    if not images:
+        return prompt
+    note = "\n\nThe images the data above references by path are attached below, each after its path."
+    content: list[Content] = [ContentText(text=prompt + note)]
+    for path, uri in images:
+        content += [ContentText(text=f"Image {path}:"), ContentImage(image=uri)]
+    return [ChatMessageUser(content=content)]
+
+
 async def grade(grader: Model, prompt: str, calls: int) -> tuple[float, str]:
     """The median grade over ``calls`` grader calls, plus the first reasoning."""
-    results = await asyncio.gather(*(grader.generate(prompt) for _ in range(calls)))
+    request = grader_input(prompt)
+    results = await asyncio.gather(*(grader.generate(request) for _ in range(calls)))
     return statistics.median(parse_grade(r.completion) for r in results), results[0].completion.strip()
 
 
@@ -222,8 +240,17 @@ def section_text(document: str, line: int) -> str:
     return "\n".join(lines[line - 1 : end]).strip()
 
 
+def _anchor_text(expected: ResolvedIssue) -> str:
+    """What the grader is told the issue quotes: the anchor, or for an issue about
+    something the document lacks, a statement that there is nothing to quote."""
+    if expected.anchor is not None:
+        return expected.anchor
+    return f"(nothing: the issue reports that the document lacks something, under the title {expected.title!r})"
+
+
 def _paragraph(expected: ResolvedIssue, document: str) -> str:
-    return _paragraph_text(document.split("\n"), expected.line)
+    # An expected issue without an anchor has no line, so no paragraph to show.
+    return _paragraph_text(document.split("\n"), expected.line) if expected.line is not None else ""
 
 
 async def judge_sample(
@@ -265,12 +292,14 @@ async def judge_sample(
                 record(criterion, expected, 0.0, "no suggested action to judge")
             elif criterion.passage != "none":
                 document = inventory.document
-                passage = section_text(document, expected.line) if criterion.passage == "section" else document
-                label = PASSAGE_LABELS[criterion.passage]
-                prompt = passage_issue_prompt(criterion.criterion, passage, expected.anchor, issue.suggested_action, label)
+                # An expected issue without an anchor has no line to open a section: it gets the document.
+                line = expected.line if criterion.passage == "section" else None
+                passage = section_text(document, line) if line is not None else document
+                label = PASSAGE_LABELS["section" if line is not None else "document"]
+                prompt = passage_issue_prompt(criterion.criterion, passage, _anchor_text(expected), issue.suggested_action, label)
                 record(criterion, expected, *await grade(grader, prompt, calls))
             else:
-                prompt = issue_prompt(criterion.criterion, expected.anchor, issue.suggested_action)
+                prompt = issue_prompt(criterion.criterion, _anchor_text(expected), issue.suggested_action)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 
     return (
@@ -280,17 +309,23 @@ async def judge_sample(
 
 
 @scorer(metrics=PER_KEY_METRICS)
-def judged_criteria(criteria: Sequence[JudgeCriterion], calls: int = 1, one_to_one: bool = False) -> Scorer:
+def judged_criteria(
+    criteria: Sequence[JudgeCriterion],
+    calls: int = 1,
+    one_to_one: bool = False,
+    results: Sequence[str] = DEFAULT_RESULTS,
+) -> Scorer:
     """A workflow's judged criteria, one focused grader call per item.
 
     The grader is Inspect's ``grader`` model role (``--model-role grader=...``),
     falling back to the repo's default grader model. ``calls`` grader calls are
-    made per item and the median grade kept. ``one_to_one`` must match what the
-    workflow's ``issue_checks`` uses, so both layers pair the same reports.
+    made per item and the median grade kept. ``one_to_one`` and ``results`` must
+    match what the workflow's ``issue_checks`` uses, so both layers pair the same
+    reports read from the same state fields.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
-        issues, error = issues_from_state(state)
+        issues, error = issues_from_state(state, results)
         if error:
             return Score(value={c.key: 0.0 for c in criteria}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)

@@ -165,6 +165,8 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
       edit:                                           # phrases a correct edit carries / avoids
         must_include: ["identified studies"]
         must_not_include: ["The authors"]
+    - title: "Missing Section: Results"             # no anchor: an issue about something the
+                                                    # document lacks, matched on its title alone
   decoys:
     - anchor: "The scope is limited to"
       reason: stative                                 # free-form; becomes the metric no_fp_stative
@@ -172,11 +174,15 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
                                                     # title, when a correct run reports the sentence
                                                     # under another (every recommendation gets a
                                                     # support issue, but not every one is vague)
+  target_answer: "..."                                # optional; the sample target a model-graded scorer reads
 ```
 
 `line` is resolved from the anchor at load time and the loader fails on an anchor that is
-missing or repeated. A record with `expected_issues: []` is a clean document: anything
-reported on it is a false positive. Fixture documents live under
+missing or repeated. An expected issue about something absent (a missing section, a
+numbering problem across a whole sequence) omits the anchor and must name a title; it has
+no line, is detected by any reported issue carrying that title, and is left out of
+`title_correct` and `anchor_in_range`. A record with `expected_issues: []` is a clean
+document: anything reported on it is a false positive. Fixture documents live under
 `evals_inspectai/e2e/<slug>/files/` and are referenced with `file://e2e/<slug>/files/...`.
 
 ### What gets scored
@@ -188,7 +194,10 @@ Check uses the first two plus its image check):
 
 1. **`issue_checks`, deterministic, the same keys for every sample of an eval.** Keys the
    inventory can never score (edit hygiene when no edits are expected, the title check when
-   no titles are named) are left out rather than reported as NaN throughout. An
+   no titles are named, the line check when no issue is anchored, the severity check when
+   none is declared) are left out rather than reported as NaN throughout. A workflow that
+   keeps its issues in several state fields names them with `results=` (About This reads
+   `preface_result` and `authors_result` together). An
    expected issue is detected when a reported issue with its title quotes its anchor or
    brackets its line; several expected issues may map to one paragraph-level reported
    issue. Detection metrics: `recall` over required expected issues, `precision` over
