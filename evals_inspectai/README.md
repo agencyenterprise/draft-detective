@@ -6,7 +6,7 @@ LLM evaluation tasks built with [Inspect AI](https://inspect.ai-safety-institute
 
 ```
 evals_inspectai/
-├── common/                            # Shared utilities (scorers, comparers, API client, solver)
+├── common/                            # Shared utilities (scorers, issue inventory and checks, API client, solver)
 └── e2e/                               # Evals that call the API end-to-end
     ├── abbreviation_checker/
     ├── about_this_ger/
