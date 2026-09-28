@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from lib.api.models import StartMultipleWorkflowsRequest
 from lib.config.env import config as env_config
+from lib.config.llm_models import LLMModel
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
@@ -120,11 +121,23 @@ def _assert_api_key_available(
 
 
 def _assert_model_override_allowed(model: str | None) -> None:
-    """Raise HTTP 422 when a request names a model and the server does not allow it."""
-    if model is not None and not env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE:
+    """Raise HTTP 422 when a request names a model the server will not run.
+
+    The name must carry its provider: agents choose their API key, reasoning
+    settings and web-search tool by it, so a bare name would run without them.
+    """
+    if model is None:
+        return
+    if not env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE:
         raise HTTPException(
             status_code=422,
             detail="This server does not accept a workflow model override (ALLOW_WORKFLOW_MODEL_OVERRIDE is off).",
+        )
+    override = LLMModel.from_model_name(model)
+    if not override.provider or not override.name:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Model {model!r} must name its provider, e.g. 'openai:gpt-5.6-sol'.",
         )
 
 

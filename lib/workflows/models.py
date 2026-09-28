@@ -118,7 +118,7 @@ class BaseWorkflowConfig(BaseModel):
     model: Optional[str] = Field(
         default=None,
         description=(
-            "LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this "
+            "LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this "
             "run uses instead of its own. Only accepted when the server enables "
             "ALLOW_WORKFLOW_MODEL_OVERRIDE."
         ),

@@ -27,7 +27,7 @@ class StartMultipleWorkflowsRequest(BaseModel):
     model: str | None = Field(
         default=None,
         description=(
-            "LangChain model name (e.g. 'openai:gpt-5.6-sol') every started "
+            "LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every started "
             "workflow runs on instead of its agents' own. Only accepted when the "
             "server enables ALLOW_WORKFLOW_MODEL_OVERRIDE."
         ),

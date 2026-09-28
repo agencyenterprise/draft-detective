@@ -84,9 +84,11 @@ def test_output_model_is_what_served_the_run():
     [
         ("gpt-5.6-sol", "gpt-5.6-sol", True),
         ("gpt-5.6-sol-2026-08-01", "gpt-5.6-sol", True),
+        ("gpt-5.6-terra-2026-07-09-global-aaif", "gpt-5.6-terra", True),
         ("claude-sonnet-4-5-20250929", "claude-sonnet-4-5", True),
         ("gpt-5.6-sol-mini", "gpt-5.6-sol", False),
         ("gpt-5.6-sol-mini-2026-08-01", "gpt-5.6-sol", False),
+        ("gpt-5.6-sol-mini-2026-08-01-global-aaif", "gpt-5.6-sol", False),
         ("gpt-5.6-solar", "gpt-5.6-sol", False),
     ],
 )

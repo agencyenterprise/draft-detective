@@ -131,7 +131,7 @@ export type AbbreviationScanV2Config = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -260,7 +260,7 @@ export type AboutThisGerConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -1016,7 +1016,7 @@ export type ClaimReferenceValidationV2Config = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -1262,7 +1262,7 @@ export type DocumentProcessingWorkflowConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -1335,7 +1335,7 @@ export type DocumentSummarizationWorkflowConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -2790,7 +2790,7 @@ export type ReferenceDownloaderWorkflowConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -2832,7 +2832,7 @@ export type ReferenceExtractionConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -3049,7 +3049,7 @@ export type ReferenceFileMatchingConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -3222,7 +3222,7 @@ export type ReferenceValidationV2WorkflowConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -3258,7 +3258,7 @@ export type Reviewer2Config = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -3497,7 +3497,7 @@ export type SimpleDeepAgentConfig = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
   /**
@@ -3562,7 +3562,7 @@ export type StartMultipleWorkflowsRequest = {
   /**
    * Model
    *
-   * LangChain model name (e.g. 'openai:gpt-5.6-sol') every started workflow runs on instead of its agents' own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every started workflow runs on instead of its agents' own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
    */
   model?: string | null;
 };

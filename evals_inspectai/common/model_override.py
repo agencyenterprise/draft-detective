@@ -21,9 +21,11 @@ NO_MODEL = "none"
 # Inspect provider names that LangChain's init_chat_model spells differently.
 LANGCHAIN_PROVIDERS = {"google": "google_genai"}
 
-# The date a provider may append to the model it was asked for: OpenAI's
-# "-2026-08-01", Anthropic's "-20250929".
-DATED_SUFFIX = r"-(\d{4}-\d{2}-\d{2}|\d{8})"
+# What a provider may append to the model it was asked for: OpenAI's date
+# ("-2026-08-01"), which the Azure gateway follows with a deployment tag
+# ("-2026-07-09-global-aaif"), or Anthropic's ("-20250929"). Anchored on the date,
+# as the backend's pricing is, so a different variant ("-mini") still fails.
+DATED_SUFFIX = r"-(\d{4}-\d{2}-\d{2}(-[A-Za-z0-9-]+)?|\d{8})"
 
 
 def requested_model() -> Optional[str]:

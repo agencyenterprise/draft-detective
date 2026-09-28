@@ -69,12 +69,21 @@ def test_override_is_refused_when_the_server_does_not_allow_it(monkeypatch: pyte
     assert "ALLOW_WORKFLOW_MODEL_OVERRIDE" in exc.value.detail
 
 
-@pytest.mark.parametrize("name", ["openai:gpt-5.6-sol", "anthropic:claude-opus-5-5", "gpt-99"])
+@pytest.mark.parametrize("name", ["openai:gpt-5.6-sol", "anthropic:claude-opus-5-5", "openai:gpt-99"])
 def test_any_model_is_accepted_when_overrides_are_allowed(
     monkeypatch: pytest.MonkeyPatch, name: str
 ):
     monkeypatch.setattr(workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True)
     _assert_model_override_allowed(name)
+
+
+@pytest.mark.parametrize("name", ["gpt-5.6-sol", ":gpt-5.6-sol", "openai:"])
+def test_a_model_without_its_provider_is_refused(monkeypatch: pytest.MonkeyPatch, name: str):
+    monkeypatch.setattr(workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True)
+    with pytest.raises(HTTPException) as exc:
+        _assert_model_override_allowed(name)
+    assert exc.value.status_code == 422
+    assert "must name its provider" in exc.value.detail
 
 
 def test_agent_runs_on_the_override_without_changing_its_class():
