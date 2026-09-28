@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.4] - 2026-09-28
+
+### Added
+- Added a “Demo video” section to the GitHub Pages project overview embedding a new three-minute walkthrough video.
+- Added new static HTML mockups, a rendering script, and newly rendered PNG images for the GitHub Pages overview.
+
+### Changed
+- Refactored four e2e eval suites (`about_this_ger`, `advocacy_tone_v2`, `document_structure`, `figures_tables_check`) to score against issue inventories instead of DeepDiff title-similarity scoring.
+- Updated those four eval suites with 48 new samples, two judged criteria per suite on suggested actions, and deterministic workflow-specific checks.
+- Updated issue-inventory tooling to support optional anchors, additional flags for anchors and severities, and passing new flags through the viewer.
+- Rewrote the GitHub Pages project overview to focus on design and architecture, updated sections to match current code, and replaced outdated screenshots with synthetic ones.
+- Updated `README.md` to point the architecture image at `docs/images/architecture.png`.
+
+### Fixed
+- Updated the reference downloader to fall back to the Jina reader on any direct-fetch failure and to avoid calling Jina twice in certain non-PDF failure cases.
+- Added unit tests covering Jina fallback behavior for connection errors, timeouts, HTTP errors, empty PDFs, and blocked access scenarios.
+
+### Removed
+- Removed the outdated 5-minute demo video from the GitHub Pages overview.
+- Removed 10 old images from the docs, including `architecture.png`, `document-processing-pipeline.png`, and eight `*-ex1.png` / `*-ex2.png` screenshots.
+
+
 ## [v2.0.3] - 2026-09-24
 
 ### Added
