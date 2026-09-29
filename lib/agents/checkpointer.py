@@ -1,6 +1,6 @@
 """Durable graph state, for any agent whose thread outlives a single run.
 
-A caller opts in by passing the saver to ``create_deep_agent`` and a ``thread_id`` in the
+A caller opts in by passing the saver to ``build_deep_agent`` and a ``thread_id`` in the
 run config; nothing here knows what a thread belongs to.
 
 Three non-obvious constraints, two of which fail silently:

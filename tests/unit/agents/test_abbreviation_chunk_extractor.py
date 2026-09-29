@@ -29,10 +29,10 @@ KWARGS: dict[str, Any] = {"markdown": MARKDOWN, "start_line": 10, "end_line": 42
 
 
 def _agent(monkeypatch, invoke) -> tuple[AbbreviationChunkExtractorAgent, dict]:
-    """The extractor with `create_deep_agent` replaced by a stub running `invoke`."""
+    """The extractor with `build_deep_agent` replaced by a stub running `invoke`."""
     captured: dict = {}
 
-    def fake_create_deep_agent(**kwargs):
+    def fake_build_deep_agent(**kwargs):
         captured["create"] = kwargs
 
         class _DeepAgent:
@@ -42,7 +42,7 @@ def _agent(monkeypatch, invoke) -> tuple[AbbreviationChunkExtractorAgent, dict]:
 
         return _DeepAgent()
 
-    monkeypatch.setattr(abbreviation_chunk_extractor, "create_deep_agent", fake_create_deep_agent)
+    monkeypatch.setattr(abbreviation_chunk_extractor, "build_deep_agent", fake_build_deep_agent)
     context = ContextSchema(project_id="p", file_artifacts_service=MockFileArtifactsService())
     agent = AbbreviationChunkExtractorAgent(context)
     agent._llm = object()  # type: ignore[assignment]

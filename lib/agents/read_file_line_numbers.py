@@ -7,6 +7,10 @@ count rows from the header they land a few lines off (blank lines are the usual
 casualty). This middleware numbers the rows again, with deepagents' own gutter
 format, and tells the model in the tool descriptions that the numbers are not
 part of the file.
+
+A deep agent's default general-purpose subagent does not inherit it: deepagents
+gives that subagent only its own default middleware. `build_deep_agent` in
+`deep_agent_setup` passes a subagent that runs it too.
 """
 
 import re
@@ -119,3 +123,4 @@ class ReadFileLineNumbersMiddleware(AgentMiddleware[Any, Any, Any]):
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[Any]]],
     ) -> ToolMessage | Command[Any]:
         return self._number(request, await handler(request))
+

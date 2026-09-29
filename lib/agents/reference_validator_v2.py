@@ -3,14 +3,12 @@ from __future__ import annotations
 from enum import Enum
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.deep_agent_setup import agent_input
-from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
@@ -102,9 +100,8 @@ class ReferenceValidatorV2Agent(LangChainAgent):
         prompt_kwargs: dict,
         config: Optional[RunnableConfig] = None,
     ) -> tuple[BibliographyItemValidationV2, list[BaseMessage]]:
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
-            middleware=[ReadFileLineNumbersMiddleware()],
             tools=[web_search_tool(self.model)],
             context_schema=ContextSchema,
             response_format=AutoStrategy(BibliographyItemValidationV2),

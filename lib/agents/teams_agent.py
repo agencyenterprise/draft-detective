@@ -37,7 +37,6 @@ import logging
 from collections.abc import Sequence
 from typing import Any, Optional
 
-from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
@@ -45,14 +44,14 @@ from pydantic import BaseModel, Field
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
-    agent_input,
     DEFAULT_MODEL,
     RECURSION_LIMIT,
+    agent_input,
+    build_deep_agent,
     build_llm,
     build_skill_files,
     tool_names,
 )
-from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -283,9 +282,8 @@ async def answer_question(
 
     try:
         async with get_checkpointer() as saver:
-            agent = create_deep_agent(
+            agent = build_deep_agent(
                 model=build_llm(model, api_key),
-                middleware=[ReadFileLineNumbersMiddleware()],
                 tools=[
                     open_document_for(graph_token),
                     check_document_for(graph_token),

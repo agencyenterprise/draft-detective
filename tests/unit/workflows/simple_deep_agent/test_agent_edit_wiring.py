@@ -40,7 +40,7 @@ async def _tools_given_to_the_agent(agent: SimpleDeepAgent) -> list[BaseTool]:
     with (
         patch.object(SimpleDeepAgent, "llm", new=MagicMock()),
         patch(
-            "lib.workflows.simple_deep_agent.agent.create_deep_agent",
+            "lib.workflows.simple_deep_agent.agent.build_deep_agent",
             return_value=fake_agent,
         ) as create,
     ):

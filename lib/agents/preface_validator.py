@@ -7,12 +7,10 @@ tools and writes a markdown summary report to a file.
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
-from lib.agents.deep_agent_setup import agent_input
-from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
@@ -65,9 +63,8 @@ class PrefaceValidatorAgent(LangChainAgent):
     ) -> tuple[AgentCheckResult, List[BaseMessage]]:
         """Return the check result and the agent's full conversation, system prompt included."""
         issue_reporter = IssueReporter()
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
-            middleware=[ReadFileLineNumbersMiddleware()],
             tools=issue_reporter.tools,
             context_schema=ContextSchema,
         )

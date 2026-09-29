@@ -228,7 +228,7 @@ async def test_agent_omits_response_format_and_adds_tools_when_needed(
     agent = _stub_agent(report_issues)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -258,7 +258,7 @@ async def test_issue_tool_is_added_without_replacing_workflow_tools():
     agent._llm = MagicMock()
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -297,7 +297,7 @@ async def test_agent_returns_files_and_collected_issue_state():
         }
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(side_effect=invoke_agent)
         run = await agent.ainvoke({})
@@ -351,7 +351,7 @@ async def test_image_tool_instructions_travel_with_the_tool(
     agent = _image_agent(system_prompt)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -378,7 +378,7 @@ async def test_image_tool_is_off_by_default():
     agent = _stub_agent(True)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -462,7 +462,7 @@ async def test_runtime_context_is_passed_to_the_deep_agent():
     agent = _stub_agent(True)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -486,7 +486,7 @@ async def test_the_agent_spends_its_own_recursion_budget():
     agent = _stub_agent(True)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}
@@ -504,7 +504,7 @@ async def test_an_explicit_config_still_wins():
     agent = _stub_agent(True)
 
     with patch(
-        "lib.workflows.simple_deep_agent.agent.create_deep_agent"
+        "lib.workflows.simple_deep_agent.agent.build_deep_agent"
     ) as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={"messages": [], "files": {}}

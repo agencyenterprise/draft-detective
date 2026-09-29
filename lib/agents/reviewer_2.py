@@ -2,13 +2,12 @@
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
+from lib.agents.deep_agent_setup import build_deep_agent
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
@@ -57,9 +56,8 @@ class Reviewer2Agent(LangChainAgent):
 
         # A rigorous review has to see the figures it critiques; the document
         # markdown carries their `draftdetective://` srcs.
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
-            middleware=[ReadFileLineNumbersMiddleware()],
             tools=[view_image],
             context_schema=ContextSchema,
         )

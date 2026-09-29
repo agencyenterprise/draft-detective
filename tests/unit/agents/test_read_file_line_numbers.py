@@ -8,7 +8,7 @@ from deepagents.backends.utils import create_file_data
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 
-from lib.agents.deep_agent_setup import agent_input
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent, general_purpose_subagent
 from lib.agents.read_file_line_numbers import (
     ReadFileLineNumbersMiddleware,
     number_read_file_rows,
@@ -64,3 +64,42 @@ async def test_an_agent_reads_numbered_rows_and_is_told_why():
     assert tool_message.content.split("\n")[1:] == ["2  ", "3  First.", "4  "]
     assert "line number" in model.seen_tools["read_file"]
     assert "never include it in `old_string`" in model.seen_tools["edit_file"]
+
+
+class _RecordingModel(_FakeModel):
+    """Keeps every `read_file` result it is shown, parent's and subagent's alike."""
+
+    reads: list[str] = []
+
+    def _generate(self, messages: Any, *args: Any, **kwargs: Any) -> Any:
+        self.reads.extend(
+            str(m.content) for m in messages if m.type == "tool" and "@@ lines" in str(m.content)
+        )
+        return super()._generate(messages, *args, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_build_deep_agent_numbers_delegated_reads_too():
+    script = [
+        AIMessage(
+            content="",
+            tool_calls=[{"name": "task", "args": {"description": "Read /main.md.", "subagent_type": "general-purpose"}, "id": "t1"}],
+        ),
+        AIMessage(
+            content="",
+            tool_calls=[{"name": "read_file", "args": {"file_path": "/main.md", "offset": 0, "limit": 3}, "id": "r1"}],
+        ),
+        AIMessage(content="subagent done"),
+        AIMessage(content="parent done"),
+    ]
+    model = _RecordingModel(messages=iter(script))
+    agent = build_deep_agent(model=model)
+
+    await agent.ainvoke(agent_input({"/main.md": create_file_data("Title\n\nBody")}, [HumanMessage("go")]))
+
+    assert model.reads == ["@@ lines 1-3 of 3 @@\n1  Title\n2  \n3  Body"]
+
+
+def test_the_subagent_keeps_the_parents_skills():
+    assert general_purpose_subagent(skills=["/skills/"])["skills"] == ["/skills/"]
+    assert "skills" not in general_purpose_subagent()
