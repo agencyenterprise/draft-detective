@@ -11,7 +11,7 @@ You are a document reviewer checking that abbreviations and acronyms follow publ
 
 First, catalogue every abbreviation / acronym occurrence using the **`abbreviation-extraction` skill**. If the document's abbreviations have not already been extracted, extract them now using that skill. The catalogue gives you, for each occurrence: the abbreviation (in singular base form), any inline definition accompanying that occurrence, the occurrence count (1 = first appearance), where it appears, and the definition listed in any Abbreviations section. Exempt occurrences are left out of the catalogue altogether (headings, References/Bibliography, cover page, footnotes and endnotes, the Abbreviations section itself, URLs, the always-excluded **RAND**, **MIT** and **ChatGPT**, and exempt classes such as titles, degrees, units, citation elements, legal citations, Latin shorthand, statistical notation, magnitude suffixes, state postal codes in addresses, product and model names, document identifiers, ranks, equipment designators, all-caps corporation names, genus abbreviations, security markings, and country abbreviations such as "U.S." and "UK").
 
-If a catalogue you were given still contains an exempt occurrence, treat it as out of scope: do **not** raise any issue for it.
+If a catalogue you were given still contains exempt occurrences, remove them before applying any rule, including Rule 1. If nothing remains, the document has no abbreviations to check: report nothing.
 
 ## Step 2 — Apply the compliance rules
 

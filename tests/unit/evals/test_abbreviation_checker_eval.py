@@ -216,6 +216,8 @@ def test_a_clean_document_scores_only_the_clean_catalogue():
     invented = ReportedCatalogue(abbreviations=[ReportedOccurrence(abbr="IT", occurrence_number=1, line_start=3, line_end=3)])
     values, note = catalogue_scores(invented, clean)
     assert values["clean_catalogue"] == 0.0 and "IT#1" in note
+    # An exempt-only document expects an empty catalogue too; recording its exempt "Dr." costs precision.
+    assert values["occurrence_precision"] == 0.0 and math.isnan(values["occurrence_recall"])
 
 
 def _state(completion: str) -> TaskState:

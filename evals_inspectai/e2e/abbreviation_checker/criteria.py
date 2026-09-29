@@ -11,8 +11,9 @@ produces.
 Each expected occurrence is matched to at most one reported occurrence: first
 by where it is (abbreviation, line, order on the line), then by abbreviation
 and occurrence number (see ``_pair``). Recall and precision count occurrences
-found and invented; exempt occurrences are not catalogued at all, so recording
-one counts as invented. Over the matched occurrences, each field the rules read is
+found and invented; exempt occurrences are not catalogued at all, so a recorded
+one is invented unless the number fallback pairs it with a missed use of the same
+abbreviation, which then costs ``lines_correct`` instead. Over the matched occurrences, each field the rules read is
 checked on its own: the inline definition (case and whitespace ignored), the
 line span and the Abbreviations-section definition. So a
 wrong line costs only ``lines_correct``, a missing definition costs only
@@ -95,7 +96,7 @@ class ReportedCatalogue(BaseModel):
 
 CATALOGUE_DESCRIPTIONS: dict[str, str] = {
     "occurrence_recall": "Share of expected occurrences the catalogue records, matched on (abbreviation, line, order on the line), else on (abbreviation, occurrence number). NaN on a document with no abbreviations.",
-    "occurrence_precision": "Share of recorded occurrences that match an expected one. NaN on a document with no abbreviations, or when nothing was recorded.",
+    "occurrence_precision": "Share of recorded occurrences that match an expected one: 0 when anything is recorded on a document with nothing to record, NaN when nothing was recorded.",
     "inline_definition_correct": "Of the matched occurrences, share whose inline definition (empty when none) matches the expected one, ignoring case and whitespace.",
     "lines_correct": "Of the matched occurrences, share whose line span equals the expected one.",
     "section_definition_correct": "Of the matched occurrences, share whose Abbreviations-section definition (none when not listed) matches, ignoring case and whitespace.",
@@ -223,6 +224,9 @@ def catalogue_scores(reported: ReportedCatalogue, expected: ExpectedCatalogue) -
     if not expected.abbreviations:
         values["clean_catalogue"] = float(not reported.abbreviations)
         if reported.abbreviations:
+            # Exempt-only documents land here too, so an exempt occurrence recorded on one must count
+            # against precision, not only against clean_catalogue.
+            values["occurrence_precision"] = 0.0
             notes.append(_listed("recorded on a document with no abbreviations", reported.abbreviations))
         return values, " | ".join(notes) if notes else "no abbreviations, none recorded"
 
