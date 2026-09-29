@@ -2,7 +2,7 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-09-28
+- **Last updated:** 2026-09-29
 - **Model:** `gpt-5.6-terra` on every agent, except the abbreviation checker's two, which run `gpt-5.6-luna`
 - **Total:** 24 evals · 463 runnable samples · run at epochs=3
 
