@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 
 from evals_inspectai.common.issue_checks import issue_detection_scores
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, ScoringPolicy
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.e2e.claim_reference_validation_v2.claim_reference_validation_v2_e2e import (
     claim_reference_validation_v2_e2e,
@@ -35,7 +35,7 @@ INVENTORY = ResolvedInventory(
         _expected("kim", "supported", "Rural closures dominated", 5),
     ],
     decoys=[],
-    named_titles=list(LEVELS),
+    policy=ScoringPolicy(named_titles=list(LEVELS)),
 )
 
 
@@ -62,7 +62,7 @@ def test_records_are_well_formed():
         "unverifiable": 3,
     }
     assert all(e.anchor and e.rationale for e in expected)
-    assert all(r.inventory.named_titles == sorted(LEVELS) for r in records)
+    assert all(r.inventory.policy.named_titles == sorted(LEVELS) for r in records)
     no_source = [r for r in records if not r.sources]
     assert len(no_source) == 2, "the unverifiable citation's document and the document with no citations"
     assert sum(1 for r in records if not r.inventory.expected_issues) == 1
@@ -87,7 +87,7 @@ def test_supported_does_not_match_a_partially_supported_report():
     """The reason the eval titles issues with the level itself."""
     issues = [IssueItem(**i) for i in as_issues([_record("partially_supported", "The share rose to 93% worldwide", 3)])]
     supported_only = INVENTORY.model_copy(update={"expected_issues": [_expected("p", "supported", "The share rose to 93% worldwide", 3)]})
-    values, _ = issue_detection_scores(issues, supported_only, edits=False, one_to_one=True, severities=False)
+    values, _ = issue_detection_scores(issues, supported_only.with_policy(edits=False, pairing="one_to_one", severities=False))
     assert values["recall"] == 1.0 and values["title_correct"] == 0.0
 
 
@@ -102,18 +102,17 @@ def test_swapped_levels_on_one_line_are_both_scored_wrong():
             _expected("five_years", "unsupported", "The gains lasted five years", 3),
         ],
         decoys=[],
-        named_titles=list(LEVELS),
-        pair_on_location=True,
+        policy=ScoringPolicy(named_titles=list(LEVELS), pair_on_location=True),
     )
     issues = [
         IssueItem(**i)
         for i in as_issues([_record("unsupported", "Earnings rose 12 percent (Mbeki, 2020).", 3), _record("supported", "The gains lasted five years (Mbeki, 2020).", 3)])
     ]
-    values, _ = issue_detection_scores(issues, inventory, edits=False, one_to_one=True, severities=False)
+    values, _ = issue_detection_scores(issues, inventory.with_policy(edits=False, pairing="one_to_one", severities=False))
     assert values["recall"] == 1.0 and values["title_correct"] == 0.0
     labels, _ = label_scores(issues, inventory)
     assert labels["label_supported"] == 0.0 and labels["label_unsupported"] == 0.0
-    assert all(r.inventory.pair_on_location for r in load_claim_records(DATASET)), "the loader pairs on location"
+    assert all(r.inventory.policy.pair_on_location for r in load_claim_records(DATASET)), "the loader pairs on location"
 
 
 def test_label_accuracy_is_broken_down_by_the_expected_level():

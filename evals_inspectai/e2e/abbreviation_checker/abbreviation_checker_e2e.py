@@ -49,32 +49,17 @@ Run (backend must be running)::
 """
 
 from pathlib import Path
+from typing import Any, Optional
 
-import yaml
 from inspect_ai import Task, task
-from inspect_ai.dataset import MemoryDataset, Sample
 from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
 from evals_inspectai.common.api_solver import PERSISTED_ISSUES_KEY, api_workflow_agent
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    PER_KEY_METRICS,
-    decoy_checks,
-    decoy_descriptions,
-    issue_check_keys,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import (
-    InventoryRecord,
-    ResolvedInventory,
-    decoy_reasons,
-    expects_severities,
-    inventory_to_sample,
-    resolve_record,
-)
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.issue_checks import PER_KEY_METRICS
+from evals_inspectai.common.issue_inventory import ResolvedInventory
 from evals_inspectai.e2e.abbreviation_checker.criteria import (
     CATALOGUE_DESCRIPTIONS,
     CATALOGUE_KEYS,
@@ -86,32 +71,36 @@ from evals_inspectai.e2e.abbreviation_checker.criteria import (
 
 WORKFLOW_TYPE = "abbreviation_scan_v2"
 DATASET = Path(__file__).parent / "dataset.yaml"
-# Record fields holding the expected catalogue. They are taken out before the rest is validated as an
-# InventoryRecord, which forbids unknown fields.
+# Record fields holding the expected catalogue, beside the inventory.
 CATALOGUE_FIELDS = ("abbreviations_section_found", "abbreviations")
 ISSUE_RESULTS = (PERSISTED_ISSUES_KEY,)
+GROUND_TRUTH = (
+    "Per record, the occurrence catalogue a correct extraction records (matched on abbreviation and "
+    "occurrence number) and an inventory of the issues the workflow persists: the rule's exact title, "
+    "severity medium, anchored on the line of the offending occurrence, except 'No Abbreviations section "
+    "found', which is matched on its title alone. Decoys are lines a correct run leaves alone under the "
+    "given title. No edits are expected. A NaN metric value means the sample gave that check nothing to judge."
+)
+OWN_METRICS = {"catalogue_checks": CATALOGUE_DESCRIPTIONS}
 
 AbbreviationRecord = tuple[ResolvedInventory, ExpectedCatalogue]
 
 
+def load_suite(path: Path = DATASET, name: Optional[str] = None) -> InventorySuite:
+    """The records of ``path``: one issue per abbreviation and rule, so matching is one-to-one."""
+    return InventorySuite.load(
+        path, pairing="one_to_one", extra_fields=CATALOGUE_FIELDS, results=ISSUE_RESULTS, name=name
+    )
+
+
 def load_records(path: Path = DATASET) -> list[AbbreviationRecord]:
-    """Each record's resolved inventory and expected catalogue, with the inventory's ``named_titles`` set
-    across the dataset as ``load_inventory_records`` sets it."""
-    raw = yaml.safe_load(path.read_text())
-    if not isinstance(raw, list):
-        raise ValueError(f"{path}: expected a YAML list of records")
-    loaded: list[AbbreviationRecord] = []
-    for record in raw:
-        catalogue = ExpectedCatalogue.model_validate({k: record.pop(k) for k in CATALOGUE_FIELDS if k in record})
-        loaded.append((resolve_record(InventoryRecord.model_validate(record)), catalogue))
-    named = sorted({e.title for inventory, _ in loaded for e in inventory.expected_issues if e.title})
-    return [(inventory.model_copy(update={"named_titles": named}), catalogue) for inventory, catalogue in loaded]
+    """Each record's resolved inventory and expected catalogue."""
+    suite = load_suite(path)
+    return [(inventory, ExpectedCatalogue.model_validate(extra)) for inventory, extra in zip(suite.records, suite.extras)]
 
 
-def to_sample(inventory: ResolvedInventory, catalogue: ExpectedCatalogue) -> Sample:
-    sample = inventory_to_sample(inventory)
-    sample.metadata = {**(sample.metadata or {}), "catalogue": catalogue.model_dump()}
-    return sample
+def _catalogue_metadata(extra: dict[str, Any]) -> dict[str, Any]:
+    return {"catalogue": ExpectedCatalogue.model_validate(extra).model_dump()}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -137,45 +126,18 @@ def abbreviation_checker_e2e(timeout_s: float = 600) -> Task:
     Args:
         timeout_s: How long to wait for one workflow run through the API.
     """
-    return build_task(load_records(), DATASET, DATASET.parent.name, timeout_s)
+    return build_task(load_suite(), timeout_s)
 
 
-def build_task(records: list[AbbreviationRecord], dataset: Path, name: str, timeout_s: float) -> Task:
-    """The Abbreviation Scan task over ``records``, loaded from ``dataset``: the catalogue, issue and decoy scorers."""
-    inventories = [inventory for inventory, _ in records]
-    reasons = list(decoy_reasons(inventories))
-    severities = expects_severities(inventories)
-    keys = issue_check_keys(edits=False, severities=severities)
+def build_task(suite: InventorySuite, timeout_s: float) -> Task:
+    """The Abbreviation Scan task over ``suite``: the catalogue, issue and decoy scorers."""
     return Task(
-        dataset=MemoryDataset(samples=[to_sample(*r) for r in records], name=name, location=str(dataset)),
-        metadata={
-            "ground_truth": (
-                "Per record, the occurrence catalogue a correct extraction records (matched on abbreviation and "
-                "occurrence number) and an inventory of the issues the workflow persists: the rule's exact title, "
-                "severity medium, anchored on the line of the offending occurrence, except 'No Abbreviations section "
-                "found', which is matched on its title alone. Decoys are lines a correct run leaves alone under the "
-                "given title. No edits are expected. A NaN metric value means the sample gave that check nothing to judge."
-            ),
-            "metrics": {
-                "catalogue_checks": CATALOGUE_DESCRIPTIONS,
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-            },
-        },
+        dataset=suite.dataset(_catalogue_metadata),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(
             WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="chunks", item_label="chunk", include_issues=True
         ),
-        scorer=[
-            catalogue_checks(),
-            issue_checks(edits=False, one_to_one=True, severities=severities, results=ISSUE_RESULTS),
-            decoy_checks(reasons, results=ISSUE_RESULTS),
-        ],
+        scorer=[catalogue_checks(), *suite.scorers()],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(
-            reasons,
-            edits=False,
-            extra=[("catalogue_checks", key) for key in CATALOGUE_KEYS],
-            labels=CATALOGUE_LABELS,
-            severities=severities,
-        ),
+        viewer=suite.viewer(OWN_METRICS, CATALOGUE_LABELS),
     )

@@ -1,28 +1,26 @@
 """Claim Reference Validation records: an issue inventory plus the sources uploaded with it.
 
 The workflow checks each citation against the supporting files uploaded with
-the document, so a record carries them beside the inventory. They are split
-off before the rest is read as an ``InventoryRecord``, so everything the
-inventory loader checks (anchors present and on one line, ids unique) applies
-unchanged, and they travel in the sample's metadata for the solver to upload
-and the evidence check to read.
+the document, so a record carries them beside the inventory. They are loaded
+as the suite's extra field, so everything the inventory loader checks
+(anchors present and on one line, ids unique) applies unchanged, and they
+travel in the sample's metadata for the solver to upload and the evidence
+check to read.
 """
 
 from pathlib import Path
+from typing import Any
 
-import yaml
-from inspect_ai.dataset import MemoryDataset
 from pydantic import BaseModel, ConfigDict, Field
 
-from evals_inspectai.common.issue_inventory import (
-    InventoryRecord,
-    ResolvedInventory,
-    inventory_to_sample,
-    resolve_record,
-)
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.issue_inventory import ResolvedInventory
 from evals_inspectai.common.loaders import resolve_input
 
 SOURCES_KEY = "sources"
+# The state field the solver adds, holding the citation records as issues.
+CITATIONS_KEY = "citation_result"
+RESULTS = (CITATIONS_KEY,)
 
 
 class Source(BaseModel):
@@ -41,27 +39,24 @@ class ClaimRecord(BaseModel):
     sources: list[Source]
 
 
+def load_claim_suite(path: Path) -> InventorySuite:
+    """One record per citation, so matching is one-to-one; a level is the verdict on a
+    citation, not the kind of issue, so reports pair on the cited claim alone."""
+    return InventorySuite.load(
+        path, pairing="one_to_one", pair_on_location=True, extra_fields=(SOURCES_KEY,), results=RESULTS
+    )
+
+
+def sources_of(extra: dict[str, Any]) -> list[Source]:
+    """A record's sources, their markdown read in."""
+    sources = [Source.model_validate(s) for s in extra.get(SOURCES_KEY) or []]
+    return [s.model_copy(update={"markdown": resolve_input(s.markdown)}) for s in sources]
+
+
+def sources_metadata(extra: dict[str, Any]) -> dict[str, Any]:
+    return {SOURCES_KEY: [s.model_dump() for s in sources_of(extra)]}
+
+
 def load_claim_records(path: Path) -> list[ClaimRecord]:
-    raw = yaml.safe_load(path.read_text())
-    if not isinstance(raw, list):
-        raise ValueError(f"{path}: expected a YAML list of records")
-    records = []
-    for entry in raw:
-        sources = [Source.model_validate(s) for s in entry.get(SOURCES_KEY) or []]
-        inventory = resolve_record(InventoryRecord.model_validate({k: v for k, v in entry.items() if k != SOURCES_KEY}))
-        resolved = [s.model_copy(update={"markdown": resolve_input(s.markdown)}) for s in sources]
-        records.append(ClaimRecord(inventory=inventory, sources=resolved))
-    # Every level any record names is a titled kind, as ``load_inventory_records`` records it.
-    named = sorted({e.title for r in records for e in r.inventory.expected_issues if e.title})
-    # A level is the verdict on a citation, not the kind of issue: pair on the cited claim alone.
-    update = {"named_titles": named, "pair_on_location": True}
-    return [r.model_copy(update={"inventory": r.inventory.model_copy(update=update)}) for r in records]
-
-
-def claim_dataset(records: list[ClaimRecord], path: Path) -> MemoryDataset:
-    samples = []
-    for record in records:
-        sample = inventory_to_sample(record.inventory)
-        sample.metadata = {**(sample.metadata or {}), SOURCES_KEY: [s.model_dump() for s in record.sources]}
-        samples.append(sample)
-    return MemoryDataset(samples=samples, name=path.parent.name, location=str(path))
+    suite = load_claim_suite(path)
+    return [ClaimRecord(inventory=r, sources=sources_of(x)) for r, x in zip(suite.records, suite.extras)]

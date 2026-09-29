@@ -119,7 +119,7 @@ def suggestion_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory)
     lines = inventory.document.split("\n")
     values: dict[str, list[float]] = {key: [] for key in SUGGESTION_KEYS}
     notes: list[str] = []
-    for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]:
+    for expected, issue in hit_pairs(issues, inventory)[1]:
         if takes_suggestion(expected):
             scores, pair_notes = _suggestion_checks(expected, issue, lines)
             for key, value in scores.items():

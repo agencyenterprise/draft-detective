@@ -95,7 +95,7 @@ def title_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
     odd = [i.title for i in issues if not _known(i.title)]
     checks = [
         result
-        for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]
+        for expected, issue in hit_pairs(issues, inventory)[1]
         if (result := _label_check(expected, issue)) is not None
     ]
     values = {

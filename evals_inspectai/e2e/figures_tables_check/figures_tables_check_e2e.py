@@ -51,23 +51,8 @@ from inspect_ai import Task, task
 from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    PER_KEY_METRICS,
-    decoy_checks,
-    decoy_descriptions,
-    deterministic_scorer,
-    issue_check_keys,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import (
-    decoy_reasons,
-    expects_severities,
-    inventory_dataset,
-    load_inventory_records,
-)
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.issue_checks import PER_KEY_METRICS, deterministic_scorer
 from evals_inspectai.common.scorers import tool_called
 from evals_inspectai.e2e.figures_tables_check.criteria import (
     JUDGE_CRITERIA,
@@ -79,6 +64,19 @@ from evals_inspectai.e2e.figures_tables_check.criteria import (
 
 WORKFLOW_TYPE = "figures_tables_check"
 DATASET = Path(__file__).parent / "dataset.yaml"
+GROUND_TRUTH = (
+    "Inventory: one expected issue per offending element, matched on the rule its title names and "
+    "anchored where the element sits; numbering issues are matched on 'Inconsistent Numbering' alone. "
+    "Severity is expected where the issues skill fixes it (missing element high, unreferenced and "
+    "numbering medium) and not checked for a missing title. Clean documents expect none; decoys are "
+    "elements a correct run leaves alone. No edits are expected. A NaN metric value means the sample "
+    "gave that check nothing to judge."
+)
+OWN_METRICS = {
+    "title_checks": OWN_DESCRIPTIONS,
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+    "tool_called": {"tool_called": "On a sample whose document embeds an image, whether the agent called view_image."},
+}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -95,48 +93,17 @@ def figures_tables_check_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Ta
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded issue; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
-    reasons = list(decoy_reasons(records))
-    severities = expects_severities(records)
-    keys = issue_check_keys(edits=False, severities=severities)
-    own = [
-        *(("title_checks", key) for key in OWN_DESCRIPTIONS),
-        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
-        ("tool_called", "tool_called"),
-    ]
+    suite = InventorySuite.load(DATASET, pairing="one_to_one")
     return Task(
-        dataset=inventory_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per offending element, matched on the rule its title names and "
-                "anchored where the element sits; numbering issues are matched on 'Inconsistent Numbering' alone. "
-                "Severity is expected where the issues skill fixes it (missing element high, unreferenced and "
-                "numbering medium) and not checked for a missing title. Clean documents expect none; decoys are "
-                "elements a correct run leaves alone. No edits are expected. A NaN metric value means the sample "
-                "gave that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-                "title_checks": OWN_DESCRIPTIONS,
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-                "tool_called": {"tool_called": "On a sample whose document embeds an image, whether the agent called view_image."},
-            },
-        },
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[
-            issue_checks(edits=False, one_to_one=True, severities=severities),
-            decoy_checks(reasons),
+            *suite.scorers(),
             title_checks(),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
             tool_called("view_image"),
         ],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(
-            reasons,
-            edits=False,
-            extra=own,
-            labels={**SCORE_LABELS, "tool_called": "Viewed image"},
-            severities=severities,
-        ),
+        viewer=suite.viewer(OWN_METRICS, {**SCORE_LABELS, "tool_called": "Viewed image"}),
     )

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from evals_inspectai.common.issue_checks import DETECTION_KEYS, EDIT_KEYS
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.common.issue_inventory import (
     ResolvedIssue,
@@ -10,6 +11,7 @@ from evals_inspectai.common.issue_inventory import (
     expects_titles,
     load_inventory_records,
 )
+from evals_inspectai.e2e.active_voice.active_voice_e2e import active_voice_e2e
 from evals_inspectai.e2e.active_voice.criteria import (
     EXTRA_EDIT_CHECKS,
     JUDGE_CRITERIA,
@@ -62,11 +64,8 @@ def test_actor_criterion_applies_only_to_passive_issues_without_an_edit():
 
 
 def test_every_metric_has_a_description_for_the_log_viewer():
-    from evals_inspectai.common.issue_checks import DETECTION_KEYS, EDIT_KEYS
-    from evals_inspectai.e2e.active_voice.active_voice_e2e import metric_descriptions
-
     reasons = list(decoy_reasons(load_inventory_records(DATASET)))
-    described = metric_descriptions(reasons)
+    described = active_voice_e2e().metadata["metrics"]
     assert set(described["issue_checks"]) == set(DETECTION_KEYS) | set(EDIT_KEYS)
     assert set(described["decoy_checks"]) == {f"no_fp_{r}" for r in reasons}
     assert set(described["active_voice_edit_checks"]) == {f"edit_{name}" for name in EXTRA_EDIT_CHECKS}

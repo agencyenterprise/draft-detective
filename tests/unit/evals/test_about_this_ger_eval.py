@@ -74,7 +74,7 @@ def test_both_validators_are_scored_together():
     state = _state([], [{"title": "Author Bio Issue: Dr. Jane Smith", "severity": "medium", "start_line": 17, "end_line": 17}])
     issues, error = issues_from_state(state, RESULTS)
     assert error is None
-    values, _ = issue_detection_scores(issues, SMITH_FOUR_SENTENCES, edits=False, one_to_one=True)
+    values, _ = issue_detection_scores(issues, SMITH_FOUR_SENTENCES.with_policy(edits=False, pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["title_correct"] == 1.0 and values["anchor_in_range"] == 1.0
 
 
@@ -84,7 +84,7 @@ def test_one_author_failing_two_rules_may_be_split_or_combined():
     split, _ = issues_from_state(_state([], [issue, {**issue, "description": "No degree."}]), RESULTS)
     combined, _ = issues_from_state(_state([], [issue]), RESULTS)
     for issues in (split, combined):
-        values, _ = issue_detection_scores(issues, MARSH_TWO_RULES, edits=False, one_to_one=True)
+        values, _ = issue_detection_scores(issues, MARSH_TWO_RULES.with_policy(edits=False, pairing="one_to_one"))
         assert values["recall"] == 1.0 and values["precision"] == 1.0
 
 

@@ -285,7 +285,7 @@ async def test_several_per_expected_grades_every_issue_covering_the_expected():
     expected = _expected(title=None)
     issues = [IssueItem(title=f"Source {n}", severity="low", start_line=5, end_line=5, suggested_action="Cite it.") for n in (1, 2)]
     grader = _Grader()
-    values, _ = await judge_sample(cast(Model, grader), issues, _inventory(expected), [criterion], several_per_expected=True)
+    values, _ = await judge_sample(cast(Model, grader), issues, _inventory(expected).with_policy(pairing="several_per_expected"), [criterion])
     assert values["asked"] == 1.0 and len(grader.prompts) == 2
     grader = _Grader()
     await judge_sample(cast(Model, grader), issues, _inventory(expected), [criterion])

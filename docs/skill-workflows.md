@@ -126,23 +126,27 @@ document text plus the finding, never when it needs a new fact or new prose.
 Each workflow gets its own directory, `evals_inspectai/e2e/<slug>/`, holding a
 `dataset.yaml`, a task module `<slug>_e2e.py` that defines the workflow's scorers and
 returns its `Task`, and a `criteria.py` with what the check is about (copy
-`evals_inspectai/e2e/active_voice/` and adapt). The task module composes reusable scorers from
-`evals_inspectai/common/` (`issue_checks` and `decoy_checks` in `issue_checks.py`,
-`judged_criteria` in `issue_judge.py`, all fed by the issue-inventory loader in
-`issue_inventory.py`) and adds only what is specific to the workflow: its own edit checks and
-the criteria the judge grades. None of that is tied to skill-declared workflows: any workflow
+`evals_inspectai/e2e/active_voice/` and adapt). The task module loads its dataset as an
+`InventorySuite` (`evals_inspectai/common/inventory_suite.py`), which hands it the reusable scorers
+(`issue_checks` and `decoy_checks` in `issue_checks.py`, `judged_criteria` in `issue_judge.py`), the
+Task metadata and the viewer columns, and adds only what is specific to the workflow: its own checks
+and the criteria the judge grades. The suite derives which generic checks apply from the dataset
+(edits, titles, anchors, severities, decoy reasons) and carries that `ScoringPolicy` on every
+sample's inventory, so the generic scorers, the judge and the workflow's own criteria all read the
+same one; the task states only how its reports pair with expected issues and, when they are not in
+`result`, which state fields hold them. None of that is tied to skill-declared workflows: any workflow
 that reports issues can be evaluated the same way. `evals_inspectai/e2e/concision_precision/` and
 `evals_inspectai/e2e/writing_consistency/` are the second and third skill-declared workflows on it, each
 with its own `criteria.py` (a deterministic edit check plus judged criteria); `evals_inspectai/e2e/recommendation_check/`
 scores a hand-written workflow with no edits on the same loader and scorers
-(`expects_edits` reads off the inventory that no edits are expected, and `issue_checks(edits=False)`
-then leaves the edit-hygiene keys out, so the eval emits no key it can never score). Its support
+(the suite reads off the inventory that no edits are expected, and `issue_checks` then leaves the
+edit-hygiene keys out, so the eval emits no key it can never score). Its support
 issues have free-form titles, which the inventory leaves unnamed, while its actionability, audience and
 length issues have fixed titles it names; its decoys on recommendations carry a `title`, since every
 recommendation is reported for support and the decoy only says it must not get that one kind. Its skill requires one issue per
-recommendation occurrence, so it passes `one_to_one=True`: a reported issue covers at most one expected
-issue, and a run that merges two restatements loses recall on the second. Active Voice keeps the
-default, where one paragraph-level issue may cover several expected sentences.
+recommendation occurrence, so it loads with `pairing="one_to_one"`: a reported issue covers at most one
+expected issue, and a run that merges two restatements loses recall on the second. Active Voice keeps
+the default `"shared"`, where one paragraph-level issue may cover several expected sentences.
 
 ### Ground truth as an inventory
 
@@ -189,11 +193,11 @@ numbering problem across a whole sequence) omits the anchor and must name a titl
 no line, is detected by any reported issue carrying that title, and is left out of
 `title_correct` and `anchor_in_range`. When a title is a verdict on the anchored text rather than
 the kind of issue (Claim Reference Validation titles each citation with its support level), the
-loader sets `pair_on_location` on the inventory: reports then pair with expected issues on quote and
+suite is loaded with `pair_on_location=True`: reports then pair with expected issues on quote and
 line alone, so a wrong verdict is scored by `title_correct` instead of pairing the report with a
 neighbouring claim that shares the verdict. A workflow that recommends sources found by web
 search (Literature Review, Live Reports) has no stable titles and may raise several issues on one
-claim, so its expected issues are untitled and matched on location, not one-to-one; its sources are
+claim, so its expected issues are untitled and it loads with `pairing="several_per_expected"`; its sources are
 not asserted, but the shared `source_checks` scorer (`evals_inspectai/common/source_citations.py`)
 reads every link-bearing line of an issue as a citation and checks it has a year, falls on the right
 side of the record's `publication_date`, is listed in the report, and, for a live report, is not in

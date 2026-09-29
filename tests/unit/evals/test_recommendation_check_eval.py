@@ -33,7 +33,7 @@ def test_dataset_is_well_formed():
     assert sum(1 for r in records if not r.expected_issues) == 1
     # The pairing reads the fixed-title kinds off the whole dataset, so a record with no
     # expected issue of a kind still ranks a report of it below a free-form support issue.
-    assert all(r.named_titles == sorted(NEW_KINDS) for r in records)
+    assert all(r.policy.named_titles == sorted(NEW_KINDS) for r in records)
     # A decoy on a recommendation must name the kind it guards against, or the support
     # issue every recommendation gets would flag it.
     assert all(d.title in NEW_KINDS for r in records for d in r.decoys if d.reason != "conclusion")
