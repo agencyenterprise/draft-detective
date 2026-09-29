@@ -1,3 +1,4 @@
+from .annotation import Annotation, AnnotationItem, AnnotationSet
 from .app_config import AppConfig
 from .bibliography_item import BibliographyItem
 from .chat_thread import ChatThread

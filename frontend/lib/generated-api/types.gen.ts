@@ -536,6 +536,351 @@ export type AgentConversation = {
 };
 
 /**
+ * AnnotatedItem
+ *
+ * An item with every annotation it has received.
+ */
+export type AnnotatedItem = {
+  /**
+   * Item Id
+   */
+  item_id: string;
+  /**
+   * Source Key
+   */
+  source_key: string;
+  kind: AnnotationItemKind;
+  passage: AnnotationPassage;
+  /**
+   * Reference Answers
+   */
+  reference_answers: {
+    [key: string]: string;
+  };
+  /**
+   * Reference Explanation
+   */
+  reference_explanation: string | null;
+  /**
+   * Annotations
+   */
+  annotations: Array<AnnotationRecord>;
+  /**
+   * Agreements
+   */
+  agreements: number;
+  /**
+   * Disagreements
+   */
+  disagreements: number;
+  /**
+   * Abstentions
+   */
+  abstentions: number;
+};
+
+/**
+ * AnnotationItemKind
+ *
+ * Where an item comes from in the eval dataset.
+ */
+export const AnnotationItemKind = { ExpectedIssue: 'expected_issue', Decoy: 'decoy' } as const;
+
+/**
+ * AnnotationItemKind
+ *
+ * Where an item comes from in the eval dataset.
+ */
+export type AnnotationItemKind = (typeof AnnotationItemKind)[keyof typeof AnnotationItemKind];
+
+/**
+ * AnnotationOption
+ *
+ * One answer a question offers.
+ */
+export type AnnotationOption = {
+  /**
+   * Value
+   *
+   * Stored in answers and compared with the reference
+   */
+  value: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Shortcut
+   *
+   * Keyboard key that picks it
+   */
+  shortcut?: string | null;
+};
+
+/**
+ * AnnotationOutcome
+ *
+ * Confirms a saved answer. Deliberately says nothing about the reference
+ * answers: knowing how the dataset answered would sway the next answer.
+ */
+export type AnnotationOutcome = {
+  /**
+   * Item Id
+   */
+  item_id: string;
+  /**
+   * Answered By Me
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationPassage
+ *
+ * What the user judges: a passage in a short document.
+ */
+export type AnnotationPassage = {
+  /**
+   * Document
+   *
+   * The document as markdown
+   */
+  document: string;
+  /**
+   * Anchor
+   *
+   * Verbatim passage to highlight
+   */
+  anchor: string;
+  /**
+   * Line
+   *
+   * 1-indexed line the passage is on
+   */
+  line?: number | null;
+};
+
+/**
+ * AnnotationQuestion
+ *
+ * A question every item in a set asks.
+ */
+export type AnnotationQuestion = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Prompt
+   */
+  prompt: string;
+  /**
+   * Options
+   */
+  options: Array<AnnotationOption>;
+  /**
+   * Abstain Value
+   *
+   * The option meaning 'not sure'; it neither agrees nor disagrees with the reference
+   */
+  abstain_value?: string | null;
+};
+
+/**
+ * AnnotationRecord
+ *
+ * One annotation as the admin view and the export show it.
+ */
+export type AnnotationRecord = {
+  /**
+   * User Name
+   */
+  user_name: string;
+  /**
+   * User Email
+   */
+  user_email: string;
+  /**
+   * Answers
+   */
+  answers: {
+    [key: string]: string;
+  };
+  /**
+   * Agrees
+   */
+  agrees: boolean | null;
+  /**
+   * Comment
+   */
+  comment: string | null;
+  /**
+   * Time Spent Ms
+   */
+  time_spent_ms: number | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+};
+
+/**
+ * AnnotationSetStats
+ *
+ * Admin overview of one set.
+ */
+export type AnnotationSetStats = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Item Count
+   */
+  item_count: number;
+  /**
+   * Annotated Items
+   *
+   * Active items with at least one annotation
+   */
+  annotated_items: number;
+  /**
+   * Annotation Count
+   */
+  annotation_count: number;
+  /**
+   * Annotator Count
+   */
+  annotator_count: number;
+  /**
+   * Agreements
+   *
+   * Annotations that match the reference
+   */
+  agreements: number;
+  /**
+   * Disagreements
+   *
+   * Annotations that contradict the reference
+   */
+  disagreements: number;
+  /**
+   * Abstentions
+   */
+  abstentions: number;
+};
+
+/**
+ * AnnotationSetSummary
+ *
+ * A set as its card shows it, with the current user's progress.
+ */
+export type AnnotationSetSummary = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Summary
+   */
+  summary: string;
+  /**
+   * Workflow Type
+   */
+  workflow_type: string;
+  /**
+   * Item Count
+   *
+   * Active items in the set
+   */
+  item_count: number;
+  /**
+   * Answered By Me
+   *
+   * Active items the current user has answered
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationSubmission
+ *
+ * A user's answers to one item. Submitting again replaces them.
+ */
+export type AnnotationSubmission = {
+  /**
+   * Answers
+   */
+  answers: {
+    [key: string]: string;
+  };
+  /**
+   * Comment
+   */
+  comment?: string | null;
+  /**
+   * Time Spent Ms
+   */
+  time_spent_ms?: number | null;
+};
+
+/**
+ * AnnotationTask
+ *
+ * The next item to judge. It never carries the reference answers.
+ */
+export type AnnotationTask = {
+  set: AnnotationTaskSet;
+  /**
+   * Item Id
+   *
+   * None when the user has answered every item
+   */
+  item_id?: string | null;
+  passage?: AnnotationPassage | null;
+  /**
+   * Item Count
+   */
+  item_count: number;
+  /**
+   * Answered By Me
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationTaskSet
+ *
+ * The parts of a set the annotation screen needs.
+ */
+export type AnnotationTaskSet = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Guidance
+   */
+  guidance: string;
+  /**
+   * Questions
+   */
+  questions: Array<AnnotationQuestion>;
+};
+
+/**
  * AppConfigResponse
  */
 export type AppConfigResponse = {
@@ -4866,6 +5211,152 @@ export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersG
 
 export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponse =
   GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses[keyof GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses];
+
+export type ListAnnotationSetsApiAnnotationsSetsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/annotations/sets';
+};
+
+export type ListAnnotationSetsApiAnnotationsSetsGetResponses = {
+  /**
+   * Response List Annotation Sets Api Annotations Sets Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetSummary>;
+};
+
+export type ListAnnotationSetsApiAnnotationsSetsGetResponse =
+  ListAnnotationSetsApiAnnotationsSetsGetResponses[keyof ListAnnotationSetsApiAnnotationsSetsGetResponses];
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData = {
+  body?: never;
+  path: {
+    /**
+     * Slug
+     */
+    slug: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: Array<string>;
+  };
+  url: '/api/annotations/sets/{slug}/next';
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetError =
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors[keyof GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors];
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AnnotationTask;
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponse =
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses[keyof GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses];
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutData = {
+  body: AnnotationSubmission;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+  };
+  query?: never;
+  url: '/api/annotations/items/{item_id}';
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutError =
+  SubmitAnnotationApiAnnotationsItemsItemIdPutErrors[keyof SubmitAnnotationApiAnnotationsItemsItemIdPutErrors];
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: AnnotationOutcome;
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutResponse =
+  SubmitAnnotationApiAnnotationsItemsItemIdPutResponses[keyof SubmitAnnotationApiAnnotationsItemsItemIdPutResponses];
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/annotations/sets';
+};
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses = {
+  /**
+   * Response List Annotation Set Stats Api Admin Annotations Sets Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetStats>;
+};
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponse =
+  ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses[keyof ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses];
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Slug
+     */
+    slug: string;
+  };
+  query?: {
+    /**
+     * Only Disagreements
+     */
+    only_disagreements?: boolean;
+  };
+  url: '/api/admin/annotations/sets/{slug}/items';
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetError =
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors[keyof ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors];
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses = {
+  /**
+   * Response List Annotated Items Api Admin Annotations Sets  Slug  Items Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotatedItem>;
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse =
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses[keyof ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses];
 
 export type ListAppConfigsApiAppConfigsGetData = {
   body?: never;

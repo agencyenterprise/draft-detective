@@ -157,7 +157,7 @@ function findBlockForRange(container: HTMLElement, range: [number, number]): HTM
  */
 const GRID_BASE = 'grid-cols-[3rem_minmax(0,46rem)]';
 const GRID_WITH_MARGIN = 'xl:grid-cols-[3rem_minmax(0,46rem)_calc(26rem_+_1px)]';
-const WIDTH_BASE = 'max-w-[calc(3rem_+_46rem)]';
+export const WIDTH_BASE = 'max-w-[calc(3rem_+_46rem)]';
 const WIDTH_WITH_MARGIN = 'xl:max-w-[calc(3rem_+_46rem_+_26rem_+_1px)]';
 
 /**
@@ -238,10 +238,11 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
   return Block;
 }
 
-const REMARK_PLUGINS: PluggableList = [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
-const REHYPE_PLUGINS: PluggableList = [rehypeMathML, [rehypeRaw, { tagfilter: true }]];
+export const REMARK_PLUGINS: PluggableList = [remarkGfm, [remarkMath, { singleDollarTextMath: false }]];
+export const REHYPE_PLUGINS: PluggableList = [rehypeMathML, [rehypeRaw, { tagfilter: true }]];
 
-const BLOCK_COMPONENTS = {
+/** Exported with the plugins and width so other views can render a document the way this one does. */
+export const BLOCK_COMPONENTS = {
   p: blockFactory('p', 'mb-3', 'leading-[1.7]'),
   h1: blockFactory('h1', 'mt-6 mb-3', 'text-xl font-semibold tracking-tight'),
   h2: blockFactory('h2', 'mt-7 mb-2', 'text-lg font-semibold tracking-tight'),

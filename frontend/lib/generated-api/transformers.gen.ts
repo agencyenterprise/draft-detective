@@ -12,6 +12,7 @@ import type {
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
   ListAppConfigsApiAppConfigsGetResponse,
   ListLogsApiAdminLogsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
@@ -47,6 +48,23 @@ export const getDashboardApiAdminDashboardGetResponseTransformer = async (
   data: any,
 ): Promise<GetDashboardApiAdminDashboardGetResponse> => {
   data = adminDashboardResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+const annotationRecordSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  return data;
+};
+
+const annotatedItemSchemaResponseTransformer = (data: any) => {
+  data.annotations = data.annotations.map((item: any) => annotationRecordSchemaResponseTransformer(item));
+  return data;
+};
+
+export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponseTransformer = async (
+  data: any,
+): Promise<ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse> => {
+  data = data.map((item: any) => annotatedItemSchemaResponseTransformer(item));
   return data;
 };
 

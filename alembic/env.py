@@ -10,6 +10,9 @@ from lib.config.env import config as app_config
 
 # Import all models to ensure they are registered with SQLModel.metadata
 from lib.models import (
+    Annotation,
+    AnnotationItem,
+    AnnotationSet,
     AppConfig,
     Feedback,
     Issue,
