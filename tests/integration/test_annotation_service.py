@@ -96,6 +96,14 @@ async def annotation_set():
     await _delete(AnnotationSet, row.id)
 
 
+async def _set_active(set_id: uuid.UUID, active: bool) -> None:
+    async with get_async_db_session() as session:
+        row = await session.get(AnnotationSet, set_id)
+        assert row is not None
+        row.is_active = active
+        await session.commit()
+
+
 async def _submit(
     item_id: uuid.UUID, user: User, answer: str, comment: str | None = None
 ):
@@ -241,7 +249,9 @@ async def test_submit_stores_an_oversized_time_spent(annotation_set, users):
 
 
 @pytest.mark.asyncio
-async def test_export_covers_every_annotated_set(annotation_set, users):
+async def test_export_covers_every_annotated_set_including_deactivated(
+    annotation_set, users
+):
     empty_slug = f"test-empty-{uuid.uuid4().hex[:8]}"
     async with get_async_db_session() as session:
         empty = AnnotationSet(
@@ -260,6 +270,9 @@ async def test_export_covers_every_annotated_set(annotation_set, users):
         task = await _next(annotation_set, users[0])
         assert task.item_id is not None
         await _submit(task.item_id, users[0], "yes", comment="clear passive")
+        # A set dropped from the catalog is deactivated, not deleted; its
+        # answers are still results and must still be exported.
+        await _set_active(annotation_set.id, False)
 
         exported = {s.slug: s for s in await admin.export_annotations()}
     finally:
@@ -267,6 +280,7 @@ async def test_export_covers_every_annotated_set(annotation_set, users):
 
     assert empty_slug not in exported
     ours = exported[annotation_set.slug]
+    assert ours.is_active is False
     assert [q.key for q in ours.questions] == [SHOULD_FLAG]
     [item] = ours.items
     assert item.item_id == task.item_id
