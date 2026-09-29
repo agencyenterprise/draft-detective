@@ -59,7 +59,6 @@ from pydantic import ValidationError
 from evals_inspectai.common.api_solver import PERSISTED_ISSUES_KEY, api_workflow_agent
 from evals_inspectai.common.inventory_suite import InventorySuite
 from evals_inspectai.common.issue_checks import PER_KEY_METRICS
-from evals_inspectai.common.issue_inventory import ResolvedInventory
 from evals_inspectai.e2e.abbreviation_checker.criteria import (
     CATALOGUE_DESCRIPTIONS,
     CATALOGUE_KEYS,
@@ -83,20 +82,12 @@ GROUND_TRUTH = (
 )
 OWN_METRICS = {"catalogue_checks": CATALOGUE_DESCRIPTIONS}
 
-AbbreviationRecord = tuple[ResolvedInventory, ExpectedCatalogue]
-
 
 def load_suite(path: Path = DATASET, name: Optional[str] = None) -> InventorySuite:
     """The records of ``path``: one issue per abbreviation and rule, so matching is one-to-one."""
     return InventorySuite.load(
         path, pairing="one_to_one", extra_fields=CATALOGUE_FIELDS, results=ISSUE_RESULTS, name=name
     )
-
-
-def load_records(path: Path = DATASET) -> list[AbbreviationRecord]:
-    """Each record's resolved inventory and expected catalogue."""
-    suite = load_suite(path)
-    return [(inventory, ExpectedCatalogue.model_validate(extra)) for inventory, extra in zip(suite.records, suite.extras)]
 
 
 def _catalogue_metadata(extra: dict[str, Any]) -> dict[str, Any]:

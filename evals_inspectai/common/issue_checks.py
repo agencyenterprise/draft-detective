@@ -40,7 +40,6 @@ from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
-from pydantic import ValidationError
 
 from evals_inspectai.common.simple_deep_agent_types import AgentCheckResult, IssueItem, ProposedEdit
 from evals_inspectai.common.issue_inventory import (

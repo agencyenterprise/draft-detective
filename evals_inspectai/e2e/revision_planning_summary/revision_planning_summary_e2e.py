@@ -70,12 +70,10 @@ from evals_inspectai.common.peer_review_fixture import (
 )
 from evals_inspectai.common.review_assistant_scorers import (
     STRUCTURE_CHECKS,
-    criteria_for,
     extract_report,
-    failed_score,
-    grade_criteria,
     report_structure,
 )
+from evals_inspectai.common.scorers import criteria_for, failed_score, grade_criteria
 from evals_inspectai.common.model_override import output_model_name
 
 _TARGET_WORKFLOW = "revision_planning_summary"

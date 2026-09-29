@@ -17,8 +17,7 @@ has a verdict table to check, the planning summary does not.
 The judged criteria differ per suite, so none of them live here. The machinery
 that runs them -- `grade_criteria`, `criteria_for` -- and the per-check scoring
 helpers -- `checks_to_score`, `failed_score` -- are generic and live in
-`common.scorers`, which any suite can use; they are imported back here because
-this module's own scorer is built from them.
+`common.scorers`, which any suite can use.
 
 Scorers here report a dict of values so every check is its own Inspect metric.
 That constrains the callers: Inspect raises when a declared metric key is
@@ -41,12 +40,7 @@ from evals_inspectai.common.html_report import (
     two_part_layout,
     voice_tells,
 )
-from evals_inspectai.common.scorers import (
-    checks_to_score,
-    criteria_for,
-    failed_score,
-    grade_criteria,
-)
+from evals_inspectai.common.scorers import checks_to_score, failed_score
 from evals_inspectai.common.simple_deep_agent_types import HtmlReportAgentOutput
 
 # Below this, the report is too short to be a real deliverable regardless of
