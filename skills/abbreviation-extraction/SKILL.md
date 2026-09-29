@@ -52,8 +52,8 @@ Some occurrences must still be recorded but marked as **excluded from compliance
   | Common units of measurement | cm, mm, km, mW, kHz, MHz, GHz, kg, mg | |
   | Citation elements | Vol., Ch., pp., para., ed., ibid., et al. | |
   | Legal and regulatory citations | U.S.C., C.F.R., Stat., Pub. L., Fed. Reg. | As part of a citation such as "10 U.S.C. 2350" |
-  | Latin and common shorthand | e.g., i.e., etc., cf., vs., viz., approx., no. | "no." as in "No. 12", not the word "no" |
-  | Statistical notation | N, n, M, SD, SE, R², R2, p, t, F, df, Std. Dev. | When used as notation for a statistic, e.g. "N = 120", "Pseudo R2" |
+  | Latin and common shorthand | e.g., i.e., etc., cf., vs., viz., approx., no., ID | "no." as in "No. 12", not the word "no"; "ID" as in "item IDs" |
+  | Statistical notation | N, n, M, SD, SE, R², R2, p, t, F, F1, df, Std. Dev. | When used as notation for a statistic, e.g. "N = 120", "Pseudo R2", an "F1" column |
   | Numeric magnitude suffixes | $9.6B, 10M, 5K, $1T | The letter attached to a number, meaning billion, million, thousand, trillion |
   | U.S. state and territory postal codes | CA, FL, NM, NY, UT, VA | In an address or place name, e.g. "Riverside, CA"; a postal code used on its own as a term is not exempt |
   | Product, model, software, and benchmark names | GPT-4, XGBoost, OpenAI, HumanEval, ARC-AGI-2 | Names used as names, not abbreviations standing for a longer form the reader needs |
@@ -70,6 +70,10 @@ Some occurrences must still be recorded but marked as **excluded from compliance
 ## The Abbreviations / Glossary section itself
 
 Do **not** record any occurrences that appear **inside** the dedicated "Abbreviations", "Acronyms", "Glossary", or equivalent section. That section is the reference list, not document body text, so its entries must not appear in the catalogue at all — not even as excluded items. (Its contents are still used to populate each recorded occurrence's "definition listed in the Abbreviations section".)
+
+## URLs
+
+Do **not** record abbreviations that appear **inside** a URL or web address, including a link whose visible text is itself an address — e.g. the "CAST" in `[www.rand.org/CAST](http://www.rand.org/CAST)`. An address is not prose, so these must not appear in the catalogue at all — not even as excluded items, and they do not count toward occurrence numbers. A link whose visible text is ordinary prose (e.g. `[the NATO report](https://…)`) is checked as usual; only the address itself is skipped.
 
 ## Output
 
