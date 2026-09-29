@@ -32,16 +32,7 @@ from pathlib import Path
 from inspect_ai import Task, task
 
 from evals_inspectai.common.api_solver import api_workflow_solver
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    decoy_checks,
-    decoy_descriptions,
-    issue_check_keys,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import decoy_reasons, inventory_dataset, load_inventory_records
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
 from evals_inspectai.common.source_citations import source_checks
 from evals_inspectai.e2e.literature_review_v2.criteria import (
     JUDGE_CRITERIA,
@@ -52,6 +43,14 @@ from evals_inspectai.e2e.literature_review_v2.criteria import (
 
 WORKFLOW_TYPE = "literature_review_v2"
 DATASET = Path(__file__).parent / "dataset.yaml"
+GROUND_TRUTH = (
+    "Inventory: one expected issue per claim that needs a source, anchored on the claim and carrying "
+    "the labeller's account of the literature it should engage with; documents with no claim expect "
+    "none. Any number of issues may cover a claim. Decoys are sentences no source is needed for. "
+    "Severity is not checked and no edits are expected. A NaN metric value means the sample gave "
+    "that check nothing to judge."
+)
+OWN_METRICS = {"source_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
 
 
 @task
@@ -63,37 +62,16 @@ def literature_review_v2_e2e(timeout_s: float = 1200, judge_calls: int = 1) -> T
             web-search agent's own per-call timeout is already 600s.
         judge_calls: Grader calls per graded issue; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
-    reasons = list(decoy_reasons(records))
-    keys = issue_check_keys(edits=False, titles=False, severities=False)
-    own = [
-        *(("source_checks", key) for key in OWN_DESCRIPTIONS),
-        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
-    ]
+    suite = InventorySuite.load(DATASET, pairing="several_per_expected")
     return Task(
-        dataset=inventory_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per claim that needs a source, anchored on the claim and carrying "
-                "the labeller's account of the literature it should engage with; documents with no claim expect "
-                "none. Any number of issues may cover a claim. Decoys are sentences no source is needed for. "
-                "Severity is not checked and no edits are expected. A NaN metric value means the sample gave "
-                "that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-                "source_checks": OWN_DESCRIPTIONS,
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-            },
-        },
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_solver(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[
-            issue_checks(edits=False, titles=False, severities=False, several_per_expected=True),
-            decoy_checks(reasons),
+            *suite.scorers(),
             source_checks(after=False, new_sources_only=False),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls, several_per_expected=True),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
         ],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(reasons, edits=False, extra=own, labels=SCORE_LABELS, titles=False, severities=False),
+        viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

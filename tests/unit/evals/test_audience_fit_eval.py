@@ -307,10 +307,10 @@ def test_a_missing_audience_issue_quoting_the_method_paragraph_is_no_jargon_flag
         start_line=expected.line,
         end_line=expected.line,
     )
-    values, _ = decoy_scores([quoting], inventory, ["technical_audience"])
+    values, _ = decoy_scores([quoting], inventory.with_policy(decoy_reasons=["technical_audience"]))
     assert values == {"no_fp_technical_audience": 1.0}
     jargon = quoting.model_copy(update={"title": "Technical Language"})
-    values, _ = decoy_scores([jargon], inventory, ["technical_audience"])
+    values, _ = decoy_scores([jargon], inventory.with_policy(decoy_reasons=["technical_audience"]))
     assert values == {"no_fp_technical_audience": 0.0}
 
 
@@ -330,9 +330,8 @@ async def test_passage_grader_sees_every_paragraph_of_the_passage():
     values, _ = await judge_sample(
         cast(Model, grader),
         [issue],
-        inventory,
+        inventory.with_policy(pairing="one_to_one"),
         [by_key["action_passage_upshot"], by_key["action_plain_alternative"]],
-        one_to_one=True,
     )
     assert values["action_passage_upshot"] == 1.0
     assert math.isnan(values["action_plain_alternative"])

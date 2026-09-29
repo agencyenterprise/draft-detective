@@ -94,7 +94,7 @@ def test_a_false_positive_under_another_title_costs_precision():
     record = load_inventory_records(DATASET)[5]  # "It is urgent that policymakers act now ..."
     flagged = IssueItem(title="Advocacy Language Detected", severity="medium", start_line=9, end_line=9)
     extra = IssueItem(title="Trigger Words Detected", severity="low", start_line=9, end_line=9)
-    values, _ = issue_detection_scores([flagged, extra], record, edits=False, one_to_one=True)
+    values, _ = issue_detection_scores([flagged, extra], record.with_policy(edits=False, pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["precision"] == 0.5
 
 

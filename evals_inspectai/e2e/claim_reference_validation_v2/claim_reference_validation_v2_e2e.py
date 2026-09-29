@@ -49,19 +49,7 @@ from evals_inspectai.common.api_client import (
 )
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.errors import WorkflowCompletionError
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    PER_KEY_METRICS,
-    decoy_checks,
-    decoy_descriptions,
-    inventory_from_state,
-    issue_check_keys,
-    issue_checks,
-    issues_from_state,
-)
-from evals_inspectai.common.issue_inventory import decoy_reasons
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.issue_checks import PER_KEY_METRICS, inventory_from_state, issues_from_state
 from evals_inspectai.common.model_override import output_model_name
 from evals_inspectai.e2e.claim_reference_validation_v2.criteria import (
     JUDGE_CRITERIA,
@@ -74,16 +62,23 @@ from evals_inspectai.e2e.claim_reference_validation_v2.criteria import (
     quote_scores,
 )
 from evals_inspectai.e2e.claim_reference_validation_v2.records import (
+    CITATIONS_KEY,
+    RESULTS,
     SOURCES_KEY,
-    claim_dataset,
-    load_claim_records,
+    load_claim_suite,
+    sources_metadata,
 )
 
 WORKFLOW_TYPE = "claim_reference_validation_v2"
 DATASET = Path(__file__).parent / "dataset.yaml"
-# The state field the solver adds, holding the citation records as issues.
-CITATIONS_KEY = "citation_result"
-RESULTS = (CITATIONS_KEY,)
+GROUND_TRUTH = (
+    "Inventory: one expected issue per in-text citation, anchored on the cited claim and titled with the "
+    "evidence-alignment level a correct run assigns (title_correct is level accuracy), carrying the "
+    "labeller's account of what the source says. Decoys are bibliography and footnote entries, commentary "
+    "footnotes and uncited claims. Severity follows the level and is not checked; no edits are expected. "
+    "A NaN metric value means the sample gave that check nothing to judge."
+)
+OWN_METRICS = {"citation_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
 
 
 @solver
@@ -154,38 +149,12 @@ def claim_reference_validation_v2_e2e(timeout_s: float = 900, judge_calls: int =
         timeout_s: How long to wait for the gate and for the workflow run, each.
         judge_calls: Grader calls per graded citation; the median grade is kept.
     """
-    records = load_claim_records(DATASET)
-    inventories = [r.inventory for r in records]
-    reasons = list(decoy_reasons(inventories))
-    keys = issue_check_keys(edits=False, severities=False)
-    own = [
-        *(("citation_checks", key) for key in OWN_DESCRIPTIONS),
-        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
-    ]
+    suite = load_claim_suite(DATASET)
     return Task(
-        dataset=claim_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per in-text citation, anchored on the cited claim and titled with the "
-                "evidence-alignment level a correct run assigns (title_correct is level accuracy), carrying the "
-                "labeller's account of what the source says. Decoys are bibliography and footnote entries, commentary "
-                "footnotes and uncited claims. Severity follows the level and is not checked; no edits are expected. "
-                "A NaN metric value means the sample gave that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-                "citation_checks": OWN_DESCRIPTIONS,
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-            },
-        },
+        dataset=suite.dataset(sources_metadata),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=claim_reference_validation_v2_solver(timeout_s=timeout_s),
-        scorer=[
-            issue_checks(edits=False, one_to_one=True, severities=False, results=RESULTS),
-            decoy_checks(reasons, results=RESULTS),
-            citation_checks(),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True, results=RESULTS),
-        ],
+        scorer=[*suite.scorers(), citation_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(reasons, edits=False, extra=own, labels=SCORE_LABELS, severities=False),
+        viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

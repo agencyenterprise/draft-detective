@@ -2,8 +2,7 @@
 
 One narrow, colour-graded column per check, grouped by sample so the epochs
 of a document sit side by side; target and answer hidden, since an inventory
-eval has no target or answer text. Each eval passes the (scorer, key) columns
-it scores and any labels of its own.
+eval has no target or answer text.
 """
 
 from typing import Mapping, Sequence
@@ -17,8 +16,6 @@ from inspect_ai.viewer import (
     TaskSamplesView,
     ViewerConfig,
 )
-
-from evals_inspectai.common.issue_checks import issue_check_keys
 
 # Short column labels for the generic checks; compact score columns show these
 # with rotated headers.
@@ -43,35 +40,16 @@ def decoy_labels(reasons: Sequence[str]) -> dict[str, str]:
     return {f"no_fp_{r}": f"No FP {r}" for r in reasons}
 
 
-def issue_viewer_config(
-    decoy_reasons: Sequence[str],
-    edits: bool = True,
-    extra: Sequence[tuple[str, str]] = (),
-    labels: Mapping[str, str] | None = None,
-    titles: bool = True,
-    anchors: bool = True,
-    severities: bool = True,
-    issue_columns: bool = True,
-) -> ViewerConfig:
-    """Columns for the generic scorers, derived from what they emit given the
-    dataset (``issue_checks(edits=..., titles=..., anchors=..., severities=...)`` and
-    ``decoy_checks(decoy_reasons)``),
-    followed by ``extra`` (scorer name, score key) pairs for the eval's own
-    scorers; ``labels`` adds headers for those.
+def issue_viewer_config(scored: Sequence[tuple[str, str]], labels: Mapping[str, str] | None = None) -> ViewerConfig:
+    """One column per (scorer name, score key) in ``scored``, in that order;
+    ``labels`` adds headers to the generic ones. ``InventorySuite.viewer`` puts the
+    generic scorers' columns first and the eval's own after them.
 
     Every emitted key must be listed: the viewer appends any score column the
     config does not mention after its built-in columns, and it decides a score
     column's visibility from the score picker, not from ``visible``. A key an
     eval cannot score should not be emitted at all rather than listed and hidden.
-    An eval that scores the inventory with its own scorers instead of
-    ``issue_checks`` passes ``issue_columns=False``.
     """
-    generic = issue_check_keys(edits, titles, anchors, severities) if issue_columns else ()
-    scored = [
-        *(("issue_checks", key) for key in generic),
-        *(("decoy_checks", f"no_fp_{reason}") for reason in decoy_reasons),
-        *extra,
-    ]
     return ViewerConfig(
         task_samples_view=TaskSamplesView(
             name="Checks by sample and epoch",
@@ -93,7 +71,7 @@ def issue_viewer_config(
             ],
             compact_scores=True,
             multiline=False,
-            score_labels={**SCORE_LABELS, **decoy_labels(decoy_reasons), **(labels or {})},
+            score_labels={**SCORE_LABELS, **(labels or {})},
             # Pinned to 0..1 so a check that passes everywhere still paints green,
             # rather than the viewer anchoring each palette to the observed range.
             score_color_scales={key: ScoreColorScale(palette="good-high", min=0.0, max=1.0) for _, key in scored},

@@ -124,3 +124,11 @@ JUDGE_CRITERIA = [
         applies_to=_unknown_actor_passive,
     ),
 ]
+
+# Column headers for this workflow's own checks in the log viewer.
+SCORE_LABELS = {
+    "edit_removes_passive": "Passive gone",
+    "edit_meaning_preserved": "Meaning",
+    "edit_reads_well": "Reads well",
+    "unknown_actor_asked_not_guessed": "Asks, no guess",
+}

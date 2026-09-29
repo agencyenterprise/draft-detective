@@ -89,7 +89,7 @@ def _author_named(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> 
     """Of the detected author issues, share whose title names someone in the anchored bio."""
     checked: list[float] = []
     notes: list[str] = []
-    for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]:
+    for expected, issue in hit_pairs(issues, inventory)[1]:
         if expected.title != AUTHOR_TITLE or expected.line is None:
             continue
         name = author_name(issue.title)

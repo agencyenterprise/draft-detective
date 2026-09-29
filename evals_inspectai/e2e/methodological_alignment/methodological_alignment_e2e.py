@@ -37,15 +37,16 @@ from inspect_ai.scorer import Score, Scorer, Target, scorer
 from inspect_ai.solver import TaskState
 
 from evals_inspectai.common.api_solver import api_workflow_agent
+from evals_inspectai.common.inventory_suite import InventorySuite
 from evals_inspectai.common.issue_checks import (
     PER_KEY_METRICS,
     deterministic_scorer,
     fraction,
     inventory_from_state,
     issues_from_state,
-    ranked_hits,
+    reports_of,
 )
-from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, inventory_dataset, load_inventory_records
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.issue_judge import gist, grade
 from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
@@ -71,7 +72,7 @@ DATASET = Path(__file__).parent / "dataset.yaml"
 def plant_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> tuple[dict[str, float], str]:
     """``recall``, ``anchor_in_range`` and ``severity_fits`` over the planted risks (see ``PLANT_DESCRIPTIONS``)."""
     plants = [e for e in inventory.expected_issues if e.required]
-    on_line = {e.id: [issues[i] for i in ranked_hits(e, issues)] for e in plants}
+    on_line = {e.id: reports_of(e, issues, inventory) for e in plants}
     covered = [e for e in plants if on_line[e.id]]
     high = [e for e in covered if e.severity]
     values = {
@@ -95,7 +96,7 @@ async def judge_methodology(
     actions: list[float] = []
     notes: list[str] = []
     for plant in (e for e in inventory.expected_issues if e.required):
-        candidates = [issues[i] for i in ranked_hits(plant, issues)]
+        candidates = reports_of(plant, issues, inventory)
         results = await asyncio.gather(
             *(grade(grader, gap_prompt(GAP_CRITERION, plant, c, document, "analysis"), calls) for c in candidates)
         )
@@ -189,14 +190,14 @@ def methodological_alignment_e2e(timeout_s: float = 900, judge_calls: int = 1) -
             workflow slower than the document-only checks.
         judge_calls: Grader calls per graded item; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
+    suite = InventorySuite.load(DATASET)
     columns = [
         *(("report_checks", k) for k in OWN_DESCRIPTIONS),
         *(("plant_checks", k) for k in PLANT_DESCRIPTIONS),
         *(("methodology_judged", k) for k in JUDGED_KEYS),
     ]
     return Task(
-        dataset=inventory_dataset(records, DATASET),
+        dataset=suite.dataset(),
         metadata={
             "ground_truth": (
                 "Inventory: planted methodological risks, anchored on the sentence stating the choice and carrying "
@@ -213,5 +214,6 @@ def methodological_alignment_e2e(timeout_s: float = 900, judge_calls: int = 1) -
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
         scorer=[report_checks(), plant_checks(), methodology_judged(calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config([], extra=columns, labels=SCORE_LABELS, issue_columns=False),
+        # The planted risks are scored by this eval's own scorers, so no generic columns.
+        viewer=issue_viewer_config(columns, SCORE_LABELS),
     )

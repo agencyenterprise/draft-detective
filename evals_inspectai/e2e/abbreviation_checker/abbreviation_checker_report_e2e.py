@@ -25,7 +25,7 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 
-from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import build_task, load_records
+from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import build_task, load_suite
 
 DATASET = Path(__file__).parent / "dataset_report.yaml"
 
@@ -37,4 +37,4 @@ def abbreviation_checker_report_e2e(timeout_s: float = 1800) -> Task:
     Args:
         timeout_s: How long to wait for one workflow run through the API; a long report runs many chunks.
     """
-    return build_task(load_records(DATASET), DATASET, "abbreviation_checker_report", timeout_s)
+    return build_task(load_suite(DATASET, name="abbreviation_checker_report"), timeout_s)

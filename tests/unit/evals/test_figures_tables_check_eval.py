@@ -80,7 +80,7 @@ def test_a_numbering_issue_counts_whatever_its_free_text_says():
     issue = IssueItem(
         title="Inconsistent Numbering: Figure 2 is used for two different figures", severity="medium", start_line=20, end_line=33
     )
-    values, _ = issue_detection_scores([issue], record, edits=False, one_to_one=True)
+    values, _ = issue_detection_scores([issue], record.with_policy(edits=False, pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["precision"] == 1.0 and values["severity_correct"] == 1.0
 
 
@@ -167,5 +167,5 @@ def test_a_false_positive_on_a_cited_figure_is_caught_at_its_caption_without_a_f
         start_line=caption_line,
         end_line=caption_line,
     )
-    values, _ = decoy_scores([issue], record, decoy_reasons([record]))
+    values, _ = decoy_scores([issue], record.with_policy(decoy_reasons=list(decoy_reasons([record]))))
     assert values["no_fp_referenced_in_body"] == 0.0

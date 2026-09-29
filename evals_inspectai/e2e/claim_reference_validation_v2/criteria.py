@@ -69,7 +69,7 @@ def label_scores(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> t
     share the run gave it; NaN when the sample has none detected."""
     by_level: dict[str, list[float]] = {level: [] for level in LEVELS}
     notes = []
-    for expected, issue in hit_pairs(issues, inventory, one_to_one=True)[1]:
+    for expected, issue in hit_pairs(issues, inventory)[1]:
         if expected.title not in by_level:
             continue
         right = issue.title == expected.title

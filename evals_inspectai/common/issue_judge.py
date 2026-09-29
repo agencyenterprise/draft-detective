@@ -32,9 +32,8 @@ from pydantic import BaseModel, ConfigDict
 from evals_inspectai.common.issue_checks import (
     DEFAULT_RESULTS,
     PER_KEY_METRICS,
-    covering_pairs,
     edits_for,
-    hit_pairs,
+    graded_pairs,
     inventory_from_state,
     issues_from_state,
 )
@@ -265,17 +264,13 @@ async def judge_sample(
     inventory: ResolvedInventory,
     criteria: Sequence[JudgeCriterion],
     calls: int = 1,
-    one_to_one: bool = False,
-    several_per_expected: bool = False,
 ) -> tuple[dict[str, float], str]:
     """All criteria for one sample, NaN where a criterion has nothing to judge.
 
-    Expected issues are paired with reports by ``hit_pairs``, the same pairing
-    the deterministic layers use (canonical order, and one-to-one when the
-    workflow asks for it), so the judge grades the report those layers scored.
-    With ``several_per_expected`` every issue covering an expected issue is graded
-    against it (``covering_pairs``), for a workflow that reports one issue per
-    recommended source: each recommendation must hold up, not only the best one.
+    Expected issues are paired with reports by ``graded_pairs``, the pairing the
+    deterministic layers use under the inventory's policy, so the judge grades the
+    report those layers scored (and, under ``several_per_expected``, every report
+    covering an expected issue: each recommendation must hold up, not only the best one).
 
     An expected-scope criterion judges the part of the issue it reads (the
     suggested action by default, or the analysis); a detected issue that offers
@@ -291,8 +286,7 @@ async def judge_sample(
         if value < 1.0:
             notes.append(f"{expected.id} {criterion.key} {value}: {gist(why)}")
 
-    pairs = covering_pairs(issues, inventory) if several_per_expected else hit_pairs(issues, inventory, one_to_one)[1]
-    for expected, issue in pairs:
+    for expected, issue in graded_pairs(issues, inventory):
         paragraph = _paragraph(expected, inventory.document)
         for criterion in criteria:
             if not _applies(criterion, expected):
@@ -316,19 +310,14 @@ async def judge_sample(
 
 @scorer(metrics=PER_KEY_METRICS)
 def judged_criteria(
-    criteria: Sequence[JudgeCriterion],
-    calls: int = 1,
-    one_to_one: bool = False,
-    results: Sequence[str] = DEFAULT_RESULTS,
-    several_per_expected: bool = False,
+    criteria: Sequence[JudgeCriterion], calls: int = 1, results: Sequence[str] = DEFAULT_RESULTS
 ) -> Scorer:
     """A workflow's judged criteria, one focused grader call per item.
 
     The grader is Inspect's ``grader`` model role (``--model-role grader=...``),
     falling back to the repo's default grader model. ``calls`` grader calls are
-    made per item and the median grade kept. ``one_to_one``, ``several_per_expected``
-    and ``results`` must match what the workflow's ``issue_checks`` uses, so both
-    layers pair the same reports read from the same state fields.
+    made per item and the median grade kept. ``results`` names the state fields
+    the issues are read from (``InventorySuite.judged`` passes the suite's).
     """
 
     async def score(state: TaskState, target: Target) -> Score:
@@ -336,10 +325,7 @@ def judged_criteria(
         if error:
             return Score(value={c.key: 0.0 for c in criteria}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
-        values, explanation = await judge_sample(
-            grader, issues, inventory_from_state(state), criteria, calls=calls, one_to_one=one_to_one,
-            several_per_expected=several_per_expected,
-        )
+        values, explanation = await judge_sample(grader, issues, inventory_from_state(state), criteria, calls=calls)
         return Score(value=values, explanation=explanation)
 
     return score

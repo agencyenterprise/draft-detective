@@ -22,7 +22,7 @@ Scorers:
   separately and the new kinds as issues of their own; a run that merges two
   loses recall on the second. An issue under one of the fixed titles is paired
   with a support expectation only when no free-form report of that
-  recommendation exists (``hit_tier``), so an extra actionability or audience
+  recommendation exists (``hit_rank``), so an extra actionability or audience
   issue on the same line costs precision and cannot stand in for the support
   verdict.
 - ``decoy_checks``: sentences that read like recommendations but are not
@@ -48,28 +48,22 @@ from pathlib import Path
 from inspect_ai import Task, task
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    EDIT_DESCRIPTIONS,
-    decoy_checks,
-    decoy_descriptions,
-    issue_check_keys,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import (
-    decoy_reasons,
-    expects_edits,
-    expects_titles,
-    inventory_dataset,
-    load_inventory_records,
-)
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
 from evals_inspectai.common.scorers import tool_called
 from evals_inspectai.e2e.recommendation_check.criteria import JUDGE_CRITERIA, JUDGE_DESCRIPTIONS, SCORE_LABELS
 
 WORKFLOW_TYPE = "recommendation_check"
 DATASET = Path(__file__).parent / "dataset.yaml"
+GROUND_TRUTH = (
+    "Inventory: one expected issue per recommendation occurrence, anchored by its wording, "
+    "with the severity its classification maps to (none / medium / high) and a free-form title; "
+    "plus one per not-actionable recommendation, unclear audience and over-long list, under "
+    "their fixed titles. A NaN metric value means the sample gave that check nothing to judge."
+)
+OWN_METRICS = {
+    "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
+    "judged_criteria": JUDGE_DESCRIPTIONS,
+}
 
 
 @task
@@ -80,36 +74,12 @@ def recommendation_check_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Ta
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded issue; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
-    reasons = list(decoy_reasons(records))
-    edits, titles = expects_edits(records), expects_titles(records)
-    keys = issue_check_keys(edits, titles)
-    extra = [("tool_called", "tool_called"), *(("judged_criteria", c.key) for c in JUDGE_CRITERIA)]
+    suite = InventorySuite.load(DATASET, pairing="one_to_one")
     return Task(
-        dataset=inventory_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per recommendation occurrence, anchored by its wording, "
-                "with the severity its classification maps to (none / medium / high) and a free-form title; "
-                "plus one per not-actionable recommendation, unclear audience and over-long list, under "
-                "their fixed titles. A NaN metric value means the sample gave that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {k: v for k, v in {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS}.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-                "tool_called": {"tool_called": "On a sample whose document embeds a chart, whether the agent called view_image."},
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-            },
-        },
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[
-            issue_checks(edits=edits, one_to_one=True, titles=titles),
-            decoy_checks(reasons),
-            tool_called("view_image"),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True),
-        ],
+        scorer=[*suite.scorers(), tool_called("view_image"), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(
-            reasons, edits, extra=extra, labels={"tool_called": "Viewed image", **SCORE_LABELS}, titles=titles
-        ),
+        viewer=suite.viewer(OWN_METRICS, {"tool_called": "Viewed image", **SCORE_LABELS}),
     )
