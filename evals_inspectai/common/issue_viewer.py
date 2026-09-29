@@ -51,6 +51,7 @@ def issue_viewer_config(
     titles: bool = True,
     anchors: bool = True,
     severities: bool = True,
+    issue_columns: bool = True,
 ) -> ViewerConfig:
     """Columns for the generic scorers, derived from what they emit given the
     dataset (``issue_checks(edits=..., titles=..., anchors=..., severities=...)`` and
@@ -62,9 +63,12 @@ def issue_viewer_config(
     config does not mention after its built-in columns, and it decides a score
     column's visibility from the score picker, not from ``visible``. A key an
     eval cannot score should not be emitted at all rather than listed and hidden.
+    An eval that scores the inventory with its own scorers instead of
+    ``issue_checks`` passes ``issue_columns=False``.
     """
+    generic = issue_check_keys(edits, titles, anchors, severities) if issue_columns else ()
     scored = [
-        *(("issue_checks", key) for key in issue_check_keys(edits, titles, anchors, severities)),
+        *(("issue_checks", key) for key in generic),
         *(("decoy_checks", f"no_fp_{reason}") for reason in decoy_reasons),
         *extra,
     ]

@@ -143,6 +143,13 @@ class Decoy(BaseModel):
 
     anchor: str = Field(description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document")
     reason: str = Field(description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>")
+    rationale: Optional[str] = Field(
+        default=None,
+        description=(
+            "The labeller's account of why the sentence is sound. Not scored deterministically; a workflow "
+            "whose decoys are judged (a methodology choice no line match can tell apart) shows it to the grader."
+        ),
+    )
     title: Optional[str] = Field(
         default=None,
         description=(
@@ -164,6 +171,13 @@ class InventoryRecord(BaseModel):
     )
     decoys: list[Decoy] = Field(default_factory=list, description="Sentences a correct run leaves alone")
     notes: Optional[str] = Field(default=None, description="Why the record exists or how it was labelled; not scored")
+    publication_date: Optional[str] = Field(
+        default=None,
+        description=(
+            "The document's publication date (YYYY-MM-DD), set on the project before the run, for a "
+            "date-sensitive workflow (sources before it, or after it); omit to leave the project undated"
+        ),
+    )
     target_answer: Optional[str] = Field(
         default=None,
         description="Free-text expectation for a model-graded scorer, passed as the sample's target; the checks here ignore it",
@@ -207,6 +221,7 @@ class ResolvedInventory(BaseModel):
     # wrong verdict is scored by title_correct instead of pairing the report with a
     # neighbouring claim that happens to share the verdict.
     pair_on_location: bool = False
+    publication_date: Optional[str] = None
     target_answer: Optional[str] = None
 
 
@@ -299,6 +314,7 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         expected_issues=issues,
         decoys=record.decoys,
         notes=record.notes,
+        publication_date=record.publication_date,
         target_answer=record.target_answer,
     )
 
@@ -351,12 +367,12 @@ def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
 def inventory_to_sample(inventory: ResolvedInventory) -> Sample:
     """A resolved inventory becomes a Sample whose input is the document, whose
     target is the record's free-text expectation (empty when it has none), and
-    whose metadata carries the inventory for the scorers."""
-    return Sample(
-        input=inventory.document,
-        target=inventory.target_answer or "",
-        metadata={"inventory": inventory.model_dump()},
-    )
+    whose metadata carries the inventory for the scorers and, when the record has
+    one, the publication date for the solver (see ``api_solver.api_workflow_solver``)."""
+    metadata: dict = {"inventory": inventory.model_dump()}
+    if inventory.publication_date:
+        metadata["publication_date"] = inventory.publication_date
+    return Sample(input=inventory.document, target=inventory.target_answer or "", metadata=metadata)
 
 
 def inventory_dataset(records: Sequence[ResolvedInventory], path: Path) -> MemoryDataset:

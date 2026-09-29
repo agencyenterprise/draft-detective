@@ -447,6 +447,18 @@ def hit_pairs(
     return hits, pairs
 
 
+def covering_pairs(issues: Sequence[IssueItem], inventory: ResolvedInventory) -> list[tuple[ResolvedIssue, IssueItem]]:
+    """Every (expected, reported) pair in which the issue reports the expected one, strongest
+    evidence first within each expected: for a workflow that reports several issues per expected
+    issue (one per recommended source), where each is a report of that claim in its own right."""
+    claimed = claimed_titles(inventory)
+    return [
+        (e, issues[i])
+        for e in inventory.expected_issues
+        for i in ranked_hits(e, issues, claimed, inventory.pair_on_location)
+    ]
+
+
 def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
     """Indices of ``issues`` in a total order over their content: line range,
     title, description, then severity and suggested action. Identical reports
@@ -560,6 +572,7 @@ def issue_detection_scores(
     titles: bool = True,
     anchors: bool = True,
     severities: bool = True,
+    several_per_expected: bool = False,
 ) -> tuple[dict[str, float], str]:
     """Detection and, for a workflow that proposes edits, generic edit hygiene.
 
@@ -569,7 +582,10 @@ def issue_detection_scores(
     issue or declares no severity passes ``titles``, ``anchors`` or
     ``severities=False``, so its scores (and the log viewer's columns) carry no
     keys it can never score. ``one_to_one`` holds a workflow that must report each expected issue
-    separately to that (see ``pairs``).
+    separately to that (see ``pairs``). ``several_per_expected`` is the opposite case, a workflow
+    that may report one expected issue several times over (one issue per recommended source):
+    precision then counts every reported issue that covers some expected one, not only the one
+    paired with it.
     """
     lines = inventory.document.split("\n")
     expected_issues = inventory.expected_issues
@@ -580,6 +596,9 @@ def issue_detection_scores(
     required = [e for e in expected_issues if e.required]
     found_required = [e for e in required if hits[e.id] is not None]
     hit_indices = {i for i in hits.values() if i is not None}
+    if several_per_expected:
+        covering = {id(issue) for _, issue in covering_pairs(issues, inventory)}
+        hit_indices = {k for k, issue in enumerate(issues) if id(issue) in covering}
 
     if expected_issues:
         recall = len(found_required) / len(required) if required else 1.0
@@ -733,6 +752,7 @@ def issue_checks(
     anchors: bool = True,
     severities: bool = True,
     results: Sequence[str] = DEFAULT_RESULTS,
+    several_per_expected: bool = False,
 ) -> Scorer:
     """Reported issues against the expected ones: recall, precision, F0.5, lines,
     titles unless ``titles`` is False (an inventory that names none), the anchor
@@ -740,12 +760,13 @@ def issue_checks(
     unless ``severities`` is False (an inventory that declares none), plus edit
     presence and text integrity unless ``edits`` is False (a workflow that
     proposes no edits). ``one_to_one`` makes a reported issue cover at most one
-    expected issue, for a workflow that must report each occurrence separately.
-    ``results`` names the state fields the issues are read from.
+    expected issue, for a workflow that must report each occurrence separately;
+    ``several_per_expected`` lets several reported issues cover one (see
+    ``issue_detection_scores``). ``results`` names the state fields the issues are read from.
     The same keys for every sample of an eval."""
     return deterministic_scorer(
         lambda issues, inventory: issue_detection_scores(
-            issues, inventory, edits, one_to_one, titles, anchors, severities
+            issues, inventory, edits, one_to_one, titles, anchors, severities, several_per_expected
         ),
         results,
     )

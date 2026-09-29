@@ -1,0 +1,514 @@
+# Eval samples for the literature_review_v2 workflow, in inventory form. Each expected issue is
+# anchored on a claim the document should support with sources it does not cite: a well-studied
+# claim left uncited, a one-sided claim with a known conflicting literature, or a claim a reference
+# already in the bibliography supports but is never cited for. Titles are free-form (one issue per
+# recommended source), so issues are matched on the anchor quoted or its line bracketed, and several
+# issues may cover one claim. Its `rationale` names the literature a correct run draws on; the judged
+# criterion compares the reported source against it, without asserting any one source, since web
+# search results change. Claims a run may reasonably add a source to (one already cited, an author's
+# recommendation, a local plan or result a source could give context to) are optional: the skill asks
+# for contextual sources too, so few substantive sentences are off limits. Decoys are the sentences no
+# source can bear on: procedure, logistics, a definition already cited. A record with a `publication_date` dates the project, and every recommended
+# source must be from before it. Every paragraph is one line, so a line identifies one claim.
+# See evals_inspectai/common/issue_inventory.py.
+
+- input: |
+    # Improving Long-Term Retention Through Study Scheduling
+
+    ## Overview
+
+    This brief reviews how the timing of study sessions affects long-term retention of learned material, drawing on Ebbinghaus's early work on forgetting.
+
+    ## Claims
+
+    Distributed practice, spacing study sessions apart rather than cramming, consistently improves long-term retention compared with massed practice.
+
+    Retrieval practice, in which learners actively recall information rather than re-read it, further strengthens retention.
+
+    These effects are robust across age groups and across many types of material.
+
+    ## Recommendation
+
+    We recommend that the district's revision guide schedule each unit's review sessions at least one week apart.
+
+    In our spring survey, 212 of 340 teachers said they already space review sessions across the term.
+
+    ## References
+
+    1. Ebbinghaus, H. (1885). Memory: A Contribution to Experimental Psychology.
+  expected_issues:
+  - id: spacing
+    anchor: consistently improves long-term retention compared with massed practice
+    rationale: >-
+      The spacing effect is among the best-replicated findings in learning research and the claim cites
+      nothing. Meta-analyses of distributed practice (Cepeda et al. 2006, Psychological Bulletin; Donovan &
+      Radosevich 1999) support it, and the bibliography's own Ebbinghaus (1885) first reported it.
+  - id: retrieval
+    anchor: Retrieval practice, in which learners actively recall information
+    rationale: >-
+      The testing effect is well established and uncited here: Roediger & Karpicke (2006) on test-enhanced
+      learning, and meta-analyses such as Rowland (2014) and Adesope et al. (2017).
+  - id: robust
+    anchor: These effects are robust across age groups and across many types of material.
+    rationale: >-
+      A broad generalization that reviews support only with qualifications: Dunlosky et al. (2013) rate both
+      techniques highly across learners and materials, while meta-analyses such as Pan & Rickard (2018)
+      report boundary conditions (transfer, test format).
+  - id: overview_ebbinghaus
+    anchor: drawing on Ebbinghaus's early work on forgetting
+    required: false
+  - id: one_week
+    anchor: schedule each unit's review sessions at least one week apart
+    required: false
+  decoys:
+  - anchor: 212 of 340 teachers said they already space review sessions
+    reason: own_data
+  notes: The original sample, with its three claims on separate lines and an own-data sentence added.
+
+- input: |
+    # Growth Mindset and Academic Achievement
+
+    ## Summary
+
+    A growth mindset is the belief that intelligence can be developed through effort (Dweck, 2006).
+
+    We claim that brief growth-mindset interventions reliably produce large improvements in students' academic achievement across virtually all contexts.
+
+    ## Argument
+
+    Teaching students that intelligence is malleable rather than fixed leads to substantially higher grades and standardized test scores.
+
+    The effect is large in magnitude and generalizes broadly across student populations, subjects, and countries.
+
+    Our district piloted a two-session mindset workshop in four middle schools in the autumn of 2023.
+
+    The workshop sessions were held in school libraries during the first week of term.
+
+    ## References
+
+    1. Dweck, C. S. (2006). Mindset: The New Psychology of Success. Random House.
+  publication_date: "2024-06-01"
+  expected_issues:
+  - id: reliably_large
+    anchor: brief growth-mindset interventions reliably produce large improvements
+    rationale: >-
+      One-sided. Large meta-analyses find small average effects concentrated in some groups (Sisk et al.
+      2018, Psychological Science; Macnamara & Burgoyne 2023, Psychological Bulletin), and the national
+      randomized study (Yeager et al. 2019, Nature) found a small effect, larger for lower-achieving students.
+  - id: higher_grades
+    anchor: leads to substantially higher grades and standardized test scores
+    rationale: >-
+      An empirical causal claim with no source; the randomized evidence (Yeager et al. 2019; Paunesku et al.
+      2015) supports modest effects on grades, and meta-analyses (Sisk et al. 2018) question their size.
+  - id: generalizes
+    anchor: generalizes broadly across student populations, subjects, and countries
+    rationale: >-
+      Contradicted by evidence of heterogeneity and null replications: Sisk et al. (2018), Macnamara &
+      Burgoyne (2023), and the English effectiveness trial of Changing Mindsets (Foliano et al. 2019, EEF).
+  - id: pilot
+    anchor: Our district piloted a two-session mindset workshop
+    required: false
+  decoys:
+  - anchor: A growth mindset is the belief that intelligence can be developed through effort
+    reason: cited_definition
+  - anchor: The workshop sessions were held in school libraries
+    reason: local_fact
+  notes: >-
+    The original one-sided sample, dated mid-2024 so every meta-analysis it should draw on is available
+    and nothing later is. The definition is cited to the bibliography's own source and needs nothing more.
+    The pilot is optional: prior intervention studies (Blackwell et al. 2007) are a fair rationale for its
+    design.
+
+- input: |
+    # Internal Note: Renaming the Export Button
+
+    ## Context
+
+    This internal note documents a minor UI copy change in our web application. The button currently labelled "Download" on the reports page will be renamed to "Export". This is a copy-only implementation change: it does not alter the button's behavior, permissions, output, or data flow, and the note makes no empirical, scientific, or statistical claims.
+
+    ## Decision
+
+    We will rename the button in the next release. No user research or external literature informed this local implementation decision.
+
+    ## References
+
+    None.
+  decoys:
+  - anchor: it does not alter the button's behavior, permissions, output, or data flow
+    reason: implementation_scope
+  notes: >-
+    No substantive claim, so no source is warranted. The implementation-scope statement is about this
+    change, not a claim that wording never affects users.
+
+- input: |
+    # Button Labels and User Comprehension
+
+    ## Summary
+
+    We claim that renaming the reports-page button from "Download" to "Export" will have no effect on whether users notice, understand, or successfully use the control.
+
+    This conclusion applies to all users and can be generalized to other web applications.
+
+    ## Evidence
+
+    The wording change has not been evaluated through usability testing or accessibility review.
+
+    We nevertheless conclude that visible button labels are purely cosmetic and cannot affect task completion or user comprehension.
+
+    ## References
+
+    None.
+  expected_issues:
+  - id: no_effect
+    anchor: will have no effect on whether users notice, understand, or successfully use the control
+    rationale: >-
+      An empirical usability claim with no evidence. Research on interface terminology and action-button
+      labels (for example Feuer et al. 2021 on survey button labels, usability work on label wording) shows
+      wording can change comprehension and completion.
+  - id: generalized
+    anchor: can be generalized to other web applications
+    rationale: >-
+      An unsupported generalization; usability testing literature (Nielsen; Faulkner 2003 on sample sizes)
+      treats label effects as context-dependent and something to test.
+  - id: cosmetic
+    anchor: visible button labels are purely cosmetic
+    rationale: >-
+      Contradicted by accessibility guidance and research: WCAG's label and accessible-name requirements
+      exist because labels affect task completion, and label-wording studies report measurable effects.
+  - id: not_evaluated
+    anchor: The wording change has not been evaluated through usability testing
+    required: false
+  notes: >-
+    The original sample, with its claims on separate lines. The admission that nothing was tested is
+    optional: a run may fairly point to usability-evaluation standards there.
+
+- input: |
+    # Minimum Wage Increases and Teen Employment
+
+    ## Background
+
+    The state legislature is considering raising the minimum wage from $7.25 to $9.00 per hour by 2012.
+
+    ## Evidence
+
+    Economic theory predicts that a binding minimum wage reduces employment among low-wage workers.
+
+    Raising the minimum wage always reduces employment among teenagers, and every careful empirical study has found large job losses.
+
+    Most minimum-wage workers are teenagers from middle-income households working for spending money.
+
+    ## Our analysis
+
+    Using the state's 2009 payroll records, we count 41,200 workers currently paid below $9.00 per hour.
+
+    ## References
+
+    1. Stigler, G. J. (1946). The economics of minimum wage legislation. American Economic Review, 36(3), 358–365.
+  publication_date: "2010-06-30"
+  expected_issues:
+  - id: theory
+    anchor: Economic theory predicts that a binding minimum wage reduces employment
+    rationale: >-
+      The bibliography's Stigler (1946) is the classic statement of this prediction and is never cited in
+      the text: the claim should cite it.
+  - id: always_reduces
+    anchor: always reduces employment among teenagers, and every careful empirical study
+    rationale: >-
+      One-sided and false as stated. Card & Krueger (1994, American Economic Review) found no employment
+      loss in New Jersey fast food; Neumark & Wascher (2007) review a literature leaning towards modest
+      negative effects; Dube, Lester & Reich (2010) find none with contiguous-county controls. The
+      evidence is mixed, not unanimous.
+  - id: who_earns
+    anchor: Most minimum-wage workers are teenagers from middle-income households
+    rationale: >-
+      A factual claim contradicted by labour statistics: the Bureau of Labor Statistics' annual
+      Characteristics of Minimum Wage Workers reports show most are adults over 20, and studies of
+      minimum-wage earners' households (Burkhauser, Card) show a mix of incomes.
+  decoys:
+  - anchor: The state legislature is considering raising the minimum wage
+    reason: local_fact
+  - anchor: we count 41,200 workers currently paid below $9.00 per hour
+    reason: own_data
+  notes: >-
+    Dated mid-2010, so the later minimum-wage literature (Cengiz et al. 2019, the Seattle studies) is out
+    of window. The theory claim tests the existing-but-under-cited case.
+
+- input: |
+    # Sugar and Children's Behaviour: A Guide for Parents
+
+    ## Summary
+
+    This guide answers common questions parents ask our clinic about diet and behaviour.
+
+    ## What the evidence says
+
+    Eating sugar makes children hyperactive, and parents reliably notice the change within an hour of a sugary snack.
+
+    Food dyes have no effect at all on children's behaviour.
+
+    ## Clinic advice
+
+    Our clinic recommends limiting added sugar to under 25 grams a day for children aged 2 to 18.
+
+    In 2014 our clinic answered 1,180 parent calls about diet and behaviour.
+  publication_date: "2015-03-01"
+  expected_issues:
+  - id: sugar_hyperactive
+    anchor: Eating sugar makes children hyperactive
+    rationale: >-
+      Contradicted by controlled trials: the meta-analysis of Wolraich, Wilson & White (1995, JAMA) found no
+      effect of sugar on behaviour or cognition, and Hoover & Milich (1994) showed that mothers who
+      expected a sugar effect rated their children as more hyperactive after a placebo.
+  - id: dyes
+    anchor: Food dyes have no effect at all on children's behaviour.
+    rationale: >-
+      Contradicted by randomized trials and meta-analyses: McCann et al. (2007, Lancet) found artificial
+      colours and a preservative increased hyperactivity in the general population, and Nigg et al. (2012)
+      and Schab & Trinh (2004) report small effects.
+  - id: limit
+    anchor: limiting added sugar to under 25 grams a day
+    required: false
+  decoys:
+  - anchor: This guide answers common questions parents ask our clinic
+    reason: procedural
+  - anchor: our clinic answered 1,180 parent calls
+    reason: own_data
+  notes: >-
+    Dated March 2015. The 25 g recommendation is optional: the American Heart Association statement that
+    set it (Vos et al. 2016) postdates the guide, which the date check catches if it is recommended.
+
+- input: |
+    # Class Size Reduction in Early Grades: Briefing for the School Board
+
+    ## Question
+
+    The board asked whether reducing kindergarten to third-grade classes from 24 to 17 students would raise achievement.
+
+    ## Evidence
+
+    Randomized evidence shows that small classes in kindergarten through third grade raise test scores, with the largest gains for Black and low-income students.
+
+    The benefits of small classes disappear entirely once students return to regular-size classes.
+
+    California's statewide class-size reduction in 1996 produced the same gains as the randomized experiment.
+
+    ## Cost
+
+    Our finance office estimates the change would require 38 additional teachers at a cost of $2.9 million a year.
+  publication_date: "2012-09-01"
+  expected_issues:
+  - id: star
+    anchor: Randomized evidence shows that small classes in kindergarten through third grade raise test scores
+    rationale: >-
+      The Tennessee STAR experiment, uncited: Finn & Achilles (1990), Krueger (1999, Quarterly Journal of
+      Economics), and Krueger & Whitmore (2001), which report larger effects for Black and low-income
+      students.
+  - id: fade
+    anchor: The benefits of small classes disappear entirely
+    rationale: >-
+      Contradicted by follow-ups of STAR: Nye, Hedges & Konstantopoulos (1999) and Krueger & Whitmore (2001)
+      find lasting effects, and Chetty et al. (2011, QJE) find long-run effects on college attendance
+      despite fading test-score gains.
+  - id: california
+    anchor: California's statewide class-size reduction in 1996 produced the same gains
+    rationale: >-
+      Contradicted by evaluations of the California program: Jepsen & Rivkin (2009, Journal of Human
+      Resources) find smaller gains offset by less-experienced teachers, and the CSR Research Consortium
+      (Bohrnstedt & Stecher 2002) could not attribute gains to the policy.
+  - id: cost
+    anchor: Our finance office estimates the change would require 38 additional teachers
+    required: false
+  decoys:
+  - anchor: The board asked whether reducing kindergarten to third-grade classes
+    reason: local_fact
+  notes: >-
+    Dated September 2012; every source it needs predates that. The cost estimate is optional: the
+    cost-benefit literature on class size (Krueger 2003) is a fair benchmark for it.
+
+- input: |
+    # Does Bilingualism Improve Executive Function?
+
+    ## Introduction
+
+    Bilingual children must manage two languages, and several studies have proposed that this practice strengthens executive control (Bialystok, 2001).
+
+    ## Evidence
+
+    Bilingual adults outperform monolinguals on the Simon task and other measures of inhibitory control.
+
+    Several large studies have failed to find any bilingual advantage in executive function once groups are matched on background.
+
+    ## Scope
+
+    This review covers studies of healthy adults and children published in English.
+
+    ## References
+
+    1. Bialystok, E. (2001). Bilingualism in Development: Language, Literacy, and Cognition. Cambridge University Press.
+    2. Paap, K. R., & Greenberg, Z. I. (2013). There is no coherent evidence for a bilingual advantage in executive processing. Cognitive Psychology, 66(2), 232–258.
+  publication_date: "2016-01-01"
+  expected_issues:
+  - id: simon
+    anchor: Bilingual adults outperform monolinguals on the Simon task
+    rationale: >-
+      Uncited and contested. Bialystok et al. (2004, Psychology and Aging) reported the Simon-task
+      advantage; the bibliography's own Paap & Greenberg (2013) and Duñabeitia et al. (2014) failed to
+      find it. A correct run supports the claim and qualifies it with the conflicting work.
+  - id: failed
+    anchor: Several large studies have failed to find any bilingual advantage
+    rationale: >-
+      The bibliography's Paap & Greenberg (2013) is exactly this evidence and is never cited in the text;
+      Duñabeitia et al. (2014) and Paap et al. (2015) are further large null studies.
+  - id: intro_cited
+    anchor: several studies have proposed that this practice strengthens executive control
+    required: false
+  decoys:
+  - anchor: This review covers studies of healthy adults and children published in English.
+    reason: procedural
+  notes: >-
+    Tests the existing-but-under-cited case twice (Paap & Greenberg for the null claim). Dated 2016, so
+    the later meta-analyses (Lehtonen et al. 2018) are out of window.
+
+- input: |
+    # Diet and Heart Health: Evidence Summary for the Wellness Program
+
+    ## Purpose
+
+    This summary supports the employee wellness program's nutrition module.
+
+    ## Evidence
+
+    A Mediterranean diet supplemented with extra-virgin olive oil or nuts reduces major cardiovascular events in people at high cardiovascular risk.
+
+    Saturated fat intake is the single most important dietary cause of heart disease.
+
+    ## Program design
+
+    The nutrition module will run for 12 weeks and include six cooking sessions.
+
+    In last year's program, 184 employees enrolled and 131 completed all sessions.
+  publication_date: "2020-01-15"
+  expected_issues:
+  - id: predimed
+    anchor: A Mediterranean diet supplemented with extra-virgin olive oil or nuts
+    rationale: >-
+      This is the PREDIMED trial's finding (Estruch et al., New England Journal of Medicine), which the
+      claim should cite; the 2013 report was retracted and republished with corrected analyses in 2018,
+      and a careful recommendation cites the 2018 version.
+  - id: saturated_fat
+    anchor: Saturated fat intake is the single most important dietary cause of heart disease.
+    rationale: >-
+      Overstated and contested: meta-analyses of cohort studies (Siri-Tarino et al. 2010; Chowdhury et al.
+      2014, Annals of Internal Medicine) found no clear association, while trial-based reviews (Hooper et
+      al., Cochrane 2015) find a modest benefit from reducing saturated fat. Neither makes it the single
+      most important cause.
+  decoys:
+  - anchor: This summary supports the employee wellness program's nutrition module.
+    reason: procedural
+  - anchor: The nutrition module will run for 12 weeks
+    reason: local_fact
+  - anchor: 184 employees enrolled and 131 completed all sessions
+    reason: own_data
+  notes: Dated January 2020, before the Cochrane update of August 2020.
+
+- input: |
+    # Physical Activity as a Treatment for Depression
+
+    ## Aim
+
+    This note summarises evidence for a pilot referral scheme in our primary-care network.
+
+    ## Evidence
+
+    Structured exercise reduces depressive symptoms in adults with depression compared with no treatment.
+
+    Exercise is as effective as antidepressant medication for every patient with depression, including those with severe depression.
+
+    ## Pilot
+
+    The pilot will refer up to 60 patients to a supervised 10-week walking group.
+  expected_issues:
+  - id: reduces
+    anchor: Structured exercise reduces depressive symptoms in adults with depression
+    rationale: >-
+      Well supported but uncited: the Cochrane review (Cooney et al. 2013), Schuch et al. (2016), and later
+      network meta-analyses (Noetel et al. 2024, BMJ; Heissel et al. 2023).
+  - id: every_patient
+    anchor: as effective as antidepressant medication for every patient with depression
+    rationale: >-
+      Overstated. Trials comparing exercise with medication are few and small (Cooney et al. 2013;
+      Blumenthal et al. 2007), and the evidence for severe depression is limited, so the comparison holds
+      for mild-to-moderate depression in trial samples, not every patient.
+  - id: pilot_design
+    anchor: The pilot will refer up to 60 patients
+    required: false
+  decoys:
+  - anchor: This note summarises evidence for a pilot referral scheme
+    reason: procedural
+  notes: >-
+    Undated, so recent network meta-analyses are in scope. The pilot's design is optional: evidence on
+    exercise referral schemes and walking is a fair rationale for it.
+
+- input: |
+    # Staff Retreat Logistics
+
+    ## Dates and venue
+
+    The staff retreat will take place on 14–15 May at the Riverside Conference Centre.
+
+    ## Travel
+
+    A coach will leave the main office at 8:00 on 14 May and return at 17:30 on 15 May.
+
+    ## Contacts
+
+    Questions about rooms or dietary needs should go to the operations team by 30 April.
+  decoys:
+  - anchor: The staff retreat will take place on 14–15 May
+    reason: local_fact
+  notes: Logistics only; there is nothing a source could support.
+
+- input: |
+    # Smartphones and Teen Mental Health
+
+    ## Overview
+
+    This brief for the parents' association summarises what research says about smartphones and adolescent wellbeing.
+
+    It was prepared by the association's volunteer committee for the spring newsletter.
+
+    ## Claims
+
+    Rates of depressive symptoms among US adolescents rose after 2012, the period in which smartphone ownership became widespread.
+
+    Screen time is a major cause of the decline in adolescent wellbeing, with effects as large as those of heavy drug use.
+
+    ## Our survey
+
+    In our March survey, 71 percent of parents said their child owns a smartphone.
+  publication_date: "2018-06-01"
+  expected_issues:
+  - id: rose
+    anchor: Rates of depressive symptoms among US adolescents rose after 2012
+    rationale: >-
+      Supported by national survey data, uncited: Twenge et al. (2018, Clinical Psychological Science) and
+      Mojtabai, Olfson & Han (2016, Pediatrics) on the rise in adolescent depression.
+  - id: major_cause
+    anchor: Screen time is a major cause of the decline in adolescent wellbeing
+    rationale: >-
+      A causal claim from correlational data, with conflicting evidence: Przybylski & Weinstein (2017,
+      Psychological Science) find small, non-linear associations. The best-known rebuttal (Orben &
+      Przybylski 2019) postdates the brief and must not be recommended.
+  - id: overview
+    anchor: This brief for the parents' association summarises what research says
+    required: false
+  - id: survey
+    anchor: 71 percent of parents said their child owns a smartphone
+    required: false
+  decoys:
+  - anchor: prepared by the association's volunteer committee
+    reason: procedural
+  notes: >-
+    Dated June 2018. The effect-size comparison is the one later papers rebut, so the date check matters
+    most here. The overview, which says it summarises the research, may fairly get a synthesis, and the
+    survey result a national benchmark.

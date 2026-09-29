@@ -176,6 +176,10 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
                                                     # title, when a correct run reports the sentence
                                                     # under another (every recommendation gets a
                                                     # support issue, but not every one is vague)
+      rationale: "Stative, no actor to name."         # optional; why the sentence is sound, for an
+                                                    # eval that grades its decoys
+  publication_date: "2015-01-01"                      # optional; dates the project for a date-sensitive
+                                                    # workflow (run it with api_workflow_solver)
   target_answer: "..."                                # optional; the sample target a model-graded scorer reads
 ```
 
@@ -187,7 +191,13 @@ no line, is detected by any reported issue carrying that title, and is left out 
 the kind of issue (Claim Reference Validation titles each citation with its support level), the
 loader sets `pair_on_location` on the inventory: reports then pair with expected issues on quote and
 line alone, so a wrong verdict is scored by `title_correct` instead of pairing the report with a
-neighbouring claim that shares the verdict. A record with `expected_issues: []` is a clean
+neighbouring claim that shares the verdict. A workflow that recommends sources found by web
+search (Literature Review, Live Reports) has no stable titles and may raise several issues on one
+claim, so its expected issues are untitled and matched on location, not one-to-one; its sources are
+not asserted, but the shared `source_checks` scorer (`evals_inspectai/common/source_citations.py`)
+reads every link-bearing line of an issue as a citation and checks it has a year, falls on the right
+side of the record's `publication_date`, is listed in the report, and, for a live report, is not in
+the document's own reference list. A record with `expected_issues: []` is a clean
 document: anything reported on it is a false positive. Fixture documents live under
 `evals_inspectai/e2e/<slug>/files/` and are referenced with `file://e2e/<slug>/files/...`.
 
@@ -238,7 +248,12 @@ Check uses the first two plus its image check):
    the labeller's account of the issue (Inference Validation grades whether the reported
    analysis names the labelled flaw; Claim Reference Validation whether the rationale says
    what the cited source actually backs). A reference criterion applies only to expected
-   issues that carry a rationale.
+   issues that carry a rationale. A workflow that reports every gap it finds, not only the
+   planted ones, and anchors an omission at the passage it affects (Methodological Alignment)
+   gets no precision against the plants: its planted risks are graded on the best of the issues
+   on their line, and its decoys, sound choices with a `rationale`, are graded one by one
+   against every issue reported, since no line can tell a criticism of a decoy from one of its
+   neighbour.
 
 Each task passes a one-line description of every metric as `Task(metadata=...)`, which the
 log viewer shows once in its Info tab; per-sample `explanation` text says what happened on

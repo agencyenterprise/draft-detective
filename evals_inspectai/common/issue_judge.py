@@ -32,6 +32,7 @@ from pydantic import BaseModel, ConfigDict
 from evals_inspectai.common.issue_checks import (
     DEFAULT_RESULTS,
     PER_KEY_METRICS,
+    covering_pairs,
     edits_for,
     hit_pairs,
     inventory_from_state,
@@ -122,6 +123,13 @@ def grader_input(prompt: str) -> str | list[ChatMessage]:
     for path, uri in images:
         content += [ContentText(text=f"Image {path}:"), ContentImage(image=uri)]
     return [ChatMessageUser(content=content)]
+
+
+def gist(reasoning: str, width: int = 200) -> str:
+    """The grader's conclusion, for a score note: the last line of its reasoning before
+    the grade, since the step-by-step reasoning opens by restating the task."""
+    lines = [line.strip() for line in reasoning.splitlines() if line.strip() and not re.match(DEFAULT_GRADE_PATTERN, line.strip())]
+    return (lines[-1] if lines else "")[:width]
 
 
 async def grade(grader: Model, prompt: str, calls: int) -> tuple[float, str]:
@@ -258,12 +266,16 @@ async def judge_sample(
     criteria: Sequence[JudgeCriterion],
     calls: int = 1,
     one_to_one: bool = False,
+    several_per_expected: bool = False,
 ) -> tuple[dict[str, float], str]:
     """All criteria for one sample, NaN where a criterion has nothing to judge.
 
     Expected issues are paired with reports by ``hit_pairs``, the same pairing
     the deterministic layers use (canonical order, and one-to-one when the
     workflow asks for it), so the judge grades the report those layers scored.
+    With ``several_per_expected`` every issue covering an expected issue is graded
+    against it (``covering_pairs``), for a workflow that reports one issue per
+    recommended source: each recommendation must hold up, not only the best one.
 
     An expected-scope criterion judges the part of the issue it reads (the
     suggested action by default, or the analysis); a detected issue that offers
@@ -277,9 +289,10 @@ async def judge_sample(
     def record(criterion: JudgeCriterion, expected: ResolvedIssue, value: float, why: str) -> None:
         values[criterion.key].append(value)
         if value < 1.0:
-            notes.append(f"{expected.id} {criterion.key} {value}: {why.splitlines()[0][:160]}")
+            notes.append(f"{expected.id} {criterion.key} {value}: {gist(why)}")
 
-    for expected, issue in hit_pairs(issues, inventory, one_to_one)[1]:
+    pairs = covering_pairs(issues, inventory) if several_per_expected else hit_pairs(issues, inventory, one_to_one)[1]
+    for expected, issue in pairs:
         paragraph = _paragraph(expected, inventory.document)
         for criterion in criteria:
             if not _applies(criterion, expected):
@@ -307,14 +320,15 @@ def judged_criteria(
     calls: int = 1,
     one_to_one: bool = False,
     results: Sequence[str] = DEFAULT_RESULTS,
+    several_per_expected: bool = False,
 ) -> Scorer:
     """A workflow's judged criteria, one focused grader call per item.
 
     The grader is Inspect's ``grader`` model role (``--model-role grader=...``),
     falling back to the repo's default grader model. ``calls`` grader calls are
-    made per item and the median grade kept. ``one_to_one`` and ``results`` must
-    match what the workflow's ``issue_checks`` uses, so both layers pair the same
-    reports read from the same state fields.
+    made per item and the median grade kept. ``one_to_one``, ``several_per_expected``
+    and ``results`` must match what the workflow's ``issue_checks`` uses, so both
+    layers pair the same reports read from the same state fields.
     """
 
     async def score(state: TaskState, target: Target) -> Score:
@@ -323,7 +337,8 @@ def judged_criteria(
             return Score(value={c.key: 0.0 for c in criteria}, explanation=error)
         grader = get_model(role="grader", default=DEFAULT_GRADER_MODEL)
         values, explanation = await judge_sample(
-            grader, issues, inventory_from_state(state), criteria, calls=calls, one_to_one=one_to_one
+            grader, issues, inventory_from_state(state), criteria, calls=calls, one_to_one=one_to_one,
+            several_per_expected=several_per_expected,
         )
         return Score(value=values, explanation=explanation)
 

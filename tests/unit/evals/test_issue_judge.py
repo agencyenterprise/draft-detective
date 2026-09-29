@@ -6,7 +6,7 @@ from typing import cast
 import pytest
 from inspect_ai.model import ContentImage, ContentText, Model
 
-from evals_inspectai.common.issue_judge import JudgeCriterion, grader_input, judge_sample, section_text
+from evals_inspectai.common.issue_judge import JudgeCriterion, gist, grader_input, judge_sample, section_text
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
@@ -277,3 +277,22 @@ async def test_a_reference_criterion_shows_the_labellers_rationale_and_skips_iss
 
     values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
     assert math.isnan(values["flaw"]) and len(grader.prompts) == 1, "no rationale, nothing to compare against"
+
+
+@pytest.mark.asyncio
+async def test_several_per_expected_grades_every_issue_covering_the_expected():
+    criterion = JudgeCriterion(key="asked", criterion="The action fits.", scope="expected")
+    expected = _expected(title=None)
+    issues = [IssueItem(title=f"Source {n}", severity="low", start_line=5, end_line=5, suggested_action="Cite it.") for n in (1, 2)]
+    grader = _Grader()
+    values, _ = await judge_sample(cast(Model, grader), issues, _inventory(expected), [criterion], several_per_expected=True)
+    assert values["asked"] == 1.0 and len(grader.prompts) == 2
+    grader = _Grader()
+    await judge_sample(cast(Model, grader), issues, _inventory(expected), [criterion])
+    assert len(grader.prompts) == 1
+
+
+def test_a_score_note_quotes_the_graders_conclusion_not_its_first_step():
+    reasoning = "Step 1: Identify the claim.\n\nThe source is on topic but indirect, so partial credit.\n\nGRADE: P"
+    assert gist(reasoning) == "The source is on topic but indirect, so partial credit."
+    assert gist("GRADE: C") == ""
