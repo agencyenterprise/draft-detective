@@ -14,7 +14,7 @@ sound choices. The field baseline comes from live web search, so no wording
 or source is asserted.
 
 Scorers: ``report_checks`` (the skill's five sections, web links, no
-informational issue); ``plant_checks`` (some issue on each planted risk's line,
+informational issue, every issue on a valid line range); ``plant_checks`` (some issue on each planted risk's line,
 at a fitting severity); and ``methodology_judged``, which grades whether an
 issue on the line names the planted risk, whether its action repairs it, and
 whether the run left each sound choice alone (see ``criteria``). The skill
@@ -126,7 +126,7 @@ async def judge_methodology(
 
 @scorer(metrics=PER_KEY_METRICS)
 def report_checks() -> Scorer:
-    """The report's contract: the skill's five sections, web links, no informational issue."""
+    """The report's contract: the skill's five sections, web links, no informational issue, valid line ranges."""
 
     async def score(state: TaskState, target: Target) -> Score:
         try:
@@ -135,7 +135,7 @@ def report_checks() -> Scorer:
             return Score(value={k: 0.0 for k in OWN_DESCRIPTIONS}, explanation=f"could not parse the workflow state: {e}")
         if output.result is None:
             return Score(value={k: 0.0 for k in OWN_DESCRIPTIONS}, explanation="no result in workflow state")
-        values, explanation = report_scores(output.result.report_markdown or "", output.result.issues)
+        values, explanation = report_scores(output.result.report_markdown or "", output.result.issues, state.input_text)
         return Score(value=values, explanation=explanation)
 
     return score

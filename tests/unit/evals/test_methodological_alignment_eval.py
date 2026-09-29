@@ -72,9 +72,18 @@ def test_task_has_the_report_plant_and_judged_scorers():
 
 def test_report_checks_name_missing_sections_and_informational_issues():
     report = "\n".join(f"## {s}\n\nText." for s in REQUIRED_SECTIONS[:4]) + "\n\nSee [a guide](https://example.org)."
-    values, note = report_scores(report, [_issue("Methodology: A", 5), _issue("Methodology: B", 5, severity="none")])
-    assert values == {"report_sections": 0.8, "report_cites_links": 1.0, "no_informational": 0.5}
+    values, note = report_scores(report, [_issue("Methodology: A", 5), _issue("Methodology: B", 5, severity="none")], DOC)
+    assert values == {"report_sections": 0.8, "report_cites_links": 1.0, "no_informational": 0.5, "valid_line_ranges": 1.0}
     assert "Suggestions for Improvements" in note and "informational" in note
+
+
+def test_every_issue_needs_a_line_range_inside_the_document():
+    reversed_range = IssueItem(title="Methodology: B", description="B", severity="low", start_line=7, end_line=5)
+    unanchored = _issue("Methodology: C", 0)
+    past_end = _issue("Methodology: D", 99)
+    values, note = report_scores("", [_issue("Methodology: A", 5), reversed_range, unanchored, past_end], DOC)
+    assert values["valid_line_ranges"] == 0.25 and "Methodology: C (0-0)" in note
+    assert math.isnan(report_scores("", [], DOC)[0]["valid_line_ranges"])
 
 
 def test_plants_are_covered_by_any_issue_on_their_line_at_a_fitting_severity():

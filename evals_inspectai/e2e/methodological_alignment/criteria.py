@@ -15,7 +15,8 @@ are graded one by one against every issue the run reported
 (``sound_choices_respected``).
 
 The report checks are the skill's contract for the deliverable: its five
-sections, web sources cited as links, and no informational issue.
+sections, web sources cited as links, no informational issue, and every issue
+anchored on a real line range.
 """
 
 import re
@@ -42,20 +43,27 @@ def _has_heading(report: str, title: str) -> bool:
     return re.search(rf"^#+\s*{re.escape(title)}\b", report, re.M | re.I) is not None
 
 
-def report_scores(report: str, issues: Sequence[IssueItem]) -> tuple[dict[str, float], str]:
+def report_scores(report: str, issues: Sequence[IssueItem], document: str) -> tuple[dict[str, float], str]:
     """``report_sections``: share of the five required sections present. ``report_cites_links``:
     1 if the report cites a web source as a markdown link. ``no_informational``: share of issues
-    whose severity is not ``none`` (NaN when nothing was reported)."""
+    whose severity is not ``none``. ``valid_line_ranges``: share of issues whose range lies
+    within the document, start before end, since the skill anchors every issue on a passage
+    and the plant checks only see the issues that land on a plant. Both NaN when nothing was
+    reported."""
     missing = [t for t in REQUIRED_SECTIONS if not _has_heading(report, t)]
     informational = [i.title for i in issues if i.severity.lower() == "none"]
+    last = len(document.split("\n"))
+    off = [f"{i.title} ({i.start_line}-{i.end_line})" for i in issues if not 1 <= i.start_line <= i.end_line <= last]
     values = {
         "report_sections": 1 - len(missing) / len(REQUIRED_SECTIONS),
         "report_cites_links": float(bool(_CITATION_LINK.search(report))),
         "no_informational": 1 - len(informational) / len(issues) if issues else float("nan"),
+        "valid_line_ranges": 1 - len(off) / len(issues) if issues else float("nan"),
     }
     notes = [f"missing sections: {missing}"] if missing else []
     notes += ["no markdown link to a web source"] if not values["report_cites_links"] else []
     notes += [f"informational issues: {informational}"] if informational else []
+    notes += [f"line ranges outside lines 1-{last} or reversed: {off}"] if off else []
     return values, " | ".join(notes) if notes else "report contract met"
 
 
@@ -140,6 +148,7 @@ OWN_DESCRIPTIONS = {
     "report_sections": "Share of the skill's five report sections present as headings.",
     "report_cites_links": "1 if the report cites at least one web source as a markdown link.",
     "no_informational": "Share of reported issues whose severity is not 'none'. NaN when nothing was reported.",
+    "valid_line_ranges": "Share of reported issues whose line range starts at line 1 or later, does not run backwards and ends within the document. NaN when nothing was reported.",
 }
 PLANT_DESCRIPTIONS = {
     "recall": "Share of planted risks with at least one reported issue quoting the anchor or bracketing its line. Location only: gap_identified says whether that issue names the risk.",
@@ -155,6 +164,7 @@ SCORE_LABELS = {
     "report_sections": "Sections",
     "report_cites_links": "Links",
     "no_informational": "No 'none'",
+    "valid_line_ranges": "Line ranges",
     "recall": "Recall",
     "anchor_in_range": "Lines",
     "severity_fits": "Severity",

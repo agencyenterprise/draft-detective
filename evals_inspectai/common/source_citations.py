@@ -118,10 +118,16 @@ def _named_own(issue: IssueItem, own: Sequence[Citation], linked: Sequence[Citat
         for r in own
         if r.first_author
         and r.year
-        and re.search(rf"\b{re.escape(r.first_author)}\b", text)
+        and _names(text, r.first_author)
         and str(r.year) in text
         and not any(_same_source(r, c) for c in linked)
     ]
+
+
+def _names(text: str, name: str) -> bool:
+    """Whether ``text`` names ``name`` as a whole word, ignoring case: "Li" is not named
+    by "Literature", and "de Bruin" is named by "De Bruin"."""
+    return re.search(rf"(?<!\w){re.escape(name)}(?!\w)", text, re.I) is not None
 
 
 def _publication_year(inventory: ResolvedInventory) -> Optional[int]:
@@ -170,7 +176,7 @@ def source_scores(
     cited = [c for _, cites in per_issue for c in cites]
     authored = [c for c in cited if c.first_author]
     if authored:
-        unlisted = sorted({c.first_author for c in authored if c.first_author and c.first_author not in report})
+        unlisted = sorted({c.first_author for c in authored if c.first_author and not _names(report, c.first_author)})
         values["report_lists_sources"] = 1 - sum(c.first_author in unlisted for c in authored) / len(authored)
         notes += [f"report does not name: {unlisted}"] if unlisted else []
     if new_sources_only and cited:
