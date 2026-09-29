@@ -18,7 +18,6 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 import anthropic
-import httpx
 import httpx2
 import openai
 import pytest
@@ -46,26 +45,15 @@ def _make_context() -> ContextSchema:
 
 def _make_response(
     status_code: int, url: str = "https://api.example.com/v1/x"
-) -> httpx.Response:
-    request = httpx.Request("POST", url)
-    return httpx.Response(status_code=status_code, request=request)
-
-
-def _make_httpx2_response(
-    status_code: int, url: str = "https://api.example.com/v1/x"
 ) -> httpx2.Response:
-    """Build a response for the openai SDK.
-
-    The two SDKs are on different major versions of httpx: openai 3.x takes an
-    `httpx2.Response` (httpx 2.x, packaged under that name) while anthropic is
-    still on httpx 0.28, so one shared helper cannot serve both.
-    """
+    """Build a response for either SDK; openai and anthropic both take httpx 2.x
+    (packaged as `httpx2`)."""
     request = httpx2.Request("POST", url)
     return httpx2.Response(status_code=status_code, request=request)
 
 
 def _make_openai_rate_limit_error() -> openai.RateLimitError:
-    response = _make_httpx2_response(429, "https://api.openai.com/v1/chat/completions")
+    response = _make_response(429, "https://api.openai.com/v1/chat/completions")
     return openai.RateLimitError(message="rate limited", response=response, body=None)
 
 
