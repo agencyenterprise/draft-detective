@@ -14,7 +14,6 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from evals_inspectai.common.inventory_suite import InventorySuite
-from evals_inspectai.common.issue_inventory import ResolvedInventory
 from evals_inspectai.common.loaders import resolve_input
 
 SOURCES_KEY = "sources"
@@ -30,13 +29,6 @@ class Source(BaseModel):
 
     file_name: str = Field(description="Upload name; the app matches it, with its title, to a bibliography entry")
     markdown: str = Field(description="The file's text: inline markdown, or file://<path> relative to evals_inspectai/")
-
-
-class ClaimRecord(BaseModel):
-    """One document with its inventory and the sources its citations point to."""
-
-    inventory: ResolvedInventory
-    sources: list[Source]
 
 
 def load_claim_suite(path: Path) -> InventorySuite:
@@ -56,7 +48,3 @@ def sources_of(extra: dict[str, Any]) -> list[Source]:
 def sources_metadata(extra: dict[str, Any]) -> dict[str, Any]:
     return {SOURCES_KEY: [s.model_dump() for s in sources_of(extra)]}
 
-
-def load_claim_records(path: Path) -> list[ClaimRecord]:
-    suite = load_claim_suite(path)
-    return [ClaimRecord(inventory=r, sources=sources_of(x)) for r, x in zip(suite.records, suite.extras)]

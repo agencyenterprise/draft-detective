@@ -3,6 +3,7 @@
 import json
 import math
 import re
+from pathlib import Path
 from typing import Any, Optional
 
 import pytest
@@ -12,13 +13,13 @@ from inspect_ai.solver import TaskState
 from pydantic import ValidationError
 
 from evals_inspectai.common.api_solver import PERSISTED_ISSUES_KEY
-from evals_inspectai.common.issue_inventory import decoy_reasons, expects_edits, normalize
+from evals_inspectai.common.issue_inventory import ResolvedInventory, decoy_reasons, expects_edits, normalize
 from evals_inspectai.e2e.abbreviation_checker import abbreviation_checker_report_e2e
 from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import (
     DATASET,
     abbreviation_checker_e2e,
     catalogue_checks,
-    load_records,
+    load_suite,
 )
 from evals_inspectai.e2e.abbreviation_checker.criteria import (
     CATALOGUE_KEYS,
@@ -28,6 +29,12 @@ from evals_inspectai.e2e.abbreviation_checker.criteria import (
     ReportedOccurrence,
     catalogue_scores,
 )
+
+
+def load_records(path: Path = DATASET) -> list[tuple[ResolvedInventory, ExpectedCatalogue]]:
+    """Each record's inventory with its expected catalogue."""
+    suite = load_suite(path)
+    return [(inventory, ExpectedCatalogue.model_validate(extra)) for inventory, extra in zip(suite.records, suite.extras)]
 
 NO_SECTION = "No Abbreviations section found"
 TITLES = {

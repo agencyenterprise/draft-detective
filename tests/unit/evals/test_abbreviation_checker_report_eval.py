@@ -1,17 +1,24 @@
 """The long-report Abbreviation Scan eval: the report, its definition-removed variants, and the task."""
 
-from evals_inspectai.common.issue_inventory import decoy_reasons
-from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import load_records
+from evals_inspectai.common.issue_inventory import ResolvedInventory, decoy_reasons
+from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import load_suite
 from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_report_e2e import (
     DATASET,
     abbreviation_checker_report_e2e,
 )
+from evals_inspectai.e2e.abbreviation_checker.criteria import ExpectedCatalogue
 
 UNDEFINED = "Abbreviation not defined at first use"
 
 
+def load_records() -> list[tuple[ResolvedInventory, ExpectedCatalogue]]:
+    """Each record of the report dataset with its expected catalogue."""
+    suite = load_suite(DATASET)
+    return [(inventory, ExpectedCatalogue.model_validate(extra)) for inventory, extra in zip(suite.records, suite.extras)]
+
+
 def test_report_dataset_is_well_formed():
-    records = load_records(DATASET)
+    records = load_records()
     assert len(records) == 10
     report, catalogue = records[0]
     assert len(report.document.split("\n")) == 818, "817 lines and a trailing newline"
@@ -34,7 +41,7 @@ def test_report_dataset_is_well_formed():
 
 
 def test_each_variant_differs_from_the_report_only_by_its_removed_definitions():
-    (report, report_catalogue), *variants = load_records(DATASET)
+    (report, report_catalogue), *variants = load_records()
     report_lines = report.document.split("\n")
     report_ids = {e.id for e in report.expected_issues}
     for inventory, catalogue in variants:

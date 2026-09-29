@@ -18,7 +18,7 @@ from evals_inspectai.e2e.claim_reference_validation_v2.criteria import (
     label_scores,
     quote_scores,
 )
-from evals_inspectai.e2e.claim_reference_validation_v2.records import load_claim_records
+from evals_inspectai.e2e.claim_reference_validation_v2.records import load_claim_suite, sources_of
 
 DATASET = Path("evals_inspectai/e2e/claim_reference_validation_v2/dataset.yaml")
 DOC = "# Findings\n\nThe share rose to 93% worldwide (Patel, 2018).\n\nRural closures dominated (Kim, 2023).\n"
@@ -52,9 +52,10 @@ def _record(level: str, quoted: str, line: int, quotes: tuple[str, ...] = ()) ->
 
 
 def test_records_are_well_formed():
-    records = load_claim_records(DATASET)
+    suite = load_claim_suite(DATASET)
+    records = suite.records
     assert len(records) == 22
-    expected = [e for r in records for e in r.inventory.expected_issues]
+    expected = [e for r in records for e in r.expected_issues]
     assert collections.Counter(e.title for e in expected) == {
         "supported": 16,
         "unsupported": 10,
@@ -62,10 +63,11 @@ def test_records_are_well_formed():
         "unverifiable": 3,
     }
     assert all(e.anchor and e.rationale for e in expected)
-    assert all(r.inventory.policy.named_titles == sorted(LEVELS) for r in records)
-    no_source = [r for r in records if not r.sources]
+    assert all(r.policy.named_titles == sorted(LEVELS) for r in records)
+    sources = [sources_of(extra) for extra in suite.extras]
+    no_source = [r for r, s in zip(records, sources) if not s]
     assert len(no_source) == 2, "the unverifiable citation's document and the document with no citations"
-    assert sum(1 for r in records if not r.inventory.expected_issues) == 1
+    assert sum(1 for r in records if not r.expected_issues) == 1
 
 
 def test_task_reads_the_citation_records_and_leaves_severity_unchecked():
@@ -112,7 +114,7 @@ def test_swapped_levels_on_one_line_are_both_scored_wrong():
     assert values["recall"] == 1.0 and values["title_correct"] == 0.0
     labels, _ = label_scores(issues, inventory)
     assert labels["label_supported"] == 0.0 and labels["label_unsupported"] == 0.0
-    assert all(r.inventory.policy.pair_on_location for r in load_claim_records(DATASET)), "the loader pairs on location"
+    assert all(r.policy.pair_on_location for r in load_claim_suite(DATASET).records), "the loader pairs on location"
 
 
 def test_label_accuracy_is_broken_down_by_the_expected_level():

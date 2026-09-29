@@ -17,7 +17,6 @@ from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
 
 PASSIVE_TITLE = "Passive Voice"
-AMBIGUOUS_TITLE = "Ambiguous Actor"
 
 # A form of be or get, optionally chained ("are being made", "has been sent"),
 # any run of adverbs or negation ("were not considered", "was first proposed",

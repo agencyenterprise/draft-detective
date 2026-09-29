@@ -13,9 +13,6 @@ from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.active_voice.criteria import passive_count
 
-CONCISION_TITLES = ("Wordy Construction", "Run-On Sentence", "Throat-Clearing")
-PRECISION_TITLES = ("Vague Reference", "Empty Framing", "Obvious Statement")
-
 
 def no_added_passive(edit: ProposedEdit) -> Optional[bool]:
     """The replacement has no more be-plus-participle constructions than the
