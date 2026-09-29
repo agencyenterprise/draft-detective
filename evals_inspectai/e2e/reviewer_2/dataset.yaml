@@ -1,6 +1,11 @@
-# Dataset for the reviewer_2 e2e eval. One record per document; `input` is the
-# document under review as markdown, figures referenced by local PNG path.
+# Eval samples for the reviewer_2 workflow. The output is a prose peer review and a rebuttal, so there
+# is no issue inventory: each record lists the substantive weaknesses planted in the document, which a
+# rigorous review raises, and its genuine strengths, which the review credits and does not attack. A
+# judge grades each point on its own. `authors` names the document's authors, whom both outputs'
+# header blocks must name; omit it for a document that names none. Figures are referenced by local
+# PNG path. See evals_inspectai/e2e/reviewer_2/criteria.py.
 
+# ---- short arguments ------------------------------------------------------------------------------
 - input: |
     # Does Gamified Onboarding Improve Long-Term Retention in Mobile Apps?
 
@@ -27,7 +32,18 @@
 
     Gamified onboarding is a universally effective retention strategy and should be
     the default for all mobile applications.
-  target_answer: 'The peer review should acknowledge strengths (randomized A/B test, clear metric) and raise substantive weaknesses: the overreaching causal and universal claims, a short 30-day retention window, no confidence intervals or significance test, and a single-app context that does not support the ''universally effective'' conclusion. It should give prioritized, actionable next steps. The separate rebuttal should play devil''s advocate and make the best case *against* the paper (e.g. that the effect is small, short-term, and confounded), ending by noting where its own attack is weakest.'
+  weaknesses:
+  - id: universal_claim
+    point: The conclusion that gamification is "universally effective" for "all mobile applications" generalizes from a single fitness app.
+  - id: long_term
+    point: A 30-day window cannot support claims about long-term retention.
+  - id: no_uncertainty
+    point: The 34 versus 28 percent comparison is reported with no significance test, confidence interval or effect size.
+  strengths:
+  - id: randomized
+    point: Users were randomly assigned to the two onboarding conditions, which supports a causal reading within the study.
+  - id: clear_metric
+    point: Retention is defined precisely (opening the app at least once between days 28 and 30).
 - input: |
     # A Short Argument for Open-Source Scientific Software
 
@@ -49,7 +65,16 @@
 
     Mandating open-source release would eliminate an entire class of
     reproducibility failures and impose no meaningful downsides on researchers.
-  target_answer: The peer review should identify the argument's logical overreach — absolute claims ('no exceptions', 'no meaningful downsides') that ignore security, cost, and commercialization trade-offs — and the missing evidence for its empirical premises. It should list strengths, weaknesses, and concrete next steps. The separate rebuttal should play devil's advocate and make the best case *against* the paper's thesis (e.g. that open-source mandates carry real security, cost, and commercialization trade-offs), ending by noting where its own attack is weakest.
+  weaknesses:
+  - id: no_exceptions
+    point: The mandate's "no exceptions" ignores real trade-offs such as security-sensitive code, maintenance cost and commercialization.
+  - id: no_evidence
+    point: The empirical premises (how much software goes unreleased, how many reproducibility failures it causes) are asserted without evidence.
+  - id: no_downsides
+    point: The claim that the mandate imposes "no meaningful downsides" is asserted, not argued.
+  strengths:
+  - id: real_problem
+    point: It identifies a real problem, that unreleased code prevents independent verification of results that depend on it.
 - input: |
     # Peer Coaching and Course Completion: A Randomised Trial
 
@@ -72,4 +97,319 @@
     ## Discussion
 
     The size of the effect, visible at a glance in Figure 1, indicates that peer coaching should be adopted university-wide without delay. Given the low cost of the program, the case is compelling.
-  target_answer: 'The review should credit the study''s strengths (randomised assignment, a large sample of 2,400, a clear outcome) and identify its central weakness: the ''dramatic improvement'' is a difference of under one percentage point, about 49.6 versus 50.4 percent, which is visible only by reading Figure 1, whose y-axis runs from 49 to 51 and so exaggerates the gap. The review should say that the figure''s truncated scale is misleading, that the paper reports no confidence interval or significance test, and that the university-wide adoption recommendation is not supported by an effect of that size. Next steps should be prioritised and concrete. The rebuttal should make the best case against the paper and end by noting where its own case is weakest.'
+  weaknesses:
+  - id: tiny_effect
+    point: The "dramatic improvement" in Figure 1 is a difference of under one percentage point (about 49.6 versus 50.4 percent).
+  - id: truncated_axis
+    point: Figure 1's y-axis runs from 49 to 51 percent, which makes a sub-point gap look large.
+  - id: no_uncertainty
+    point: No confidence interval or significance test is reported for the difference.
+  - id: adoption_unsupported
+    point: University-wide adoption "without delay" is not justified by an effect of that size, and the program's cost is asserted without figures.
+  strengths:
+  - id: randomized
+    point: Assignment by lottery in a large sample (2,400 students) supports a causal comparison.
+  notes: The effect's size is visible only in the chart, so the first two weaknesses require reading it.
+
+# ---- disciplines the persona has to channel -------------------------------------------------------
+- input: |
+    # Retention Bonuses and Teacher Turnover in Hard-to-Staff Schools
+
+    **Authors:** Priya Raman and Thomas Okonkwo
+
+    ## Introduction
+
+    Hard-to-staff schools lose teachers at twice the district average. In 2019 the district began paying a $5,000 bonus to teachers in 30 designated schools, payable only to teachers who remain in a designated school for three consecutive years. We ask whether the bonus reduced turnover.
+
+    ## Data and Design
+
+    We use district personnel records for every teacher employed between 2015 and 2023. We compare turnover in the 30 designated schools with turnover in 45 non-designated schools with similar poverty rates, before and after 2019, in a difference-in-differences design.
+
+    ## Results
+
+    Annual turnover in designated schools fell from 24 percent before 2019 to 15 percent after, while turnover in the comparison schools stayed near 17 percent. The difference-in-differences estimate is a 9 percentage point reduction.
+
+    ## Conclusion
+
+    Retention bonuses work. The district should extend the $5,000 bonus to every school, which would cut turnover districtwide by 9 points.
+  authors: [Raman, Okonkwo]
+  weaknesses:
+  - id: parallel_trends
+    point: No pre-2019 trends are shown for the two groups, so the parallel-trends assumption behind the difference-in-differences estimate is untested.
+  - id: displacement
+    point: Teachers may have moved into designated schools from other district schools, so lower turnover there can partly be displacement rather than a net gain for the district.
+  - id: extrapolation
+    point: Extending the bonus to every school and expecting the same 9-point cut extrapolates from hard-to-staff schools to schools with different turnover and incentives.
+  - id: cost
+    point: The paper gives no cost per retained teacher, so the policy recommendation lacks a cost-benefit basis.
+  strengths:
+  - id: admin_data
+    point: Administrative personnel records cover every teacher over nine years, avoiding survey non-response.
+  - id: comparison_group
+    point: It uses a comparison group of schools matched on poverty rate rather than a simple before-and-after comparison.
+  notes: An incentive design; the review should think like an economist about selection and displacement.
+- input: |
+    # Thirteen Days and Thirteen Seconds: What the Cuban Missile Crisis Teaches About AI and Crisis Stability
+
+    **Author:** Margaret Ellison
+
+    ## Argument
+
+    Crisis stability depends on leaders having time to deliberate. In October 1962, President Kennedy's Executive Committee met for thirteen days, rejected an early proposal for air strikes, and settled on a naval quarantine that gave Khrushchev room to withdraw. The crisis ended peacefully because there was time to think.
+
+    ## Evidence
+
+    Drawing on the memoirs of Robert Kennedy, Theodore Sorensen and Arthur Schlesinger, the paper reconstructs the Executive Committee's deliberations day by day, showing how the air-strike option lost support between October 16 and October 22 as members had time to consider Soviet responses.
+
+    ## Implications for AI
+
+    If AI decision-support systems compress a crisis from thirteen days to thirteen seconds, leaders will lose the deliberation that saved the world in 1962. Every future crisis involving AI-enabled command systems will therefore escalate to war. States should ban AI from all military decision-making.
+  authors: [Ellison]
+  weaknesses:
+  - id: single_case
+    point: A single case, chosen because it ended peacefully, cannot establish that deliberation time is what prevents escalation (selection on the outcome).
+  - id: one_sided_sources
+    point: The reconstruction relies on memoirs by Kennedy administration insiders and ignores declassified records and Soviet-side sources, which complicate the account (for example, the secret deal on missiles in Turkey).
+  - id: determinism
+    point: The claim that every AI-involved crisis "will therefore escalate to war" is deterministic and does not follow from the case.
+  - id: ban_overreach
+    point: A ban on AI in all military decision-making does not follow; the argument at most supports keeping humans in time-critical escalation decisions.
+  strengths:
+  - id: mechanism
+    point: It states a clear causal mechanism (time to deliberate lets leaders abandon escalatory options) that could be tested.
+  notes: >-
+    A historical case study applied to technology; the review should think like a historian about sources
+    and case selection. The day-by-day reconstruction is not listed as a strength, since it rests on the
+    one-sided memoirs the review should question.
+- input: |
+    # Language Models Will Make Most Cyberattacks Autonomous by 2027
+
+    **Authors:** Daniel Kwiatkowski, Lena Brandt and Omar Haddad
+
+    ## Summary
+
+    We define an autonomous cyberattack as an intrusion in which a software agent selects targets, gains access and exfiltrates data with no human operator involved after launch. We argue that most cyberattacks will meet this definition by 2027.
+
+    ## Evidence
+
+    On the public CyberBench suite of capture-the-flag challenges, the best language-model agent solved 12 percent of challenges in 2023 and 41 percent in 2025. Two security vendors have published demonstrations of agents compromising deliberately vulnerable test networks. Extrapolating the benchmark trend, agents will solve more than 90 percent of challenges by 2027.
+
+    ## Conclusion
+
+    Since agents will be able to solve nearly all offensive challenges, most real-world attacks will be carried out autonomously by 2027, and defenders who do not prepare for fully autonomous adversaries will be overwhelmed.
+  authors: [Kwiatkowski, Brandt, Haddad]
+  weaknesses:
+  - id: benchmark_gap
+    point: Solving capture-the-flag challenges is not the same as conducting real intrusions against defended networks; the paper equates the two.
+  - id: extrapolation
+    point: Extrapolating a two-point benchmark trend to more than 90 percent by 2027 is unjustified.
+  - id: base_rates
+    point: It gives no base rate of how attacks are carried out today, so "most attacks" by 2027 has no baseline.
+  - id: vendor_demos
+    point: Vendor demonstrations on deliberately vulnerable test networks are weak and possibly interested evidence.
+  - id: defenders
+    point: It ignores that defenders can use the same tools, which bears on whether attackers gain a net advantage.
+  strengths:
+  - id: definition
+    point: It defines an autonomous cyberattack precisely, which makes the claim testable.
+  - id: sourced_numbers
+    point: It reports concrete benchmark figures from a named public benchmark rather than anecdote alone.
+  notes: A claim about AI and security; the review should be skeptical of hype without dismissing the technology.
+- input: |
+    # How Rural Clinic Managers Decide Whether to Adopt Telehealth
+
+    **Author:** Grace Whitfield
+
+    ## Methods
+
+    I interviewed 12 managers of rural health clinics, all members of the Northern Plains Clinic Network, between January and March 2024. I work as a regional account manager for TeleCare, a telehealth vendor, and recruited interviewees from TeleCare's customer list. Interviews lasted about 45 minutes and were recorded and transcribed.
+
+    ## Findings
+
+    Managers described three considerations. First, broadband: "If the connection drops twice, the patient doesn't come back," said one. Second, billing: several said reimbursement rules changed too often to plan around. Third, staff: telehealth required a coordinator most clinics could not afford.
+
+    ## Conclusion
+
+    Most rural clinics in the United States would adopt telehealth if broadband were reliable. Federal broadband funding is therefore the single most effective way to expand rural telehealth.
+  authors: [Whitfield]
+  weaknesses:
+  - id: prevalence_from_interviews
+    point: Twelve interviews cannot support a prevalence claim about "most rural clinics in the United States".
+  - id: conflict_of_interest
+    point: The interviewer works for a telehealth vendor and recruited from its customer list, a conflict of interest and a sample of clinics that already adopted telehealth.
+  - id: no_analysis_method
+    point: It does not say how the interviews were coded or how the three considerations were derived.
+  - id: single_most_effective
+    point: Calling broadband funding "the single most effective" lever contradicts its own findings, which name billing and staffing as barriers too.
+  strengths:
+  - id: quotes
+    point: It uses interviewees' own words to illustrate how each barrier operates.
+  - id: disclosure
+    point: It discloses the author's employer and how interviewees were recruited, which lets readers judge the sample.
+  notes: Qualitative work. The disclosure is a strength even though what it discloses is a weakness.
+- input: |
+    # Remote Workers Are Happier: Evidence from a National Survey
+
+    **Authors:** Elena Marsh and Kofi Mensah
+
+    ## Data
+
+    We fielded an online survey through a panel of volunteers who sign up to take paid surveys, receiving 8,214 responses from employed adults in all 50 states. Respondents rated their happiness from 1 to 10 and reported whether they work fully remotely, hybrid or fully on site. The question read: "All things considered, how happy are you these days?"
+
+    ## Results
+
+    Fully remote workers reported an average happiness of 7.4, compared with 6.8 for on-site workers (difference 0.6, 95% CI 0.5 to 0.7).
+
+    ## Conclusion
+
+    Working remotely makes American workers happier. Employers who want a happier workforce should allow remote work.
+  authors: [Marsh, Mensah]
+  weaknesses:
+  - id: opt_in_panel
+    point: An opt-in panel of paid survey volunteers is not a probability sample, so it does not support a claim about American workers.
+  - id: selection
+    point: Workers choose, or are selected into, remote jobs, and differences in occupation, income or disposition could explain the gap; nothing is controlled.
+  - id: reverse_causation
+    point: Happier or healthier workers may be more likely to get or keep remote jobs.
+  strengths:
+  - id: wording
+    point: It gives the exact wording of the happiness question.
+  - id: uncertainty
+    point: It reports the difference with a confidence interval.
+  notes: >-
+    The 8,214 responses are not listed as a strength: size does not correct an opt-in panel's bias, and a
+    rigorous review may rightly say so.
+- input: |
+    # Text-Message Reminders and Court Appearance: A Pre-Registered Randomized Trial
+
+    **Authors:** Hannah Liu and Marcus Bell
+
+    ## Design
+
+    We pre-registered the trial's hypotheses, primary outcome and analysis plan before enrolment. Between March and September 2023, 6,800 people issued criminal summonses in Franklin County were randomly assigned to receive text-message reminders three days and one day before their court date, or no reminder. The primary outcome is appearance at the first scheduled court date, taken from court records.
+
+    ## Results
+
+    Failure-to-appear rates were 22.1 percent in the reminder group and 26.4 percent in the control group, a reduction of 4.3 percentage points (95% CI 2.3 to 6.3). The reminders cost $0.04 per message.
+
+    ## Discussion
+
+    Text-message reminders reduced missed first court dates among people issued summonses in Franklin County during the study period. Whether the effect holds for later court dates, for people held before trial or in other counties remains to be tested.
+  authors: [Liu, Bell]
+  weaknesses:
+  - id: first_date_only
+    point: The outcome covers only the first court date, so effects on later dates or case outcomes are unknown.
+  - id: mechanism
+    point: It does not examine why reminders work (forgetting versus logistics or fear), which matters for designing the message.
+  strengths:
+  - id: preregistered
+    point: The hypotheses, outcome and analysis were pre-registered.
+  - id: randomized
+    point: Random assignment with a large sample and an objective outcome from court records.
+  - id: bounded
+    point: The conclusion is bounded to the county, population and period studied, and it names what remains untested.
+  - id: cost
+    point: It reports the intervention's cost.
+  notes: >-
+    A strong paper with modest weaknesses. A review that attacks its bounded conclusion as overreach,
+    or its randomization as flawed, is being contrarian rather than rigorous.
+- input: |
+    # Food Bank Demand in 2024: Findings from the Regional Network
+
+    **Author:** Samuel Adeyemi
+
+    ## Abstract
+
+    Demand at the network's 38 food banks rose 18 percent in 2024. Demand fell among seniors while rising among families with children.
+
+    ## Data
+
+    We use visit records from all 38 food banks, covering 420 distribution days in 2023 and 2024. Each visit records the household's size and the age of its head.
+
+    ## Results
+
+    | Group | 2023 visits | 2024 visits | Change |
+    |---|---|---|---|
+    | Families with children | 61,200 | 70,400 | +15% |
+    | Seniors (head aged 65 or older) | 22,800 | 24,600 | +8% |
+    | All households | 104,100 | 116,600 | +12% |
+
+    Across the 380 distribution days in the data, the busiest month was November.
+
+    ## Conclusion
+
+    Rising demand is driven by families with children, while seniors are relying less on food banks. The network should shift resources from senior-focused programs to family programs.
+  authors: [Adeyemi]
+  weaknesses:
+  - id: headline_number
+    point: The abstract's 18 percent rise contradicts the results table, which shows 12 percent for all households.
+  - id: seniors_direction
+    point: The abstract and conclusion say senior demand fell, but the table shows senior visits rising 8 percent.
+  - id: day_count
+    point: The data section reports 420 distribution days and the results 380.
+  - id: visits_not_households
+    point: Visit counts measure visits, not distinct households, so they may overstate demand growth if the same households visit more often.
+  strengths:
+  - id: complete_records
+    point: It uses visit records from every food bank in the network rather than a sample.
+  notes: Internal inconsistencies between the abstract, the data section and the table.
+- input: |
+    # The Summer Curfew Cut Youth Crime in Eastport
+
+    **Authors:** Rebecca Stone and Luis Ortega
+
+    ## Background
+
+    After a spike in youth arrests in the summer of 2022, Eastport imposed a 10 p.m. curfew for residents under 17 from June to August 2023.
+
+    ## Findings
+
+    Police recorded 412 arrests of people under 17 between June and August 2022 and 298 in the same months of 2023, a 28 percent decline. Monthly arrest counts for the two summers are given in the appendix. Over the same period, adult arrests in Eastport fell 19 percent. The city also opened two new summer-jobs programs for teenagers in June 2023.
+
+    ## Conclusion
+
+    The curfew cut youth crime by 28 percent and should be made permanent and year-round.
+  authors: [Stone, Ortega]
+  weaknesses:
+  - id: citywide_decline
+    point: Adult arrests fell 19 percent over the same period, so much of the 28 percent decline may reflect a citywide trend rather than the curfew.
+  - id: summer_jobs
+    point: The summer-jobs programs that opened at the same time are an alternative explanation the paper does not address.
+  - id: regression_to_mean
+    point: Measuring from a spike year invites regression to the mean.
+  - id: arrests_not_crime
+    point: Arrests measure police activity, not crime, and a curfew itself changes policing.
+  - id: year_round
+    point: A year-round curfew extrapolates from a summer-only policy.
+  strengths:
+  - id: reports_confounders
+    point: It reports the adult decline and the jobs programs itself, giving readers the facts needed to question its conclusion.
+  - id: monthly_data
+    point: It provides monthly counts for both summers.
+  notes: Alternative explanations the document itself supplies.
+- input: |
+    # Why Deterrence Cannot Work Against Non-State Actors
+
+    **Author:** Viktor Hale
+
+    ## The Argument
+
+    Deterrence works by threatening punishment against something an adversary values. States have territory, populations and leaders that can be held at risk. Non-state armed groups have no territory to hold at risk and no return address. Therefore deterrence cannot work against non-state actors, and counterterrorism policy should abandon deterrence in favor of pre-emption.
+
+    ## An Illustration
+
+    After 2006, Hezbollah largely refrained from large-scale rocket attacks on Israel for more than a decade, which Hezbollah's own leader attributed to fear of the damage an Israeli response would do to Lebanon and to the group's standing there.
+  authors: [Hale]
+  weaknesses:
+  - id: own_counterexample
+    point: The Hezbollah illustration contradicts the thesis, since it shows a non-state actor restrained by fear of retaliation.
+  - id: false_premise
+    point: The premise that non-state groups have nothing to hold at risk is false for groups that hold territory, run social services or depend on state sponsors.
+  - id: preemption_leap
+    point: Pre-emption does not follow even if deterrence failed, since the paper does not argue its costs or feasibility.
+  - id: deterrence_by_denial
+    point: It considers only deterrence by punishment, ignoring deterrence by denial.
+  strengths:
+  - id: explicit_premises
+    point: It lays out its premises explicitly, which makes the argument easy to evaluate.
+  notes: A theoretical argument whose own illustration undermines it.

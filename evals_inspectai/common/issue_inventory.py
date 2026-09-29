@@ -39,6 +39,7 @@ quote: it omits the anchor, names a title instead, and is matched on the title
 alone, wherever the reported issue sits.
 """
 
+import re
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -105,6 +106,14 @@ class ExpectedIssue(BaseModel):
     edit: Optional[EditExpectation] = Field(
         default=None,
         description="Phrases the proposed edit's replacement must carry or avoid; feeds edit_expected_phrases",
+    )
+    rationale: Optional[str] = Field(
+        default=None,
+        description=(
+            "What is wrong here, in the labeller's words: the flaw an inference commits, what a cited "
+            "source actually says. Not scored deterministically; a judged criterion with `reference=True` "
+            "shows it to the grader as the reference the reported analysis is compared against."
+        ),
     )
     required: bool = Field(
         default=True,
@@ -215,6 +224,22 @@ def overlaps(a: str, b: str, words: int = 4) -> bool:
     ta, tb = na.split(), nb.split()
     grams = {tuple(ta[i : i + words]) for i in range(len(ta) - words + 1)}
     return any(tuple(tb[i : i + words]) in grams for i in range(len(tb) - words + 1))
+
+
+# Ellipses a quote may use to skip words; each piece must still be verbatim.
+_ELLIPSIS_RE = re.compile(r"\s*(?:\.\.\.|…|\[\.\.\.\])\s*")
+# Emphasis and quote marks a quotation may be wrapped in.
+_QUOTE_WRAPPING = "*_\"'“”‘’ "
+
+
+def quoted_verbatim(quote: str, text: str) -> bool:
+    """Whether every ellipsis-separated piece of ``quote`` occurs in ``text`` after
+    normalising case, quotes and whitespace, so a sentence wrapped across lines counts.
+    An empty quote quotes nothing."""
+    haystack = normalize(text)
+    pieces = [normalize(p).strip(_QUOTE_WRAPPING) for p in _ELLIPSIS_RE.split(quote)]
+    pieces = [p for p in pieces if p]
+    return bool(pieces) and all(p in haystack for p in pieces)
 
 
 def locate_anchor(lines: list[str], anchor: str, label: str) -> int:

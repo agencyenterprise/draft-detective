@@ -37,6 +37,7 @@ from evals_inspectai.common.issue_inventory import (
     locate_anchor,
     inventory_to_sample,
     overlaps,
+    quoted_verbatim,
     resolve_record,
 )
 
@@ -94,6 +95,13 @@ def test_overlaps_pairs_a_quote_with_its_sentence():
     assert overlaps("Data were collected", "Data were collected from 3 sites by the field team.")
     assert overlaps("collected from 3 sites by the team", "Data were collected from 3 sites by the field team.")
     assert not overlaps("We then coded the notes.", "Data were collected from 3 sites by the field team.")
+
+
+def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
+    assert quoted_verbatim("data were collected from 3 sites … coded the notes", DOC)
+    assert quoted_verbatim("“The scope is limited to urban sites.”", "The scope is\nlimited to urban sites.")
+    assert not quoted_verbatim("Data came from 3 sites", DOC)
+    assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
 
 
 # --- detection ------------------------------------------------------------------

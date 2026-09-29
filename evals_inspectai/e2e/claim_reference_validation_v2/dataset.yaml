@@ -1,0 +1,676 @@
+# Eval samples for the claim_reference_validation_v2 workflow, in inventory form. The workflow
+# reports one record per in-text citation, whatever its verdict, so every citation in a document is
+# an expected issue: anchored on the cited claim, titled with the evidence-alignment level a correct
+# run assigns (supported, partially_supported, unsupported, unverifiable; the eval reads the level
+# as the title), and carrying the labeller's account of what the source says (`rationale`), which the
+# judged criterion compares the reported rationale against. Decoys are lines a correct run does not
+# report: bibliography entries, footnote entries, a footnote marker pointing to commentary, claims
+# that cite nothing. `sources` are the supporting files uploaded with the document; a cited work with
+# no source is unverifiable. YAML anchors reuse a source across records.
+# See evals_inspectai/common/issue_inventory.py.
+
+# ---- one citation, one level --------------------------------------------------------------------
+- input: |
+    # Introduction
+
+    Remote work has reshaped how teams collaborate.
+
+    A 2020 industry survey found that fully remote employees reported a 30% increase in self-reported productivity compared to in-office baselines (Smith, 2020). This shift has prompted firms to rethink office footprints.
+
+    ## Methods
+
+    We synthesize three industry surveys to estimate the directional effect of remote work on weekly output.
+
+    ## References
+
+    1. Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.
+  sources:
+  - &smith
+    file_name: smith_2020_remote_productivity.md
+    markdown: |
+      # Remote Work Productivity Survey 2020
+
+      ## Key Findings
+
+      Across 4,200 respondents, fully remote employees reported a 30% increase in self-reported productivity relative to their pre-pandemic in-office baselines. The effect was strongest among engineering and design roles, where deep-focus time rose substantially.
+
+      ## Methodology
+
+      The survey was conducted between March and August 2020. Respondents were drawn from 12 industries.
+  expected_issues:
+  - id: smith_productivity
+    title: supported
+    anchor: fully remote employees reported a 30% increase in self-reported productivity
+    rationale: >-
+      The survey reports exactly this: a 30% increase in self-reported productivity for fully remote employees against in-office baselines.
+  decoys:
+  - anchor: 1. Smith, J. (2020). Remote work productivity survey 2020.
+    reason: reference_entry
+  - anchor: Remote work has reshaped how teams collaborate.
+    reason: uncited_claim
+- input: |
+    # Findings
+
+    Our analysis indicates that remote work doubles the rate of cross-team collaboration in large enterprises (Doe, 2019). This contrasts with prior assumptions that distributed teams collaborate less.
+
+    ## References
+
+    1. Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.
+  sources:
+  - &doe
+    file_name: doe_2019_collab.md
+    markdown: |
+      # Cross-Team Collaboration in Distributed Organizations (2019)
+
+      This study examines collaboration patterns in distributed software organizations. We find that the volume of cross-team Slack messages was roughly comparable between co-located and distributed teams, with no statistically significant difference (p = 0.42). We did not measure changes in collaboration over time as remote work was adopted.
+  expected_issues:
+  - id: doe_doubles
+    title: unsupported
+    anchor: remote work doubles the rate of cross-team collaboration in large enterprises
+    rationale: >-
+      The study finds no significant difference in cross-team messaging between co-located and distributed teams, which contradicts a doubling, and it did not measure change over time.
+- input: |
+    # Discussion
+
+    Microplastic contamination is now ubiquitous: prior work has shown that 93% of bottled water samples worldwide contain detectable microplastic particles (Patel et al., 2018). This finding motivates global regulatory action.
+
+    ## References
+
+    1. Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.
+  sources:
+  - &patel
+    file_name: patel_2018_microplastics.md
+    markdown: |
+      # Microplastic Contamination in Bottled Water: A North American Survey (2018)
+
+      ## Abstract
+
+      We analyzed 259 bottled water samples sourced exclusively from retailers in the United States and Canada. 93% of samples contained at least one detectable microplastic particle.
+
+      ## Geographic scope
+
+      Sampling was restricted to North American distribution channels. Brands sold in Europe, Asia, Africa, South America, and Oceania were not included. We make no claims about contamination rates in other regions.
+  expected_issues:
+  - id: patel_worldwide
+    title: partially_supported
+    anchor: 93% of bottled water samples worldwide contain detectable microplastic particles
+    rationale: >-
+      The 93% figure is right, but the survey sampled only North American retailers and makes no claim about other regions, so "worldwide" overreaches.
+- input: |
+    # Methods
+
+    We used a lateral flow assay protocol that achieves approximately 95% sensitivity for influenza A detection (Wong, 2021). This sensitivity threshold is sufficient for our screening purposes.
+
+    ## References
+
+    1. Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.
+  expected_issues:
+  - id: wong_sensitivity
+    title: unverifiable
+    anchor: achieves approximately 95% sensitivity for influenza A detection
+    rationale: >-
+      No copy of Wong (2021) was provided, so the claim cannot be checked against it.
+- input: |
+    # Service Branch Closures
+
+    The bank closed 18 branches between 2021 and 2023. Most of the closed branches were in rural counties (Kim, 2023), leaving several towns without an in-person teller.
+
+    ## References
+
+    1. Kim, S. (2023). Branch network changes at regional banks, 2021 to 2023. Federal Reserve Bank community brief.
+  sources:
+  - file_name: kim_2023_branch_networks.md
+    markdown: |
+      # Branch Network Changes at Regional Banks, 2021 to 2023
+
+      Of the 18 branches the bank closed over the period, 14 were located in rural counties and 4 in metropolitan counties. In three of the rural counties, the closed branch had been the only bank branch in its town.
+  expected_issues:
+  - id: kim_rural
+    title: supported
+    anchor: Most of the closed branches were in rural counties
+    rationale: >-
+      The brief never says "most", but 14 of the 18 closed branches were rural, so the claim follows directly from its figures.
+  notes: A faithful inference from stated numbers is supported, not partially supported.
+- input: |
+    # Survey of Municipal Planners
+
+    Nearly a third of municipal planners said their department had no staff member trained in flood modeling (Ruiz, 2019).
+
+    ## References
+
+    1. Ruiz, M. (2019). Capacity for climate adaptation in municipal planning departments. Journal of Planning Practice.
+  sources:
+  - file_name: ruiz_2019_planning_capacity.md
+    markdown: |
+      # Capacity for Climate Adaptation in Municipal Planning Departments
+
+      ## Results
+
+      Of the 612 planners who responded, 31.6 percent reported that no one in their department had received training in flood modeling. Another 22 percent said only one staff member had.
+  expected_issues:
+  - id: ruiz_third
+    title: supported
+    anchor: Nearly a third of municipal planners said their department had no staff member trained in flood modeling
+    rationale: >-
+      The survey reports 31.6 percent, which "nearly a third" rounds faithfully.
+  notes: Rounding a figure is still supported.
+- input: |
+    # Vaccine Program Review
+
+    In the phase 3 trial, the vaccine reduced hospitalizations for respiratory infection by 70 percent (Okafor et al., 2021).
+
+    ## References
+
+    1. Okafor, N., et al. (2021). Efficacy of an adjuvanted respiratory vaccine in adults: a randomized trial. The Lancet.
+  sources:
+  - file_name: okafor_2021_vaccine_trial.md
+    markdown: |
+      # Efficacy of an Adjuvanted Respiratory Vaccine in Adults: A Randomized Trial
+
+      ## Results
+
+      Among 18,400 participants randomized to vaccine or placebo, the vaccine reduced hospitalizations for respiratory infection by 70 percent (95% CI 61 to 77) over the two-season follow-up.
+  expected_issues:
+  - id: okafor_hospitalizations
+    title: supported
+    anchor: the vaccine reduced hospitalizations for respiratory infection by 70 percent
+    rationale: >-
+      The trial reports a 70 percent reduction in hospitalizations for respiratory infection; leaving out the confidence interval is an immaterial omission.
+  notes: Omitting a minor qualifier (the interval) must not be hedged down to partially supported.
+- input: |
+    # Falls Prevention
+
+    Regular balance training halves the risk of falls among adults (Lindqvist, 2017), which is why the program offers weekly classes at every community center.
+
+    ## References
+
+    1. Lindqvist, E. (2017). Balance training and fall risk in older women: a cohort study. Age and Ageing.
+  sources:
+  - file_name: lindqvist_2017_balance_training.md
+    markdown: |
+      # Balance Training and Fall Risk in Older Women: A Cohort Study
+
+      ## Participants
+
+      We followed 2,150 women aged 65 and older living independently in Uppsala County.
+
+      ## Results
+
+      Women who attended balance training at least weekly had a 50 percent lower risk of a fall over two years than women who did not. We did not study men or adults under 65, and the findings should not be generalized to them.
+  expected_issues:
+  - id: lindqvist_adults
+    title: partially_supported
+    anchor: Regular balance training halves the risk of falls among adults
+    rationale: >-
+      The halving is reported, but only for women aged 65 and older; the study excludes men and younger adults and warns against generalizing to them.
+  notes: Scope overreach on population (older women to all adults).
+- input: |
+    # Wildfire Smoke and School Attendance
+
+    Recent evidence shows that days with heavy wildfire smoke reduce school attendance (Brandt & Osei, 2022).
+
+    ## References
+
+    1. Brandt, K., & Osei, J. (2022). Wildfire smoke and student outcomes: evidence from two states. Journal of Environmental Economics.
+  sources:
+  - file_name: brandt_osei_2022_smoke.md
+    markdown: |
+      # Wildfire Smoke and Student Outcomes: Evidence from Two States
+
+      ## Results
+
+      In California, days with heavy smoke were associated with a 1.8 percentage point drop in attendance. In Oregon, we find no effect on attendance, and the point estimate is slightly positive. We cannot explain the difference between the two states with the data available.
+  expected_issues:
+  - id: brandt_mixed
+    title: partially_supported
+    anchor: days with heavy wildfire smoke reduce school attendance
+    rationale: >-
+      The source supports the claim for California but finds no effect in Oregon and leaves the conflict unresolved; mixed evidence.
+  notes: Mixed, unresolved evidence is partially supported.
+- input: |
+    # State Environmental Agency Capacity
+
+    The agency's budget tripled between 2010 and 2020 (Hartley, 2021), allowing it to expand inspections.
+
+    ## References
+
+    1. Hartley, D. (2021). Staffing and mandates at state environmental agencies, 2010 to 2020.
+  sources:
+  - file_name: hartley_2021_agency_staffing.md
+    markdown: |
+      # Staffing and Mandates at State Environmental Agencies, 2010 to 2020
+
+      Between 2010 and 2020 the agency's full-time staff grew from 410 to 530, and the legislature added two statutory mandates, for groundwater monitoring and for coal ash disposal. Inspections per year rose from 3,100 to 4,400.
+  expected_issues:
+  - id: hartley_budget
+    title: unsupported
+    anchor: The agency's budget tripled between 2010 and 2020
+    rationale: >-
+      The source covers staffing, mandates and inspections over the period but gives no budget figures; it is silent on the claim.
+  notes: Topic-adjacent silence is unsupported, not partially supported.
+- input: |
+    # Broadband Adoption
+
+    By 2022, 45 percent of rural households subscribed to high-speed broadband (Nakamura, 2023).
+
+    ## References
+
+    1. Nakamura, T. (2023). Rural broadband adoption in the United States, 2016 to 2022. Pew Research Center.
+  sources:
+  - file_name: nakamura_2023_rural_broadband.md
+    markdown: |
+      # Rural Broadband Adoption in the United States, 2016 to 2022
+
+      In 2022, 25 percent of rural households subscribed to high-speed broadband, up from 18 percent in 2016. Adoption in suburban households reached 61 percent.
+  expected_issues:
+  - id: nakamura_value
+    title: unsupported
+    anchor: By 2022, 45 percent of rural households subscribed to high-speed broadband
+    rationale: >-
+      The source gives 25 percent for rural households in 2022, not 45; the figure is contradicted.
+- input: |
+    # Juvenile Diversion Outcomes
+
+    Since the county expanded its diversion program, re-arrest rates among participants have risen (Castillo, 2020).
+
+    ## References
+
+    1. Castillo, R. (2020). Evaluation of the county juvenile diversion program. County Office of Research.
+  sources:
+  - file_name: castillo_2020_diversion.md
+    markdown: |
+      # Evaluation of the County Juvenile Diversion Program
+
+      After the program's expansion in 2017, the one-year re-arrest rate among participants fell from 34 percent to 26 percent, while the rate among comparable non-participants was unchanged.
+  expected_issues:
+  - id: castillo_direction
+    title: unsupported
+    anchor: re-arrest rates among participants have risen
+    rationale: >-
+      The evaluation reports re-arrest rates falling from 34 to 26 percent, the opposite direction.
+- input: |
+    # Workforce Attrition in Nursing
+
+    During the pandemic, 30 percent of hospital nurses quit their jobs (Abebe, 2022).
+
+    ## References
+
+    1. Abebe, H. (2022). Burnout and intent to leave among hospital nurses. Journal of Nursing Administration.
+  sources:
+  - file_name: abebe_2022_nurse_burnout.md
+    markdown: |
+      # Burnout and Intent to Leave Among Hospital Nurses
+
+      In a 2021 survey of 3,900 hospital nurses, 30 percent said they were considering leaving their job within the next year. The survey did not track whether respondents actually left.
+  expected_issues:
+  - id: abebe_quit
+    title: unsupported
+    anchor: 30 percent of hospital nurses quit their jobs
+    rationale: >-
+      The source reports 30 percent considering leaving and says it did not track whether anyone left; it does not back nurses quitting.
+  notes: >-
+    The right number attached to a different measure. The load-bearing element (actually quitting) is
+    not backed at all, so this is unsupported rather than partially supported.
+
+# ---- markers other than author-year ---------------------------------------------------------------
+- input: |
+    # Performance
+
+    Incremental dependency analysis has been shown to reduce end-to-end build times by 40% on average across large open-source monorepos, with per-repo speedups ranging from 32% to 47%[1].
+
+    ## Footnotes
+
+    1. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.
+
+    ## References
+
+    1. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.
+  sources:
+  - &lee
+    file_name: lee_2021_build_systems.md
+    markdown: |
+      # Throughput Improvements in Modern Build Systems (2021)
+
+      ## Results
+
+      Across five large open-source monorepos, the proposed incremental dependency analyzer reduced end-to-end build times by 40% on average compared to the baseline whole-graph compiler. Per-repository speedups ranged from 32% to 47%.
+  expected_issues:
+  - id: lee_build_times
+    title: supported
+    anchor: with per-repo speedups ranging from 32% to 47%
+    rationale: >-
+      The paper reports a 40% average reduction across five monorepos and per-repository speedups of 32% to 47%.
+  notes: A bracketed footnote marker whose entry repeats in the reference list; neither entry line is a citation.
+- input: |
+    # Results
+
+    Our initial hypothesis turned out to be incorrect[1], but recent published benchmarks report a consensus throughput ceiling of approximately 1.2 million operations per second for Raft-based coordination[2].
+
+    ## Footnotes
+
+    1. We initially believed throughput would degrade under load; see Section 3 for the corrected reasoning.
+    2. Garcia, M. (2022). Modern benchmarks for distributed systems. SIGOPS.
+
+    ## References
+
+    1. Garcia, M. (2022). Modern benchmarks for distributed systems. SIGOPS.
+  sources:
+  - file_name: garcia_2022_benchmarks.md
+    markdown: |
+      # Modern Benchmarks for Distributed Systems (2022)
+
+      ## Findings
+
+      Across three coordination protocols, Raft-based implementations sustained a peak throughput of 1.2 million operations per second on the standard YCSB workload, consistent with prior reports. We treat this 1.2M ops/sec figure as the practical ceiling for well-tuned Raft deployments.
+  expected_issues:
+  - id: garcia_ceiling
+    title: supported
+    anchor: a consensus throughput ceiling of approximately 1.2 million operations per second
+    rationale: >-
+      The benchmark paper reports a 1.2 million operations per second peak for Raft and treats it as the practical ceiling.
+  decoys:
+  - anchor: We initially believed throughput would degrade under load
+    reason: footnote_entry
+  notes: >-
+    Both markers sit in one sentence, so a report of the commentary marker (its footnote is no
+    bibliographic reference) would share the claim's line; it shows as a second issue that matches
+    nothing and costs precision, and as the footnote entry decoy when it quotes the commentary.
+- input: |
+    # Groundwater Depletion
+
+    Aquifer levels in the southern basin fell by an average of 1.4 meters per year between 2005 and 2015.³
+
+    Irrigation withdrawals account for most of the decline.
+
+    ---
+
+    ³ Mendes, P. (2018). Groundwater trends in the southern basin, 2005 to 2015. Hydrological Survey Report 44.
+  sources:
+  - file_name: mendes_2018_groundwater.md
+    markdown: |
+      # Groundwater Trends in the Southern Basin, 2005 to 2015
+
+      Monitoring wells across the southern basin recorded an average decline of 1.4 meters per year over the decade. The report does not attribute the decline to any particular use of water.
+  expected_issues:
+  - id: mendes_decline
+    title: supported
+    anchor: Aquifer levels in the southern basin fell by an average of 1.4 meters per year between 2005 and 2015.
+    rationale: >-
+      The report records an average decline of 1.4 meters per year across the basin over the decade.
+  decoys:
+  - anchor: Irrigation withdrawals account for most of the decline.
+    reason: uncited_claim
+  - anchor: ³ Mendes, P. (2018). Groundwater trends in the southern basin
+    reason: footnote_entry
+  notes: >-
+    A superscript marker. The next paragraph cites nothing (and the source does not back it), so a run
+    that validates it is reporting a claim that carries no citation.
+
+# ---- several citations in one document --------------------------------------------------------------
+- input: |
+    # Background
+
+    Earlier work by Adams (2015) reported promising preliminary results for the technique on synthetic benchmarks.
+
+    ## Methods
+
+    We extended this approach with two key modifications.
+    Our experiments build on evidence that the new method outperforms prior baselines on standard benchmarks (Brown, 2021).
+
+    Results were validated across three datasets.
+
+    ## References
+
+    1. Adams, P. (2015). Initial exploration of the technique.
+    2. Brown, T. (2021). Benchmarking the new method.
+  sources:
+  - file_name: adams_2015.md
+    markdown: |
+      # Initial Exploration of the Technique (2015)
+
+      This paper introduces the technique and reports promising preliminary results on synthetic benchmarks.
+  - file_name: brown_2021.md
+    markdown: |
+      # Benchmarking the New Method (2021)
+
+      We compare the proposed method against three baselines on standard benchmarks. The new method outperforms all baselines by 8-15% across metrics.
+  expected_issues:
+  - id: adams_narrative
+    title: supported
+    anchor: Earlier work by Adams (2015) reported promising preliminary results
+    rationale: >-
+      Adams (2015) reports promising preliminary results on synthetic benchmarks.
+  - id: brown_baselines
+    title: supported
+    anchor: the new method outperforms prior baselines on standard benchmarks
+    rationale: >-
+      Brown (2021) finds the method outperforms three baselines on standard benchmarks by 8 to 15 percent.
+  notes: A narrative citation ("Adams (2015) reported") alongside a parenthetical one.
+- input: |
+    # Evidence Base for the Proposal
+
+    A randomized evaluation of the Harbor City program found that participants' earnings rose 12 percent in the two years after enrollment (Mbeki, 2020). The same evaluation found that the gains persisted for at least five years (Mbeki, 2020).
+
+    ## References
+
+    1. Mbeki, L. (2020). Earnings effects of the Harbor City sectoral training program: a randomized evaluation. MDRC.
+  sources:
+  - file_name: mbeki_2020_sectoral_training.md
+    markdown: |
+      # Earnings Effects of the Harbor City Sectoral Training Program: A Randomized Evaluation
+
+      ## Results
+
+      Participants' earnings were 12 percent higher than the control group's in the two years after enrollment. Follow-up ended at 24 months; we do not know whether the gains persist beyond that point.
+  expected_issues:
+  - id: mbeki_two_years
+    title: supported
+    anchor: participants' earnings rose 12 percent in the two years after enrollment
+    rationale: >-
+      The evaluation reports earnings 12 percent above the control group's over the two years after enrollment.
+  - id: mbeki_five_years
+    title: unsupported
+    anchor: the gains persisted for at least five years
+    rationale: >-
+      Follow-up ended at 24 months and the evaluation says it does not know whether the gains persist, so it does not back five years.
+  notes: The same source cited twice on one line, once correctly and once for a claim it does not make.
+- input: |
+    # Heat and Emergency Visits
+
+    Emergency department visits rise by about 7 percent on days above 35 °C (Farah, 2019). Hospitals in the region have not expanded capacity to match (Quinn, 2022).
+
+    ## References
+
+    1. Farah, Y. (2019). Extreme heat and emergency department use in the Gulf region. Environmental Health.
+    2. Quinn, B. (2022). Regional hospital capacity report.
+  sources:
+  - file_name: farah_2019_heat_ed_visits.md
+    markdown: |
+      # Extreme Heat and Emergency Department Use in the Gulf Region
+
+      On days with a maximum temperature above 35 °C, emergency department visits were 7.2 percent higher than on days between 25 °C and 30 °C, after adjusting for day of week and season.
+  expected_issues:
+  - id: farah_heat
+    title: supported
+    anchor: Emergency department visits rise by about 7 percent on days above 35 °C
+    rationale: >-
+      The study reports visits 7.2 percent higher on days above 35 °C.
+  - id: quinn_capacity
+    title: unverifiable
+    anchor: Hospitals in the region have not expanded capacity to match
+    rationale: >-
+      No copy of Quinn (2022) was provided, so the claim cannot be checked.
+  notes: One source provided and one missing; only the missing one is unverifiable.
+- input: |
+    # Methods
+
+    A 2020 industry survey found that fully remote employees reported a 30% increase in self-reported productivity compared to in-office baselines (Smith, 2020).
+
+    We also note that remote work doubles the rate of cross-team collaboration in large enterprises (Doe, 2019).
+
+    Microplastic contamination has been observed in 93% of bottled water samples worldwide (Patel et al., 2018).
+
+    The lateral flow assay we use achieves approximately 95% sensitivity for influenza A detection (Wong, 2021).
+
+    Incremental dependency analysis reduces build times by 40% on average across large open-source monorepos, with per-repo speedups ranging from 32% to 47%[^1].
+
+    Our initial hypothesis turned out to be incorrect[^2], but later results held up.
+
+    ## Footnotes
+
+    [^1]: Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.
+    [^2]: We initially believed throughput would degrade under load; see Section 3 for the corrected reasoning.
+
+    ## References
+
+    1. Smith, J. (2020). Remote work productivity survey 2020. Journal of Workplace Studies.
+    2. Doe, A. (2019). Cross-team collaboration in distributed organizations. Journal of Org Studies.
+    3. Patel, R., et al. (2018). Microplastic contamination in bottled water: a North American survey.
+    4. Wong, L. (2021). Diagnostic accuracy of lateral flow assays for respiratory viruses.
+    5. Lee, K. (2021). Throughput improvements in modern build systems. ACM Transactions on Software Engineering.
+  sources: [*smith, *doe, *patel, *lee]
+  expected_issues:
+  - id: smith_productivity
+    title: supported
+    anchor: fully remote employees reported a 30% increase in self-reported productivity
+    rationale: >-
+      The survey reports a 30% increase in self-reported productivity for fully remote employees.
+  - id: doe_doubles
+    title: unsupported
+    anchor: remote work doubles the rate of cross-team collaboration
+    rationale: >-
+      The study finds no significant difference in cross-team collaboration, which contradicts a doubling.
+  - id: patel_worldwide
+    title: partially_supported
+    anchor: 93% of bottled water samples worldwide
+    rationale: >-
+      The 93% figure holds only for North American samples; the survey makes no claim about other regions.
+  - id: wong_sensitivity
+    title: unverifiable
+    anchor: approximately 95% sensitivity for influenza A detection
+    rationale: >-
+      No copy of Wong (2021) was provided.
+  - id: lee_build_times
+    title: supported
+    anchor: with per-repo speedups ranging from 32% to 47%
+    rationale: >-
+      The paper reports a 40% average reduction and per-repository speedups of 32% to 47%.
+  decoys:
+  - anchor: Our initial hypothesis turned out to be incorrect
+    reason: commentary_footnote
+  - anchor: "[^2]: We initially believed throughput would degrade under load"
+    reason: footnote_entry
+  - anchor: 3. Patel, R., et al. (2018). Microplastic contamination in bottled water
+    reason: reference_entry
+  notes: Every level in one section, with a caret footnote to commentary.
+- input: |
+    # Expanding Paid Family Leave: Evidence for the State Task Force
+
+    ## Summary
+
+    This memo reviews the evidence on paid family leave for the task force. It draws on five studies, cited below, and on the state's own claims data.
+
+    ## Labor Force Effects
+
+    California's paid family leave program increased mothers' employment one year after birth by about 7 percentage points (Rossin-Slater et al., 2013). Baum and Ruhm (2016) found that the program also increased fathers' leave-taking, although the effect was small. Paid leave programs raise women's employment in every state that has adopted them (Rossin-Slater et al., 2013).
+
+    ## Employer Costs
+
+    Most employers in California reported that the program had a positive or neutral effect on productivity (Appelbaum & Milkman, 2011). Small businesses, however, bore costs large enough to reduce hiring (Appelbaum & Milkman, 2011).
+
+    ## Health
+
+    Access to paid leave has been linked to lower rates of infant hospitalization in the first year (Pihl & Basso, 2019).
+
+    ## Claims Data
+
+    In 2023, 41,200 residents filed claims under the state's temporary disability program, 9 percent more than in 2022. Claims processing took 11 days on average.
+
+    ## References
+
+    1. Appelbaum, E., & Milkman, R. (2011). Leaves that pay: employer and worker experiences with paid family leave in California. CEPR.
+    2. Baum, C., & Ruhm, C. (2016). The effects of paid family leave in California on labor market outcomes. Journal of Policy Analysis and Management.
+    3. Pihl, A., & Basso, G. (2019). Did California paid family leave impact infant health? Journal of Policy Analysis and Management.
+    4. Rossin-Slater, M., Ruhm, C., & Waldfogel, J. (2013). The effects of California's paid family leave program on mothers' leave-taking and subsequent labor market outcomes. Journal of Policy Analysis and Management.
+  sources:
+  - file_name: rossin_slater_2013_pfl.md
+    markdown: |
+      # The Effects of California's Paid Family Leave Program on Mothers' Leave-Taking and Subsequent Labor Market Outcomes
+
+      ## Abstract
+
+      We study California's paid family leave program, the first in the United States. The program roughly doubled the average length of maternity leave, from three to six weeks. We also find that it increased the usual weekly work hours of employed mothers of one- to three-year-old children by 10 to 17 percent. Our analysis covers California only.
+  - file_name: baum_ruhm_2016_pfl.md
+    markdown: |
+      # The Effects of Paid Family Leave in California on Labor Market Outcomes
+
+      ## Findings
+
+      Paid family leave increased the probability that fathers took leave in the first year after a birth, by less than one percentage point. Mothers' employment one year after birth rose by about 7 percentage points.
+  - file_name: appelbaum_milkman_2011_leaves.md
+    markdown: |
+      # Leaves That Pay: Employer and Worker Experiences with Paid Family Leave in California
+
+      ## Employer survey
+
+      Of the 253 employers surveyed, 89 percent reported a positive effect or no noticeable effect on productivity. Small businesses were more likely than large ones to report positive effects, and very few employers of any size reported cost increases.
+  - file_name: pihl_basso_2019_infant_health.md
+    markdown: |
+      # Did California Paid Family Leave Impact Infant Health?
+
+      ## Results
+
+      We find a decline in infant hospitalizations in the first year of life after the program's introduction, driven by admissions for conditions such as respiratory infections.
+  expected_issues:
+  - id: rossin_slater_employment
+    title: unsupported
+    anchor: increased mothers' employment one year after birth by about 7 percentage points
+    rationale: >-
+      Rossin-Slater et al. (2013) report longer maternity leave and more weekly work hours, not a 7-point rise in employment; that figure is in Baum and Ruhm (2016), a different source.
+  - id: baum_ruhm_fathers
+    title: supported
+    anchor: Baum and Ruhm (2016) found that the program also increased fathers' leave-taking
+    rationale: >-
+      Baum and Ruhm report a small increase in fathers' leave-taking, under one percentage point.
+  - id: rossin_slater_every_state
+    title: unsupported
+    anchor: Paid leave programs raise women's employment in every state that has adopted them
+    rationale: >-
+      The study covers California only and does not report an employment effect; the claim about every state has nothing in the source behind it.
+  - id: appelbaum_productivity
+    title: supported
+    anchor: Most employers in California reported that the program had a positive or neutral effect on productivity
+    rationale: >-
+      89 percent of surveyed employers reported a positive or no noticeable effect on productivity.
+  - id: appelbaum_small_business
+    title: unsupported
+    anchor: Small businesses, however, bore costs large enough to reduce hiring
+    rationale: >-
+      The survey finds small businesses more likely to report positive effects and very few employers reporting cost increases; it contradicts the claim.
+  - id: pihl_basso_infant
+    title: supported
+    anchor: Access to paid leave has been linked to lower rates of infant hospitalization in the first year
+    rationale: >-
+      Pihl and Basso find a decline in infant hospitalizations in the first year after the program's introduction.
+  decoys:
+  - anchor: In 2023, 41,200 residents filed claims under the state's temporary disability program
+    reason: uncited_claim
+  - anchor: 2. Baum, C., & Ruhm, C. (2016). The effects of paid family leave in California
+    reason: reference_entry
+  notes: >-
+    A memo of section length with six citations to four sources, two of them cited twice. The first
+    citation attaches a real finding to the wrong paper, and a correct run reports it as unsupported
+    by the paper cited. The claims-data section cites nothing.
+
+# ---- no citations ---------------------------------------------------------------------------------
+- input: |
+    # Office Relocation Plan
+
+    ## Timeline
+
+    The team will move to the Riverside building in two phases. Engineering moves in March and the remaining departments in May, once the second floor is fitted out.
+
+    ## Costs
+
+    The fit-out is budgeted at $1.2 million, and the lease on the current office ends on June 30.
+  notes: No citation and no reference list; a correct run reports nothing.

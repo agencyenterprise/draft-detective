@@ -61,43 +61,17 @@ EDIT_TEMPLATE = """You are grading one proposed edit to a sentence in a research
 {instructions}
 """
 
-ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
-
-[BEGIN DATA]
-************
-[Sentence the issue is about]: {question}
-************
-[Reviewer's suggested action]: {answer}
-************
-[Criterion]: {criterion}
-************
-[END DATA]
-
-{instructions}
-"""
-
-# For an issue about a header, the header alone is no evidence: the grader also
-# sees the section it heads, so it can tell whether a suggested header says what
-# the section shows. A criterion that checks the action against the whole report
-# (an audience the report points to, say) sees the report instead.
-PASSAGE_ISSUE_TEMPLATE = """You are grading one reviewer issue against one criterion.
-
-[BEGIN DATA]
-************
-[{passage_label}]: {passage}
-************
-[Text the issue quotes or is anchored to]: {question}
-************
-[Reviewer's suggested action]: {answer}
-************
-[Criterion]: {criterion}
-************
-[END DATA]
-
-{instructions}
-"""
+# An issue-level prompt is the same shape as Inspect's model-graded templates: a
+# data block of labelled texts, then the criterion and the grading instructions.
+# The texts shown depend on the criterion: the anchor always, the passage it sits
+# in or the whole report when ``passage`` asks for it, the labeller's reference
+# when ``reference`` asks for it, and the part of the issue the criterion reads.
+ISSUE_PREAMBLE = "You are grading one reviewer issue against one criterion."
 
 PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
+# What an issue-level criterion reads of the reported issue, and the label it is shown under.
+READS_LABELS = {"suggested_action": "Reviewer's suggested action", "analysis": "Reviewer's analysis"}
+REFERENCE_LABEL = "What the labeller says is wrong here"
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")
@@ -121,6 +95,13 @@ class JudgeCriterion(BaseModel):
     # nothing, the section the anchor's line opens (see ``section_text``), or the
     # whole report.
     passage: Literal["none", "section", "document"] = "none"
+    # What an expected-scope criterion grades of the reported issue: its suggested
+    # action, or its analysis (the description and long description).
+    reads: Literal["suggested_action", "analysis"] = "suggested_action"
+    # Whether the grader also sees the expected issue's ``rationale``, the labeller's
+    # account of what is wrong; the criterion then applies only to expected issues that
+    # carry one.
+    reference: bool = False
 
 
 def parse_grade(completion: str) -> float:
@@ -160,25 +141,12 @@ def edit_prompt(criterion: str, paragraph: str, original: str, replacement: str)
     )
 
 
-def issue_prompt(criterion: str, sentence: str, suggested_action: str) -> str:
-    return ISSUE_TEMPLATE.format(
-        question=sentence,
-        answer=suggested_action,
-        criterion=criterion,
-        instructions=default_instructions(partial_credit=True),
-    )
-
-
-def passage_issue_prompt(
-    criterion: str, passage: str, anchor: str, suggested_action: str, label: str = PASSAGE_LABELS["section"]
-) -> str:
-    return PASSAGE_ISSUE_TEMPLATE.format(
-        passage_label=label,
-        passage=passage,
-        question=anchor,
-        answer=suggested_action,
-        criterion=criterion,
-        instructions=default_instructions(partial_credit=True),
+def issue_prompt_from(criterion: str, blocks: Sequence[tuple[str, str]]) -> str:
+    """An issue-level grading prompt over labelled texts, in the order given."""
+    data = "".join(f"[{label}]: {text}\n************\n" for label, text in blocks)
+    return (
+        f"{ISSUE_PREAMBLE}\n\n[BEGIN DATA]\n************\n{data}[Criterion]: {criterion}\n************\n"
+        f"[END DATA]\n\n{default_instructions(partial_credit=True)}\n"
     )
 
 
@@ -253,6 +221,36 @@ def _paragraph(expected: ResolvedIssue, document: str) -> str:
     return _paragraph_text(document.split("\n"), expected.line) if expected.line is not None else ""
 
 
+def _read(criterion: JudgeCriterion, issue: IssueItem) -> str:
+    """The part of the reported issue the criterion grades."""
+    if criterion.reads == "analysis":
+        return "\n\n".join(part for part in (issue.description, issue.long_description or "") if part.strip())
+    return issue.suggested_action or ""
+
+
+def expected_prompt(criterion: JudgeCriterion, expected: ResolvedIssue, issue: IssueItem, document: str) -> str:
+    """The grading prompt for an expected-scope criterion on one detected issue."""
+    blocks: list[tuple[str, str]] = []
+    if criterion.passage != "none":
+        # An expected issue without an anchor has no line to open a section: it gets the document.
+        line = expected.line if criterion.passage == "section" else None
+        passage = section_text(document, line) if line is not None else document
+        blocks += [(PASSAGE_LABELS["section" if line is not None else "document"], passage)]
+        blocks += [("Text the issue quotes or is anchored to", _anchor_text(expected))]
+    else:
+        blocks += [("Sentence the issue is about", _anchor_text(expected))]
+    if criterion.reference:
+        blocks += [(REFERENCE_LABEL, expected.rationale or "")]
+    blocks += [(READS_LABELS[criterion.reads], _read(criterion, issue))]
+    return issue_prompt_from(criterion.criterion, blocks)
+
+
+def _applies(criterion: JudgeCriterion, expected: ResolvedIssue) -> bool:
+    if criterion.reference and not expected.rationale:
+        return False
+    return criterion.applies_to is None or criterion.applies_to(expected)
+
+
 async def judge_sample(
     grader: Model,
     issues: Sequence[IssueItem],
@@ -267,9 +265,11 @@ async def judge_sample(
     the deterministic layers use (canonical order, and one-to-one when the
     workflow asks for it), so the judge grades the report those layers scored.
 
-    An expected-scope criterion judges the issue's suggested action; a detected
-    issue that offers none has failed it (the check is what the action says), so
-    that scores 0 rather than NaN.
+    An expected-scope criterion judges the part of the issue it reads (the
+    suggested action by default, or the analysis); a detected issue that offers
+    none has failed it (the check is what that text says), so that scores 0
+    rather than NaN. A criterion that shows the labeller's reference applies only
+    to expected issues that carry one.
     """
     values: dict[str, list[float]] = {c.key: [] for c in criteria}
     notes: list[str] = []
@@ -282,24 +282,17 @@ async def judge_sample(
     for expected, issue in hit_pairs(issues, inventory, one_to_one)[1]:
         paragraph = _paragraph(expected, inventory.document)
         for criterion in criteria:
-            if criterion.applies_to is not None and not criterion.applies_to(expected):
+            if not _applies(criterion, expected):
                 continue
             if criterion.scope == "edit":
                 for edit in edits_for(expected, issue):
                     prompt = edit_prompt(criterion.criterion, paragraph, edit.original_text, edit.replacement_text)
                     record(criterion, expected, *await grade(grader, prompt, calls))
-            elif not issue.suggested_action:
-                record(criterion, expected, 0.0, "no suggested action to judge")
-            elif criterion.passage != "none":
-                document = inventory.document
-                # An expected issue without an anchor has no line to open a section: it gets the document.
-                line = expected.line if criterion.passage == "section" else None
-                passage = section_text(document, line) if line is not None else document
-                label = PASSAGE_LABELS["section" if line is not None else "document"]
-                prompt = passage_issue_prompt(criterion.criterion, passage, _anchor_text(expected), issue.suggested_action, label)
-                record(criterion, expected, *await grade(grader, prompt, calls))
+            elif not _read(criterion, issue).strip():
+                what = "suggested action" if criterion.reads == "suggested_action" else "analysis"
+                record(criterion, expected, 0.0, f"no {what} to judge")
             else:
-                prompt = issue_prompt(criterion.criterion, _anchor_text(expected), issue.suggested_action)
+                prompt = expected_prompt(criterion, expected, issue, inventory.document)
                 record(criterion, expected, *await grade(grader, prompt, calls))
 
     return (
