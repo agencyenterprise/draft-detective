@@ -4,9 +4,12 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from lib.models.annotation import AnnotationItemKind
+
+# The largest value `annotations.time_spent_ms` (a PostgreSQL integer) can hold.
+MAX_TIME_SPENT_MS = 2**31 - 1
 
 
 class AnnotationOption(BaseModel):
@@ -81,6 +84,13 @@ class AnnotationSubmission(BaseModel):
     answers: dict[str, str]
     comment: Optional[str] = Field(default=None, max_length=4000)
     time_spent_ms: Optional[int] = Field(default=None, ge=0)
+
+    @field_validator("time_spent_ms")
+    @classmethod
+    def _fit_integer_column(cls, value: Optional[int]) -> Optional[int]:
+        """Capped rather than rejected: the column is a 32-bit integer, and an
+        item left open for weeks should not lose the answer given at the end."""
+        return None if value is None else min(value, MAX_TIME_SPENT_MS)
 
 
 class AnnotationOutcome(BaseModel):

@@ -19,7 +19,11 @@ from lib.models.user import User, UserRole
 from lib.services.annotations import admin, service
 from lib.services.annotations.catalog import ACTIVE_VOICE, SHOULD_FLAG
 from lib.services.annotations.eval_items import AnnotationItemDraft
-from lib.services.annotations.models import AnnotationPassage, AnnotationSubmission
+from lib.services.annotations.models import (
+    MAX_TIME_SPENT_MS,
+    AnnotationPassage,
+    AnnotationSubmission,
+)
 from lib.services.annotations.sync import sync_items
 
 
@@ -219,3 +223,17 @@ async def test_sync_retires_items_that_left_the_dataset(annotation_set):
         "key-alpha": AnnotationItemStatus.ACTIVE,
         "key-beta": AnnotationItemStatus.RETIRED,
     }
+
+
+@pytest.mark.asyncio
+async def test_submit_stores_an_oversized_time_spent(annotation_set, users):
+    task = await _next(annotation_set, users[0])
+    assert task.item_id is not None
+    await service.submit_annotation(
+        task.item_id,
+        users[0],
+        AnnotationSubmission(answers={SHOULD_FLAG: "yes"}, time_spent_ms=10**12),
+    )
+
+    [item] = await admin.list_annotated_items(annotation_set.slug)
+    assert item.annotations[0].time_spent_ms == MAX_TIME_SPENT_MS

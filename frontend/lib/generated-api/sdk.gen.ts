@@ -403,7 +403,7 @@ export const getNextAnnotationTaskApiAnnotationsSetsSlugNextGet = <ThrowOnError 
 /**
  * Submit Annotation
  *
- * Save (or replace) the user's answers and reveal the reference answers.
+ * Save (or replace) the user's answers. Never reveals the reference answers.
  */
 export const submitAnnotationApiAnnotationsItemsItemIdPut = <ThrowOnError extends boolean = true>(
   options: Options<SubmitAnnotationApiAnnotationsItemsItemIdPutData, ThrowOnError>,

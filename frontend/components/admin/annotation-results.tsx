@@ -41,12 +41,19 @@ function StatsTable({
       </TableHeader>
       <TableBody>
         {sets.map((set) => (
-          <TableRow
-            key={set.slug}
-            onClick={() => onSelect(set.slug)}
-            className={cn('cursor-pointer', selected === set.slug && 'bg-muted')}
-          >
-            <TableCell className="font-medium">{set.title}</TableCell>
+          <TableRow key={set.slug} className={cn('relative', selected === set.slug && 'bg-muted')}>
+            <TableCell className="font-medium">
+              {/* A real button, so the set can be picked by keyboard; its
+                  overlay stretches over the row so the whole row stays clickable. */}
+              <button
+                type="button"
+                aria-pressed={selected === set.slug}
+                onClick={() => onSelect(set.slug)}
+                className="cursor-pointer text-left after:absolute after:inset-0 focus-visible:underline focus-visible:outline-none"
+              >
+                {set.title}
+              </button>
+            </TableCell>
             <TableCell className="text-right tabular-nums">
               {set.annotated_items} / {set.item_count}
             </TableCell>
