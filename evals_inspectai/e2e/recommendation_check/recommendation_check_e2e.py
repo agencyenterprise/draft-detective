@@ -22,7 +22,7 @@ Scorers:
   separately and the new kinds as issues of their own; a run that merges two
   loses recall on the second. An issue under one of the fixed titles is paired
   with a support expectation only when no free-form report of that
-  recommendation exists (``hit_tier``), so an extra actionability or audience
+  recommendation exists (``hit_rank``), so an extra actionability or audience
   issue on the same line costs precision and cannot stand in for the support
   verdict.
 - ``decoy_checks``: sentences that read like recommendations but are not

@@ -36,7 +36,7 @@ a NaN key out of that metric's mean and counts the sample as unscored for it.
 import json
 import math
 import re
-from typing import Callable, Mapping, Optional, Sequence
+from typing import Callable, Mapping, NamedTuple, Optional, Sequence
 
 from inspect_ai.scorer import Score, Scorer, Target, mean, scorer, stderr
 from inspect_ai.solver import TaskState
@@ -158,62 +158,72 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
     return re.search(pattern, normalize(issue.title)) is not None
 
 
-# Added to the tier of an untitled expected issue reported under a title another
-# expected issue of the inventory names: above every plain tier, below the cost of
-# leaving it unmatched (see _UNMATCHED_OPTIONAL).
-_CLAIMED_TITLE_PENALTY = 6
+class HitRank(NamedTuple):
+    """How strongly a reported issue points at an expected one; a smaller rank is stronger.
+    Compared field by field, so each field outweighs every field after it."""
+
+    # An untitled expected issue (free-form titles) reported under a title another
+    # expected issue of the dataset names: that report is evidence for the other kind
+    # first, so it ranks below every free-form report.
+    claimed_kind: bool
+    # 0: title matches and the anchor is quoted; 1: title matches and the range brackets
+    # the line; 2: the anchor is quoted under another title (still detected, so
+    # title_correct, not recall, records the mislabel). Under ``pair_on_location`` the
+    # title is ignored: 0 when quoted, 1 when only the line is bracketed.
+    evidence: int
+    # The reported range does not bracket the expected line.
+    off_line: bool
+
+    def cost(self) -> int:
+        """The rank as one number for the assignment solver, ordered exactly as the tuple."""
+        return (self.claimed_kind * _EVIDENCE_LEVELS + self.evidence) * 2 + self.off_line
 
 
-def hit_tier(
+_EVIDENCE_LEVELS = 3
+# The largest cost a hit can have: a claimed kind, the weakest evidence, off its line.
+_MAX_HIT_COST = HitRank(True, _EVIDENCE_LEVELS - 1, True).cost()
+
+
+def hit_rank(
     expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = (), on_location: bool = False
-) -> Optional[int]:
-    """How well ``issue`` reports ``expected``, lower is stronger; None when it
-    does not report it.
+) -> Optional[HitRank]:
+    """How well ``issue`` reports ``expected`` (see ``HitRank``); None when it does not report it.
 
-    Three tiers of evidence: a title match with the anchor quoted, a title match
-    bracketing the line, the anchor quoted under another title (still detected,
-    so the title metric, not recall, records the mislabel). Within a tier, an
-    issue whose line range brackets the expected line ranks above one whose
-    range is elsewhere: when one issue quotes both a recommendation and its
-    restatement, its range says which occurrence it reports, and without that
-    the pairing would depend on report order.
+    Within one level of evidence, an issue whose line range brackets the expected
+    line ranks above one whose range is elsewhere: when one issue quotes both a
+    recommendation and its restatement, its range says which occurrence it
+    reports, and without that the pairing would depend on report order.
 
-    ``claimed`` are the titles the inventory names for other expected issues.
-    An untitled expected issue (free-form titles) matches any title, but an
-    issue under a claimed title is evidence for that other kind first: it
-    still counts, ranked below every free-form report, so an extra issue of a
-    named kind on the same sentence cannot stand in for the free-form one.
+    ``claimed`` are the titles the inventory names for other expected issues. An
+    untitled expected issue matches any title, but an issue under a claimed title
+    still counts only below every free-form report, so an extra issue of a named
+    kind on the same sentence cannot stand in for the free-form one.
 
-    An expected issue with no anchor has no text to quote and no line: the
-    title alone reports it, at the strongest tier.
+    An expected issue with no anchor has no text to quote and no line: the title
+    alone reports it, at the strongest rank.
 
     With ``on_location`` (an inventory whose titles are verdicts on the anchored
-    text, see ``ScoringPolicy.pair_on_location``) an anchored expected issue
-    is paired on its quote and line alone: the title does not rank the evidence,
-    so a report quoting this claim under the wrong verdict still outranks one
-    that merely shares the verdict and the line.
+    text, see ``ScoringPolicy.pair_on_location``) an anchored expected issue is
+    paired on its quote and line alone: a report quoting this claim under the
+    wrong verdict still outranks one that merely shares the verdict and the line.
     """
-    if on_location and expected.anchor is not None:
-        quoted = normalize(expected.anchor) in _issue_text(issue)
-        in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
-        if not (quoted or in_range):
-            return None
-        return (0 if quoted else 1) * 2 + (0 if in_range else 1)
-    penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
     if expected.anchor is None:
-        return 0 if same_title else None
+        return HitRank(False, 0, False) if same_title else None
     quoted = normalize(expected.anchor) in _issue_text(issue)
     in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
+    if on_location:
+        return HitRank(False, 0 if quoted else 1, not in_range) if quoted or in_range else None
     if same_title and quoted:
-        tier = 0
+        evidence = 0
     elif same_title and in_range:
-        tier = 1
+        evidence = 1
     elif quoted:
-        tier = 2
+        evidence = 2
     else:
         return None
-    return tier * 2 + (0 if in_range else 1) + penalty
+    claimed_kind = expected.title is None and any(_title_matches(issue, t) for t in claimed)
+    return HitRank(claimed_kind, evidence, not in_range)
 
 
 def ranked_hits(
@@ -222,23 +232,23 @@ def ranked_hits(
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
-        tier = hit_tier(expected, issue, claimed, on_location)
-        if tier is not None:
-            scored.append((tier, index))
+        rank = hit_rank(expected, issue, claimed, on_location)
+        if rank is not None:
+            scored.append((rank, index))
     return [index for _, index in sorted(scored)]
 
 
 def hit_issue(
     expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
 ) -> Optional[int]:
-    """Index of the best-tier issue that reports this expected, or None."""
+    """Index of the best-ranked issue that reports this expected, or None."""
     ranked = ranked_hits(expected, issues, claimed, on_location)
     return ranked[0] if ranked else None
 
 
 def claimed_titles(inventory: ResolvedInventory) -> tuple[str, ...]:
     """The titles the dataset's expected issues name, in this record or any other
-    (see ``hit_tier``): a kind that has no expected issue in this record is still
+    (see ``hit_rank``): a kind that has no expected issue in this record is still
     a kind, and a report of it is not the free-form one."""
     return tuple(sorted({*inventory.policy.named_titles, *(e.title for e in inventory.expected_issues if e.title)}))
 
@@ -500,16 +510,6 @@ def _canonical_order(issues: Sequence[IssueItem]) -> list[int]:
     return sorted(range(len(issues)), key=key)
 
 
-# Cost of leaving an expected issue unmatched in the assignment problem below:
-# larger than any total of tier costs, so cardinality is maximised first and
-# evidence strength decides among pairings of equal size. Leaving a required
-# issue unmatched costs more than leaving an optional one, so when one report
-# could cover either, the required one gets it and recall is not lowered by a
-# borderline expectation.
-_UNMATCHED_OPTIONAL = 10_000
-_UNMATCHED_REQUIRED = 20_000
-
-
 def _one_to_one_hits(
     issues: Sequence[IssueItem],
     expected_issues: Sequence[ResolvedIssue],
@@ -518,24 +518,31 @@ def _one_to_one_hits(
 ) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
-    strongest evidence (lowest total tier). Solved as an assignment problem;
-    exact ties fall to the order given, which ``hit_pairs`` makes canonical."""
+    strongest evidence (lowest total ``HitRank.cost``). Solved as an assignment
+    problem; exact ties fall to the order given, which ``hit_pairs`` makes canonical.
+
+    Leaving an expected issue unmatched costs more than every hit of the matrix
+    together, so cardinality is maximised first and evidence decides among
+    pairings of equal size; leaving a required one unmatched costs twice that, so
+    when one report could cover either, the required one gets it and recall is
+    not lowered by a borderline expectation."""
     size = max(len(expected_issues), len(issues))
     if size == 0:
         return {}
-    unmatched = [_UNMATCHED_REQUIRED if e.required else _UNMATCHED_OPTIONAL for e in expected_issues]
-    unmatched += [_UNMATCHED_OPTIONAL] * (size - len(expected_issues))  # padding rows
+    unmatched_optional = (_MAX_HIT_COST + 1) * size
+    unmatched = [2 * unmatched_optional if e.required else unmatched_optional for e in expected_issues]
+    unmatched += [unmatched_optional] * (size - len(expected_issues))  # padding rows
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
-            tier = hit_tier(e, issue, claimed, on_location)
-            if tier is not None:
-                cost[row][col] = tier
+            rank = hit_rank(e, issue, claimed, on_location)
+            if rank is not None:
+                cost[row][col] = rank.cost()
     assignment = _min_cost_assignment(cost)
     hits: dict[str, Optional[int]] = {}
     for row, e in enumerate(expected_issues):
         matched = assignment.get(row)
-        hits[e.id] = matched if matched is not None and cost[row][matched] < _UNMATCHED_OPTIONAL else None
+        hits[e.id] = matched if matched is not None and cost[row][matched] <= _MAX_HIT_COST else None
     return hits
 
 

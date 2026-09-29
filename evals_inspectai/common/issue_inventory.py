@@ -229,7 +229,7 @@ class ScoringPolicy(BaseModel):
     )
     # True when a title is a verdict on the anchored text (a citation's support
     # level) rather than the kind of issue it is: reports are then paired with
-    # expected issues on quote and line alone (see ``issue_checks.hit_tier``), so a
+    # expected issues on quote and line alone (see ``issue_checks.hit_rank``), so a
     # wrong verdict is scored by title_correct instead of pairing the report with a
     # neighbouring claim that happens to share the verdict.
     pair_on_location: bool = False

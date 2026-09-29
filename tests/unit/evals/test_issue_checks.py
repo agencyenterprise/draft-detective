@@ -18,6 +18,7 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEd
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
+    HitRank,
     issue_check_keys,
     decoy_hits,
     decoy_scores,
@@ -235,6 +236,12 @@ def test_pairing_on_location_ignores_the_title_when_ranking_evidence():
     assert hit_issue(f, [quoted_other, same_line]) == 1
     assert hit_issue(f, [quoted_other, same_line], on_location=True) == 0
     assert hit_issue(f, [_issue(title="Other", description="no quote", start=1, end=1)], on_location=True) is None
+
+
+def test_hit_rank_cost_orders_exactly_as_the_rank():
+    ranks = [HitRank(claimed, evidence, off) for claimed in (False, True) for evidence in range(3) for off in (False, True)]
+    assert sorted(ranks, key=HitRank.cost) == sorted(ranks)
+    assert len({r.cost() for r in ranks}) == len(ranks), "no two ranks share a cost"
 
 
 def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
