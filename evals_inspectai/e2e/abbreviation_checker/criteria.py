@@ -11,9 +11,10 @@ produces.
 Each expected occurrence is matched to at most one reported occurrence: first
 by where it is (abbreviation, line, order on the line), then by abbreviation
 and occurrence number (see ``_pair``). Recall and precision count occurrences
-found and invented. Over the matched occurrences, each field the rules read is
+found and invented; exempt occurrences are not catalogued at all, so recording
+one counts as invented. Over the matched occurrences, each field the rules read is
 checked on its own: the inline definition (case and whitespace ignored), the
-line span, the Abbreviations-section definition, and the exclusion flag. So a
+line span and the Abbreviations-section definition. So a
 wrong line costs only ``lines_correct``, a missing definition costs only
 ``inline_definition_correct``, and a missed use costs recall once rather than
 also costing every later use of that abbreviation, whose number it shifts.
@@ -32,8 +33,8 @@ from evals_inspectai.common.issue_checks import fraction
 
 
 class ExpectedOccurrence(BaseModel):
-    """One occurrence a correct extraction records. Same fields as the workflow's ``AbbreviationItem``, minus the
-    free-text exclusion reason."""
+    """One occurrence a correct extraction records. Same fields as the workflow's ``AbbreviationItem``, minus its
+    legacy exclusion flag and reason: exempt occurrences are not catalogued."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -45,7 +46,6 @@ class ExpectedOccurrence(BaseModel):
     abbreviations_section_definition: Optional[str] = Field(
         default=None, description="The entry in the Abbreviations section; None when not listed or there is no section"
     )
-    ignored: bool = Field(default=False, description="Excluded from compliance checks")
 
     @model_validator(mode="after")
     def _single_line_by_default(self) -> "ExpectedOccurrence":
@@ -84,8 +84,6 @@ class ReportedOccurrence(BaseModel):
     line_start: int = 0
     line_end: int = 0
     abbreviations_section_definition: Optional[str] = None
-    ignored: bool = False
-    ignored_reason: Optional[str] = None
 
 
 class ReportedCatalogue(BaseModel):
@@ -101,7 +99,6 @@ CATALOGUE_DESCRIPTIONS: dict[str, str] = {
     "inline_definition_correct": "Of the matched occurrences, share whose inline definition (empty when none) matches the expected one, ignoring case and whitespace.",
     "lines_correct": "Of the matched occurrences, share whose line span equals the expected one.",
     "section_definition_correct": "Of the matched occurrences, share whose Abbreviations-section definition (none when not listed) matches, ignoring case and whitespace.",
-    "ignored_correct": "Of the matched occurrences, share whose exclusion flag (heading, references, footnote, exempt class, always-excluded) is right.",
     "section_found_correct": "1 if abbreviations_section_found matches the expected value, 0 otherwise.",
     "clean_catalogue": "On a document with no abbreviations: 1 if the catalogue is empty, 0 otherwise. NaN elsewhere.",
 }
@@ -113,7 +110,6 @@ CATALOGUE_LABELS: dict[str, str] = {
     "inline_definition_correct": "Inline def",
     "lines_correct": "Occ lines",
     "section_definition_correct": "Section def",
-    "ignored_correct": "Ignored",
     "section_found_correct": "Section found",
     "clean_catalogue": "Clean catalogue",
 }
@@ -201,7 +197,6 @@ def _field_checks(pairs: Sequence[tuple[ExpectedOccurrence, ReportedOccurrence]]
             )
             for e, r in pairs
         ],
-        "ignored_correct": [(e.ignored == r.ignored, f"{_label(e)} ignored={r.ignored}, expected {e.ignored}") for e, r in pairs],
     }
     values = {key: fraction([float(ok) for ok, _ in results]) for key, results in checks.items()}
     notes = []

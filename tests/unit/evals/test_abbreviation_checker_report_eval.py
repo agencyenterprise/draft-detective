@@ -23,7 +23,7 @@ def test_report_dataset_is_well_formed():
     report, catalogue = records[0]
     assert len(report.document.split("\n")) == 818, "817 lines and a trailing newline"
     assert all(c.abbreviations_section_found for _, c in records)
-    assert len(catalogue.abbreviations) == 273 and sum(not o.ignored for o in catalogue.abbreviations) == 128
+    assert len(catalogue.abbreviations) == 126
     expected = [e for inventory, _ in records for e in inventory.expected_issues]
     assert all(e.severity == "medium" and e.anchor is not None for e in expected)
     assert all(e.required for e in expected)
