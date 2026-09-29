@@ -32,16 +32,14 @@ from lib.services.chat.extract import (
     UnsupportedDocumentError,
     extract_markdown,
 )
-from lib.services.chat.history import (
-    ATTACHMENTS_DIR,
-    ChatAttachment,
+from lib.services.chat.history import ATTACHMENTS_DIR, ChatAttachment, to_ui_messages
+from lib.services.chat.messages import ChatTurnMessage
+from lib.services.chat.sse import sse_stream
+from lib.services.chat.thread_state import (
     delete_thread_state,
     load_thread_messages,
     read_thread_file,
-    to_ui_messages,
 )
-from lib.services.chat.messages import ChatTurnMessage
-from lib.services.chat.sse import sse_stream
 from lib.services.chat.title import generate_title
 from lib.services.users import get_user_decrypted_api_key
 

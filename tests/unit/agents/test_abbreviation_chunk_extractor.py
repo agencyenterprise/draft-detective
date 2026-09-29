@@ -4,6 +4,7 @@ import json
 from typing import Any
 
 import pytest
+from deepagents.backends.utils import file_data_to_string
 from langchain.agents.structured_output import StructuredOutputValidationError
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
@@ -28,10 +29,10 @@ KWARGS: dict[str, Any] = {"markdown": MARKDOWN, "start_line": 10, "end_line": 42
 
 
 def _agent(monkeypatch, invoke) -> tuple[AbbreviationChunkExtractorAgent, dict]:
-    """The extractor with `create_deep_agent` replaced by a stub running `invoke`."""
+    """The extractor with `build_deep_agent` replaced by a stub running `invoke`."""
     captured: dict = {}
 
-    def fake_create_deep_agent(**kwargs):
+    def fake_build_deep_agent(**kwargs):
         captured["create"] = kwargs
 
         class _DeepAgent:
@@ -41,7 +42,7 @@ def _agent(monkeypatch, invoke) -> tuple[AbbreviationChunkExtractorAgent, dict]:
 
         return _DeepAgent()
 
-    monkeypatch.setattr(abbreviation_chunk_extractor, "create_deep_agent", fake_create_deep_agent)
+    monkeypatch.setattr(abbreviation_chunk_extractor, "build_deep_agent", fake_build_deep_agent)
     context = ContextSchema(project_id="p", file_artifacts_service=MockFileArtifactsService())
     agent = AbbreviationChunkExtractorAgent(context)
     agent._llm = object()  # type: ignore[assignment]
@@ -78,7 +79,7 @@ async def test_document_is_mounted_and_the_full_conversation_is_returned(monkeyp
 
     assert result is found
     assert list(captured["payload"]["files"]) == ["/main.md"]
-    assert captured["payload"]["files"]["/main.md"]["content"] == MARKDOWN.split("\n")
+    assert file_data_to_string(captured["payload"]["files"]["/main.md"]) == MARKDOWN
     assert captured["config"]["recursion_limit"] == RECURSION_LIMIT
     assert captured["create"]["response_format"].schema is ChunkExtractionResult
     # The full conversation is kept, system prompt included, so a run can be reconstructed.

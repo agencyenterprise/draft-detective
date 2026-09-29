@@ -7,12 +7,12 @@ one agent whose conversation grows until it overflows.
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
 from langchain.agents.structured_output import AutoStrategy, StructuredOutputError
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.agents.structured_output_salvage import ai_message_text, salvage_models
 from lib.config.llm_models import gpt_5_6_luna_model
 from lib.models.agent import LangChainAgent
@@ -104,7 +104,7 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> tuple[ChunkExtractionResult, List[BaseMessage]]:
         """Expects `markdown` (the whole document), `start_line` and `end_line`."""
-        agent = create_deep_agent(
+        agent = build_deep_agent(
             model=self.llm,
             context_schema=ContextSchema,
             response_format=AutoStrategy(ChunkExtractionResult),
@@ -112,10 +112,10 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
         messages = build_messages(prompt_kwargs)
         try:
             result = await agent.ainvoke(
-                {
-                    "files": {"/main.md": create_file_data(prompt_kwargs["markdown"])},
-                    "messages": messages,
-                },
+                agent_input(
+                    files={"/main.md": create_file_data(prompt_kwargs["markdown"])},
+                    messages=messages,
+                ),
                 config={"recursion_limit": RECURSION_LIMIT, **(config or {})},
             )
         except StructuredOutputError as e:

@@ -6,10 +6,12 @@ a wrong answer inspectable in Langfuse, the shared rate limiter, and the mountin
 the document and skills at the paths every skill's line numbers are defined against.
 """
 
+from typing import Any
 from unittest.mock import patch
 
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
+    _with_our_additions,
     build_agent_files,
     build_llm,
     build_skill_files,
@@ -115,3 +117,32 @@ class TestToolNames:
 
     def test_messages_without_tool_calls_are_ignored(self) -> None:
         assert tool_names([object(), object()]) == []
+
+
+class TestBuildingADeepAgent:
+    @staticmethod
+    def _captured(**kwargs: Any) -> dict[str, Any]:
+        seen: dict[str, Any] = {}
+
+        def create(**received: Any) -> str:
+            seen.update(received)
+            return "graph"
+
+        assert _with_our_additions(create)(**kwargs) == "graph"
+        return seen
+
+    def test_our_middleware_runs_ahead_of_the_callers(self) -> None:
+        own = object()
+        seen = self._captured(model="m", middleware=[own])
+        assert [type(m).__name__ for m in seen["middleware"][:-1]] == ["ReadFileLineNumbersMiddleware"]
+        assert seen["middleware"][-1] is own
+
+    def test_the_general_purpose_subagent_runs_our_middleware_and_the_parents_skills(self) -> None:
+        (subagent,) = self._captured(model="m", skills=["/skills/"])["subagents"]
+        assert subagent["name"] == "general-purpose"
+        assert subagent["skills"] == ["/skills/"]
+        assert [type(m).__name__ for m in subagent["middleware"]] == ["ReadFileLineNumbersMiddleware"]
+
+    def test_a_callers_own_general_purpose_subagent_is_kept(self) -> None:
+        own = {"name": "general-purpose", "description": "mine", "system_prompt": "mine"}
+        assert self._captured(model="m", subagents=[own])["subagents"] == [own]

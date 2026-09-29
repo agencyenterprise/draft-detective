@@ -5,7 +5,7 @@ one chat thread is one LangGraph thread, keyed by the ``chat_threads`` row id.
 ``chat_threads`` itself stays as the index (owner, title, archived), because the
 checkpointer has no notion of any of those.
 
-Three concerns live here:
+Two concerns live here, and a third next door:
 
 - **Building a turn.** The user's text becomes a ``HumanMessage``; attached
   documents are mounted into the agent's filesystem under ``/attachments/`` and
@@ -13,8 +13,8 @@ Three concerns live here:
   tools instead of receiving the whole text inline. The original text and the
   attachment list travel in ``additional_kwargs`` so the page can show the
   message the user typed, with chips, rather than the pointer note.
-- **Reading state back.** Straight from the saver, without building an agent:
-  ``aget_tuple`` hands back the channel values, which is all a page load needs.
+- **Reading state back** lives in ``thread_state``: it goes through the compiled
+  graph, because the checkpointed channels hold deltas, not the full state.
 - **Serialising for the page.** LangChain messages become the subset of
   ``LangChainMessage`` that ``@assistant-ui/react-langgraph`` renders. Reasoning
   is rewritten from the ``v1`` block layout the model streams in to the
@@ -34,7 +34,6 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMe
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.checkpointer import get_checkpointer
 from lib.services.chat.citations import render_citations
 from lib.services.chat.events import content_blocks
 
@@ -105,39 +104,6 @@ def build_user_turn(
         additional_kwargs={"user_text": user_text, "attachments": listed},
     )
     return message, files
-
-
-async def load_thread_values(thread_id: str) -> dict[str, Any]:
-    """The latest checkpoint's channel values, or nothing for a thread never run."""
-
-    async with get_checkpointer() as saver:
-        saved = await saver.aget_tuple(thread_config(thread_id))
-    if saved is None:
-        return {}
-    return dict(saved.checkpoint.get("channel_values") or {})
-
-
-async def load_thread_messages(thread_id: str) -> list[BaseMessage]:
-    values = await load_thread_values(thread_id)
-    return [m for m in values.get("messages") or [] if isinstance(m, BaseMessage)]
-
-
-async def read_thread_file(thread_id: str, path: str) -> Optional[str]:
-    """A file from the thread's filesystem, joined back into text; None if absent."""
-
-    values = await load_thread_values(thread_id)
-    data = (values.get("files") or {}).get(path)
-    if not isinstance(data, dict):
-        return None
-    content = data.get("content")
-    if isinstance(content, list):
-        return "\n".join(str(line) for line in content)
-    return str(content) if content is not None else None
-
-
-async def delete_thread_state(thread_id: str) -> None:
-    async with get_checkpointer() as saver:
-        await saver.adelete_thread(thread_id)
 
 
 def to_ui_messages(messages: Sequence[BaseMessage]) -> list[UiMessage]:

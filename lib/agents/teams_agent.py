@@ -37,7 +37,6 @@ import logging
 from collections.abc import Sequence
 from typing import Any, Optional
 
-from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
@@ -47,6 +46,8 @@ from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
     RECURSION_LIMIT,
+    agent_input,
+    build_deep_agent,
     build_llm,
     build_skill_files,
     tool_names,
@@ -281,7 +282,7 @@ async def answer_question(
 
     try:
         async with get_checkpointer() as saver:
-            agent = create_deep_agent(
+            agent = build_deep_agent(
                 model=build_llm(model, api_key),
                 tools=[
                     open_document_for(graph_token),
@@ -298,13 +299,13 @@ async def answer_question(
 
             with propagate_attributes(user_id=user_id):
                 result = await agent.ainvoke(
-                    {
+                    agent_input(
                         # Skills only. Documents arrive through the tool and stay in the
                         # thread's own files; skills have to be mounted up front because
                         # a tool cannot add them later.
-                        "files": build_skill_files(),
-                        "messages": [HumanMessage(content=prompt)],
-                    },
+                        files=build_skill_files(),
+                        messages=[HumanMessage(content=prompt)],
+                    ),
                     config=run_config,
                 )
     except Exception as error:  # noqa: BLE001 - the caller decides what to do
