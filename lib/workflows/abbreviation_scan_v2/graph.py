@@ -24,10 +24,11 @@ def build_abbreviation_scan_v2_graph():
     2. prepare_chunks: cut the rest of the document into line-range chunks
     3. extract_chunk: catalogue one chunk (fanned out via Send, in parallel)
     4. assemble_catalogue: number occurrences document-wide, attach section
-       definitions, report failed chunks as warnings
+       definitions, drop occurrences on heading lines, report failed chunks as
+       warnings
 
-    Exempt occurrences, the always-excluded names included, are left out by the
-    extraction skill itself; no node filters them afterwards.
+    Other exempt occurrences, the always-excluded names included, are left out
+    by the extraction skill itself; headings are the only exemption code enforces.
     """
     graph = StateGraph(AbbreviationScanV2State, context_schema=ContextSchema)
 
