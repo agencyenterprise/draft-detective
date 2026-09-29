@@ -45,7 +45,7 @@ from evals_inspectai.common.issue_checks import (
     issues_from_state,
     ranked_hits,
 )
-from evals_inspectai.common.issue_inventory import ResolvedInventory, inventory_dataset, load_inventory_records
+from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue, inventory_dataset, load_inventory_records
 from evals_inspectai.common.issue_judge import gist, grade
 from evals_inspectai.common.issue_viewer import issue_viewer_config
 from evals_inspectai.common.scorers import DEFAULT_GRADER_MODEL
@@ -104,16 +104,12 @@ async def judge_methodology(
             gaps.append(0.0)
             notes.append(f"{plant.id} gap_identified 0.0: " + ("nothing on its line" if best is None else gist(results[best][1])))
             continue
-        gaps.append(results[best][0])
-        notes += [f"{plant.id} gap_identified {results[best][0]}: {gist(results[best][1])}"] if results[best][0] < 1.0 else []
-        named = candidates[best]
-        if not (named.suggested_action or "").strip():
-            actions.append(0.0)
-            notes.append(f"{plant.id} action_repairs 0.0: no suggested action")
-            continue
-        value, why = await grade(grader, gap_prompt(REPAIR_CRITERION, plant, named, document, "suggested_action"), calls)
+        top = results[best][0]
+        gaps.append(top)
+        notes += [f"{plant.id} gap_identified {top}: {gist(results[best][1])}"] if top < 1.0 else []
+        value, why = await _best_repair(grader, plant, [c for c, (v, _) in zip(candidates, results) if v == top], document, calls)
         actions.append(value)
-        notes += [f"{plant.id} action_repairs {value}: {gist(why)}"] if value < 1.0 else []
+        notes += [f"{plant.id} action_repairs {value}: {why}"] if value < 1.0 else []
     sound = await asyncio.gather(*(grade(grader, decoy_prompt(d, issues, document), calls) for d in inventory.decoys))
     notes += [f"{d.reason} sound_choices_respected {v}: {gist(why)}" for d, (v, why) in zip(inventory.decoys, sound) if v < 1.0]
     values = {
@@ -122,6 +118,28 @@ async def judge_methodology(
         "sound_choices_respected": fraction([v for v, _ in sound]),
     }
     return values, " | ".join(notes) if notes else "all judged criteria passed"
+
+
+async def _best_repair(
+    grader: Model, plant: ResolvedIssue, named: Sequence[IssueItem], document: str, calls: int
+) -> tuple[float, str]:
+    """The best action grade among the issues that named the plant equally well, so the
+    grade does not depend on which of them the run happened to list first; an issue with no
+    suggested action scores 0."""
+    graded = await asyncio.gather(
+        *(
+            grade(grader, gap_prompt(REPAIR_CRITERION, plant, issue, document, "suggested_action"), calls)
+            if (issue.suggested_action or "").strip()
+            else _no_action()
+            for issue in named
+        )
+    )
+    value, why = max(graded, key=lambda g: g[0])
+    return value, why if why == "no suggested action" else gist(why)
+
+
+async def _no_action() -> tuple[float, str]:
+    return 0.0, "no suggested action"
 
 
 @scorer(metrics=PER_KEY_METRICS)

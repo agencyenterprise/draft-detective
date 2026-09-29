@@ -112,7 +112,7 @@ def _named_own(issue: IssueItem, own: Sequence[Citation], linked: Sequence[Citat
     """The document's own references the issue names by first author and year and does not
     already give as a linked citation: a recommendation to cite an existing reference in a
     new place, whose full citation is in the document and may have no link to give."""
-    text = " ".join(part for part in (issue.title, issue.description, issue.long_description or ""))
+    text = " ".join(part for part in (issue.title, issue.description, issue.long_description or "", issue.suggested_action or ""))
     return [
         r
         for r in own
@@ -149,7 +149,7 @@ def source_scores(
     say which side of the date it falls. NaN when the record has no publication date.
     ``not_already_cited`` (when ``new_sources_only``): share of citations whose first author and
     year match no entry of the document's reference list. ``report_lists_sources``: share of
-    cited sources whose first author the report names, since the skills ask the report to list
+    cited sources the report names (see ``_listed``), since the skills ask the report to list
     the full citation of every recommended source. Each is NaN with nothing to judge."""
     values: dict[str, float] = {"cites_source": math.nan, "sources_in_window": math.nan, "report_lists_sources": math.nan}
     if new_sources_only:
@@ -174,11 +174,10 @@ def source_scores(
         notes += [f"{len(outside)} source(s) {side} {year}: " + "; ".join(c.text[:90] for c in outside)] if outside else []
 
     cited = [c for _, cites in per_issue for c in cites]
-    authored = [c for c in cited if c.first_author]
-    if authored:
-        unlisted = sorted({c.first_author for c in authored if c.first_author and not _names(report, c.first_author)})
-        values["report_lists_sources"] = 1 - sum(c.first_author in unlisted for c in authored) / len(authored)
-        notes += [f"report does not name: {unlisted}"] if unlisted else []
+    if cited:
+        unlisted = [c for c in cited if not _listed(report, c)]
+        values["report_lists_sources"] = 1 - len(unlisted) / len(cited)
+        notes += [f"report does not name: {sorted({_label(c) for c in unlisted})}"] if unlisted else []
     if new_sources_only and cited:
         repeated = [c for c in cited if any(_same_source(c, r) for r in own)]
         values["not_already_cited"] = 1 - len(repeated) / len(cited)
@@ -186,12 +185,28 @@ def source_scores(
     return values, " | ".join(notes) if notes else "every source cited in full and in its window"
 
 
+def _label(citation: Citation) -> str:
+    """How a source is named in a note: its first author, or its link when it has none."""
+    link = _LINK_RE.search(citation.text)
+    return citation.first_author or (link.group(0).rstrip(".,;)") if link else citation.text[:60])
+
+
+def _listed(report: str, citation: Citation) -> bool:
+    """Whether the report names the source: its first author as a whole word, or, for a
+    source with no parseable author (``RFC 9114 (2022). HTTP/3. https://...``), its link."""
+    if citation.first_author:
+        return _names(report, citation.first_author)
+    return _label(citation).lower() in report.lower()
+
+
 def _report(state: TaskState) -> str:
     try:
-        result = json.loads(state.output.completion).get("result") or {}
-    except (ValueError, AttributeError):
+        output = json.loads(state.output.completion)
+    except ValueError:
         return ""
-    return result.get("report_markdown") or ""
+    result = output.get("result") if isinstance(output, dict) else None
+    report = result.get("report_markdown") if isinstance(result, dict) else None
+    return report if isinstance(report, str) else ""
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -210,7 +225,7 @@ def source_checks(after: bool, new_sources_only: bool) -> Scorer:
 
 
 SOURCE_DESCRIPTIONS = {
-    "report_lists_sources": "Share of recommended sources whose first author the report names: the report lists every recommended source. NaN when no source was cited.",
+    "report_lists_sources": "Share of recommended sources the report names, by first author as a whole word or, for a source with no parseable author, by its link: the report lists every recommended source. NaN when no source was cited.",
     "cites_source": "Share of reported issues giving at least one full citation (a line with a DOI or URL and a publication year); for a literature review, naming one of the document's own references by author and year also counts. NaN when nothing was reported.",
     "not_already_cited": "Share of recommended sources whose first author and year match no entry of the document's own reference list. NaN when no source was cited.",
 }

@@ -127,3 +127,14 @@ def test_the_sound_choice_grader_sees_every_field_of_every_issue():
     )
     prompt = decoy_prompt(INVENTORY.decoys[0], [issue], DOC)
     assert "Cluster-robust errors with three teams are unreliable." in prompt and "wild-cluster bootstrap" in prompt
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reversed_order", [False, True])
+async def test_the_best_repair_among_equally_good_namers_counts_whatever_the_order(reversed_order):
+    vague = _issue("Methodology: Self-selection", 5, action="Improve rigor.")
+    concrete = _issue("Methodology: Assignment", 5, action="Randomize the teams.")
+    grader = _Grader("[Reviewer's suggested action]: Improve rigor.")
+    issues = [concrete, vague][:: -1 if reversed_order else 1]
+    values, _ = await judge_methodology(cast(Model, grader), issues, INVENTORY)
+    assert values["action_repairs"] == 1.0

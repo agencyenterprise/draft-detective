@@ -5,13 +5,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from inspect_ai.model import ModelName
+from inspect_ai.scorer import Target
 from inspect_ai.solver import TaskState
 
 from evals_inspectai.common import api_solver
 from evals_inspectai.common.api_solver import api_workflow_solver
 from evals_inspectai.common.issue_inventory import InventoryRecord, inventory_to_sample, resolve_record
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
-from evals_inspectai.common.source_citations import document_references, issue_citations, parse_citation, source_scores
+from evals_inspectai.common.source_citations import document_references, issue_citations, parse_citation, source_checks, source_scores
 
 DOC = (
     "# HTTP (2015)\n\nHTTP/1.1 is the latest version.\n\n## References\n\n"
@@ -120,3 +121,27 @@ def test_the_report_names_a_source_as_a_whole_word_in_any_case():
     bruin = _issue("**Source:** de Bruin, A. (2015). Bias. https://doi.org/10.1000/y")
     values, _ = source_scores([bruin], INVENTORY, "See De Bruin et al. (2015).", after=True, new_sources_only=False)
     assert values["report_lists_sources"] == 1.0
+
+
+def test_an_existing_reference_named_only_in_the_action_counts():
+    existing = IssueItem(title="Cite the existing reference", description="Relevant.", suggested_action="Cite Fielding et al. (1999) here.", severity="low")
+    values, _ = source_scores([existing], INVENTORY, "Fielding", after=False, new_sources_only=False)
+    assert values["cites_source"] == 1.0 and values["report_lists_sources"] == 1.0
+
+
+def test_a_source_without_an_author_is_listed_by_its_link():
+    rfc = _issue("**Source:** RFC 9114 (2022). HTTP/3. https://www.rfc-editor.org/rfc/rfc9114")
+    values, note = source_scores([rfc], INVENTORY, "No sources.", after=True, new_sources_only=False)
+    assert values["report_lists_sources"] == 0.0 and "rfc9114" in note
+    values, _ = source_scores([rfc], INVENTORY, "See https://www.rfc-editor.org/rfc/rfc9114.", after=True, new_sources_only=False)
+    assert values["report_lists_sources"] == 1.0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("completion", ['{"result": "failed"}', '["not", "an", "object"]', '{"result": {"report_markdown": 3, "issues": []}}'])
+async def test_source_checks_score_a_malformed_state_instead_of_crashing(completion):
+    sample = inventory_to_sample(INVENTORY)
+    state = TaskState(ModelName("none/none"), sample_id=1, epoch=1, input=sample.input, messages=[], metadata=sample.metadata)
+    state.output.completion = completion
+    result = await source_checks(after=True, new_sources_only=True)(state, Target(""))
+    assert isinstance(result.value, dict)
