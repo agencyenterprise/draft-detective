@@ -7,10 +7,12 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { downloadFile } from '@/lib/file-download';
 import type { AnnotationSetStats } from '@/lib/generated-api';
-import { useAnnotatedItems, useAnnotationSetStats } from '@/lib/hooks/use-annotations';
+import { getErrorMessage } from '@/lib/api-error';
+import { useAnnotatedItems, useAnnotationSetStats, useExportAnnotations } from '@/lib/hooks/use-annotations';
 import { cn } from '@/lib/utils';
 import { Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 function agreementRate(stats: AnnotationSetStats): string {
   const decided = stats.agreements + stats.disagreements;
@@ -73,12 +75,6 @@ function SetItems({ slug }: { slug: string }) {
   const [onlyDisagreements, setOnlyDisagreements] = useState(false);
   const { data: items, isLoading } = useAnnotatedItems(slug, onlyDisagreements);
 
-  const exportJson = () =>
-    downloadFile({
-      filename: `annotations-${slug}.json`,
-      blob: new Blob([JSON.stringify(items ?? [], null, 2)], { type: 'application/json' }),
-    });
-
   return (
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
@@ -86,15 +82,10 @@ function SetItems({ slug }: { slug: string }) {
           <CardTitle>Annotated items</CardTitle>
           <CardDescription>Most contested first. Open an item to read the document and every answer.</CardDescription>
         </div>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm">
-            <Switch checked={onlyDisagreements} onCheckedChange={setOnlyDisagreements} />
-            Only disagreements
-          </label>
-          <Button variant="outline" size="sm" onClick={exportJson} disabled={!items?.length}>
-            <Download className="size-4" /> Export JSON
-          </Button>
-        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <Switch checked={onlyDisagreements} onCheckedChange={setOnlyDisagreements} />
+          Only disagreements
+        </label>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -113,6 +104,28 @@ function SetItems({ slug }: { slug: string }) {
   );
 }
 
+/** Downloads every set's results in one file, whichever set is on screen. */
+function ExportAllButton() {
+  const exportAll = useExportAnnotations();
+
+  const download = () =>
+    exportAll.mutate(undefined, {
+      onSuccess: (sets) =>
+        downloadFile({
+          filename: `annotations-${new Date().toISOString().slice(0, 10)}.json`,
+          blob: new Blob([JSON.stringify(sets, null, 2)], { type: 'application/json' }),
+        }),
+      onError: (error) => toast.error(getErrorMessage(error, 'Could not export the annotations')),
+    });
+
+  return (
+    <Button variant="outline" size="sm" onClick={download} disabled={exportAll.isPending}>
+      {exportAll.isPending ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+      Export all (JSON)
+    </Button>
+  );
+}
+
 /** Admin view of how people's answers compare with the eval datasets. */
 export function AnnotationResults() {
   const { data: sets, isLoading, error } = useAnnotationSetStats();
@@ -121,12 +134,15 @@ export function AnnotationResults() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Annotation results</h1>
-        <p className="mt-1 text-muted-foreground">
-          How users&apos; answers compare with what each eval dataset expects. Disagreements point at a test case, or a
-          rule, worth a second look.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Annotation results</h1>
+          <p className="mt-1 text-muted-foreground">
+            How users&apos; answers compare with what each eval dataset expects. Disagreements point at a test case, or
+            a rule, worth a second look.
+          </p>
+        </div>
+        <ExportAllButton />
       </div>
 
       <Card>

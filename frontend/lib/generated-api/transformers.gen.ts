@@ -3,6 +3,7 @@
 import type {
   CreateProjectEndpointApiProjectsPostResponse,
   CreateThreadApiChatThreadsPostResponse,
+  ExportAnnotationsApiAdminAnnotationsExportGetResponse,
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
@@ -58,6 +59,18 @@ const annotationRecordSchemaResponseTransformer = (data: any) => {
 
 const annotatedItemSchemaResponseTransformer = (data: any) => {
   data.annotations = data.annotations.map((item: any) => annotationRecordSchemaResponseTransformer(item));
+  return data;
+};
+
+const annotationSetExportSchemaResponseTransformer = (data: any) => {
+  data.items = data.items.map((item: any) => annotatedItemSchemaResponseTransformer(item));
+  return data;
+};
+
+export const exportAnnotationsApiAdminAnnotationsExportGetResponseTransformer = async (
+  data: any,
+): Promise<ExportAnnotationsApiAdminAnnotationsExportGetResponse> => {
+  data = data.map((item: any) => annotationSetExportSchemaResponseTransformer(item));
   return data;
 };
 

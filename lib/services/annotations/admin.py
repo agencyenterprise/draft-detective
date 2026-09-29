@@ -25,6 +25,7 @@ from lib.services.annotations.models import (
     AnnotationPassage,
     AnnotationQuestion,
     AnnotationRecord,
+    AnnotationSetExport,
     AnnotationSetStats,
 )
 from lib.services.annotations.service import load_set, questions_of
@@ -144,23 +145,49 @@ def _annotated_item(
     )
 
 
-async def list_annotated_items(
-    slug: str, only_disagreements: bool = False
+async def _annotated_items(
+    session: AsyncSession, annotation_set: AnnotationSet
 ) -> list[AnnotatedItem]:
-    """Every item with at least one annotation, the most contested first.
-    Retired items are included: their labels still describe the passage they showed."""
-    async with get_async_db_session() as session:
-        annotation_set = await load_set(session, slug)
-        records = await _records_by_item(
-            session, annotation_set.id, questions_of(annotation_set)
-        )
-        stmt = select(AnnotationItem).where(col(AnnotationItem.id).in_(list(records)))
-        items = [
-            _annotated_item(item, records[item.id])
-            for item in (await session.execute(stmt)).scalars()
-        ]
-    if only_disagreements:
-        items = [item for item in items if item.disagreements > 0]
+    """Every item in the set with at least one annotation, the most contested
+    first. Retired items are included: their labels still describe the passage
+    they showed."""
+    records = await _records_by_item(
+        session, annotation_set.id, questions_of(annotation_set)
+    )
+    stmt = select(AnnotationItem).where(col(AnnotationItem.id).in_(list(records)))
+    items = [
+        _annotated_item(item, records[item.id])
+        for item in (await session.execute(stmt)).scalars()
+    ]
     return sorted(
         items, key=lambda i: (-i.disagreements, -len(i.annotations), i.source_key)
     )
+
+
+async def list_annotated_items(
+    slug: str, only_disagreements: bool = False
+) -> list[AnnotatedItem]:
+    async with get_async_db_session() as session:
+        items = await _annotated_items(session, await load_set(session, slug))
+    if only_disagreements:
+        items = [item for item in items if item.disagreements > 0]
+    return items
+
+
+async def export_annotations() -> list[AnnotationSetExport]:
+    """Every set that has annotations, with its questions and annotated items.
+    Deactivated sets are included: their answers are still results."""
+    stmt = select(AnnotationSet).order_by(col(AnnotationSet.slug))
+    async with get_async_db_session() as session:
+        exports = [
+            AnnotationSetExport(
+                slug=annotation_set.slug,
+                title=annotation_set.title,
+                workflow_type=annotation_set.workflow_type,
+                is_active=annotation_set.is_active,
+                questions=questions_of(annotation_set),
+                items=await _annotated_items(session, annotation_set),
+            )
+            for annotation_set in (await session.execute(stmt)).scalars().all()
+        ]
+    return [export for export in exports if export.items]

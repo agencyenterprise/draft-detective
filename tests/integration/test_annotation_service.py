@@ -238,3 +238,38 @@ async def test_submit_stores_an_oversized_time_spent(annotation_set, users):
 
     [item] = await admin.list_annotated_items(annotation_set.slug)
     assert item.annotations[0].time_spent_ms == MAX_TIME_SPENT_MS
+
+
+@pytest.mark.asyncio
+async def test_export_covers_every_annotated_set(annotation_set, users):
+    empty_slug = f"test-empty-{uuid.uuid4().hex[:8]}"
+    async with get_async_db_session() as session:
+        empty = AnnotationSet(
+            slug=empty_slug,
+            title="Empty set",
+            workflow_type="active_voice",
+            summary="s",
+            guidance="g",
+            questions=[q.model_dump() for q in ACTIVE_VOICE.questions],
+        )
+        session.add(empty)
+        await session.flush()
+        await sync_items(session, empty.id, empty_slug, [_draft("gamma", "yes")])
+        await session.commit()
+    try:
+        task = await _next(annotation_set, users[0])
+        assert task.item_id is not None
+        await _submit(task.item_id, users[0], "yes", comment="clear passive")
+
+        exported = {s.slug: s for s in await admin.export_annotations()}
+    finally:
+        await _delete(AnnotationSet, empty.id)
+
+    assert empty_slug not in exported
+    ours = exported[annotation_set.slug]
+    assert [q.key for q in ours.questions] == [SHOULD_FLAG]
+    [item] = ours.items
+    assert item.item_id == task.item_id
+    assert [(a.answers, a.comment) for a in item.annotations] == [
+        ({SHOULD_FLAG: "yes"}, "clear passive")
+    ]
