@@ -7,7 +7,8 @@
 # from the PR, whose labels missed occurrences on busy lines and left the endnotes in scope. Judgement calls, made
 # once and applied to every record: the contents and figure lists are in scope (no rule excludes them); model
 # names (recorded with their version, e.g. "GPT-4o"), benchmark, conference, journal and software names are exempt,
-# as are document identifiers and statistical notation (N, p, F1); "vs" is Latin shorthand, recorded as written
+# as are document identifiers, statistical notation (N, p, F1) and the magnitude suffix of model sizes (the B in
+# "70B"); "vs" is Latin shorthand, recorded as written
 # (the report has both "vs" and "vs."); VCT, HPCT and MBCT stay in scope in the benchmark table, since they stand
 # for names the report defines. Following the skill, "ID" is common shorthand (exempt) and the CAST in the
 # www.rand.org/CAST link is inside a URL, so it is not recorded at all.
@@ -80,6 +81,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -93,6 +95,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -220,14 +223,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -378,18 +394,18 @@
   notes: >-
     Grant Ellison's PR 782 fixture: a full RAND research report (Interpreting Dual-Use Biology Benchmarks for
     Frontier AI), 817 lines, catalogued in many chunks, with the Abbreviations section near the end (line 736),
-    References after it and endnotes last. Relabelled against skills/abbreviation-extraction/SKILL.md: 258
-    occurrences, 130 in scope. Excluded: the cover page (lines 1-22), headings, References, endnotes (lines
+    References after it and endnotes last. Relabelled against skills/abbreviation-extraction/SKILL.md: 273
+    occurrences, 128 in scope. Excluded: the cover page (lines 1-22), headings, References, endnotes (lines
     810-817), RAND, degrees, model and benchmark names (GPT, MMLU, GPQA, WMDP, LitQA, DBQA, BioLP, WCBB),
-    conference, journal and software names, the document number, ID, et al., vs and F1/N/p notation. The contents
-    and figure lists are in scope (no rule excludes them), so IRT's first use is its bare mention in the list of
-    figures on line 133. The CAST in the www.rand.org/CAST link is inside a URL, which the skill skips entirely,
-    and ID ('item IDs') is common shorthand, so neither raises an issue (both are decoys). Issues: Rule 2 for IRT,
-    LLM (first used bare in 'LLM-based' on line 429, defined only on line 481) and ML, DNA, UK, I/O and API, which
-    also fail Rule 3. Rule 5 at line 269: 'Item response time (IRT)' conflicts with the first definition 'Item
-    Response Theory' on line 239, a real typo in the report; the workflow's fuzzy comparison (text_matches, 85)
-    currently scores it 91 and misses it. 'Item-Response Theory' on line 261 and 'two-parameter logistic model' on
-    line 485 are consistent redefinitions.
+    conference, journal and software names, the document number, ID, et al., vs, F1/N/p notation and the B of
+    model sizes. The contents and figure lists are in scope (no rule excludes them), so IRT's first use is its
+    bare mention in the list of figures on line 133. The CAST in the www.rand.org/CAST link is inside a URL, which
+    the skill skips entirely, and ID ('item IDs') is common shorthand, so neither raises an issue (both are
+    decoys). Issues: Rule 2 for IRT, LLM (first used bare in 'LLM-based' on line 429, defined only on line 481)
+    and ML, DNA, UK, I/O and API, which also fail Rule 3. Rule 5 at line 269: 'Item response time (IRT)' conflicts
+    with the first definition 'Item Response Theory' on line 239, a real typo in the report; the workflow's fuzzy
+    comparison (text_matches, 85) currently scores it 91 and misses it. 'Item-Response Theory' on line 261 and
+    'two-parameter logistic model' on line 485 are consistent redefinitions.
 - input: file://e2e/abbreviation_checker/files/benchmarks_report_no_ai_definition.md
   abbreviations_section_found: true
   abbreviations:
@@ -459,6 +475,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -472,6 +489,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -599,14 +617,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -831,6 +862,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -844,6 +876,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -971,14 +1004,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -1199,6 +1245,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -1212,6 +1259,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -1339,14 +1387,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -1571,6 +1632,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -1584,6 +1646,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -1711,14 +1774,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -1943,6 +2019,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -1956,6 +2033,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -2083,14 +2161,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -2315,6 +2406,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -2328,6 +2420,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -2455,14 +2548,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -2687,6 +2793,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -2700,6 +2807,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -2827,14 +2935,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -3055,6 +3176,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -3068,6 +3190,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -3195,14 +3318,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}
@@ -3427,6 +3563,7 @@
     - {abbr: "VCT", occurrence_number: 2, line_start: 340, inline_definition: "Virology Capabilities Test", abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "RAND", occurrence_number: 9, line_start: 340, ignored: true}
     - {abbr: "AI", occurrence_number: 31, line_start: 340, abbreviations_section_definition: "artificial intelligence"}
+    - {abbr: "B", occurrence_number: 1, line_start: 344, ignored: true}
     - {abbr: "HPCT", occurrence_number: 2, line_start: 344, abbreviations_section_definition: "Human Pathogen Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 3, line_start: 344, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "AI", occurrence_number: 32, line_start: 346, abbreviations_section_definition: "artificial intelligence"}
@@ -3440,6 +3577,7 @@
     - {abbr: "MBCT", occurrence_number: 2, line_start: 352, abbreviations_section_definition: "Molecular Biology Capabilities Test"}
     - {abbr: "VCT", occurrence_number: 4, line_start: 352, abbreviations_section_definition: "Virology Capabilities Test"}
     - {abbr: "GPT", occurrence_number: 1, line_start: 352, ignored: true}
+    - {abbr: "B", occurrence_number: 2, line_start: 352, ignored: true}
     - {abbr: "AI", occurrence_number: 36, line_start: 354, abbreviations_section_definition: "artificial intelligence"}
     - {abbr: "IRT", occurrence_number: 8, line_start: 372, abbreviations_section_definition: "item response theory"}
     - {abbr: "IRT", occurrence_number: 9, line_start: 372, abbreviations_section_definition: "item response theory"}
@@ -3567,14 +3705,27 @@
     - {abbr: "GPT-4", occurrence_number: 1, line_start: 690, ignored: true}
     - {abbr: "GPT-3.5", occurrence_number: 1, line_start: 691, ignored: true}
     - {abbr: "GPT-4", occurrence_number: 2, line_start: 693, ignored: true}
+    - {abbr: "B", occurrence_number: 3, line_start: 694, ignored: true}
+    - {abbr: "B", occurrence_number: 4, line_start: 695, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 1, line_start: 696, ignored: true}
     - {abbr: "GPT-4o", occurrence_number: 2, line_start: 697, ignored: true}
+    - {abbr: "B", occurrence_number: 5, line_start: 698, ignored: true}
+    - {abbr: "B", occurrence_number: 6, line_start: 699, ignored: true}
+    - {abbr: "B", occurrence_number: 7, line_start: 700, ignored: true}
     - {abbr: "API", occurrence_number: 1, line_start: 701}
+    - {abbr: "B", occurrence_number: 8, line_start: 703, ignored: true}
+    - {abbr: "B", occurrence_number: 9, line_start: 704, ignored: true}
+    - {abbr: "B", occurrence_number: 10, line_start: 705, ignored: true}
+    - {abbr: "B", occurrence_number: 11, line_start: 706, ignored: true}
+    - {abbr: "B", occurrence_number: 12, line_start: 707, ignored: true}
+    - {abbr: "B", occurrence_number: 13, line_start: 712, ignored: true}
+    - {abbr: "B", occurrence_number: 14, line_start: 713, ignored: true}
     - {abbr: "GPT-4.1", occurrence_number: 1, line_start: 715, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 1, line_start: 722, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 2, line_start: 723, ignored: true}
     - {abbr: "GPT-5", occurrence_number: 3, line_start: 724, ignored: true}
     - {abbr: "GPT-OSS", occurrence_number: 1, line_start: 725, ignored: true}
+    - {abbr: "B", occurrence_number: 15, line_start: 725, ignored: true}
     - {abbr: "GPT-5.1", occurrence_number: 1, line_start: 728, ignored: true}
     - {abbr: "GPT-5.2", occurrence_number: 1, line_start: 730, ignored: true}
     - {abbr: "GPT-5.3", occurrence_number: 1, line_start: 732, ignored: true}

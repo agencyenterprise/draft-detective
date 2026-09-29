@@ -16,7 +16,7 @@ def test_report_dataset_is_well_formed():
     report, catalogue = records[0]
     assert len(report.document.split("\n")) == 818, "817 lines and a trailing newline"
     assert all(c.abbreviations_section_found for _, c in records)
-    assert len(catalogue.abbreviations) == 258 and sum(not o.ignored for o in catalogue.abbreviations) == 128
+    assert len(catalogue.abbreviations) == 273 and sum(not o.ignored for o in catalogue.abbreviations) == 128
     expected = [e for inventory, _ in records for e in inventory.expected_issues]
     assert all(e.severity == "medium" and e.anchor is not None for e in expected)
     assert all(e.required for e in expected)
@@ -41,6 +41,7 @@ def test_each_variant_differs_from_the_report_only_by_its_removed_definitions():
         lines = inventory.document.split("\n")
         edited = {n for n, (a, b) in enumerate(zip(report_lines, lines), 1) if a != b}
         assert len(lines) == len(report_lines) and edited, inventory.notes
+        assert len(catalogue.abbreviations) == len(report_catalogue.abbreviations), inventory.notes
         cleared = 0
         for before, after in zip(report_catalogue.abbreviations, catalogue.abbreviations):
             if before.inline_definition != after.inline_definition:
