@@ -39,6 +39,7 @@ quote: it omits the anchor, names a title instead, and is matched on the title
 alone, wherever the reported issue sits.
 """
 
+import re
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -105,6 +106,14 @@ class ExpectedIssue(BaseModel):
     edit: Optional[EditExpectation] = Field(
         default=None,
         description="Phrases the proposed edit's replacement must carry or avoid; feeds edit_expected_phrases",
+    )
+    rationale: Optional[str] = Field(
+        default=None,
+        description=(
+            "The labeller's account of the expected issue: the flaw an inference commits, what a cited "
+            "source actually says. Not scored deterministically; a judged criterion with `reference=True` "
+            "shows it to the grader as the reference the reported analysis is compared against."
+        ),
     )
     required: bool = Field(
         default=True,
@@ -192,6 +201,12 @@ class ResolvedInventory(BaseModel):
     # kinds with fixed titles. Set by ``load_inventory_records``; the pairing uses it
     # so an untitled expected issue prefers a free-form report over one of these kinds.
     named_titles: list[str] = Field(default_factory=list)
+    # True when a title is a verdict on the anchored text (a citation's support
+    # level) rather than the kind of issue it is: reports are then paired with
+    # expected issues on quote and line alone (see ``issue_checks.hit_tier``), so a
+    # wrong verdict is scored by title_correct instead of pairing the report with a
+    # neighbouring claim that happens to share the verdict.
+    pair_on_location: bool = False
     target_answer: Optional[str] = None
 
 
@@ -215,6 +230,28 @@ def overlaps(a: str, b: str, words: int = 4) -> bool:
     ta, tb = na.split(), nb.split()
     grams = {tuple(ta[i : i + words]) for i in range(len(ta) - words + 1)}
     return any(tuple(tb[i : i + words]) in grams for i in range(len(tb) - words + 1))
+
+
+# Ellipses a quote may use to skip words; each piece must still be verbatim.
+_ELLIPSIS_RE = re.compile(r"\s*(?:\.\.\.|…|\[\.\.\.\])\s*")
+# Emphasis and quote marks a quotation may be wrapped in.
+_QUOTE_WRAPPING = "*_\"'“”‘’ "
+
+
+def quoted_verbatim(quote: str, text: str) -> bool:
+    """Whether the ellipsis-separated pieces of ``quote`` occur in ``text`` in order, each
+    after the previous one, after normalising case, quotes and whitespace, so a sentence
+    wrapped across lines counts and a reordered quote does not. An empty quote quotes nothing."""
+    haystack = normalize(text)
+    pieces = [normalize(p).strip(_QUOTE_WRAPPING) for p in _ELLIPSIS_RE.split(quote)]
+    pieces = [p for p in pieces if p]
+    position = 0
+    for piece in pieces:
+        found = haystack.find(piece, position)
+        if found < 0:
+            return False
+        position = found + len(piece)
+    return bool(pieces)
 
 
 def locate_anchor(lines: list[str], anchor: str, label: str) -> int:

@@ -1,36 +1,340 @@
-# Dataset for the inference_validation_v2 e2e eval. One record per document; `input` is the
-# document under review as markdown, figures referenced by local PNG path.
+# Eval samples for the inference_validation_v2 workflow, in inventory form. Each expected issue is
+# anchored on the sentence that draws the invalid conclusion, titled with the stable part of the
+# skill's "Invalid Inference: <label>" title, and carries the labeller's account of the flaw
+# (`rationale`), which the judged criterion compares the reported analysis against. Decoys are
+# sound inferences a correct run leaves alone, each tagged with the adjudicator's reason for
+# rejecting it (bounded, adequately supported, valid deduction, hedged, a stated limitation) and
+# titled so a report bracketing their line flags them too. Severity is the adjudicator's call and
+# is not checked. Figures are referenced by local PNG path.
+# See evals_inspectai/common/issue_inventory.py.
 
+# ---- sound reasoning: nothing to report ------------------------------------------------------
 - input: |
     # Effect of Reduced Pump Cycle Times
 
     The maintenance team measured pump cycle times at all four sites before and after a software upgrade. Across 1,200 cycles, the upgraded controller reduced the average cycle time from 4.2 s to 3.6 s. A two-sample t-test on the 1,200 paired observations yielded p < 0.001 with an effect size of d = 0.42. We therefore conclude that, under the conditions tested at these four sites, the upgrade reduced pump cycle time.
-  expected_invalid_count: 0
-  target_answer: 'The argument is well-supported: it reports a sizeable paired sample (n = 1,200), a statistical test with effect size, and explicitly bounds the conclusion to the conditions and sites tested. No issues should be reported. The model should NOT flag this as a fallacy.'
+  decoys:
+  - anchor: under the conditions tested at these four sites, the upgrade reduced pump cycle time
+    reason: bounded_claim
+    title: Invalid Inference
+  notes: A sizeable paired sample, a test with an effect size, and a conclusion bounded to the sites tested.
+- input: |
+    # Tutoring Pilot: Final Report
+
+    ## Design
+
+    We randomly assigned 640 ninth-grade students at three high schools to daily small-group math tutoring or to their usual study hall for one school year. Assignment was by lottery within each school, and 97 percent of students in both arms completed the end-of-year assessment.
+
+    ## Results
+
+    Students assigned to tutoring scored 0.21 standard deviations higher on the end-of-year assessment (95% CI 0.12 to 0.30). We conclude that the tutoring program raised math achievement among the ninth graders in these three schools during the pilot year.
+  decoys:
+  - anchor: We conclude that the tutoring program raised math achievement among the ninth graders
+    reason: adequate_support
+    title: Invalid Inference
+  notes: >-
+    The adjudicator's own worked example in another domain: randomized, adequately powered, with a
+    confidence interval, and bounded to the students studied. Flagging it as overgeneralization is the
+    false positive the skill warns against.
+- input: |
+    # Freight Labelling Audit
+
+    Under the carrier agreement, every shipment over 20 kg requires a freight label. Shipment 311 weighed 26 kg at the dock scale. Shipment 311 therefore required a freight label, and the audit records its missing label as a breach of the agreement.
+  decoys:
+  - anchor: Shipment 311 therefore required a freight label
+    reason: valid_deduction
+    title: Invalid Inference
+  notes: Modus ponens from a stated rule and a measured fact. Valid, however much it looks like a leap.
+- input: |
+    # Tuesday Backup Incident
+
+    The backup job writes a completion entry to the system log whenever it finishes. The log for Tuesday contains no completion entry from the backup job, so Tuesday's backup did not finish, and we restored from Monday's snapshot instead.
+  decoys:
+  - anchor: so Tuesday's backup did not finish
+    reason: valid_deduction
+    title: Invalid Inference
+  notes: Modus tollens. Contrast with the affirming-the-consequent and denying-the-antecedent records.
+- input: |
+    # Ballot Measure 12: Survey Results
+
+    ## Method
+
+    We surveyed a random sample of 2,000 registered voters drawn from the state voter file, weighted to the file's age, sex and county distribution. The margin of error is plus or minus 2.2 percentage points.
+
+    ## Findings
+
+    Fifty-four percent of respondents said they support Measure 12. We therefore estimate that a majority of the state's registered voters supported the measure at the time of the survey.
+
+    ## Limitations
+
+    We did not test alternative wordings of the question, and support may shift as the campaign advances.
+  decoys:
+  - anchor: We therefore estimate that a majority of the state's registered voters supported the measure
+    reason: representative_sample
+    title: Invalid Inference
+  - anchor: We did not test alternative wordings of the question
+    reason: stated_limitation
+    title: Invalid Inference
+  notes: >-
+    A generalization from a probability sample with a stated margin of error is sound, unlike the
+    online-poll record. The limitation is a weakness the authors state, not an inferential error.
+- input: |
+    # Early Results from the Transit Pass Program
+
+    Ridership among pass holders rose 11 percent in the first three months, compared with 2 percent for riders who did not receive a pass. These early results suggest, but do not establish, that the pass encourages transit use; the randomized follow-up study starting in March is designed to test that.
+  decoys:
+  - anchor: These early results suggest, but do not establish, that the pass encourages transit use
+    reason: hedged_claim
+    title: Invalid Inference
+  notes: A tentative claim marked as tentative, with the test that would settle it named.
+- input: |
+    # Sodium Reduction and Blood Pressure
+
+    A meta-analysis of 133 randomized trials with 12,197 adult participants found that reducing sodium intake lowered systolic blood pressure by an average of 4.3 mmHg, with larger effects in participants with hypertension (Huang et al., 2020). Drawing on that evidence, this brief concludes that a sustained reduction in sodium intake can be expected to lower adults' systolic blood pressure modestly, by a few mmHg on average.
+  decoys:
+  - anchor: this brief concludes that a sustained reduction in sodium intake can be expected to lower adults' systolic blood pressure modestly
+    reason: cited_support
+    title: Invalid Inference
+  notes: >-
+    A modest conclusion restating what the cited meta-analysis found, for the population it studied. A
+    policy recommendation (sodium limits for a cafeteria, say) would add a premise the evidence lacks:
+    that the limits cut total intake.
+- input: |
+    # Warehouse Staffing, Fiscal Year 2024
+
+    ## Headcount
+
+    The warehouse employed 212 staff at the start of the fiscal year and 238 at the end. Most of the increase came in the receiving team, which grew from 41 to 60 people after the second loading dock opened in May.
+
+    ## Turnover
+
+    Forty-seven employees left during the year, 22 of them in the first three months of their employment. Exit interviews were completed with 31 of the 47.
+  notes: A descriptive report with no argument at all. Anything reported is a false positive.
+
+# ---- one flaw per document ---------------------------------------------------------------------
 - input: |
     # Customer Sentiment Update
 
     We received complaints from three customers last week about delayed shipments. Therefore, our shipping reliability is now poor across the entire customer base, and an immediate operational overhaul is warranted.
-  expected_invalid_count: 1
-  target_answer: 'The document commits a hasty generalization: it leaps from a tiny, self-selected sample (three complaints in one week) to a claim about the entire customer base, then to an operational recommendation. Exactly one issue should be reported. The analysis should mention small / unrepresentative sample size or hasty generalization. Severity should be medium or high.'
+  expected_issues:
+  - id: hasty_generalization
+    title: Invalid Inference
+    anchor: our shipping reliability is now poor across the entire customer base
+    rationale: >-
+      Hasty generalization: three complaints in one week, a tiny and self-selected sample, cannot show
+      that reliability is poor across the whole customer base, still less that an overhaul is warranted.
 - input: |
     # Sales After New Branding
 
     In Q2 we launched a new brand campaign. In Q3 quarterly sales rose by 14% compared with Q2. The branding campaign therefore caused the sales increase, and we recommend doubling the campaign budget next year.
-  expected_invalid_count: 1
-  target_answer: 'The document commits a post hoc / correlation-implies-causation fallacy: a temporal sequence (campaign in Q2, sales rise in Q3) is treated as proof of causation while ignoring possible confounders such as seasonality, pricing, market trends, or other concurrent initiatives. Exactly one issue should be reported. The analysis should mention causation, post hoc, confounders, or correlation. Severity should be medium or high.'
+  expected_issues:
+  - id: post_hoc
+    title: Invalid Inference
+    anchor: The branding campaign therefore caused the sales increase
+    rationale: >-
+      Post hoc: the campaign preceding the rise does not show it caused the rise. Seasonality between Q2
+      and Q3, pricing, market conditions or other initiatives could explain it, and none is ruled out.
 - input: |
     # Sample Contamination Diagnostic
 
     When a sample is contaminated with chloride, its measured pH typically rises above 8.0. Sample 47 had a measured pH of 8.3. Therefore, sample 47 is contaminated with chloride.
-  expected_invalid_count: 1
-  target_answer: 'The document commits the formal fallacy of affirming the consequent: from ''P implies Q'' and observing Q, it concludes P, ignoring that high pH has many other plausible causes. Exactly one issue should be reported. The analysis should mention affirming the consequent, alternative explanations, or that the conclusion does not follow from the premises. Severity should be medium or high.'
+  expected_issues:
+  - id: affirming_consequent
+    title: Invalid Inference
+    anchor: Therefore, sample 47 is contaminated with chloride.
+    rationale: >-
+      Affirming the consequent: contamination raises pH, but a high pH does not imply contamination,
+      since other causes can raise pH above 8.0.
+- input: |
+    # Vendor Qualification Memo
+
+    If a vendor is certified under ISO 9001, its parts meet our quality standard. Vendor B is not certified under ISO 9001. Therefore, Vendor B's parts do not meet our quality standard, and procurement should stop ordering from Vendor B.
+  expected_issues:
+  - id: denying_antecedent
+    title: Invalid Inference
+    anchor: Therefore, Vendor B's parts do not meet our quality standard
+    rationale: >-
+      Denying the antecedent: certification is stated as sufficient for meeting the standard, not
+      necessary, so an uncertified vendor's parts may still meet it. Their quality has to be tested.
 - input: |
     # Project Funding Decision
 
     The team has examined the situation and concludes that there are only two realistic paths forward: either the executive committee approves a 40% budget increase next quarter, or the project will fail entirely. No other option is available.
-  expected_invalid_count: 1
-  target_answer: 'The document commits a false dichotomy: it presents only two options (''approve a 40% budget increase'' vs ''project fails'') while plainly other options exist (smaller increases, reprioritization, partial scope cuts, schedule extensions). Exactly one issue should be reported. The analysis should mention false dichotomy, false dilemma, or that additional options exist.'
+  expected_issues:
+  - id: false_dichotomy
+    title: Invalid Inference
+    anchor: either the executive committee approves a 40% budget increase next quarter, or the project will fail entirely
+    rationale: >-
+      False dichotomy: it presents two options as the only ones, ignoring a smaller increase, a
+      reduced scope, a longer schedule or reprioritization.
+- input: |
+    # Flexible Friday Proposal: Staff Council Response
+
+    The council opposes the proposal to let staff work from home on Fridays. If staff work from home on Fridays, they will soon expect to work from home on Thursdays as well, then for the whole week, and before long no one will come to the office at all. Without anyone in the office our culture will collapse, and the firm will not survive.
+  expected_issues:
+  - id: slippery_slope
+    title: Invalid Inference
+    anchor: they will soon expect to work from home on Thursdays as well
+    rationale: >-
+      Slippery slope: each step, from one remote day to a fully remote firm and then to its collapse,
+      is asserted without evidence that one leads to the next.
+  - id: collapse_claim
+    title: Invalid Inference
+    anchor: Without anyone in the office our culture will collapse
+    required: false
+    rationale: >-
+      The last link of the chain, that an empty office destroys the culture and then the firm, is
+      asserted without support.
+  notes: >-
+    The chain's last step sits in its own sentence and makes its own causal claim, so a second issue
+    on it is accepted but not required.
+- input: |
+    # Why We Recommend the Intermittent Fasting Plan
+
+    Dr. Elena Varga, who won the Nobel Prize in Physics for her work on superconductors, has said publicly that intermittent fasting helped her lose weight. Because such a distinguished scientist endorses it, the plan is an effective weight-loss method for our employee wellness program.
+  expected_issues:
+  - id: irrelevant_authority
+    title: Invalid Inference
+    anchor: Because such a distinguished scientist endorses it, the plan is an effective weight-loss method
+    rationale: >-
+      Appeal to an irrelevant authority: a physicist's expertise does not extend to nutrition, and
+      one person's experience is not evidence that the plan works for others.
+- input: |
+    # Validating the Supplier Rating System
+
+    The new supplier rating system is reliable because it consistently produces trustworthy ratings, and we know its ratings are trustworthy because the system is reliable. We therefore recommend using it for all contract renewals.
+  expected_issues:
+  - id: circular
+    title: Invalid Inference
+    anchor: The new supplier rating system is reliable because it consistently produces trustworthy ratings
+    rationale: >-
+      Circular reasoning: reliability is justified by trustworthiness and trustworthiness by
+      reliability, so the conclusion is assumed rather than shown. No independent check of the ratings
+      is offered.
+- input: |
+    # Libraries and Student Achievement
+
+    Across the state's 180 school districts, those with more public library branches per capita have higher average reading scores (r = 0.48). Therefore, individual students who use public libraries read better than students who do not, and each family should be encouraged to get a library card.
+  expected_issues:
+  - id: ecological_fallacy
+    title: Invalid Inference
+    anchor: Therefore, individual students who use public libraries read better than students who do not
+    rationale: >-
+      Ecological fallacy: a district-level correlation says nothing about individual students, since
+      the students who read better in library-rich districts need not be the ones using libraries. The
+      correlation is also not causal, as district wealth could drive both.
+- input: |
+    # Footbridge Load Certification
+
+    Each of the footbridge's 36 steel members passed its individual stress test at 150 percent of its rated load. Since every part is strong enough on its own, the assembled footbridge will safely carry a crowd at 150 percent of its rated load.
+  expected_issues:
+  - id: composition
+    title: Invalid Inference
+    anchor: the assembled footbridge will safely carry a crowd at 150 percent of its rated load
+    rationale: >-
+      Fallacy of composition: parts that each pass a test do not guarantee the whole does. Joints,
+      connections, load distribution and dynamic crowd loading are properties of the assembly and were
+      not tested.
+- input: |
+    # What Makes Startups Last
+
+    We surveyed the founders of 150 startups that were still operating ten years after their founding. Eighty percent of them had dropped out of university. Dropping out therefore increases a startup's chance of surviving its first decade, and our accelerator will prioritize founders who left university.
+  expected_issues:
+  - id: survivorship
+    title: Invalid Inference
+    anchor: Dropping out therefore increases a startup's chance of surviving its first decade
+    rationale: >-
+      Survivorship bias: only surviving startups were surveyed, so there is no comparison with the
+      dropout rate among founders of startups that failed. Without it, the 80 percent cannot show that
+      dropping out raises survival.
+- input: |
+    # Screening Results for the Regional Clinic
+
+    The disease affects about 1 in 1,000 adults in the region. The new screening test correctly identifies 95 percent of people who have the disease and gives a false positive for 5 percent of people who do not. Ms. Ortiz tested positive, so there is a 95 percent chance that she has the disease, and she should begin treatment immediately.
+  expected_issues:
+  - id: base_rate
+    title: Invalid Inference
+    anchor: so there is a 95 percent chance that she has the disease
+    rationale: >-
+      Base-rate neglect: with a prevalence of 1 in 1,000 and a 5 percent false-positive rate, most
+      positives are false positives. The chance she has the disease is under 2 percent, not 95.
+- input: |
+    # Safety Assessment of Additive E-417
+
+    Additive E-417 has been used in packaged bread for six years. No published study has shown that it harms human health. It is therefore safe, and the company sees no need to test it further.
+  expected_issues:
+  - id: argument_from_ignorance
+    title: Invalid Inference
+    anchor: It is therefore safe, and the company sees no need to test it further.
+    rationale: >-
+      Argument from ignorance: the absence of studies showing harm is not evidence of safety,
+      especially when the text does not say whether any study has looked for harm.
+- input: |
+    # Technology Spending and Profitability
+
+    In our cross-sectional survey of 400 mid-sized manufacturers, firms that spent more on information technology as a share of revenue also reported higher profit margins. Higher technology spending therefore makes manufacturers more profitable, and firms should raise their IT budgets to improve margins.
+  expected_issues:
+  - id: reverse_causation
+    title: Invalid Inference
+    anchor: Higher technology spending therefore makes manufacturers more profitable
+    rationale: >-
+      Correlation treated as causation. The data are cross-sectional, so profitable firms may simply
+      spend more on IT (reverse causation), and firm size, sector or management quality could drive
+      both.
+- input: |
+    # Evaluation of the Mentoring Program
+
+    We compared mentored and non-mentored employees on 20 outcome measures, including retention, promotion, engagement and training completion. Two of the 20 measures, badge-scan attendance and newsletter open rates, differed at p < 0.05. The mentoring program is therefore effective and should be expanded to all departments.
+  expected_issues:
+  - id: multiple_comparisons
+    title: Invalid Inference
+    anchor: The mentoring program is therefore effective and should be expanded to all departments.
+    rationale: >-
+      Cherry-picking under multiple comparisons: with 20 tests at p < 0.05, about one significant
+      result is expected by chance. The two that differed are minor measures, and the 18 that did not
+      (retention and promotion among them) are ignored.
+- input: |
+    # Impact of the Checkout Redesign
+
+    The redesigned checkout page increased the conversion rate from 3.10 percent to 3.11 percent across 40 million sessions, a difference that is statistically significant (p = 0.03). Because the result is significant, the redesign has a significant impact on revenue, and the team recommends a company-wide rollout of the same design approach.
+  expected_issues:
+  - id: equivocation_significance
+    title: Invalid Inference
+    anchor: Because the result is significant, the redesign has a significant impact on revenue
+    rationale: >-
+      Equivocation on "significant": statistical significance with 40 million sessions does not make a
+      0.01-point change practically significant for revenue.
+- input: |
+    # Public Opinion on the Downtown Stadium
+
+    Our newspaper's website ran a poll asking readers whether the city should fund a downtown stadium, and 71 percent of the 5,300 readers who responded said yes. A clear majority of city residents therefore support public funding for the stadium.
+  expected_issues:
+  - id: self_selected_sample
+    title: Invalid Inference
+    anchor: A clear majority of city residents therefore support public funding for the stadium.
+    rationale: >-
+      Generalization from a self-selected sample: respondents to a website poll chose to answer and
+      read the paper, so they need not represent city residents. The sample's size does not correct
+      that bias.
+
+# ---- one sentence, two flaws: one issue ---------------------------------------------------------
+- input: |
+    # Reading Curriculum Pilot
+
+    Two pilot schools that adopted the Bright Pages reading curriculum saw reading scores rise this year, so the curriculum works in every school and every district in the state should adopt it immediately.
+  expected_issues:
+  - id: pilot_overreach
+    title: Invalid Inference
+    anchor: so the curriculum works in every school and every district in the state should adopt it immediately
+    rationale: >-
+      Two schools' score rise is generalized to every school (hasty generalization), and the rise is
+      attributed to the curriculum with no comparison group or other cause ruled out. The statewide
+      recommendation rests on both.
+  notes: >-
+    The skill reports one issue per sentence and folds a second flaw into the analysis, so a second
+    issue on this sentence is unmatched and costs precision.
+
+# ---- several flaws or several arguments in one document -----------------------------------------
 - input: |
     # Service Reliability Assessment
 
@@ -41,8 +345,132 @@
     ## Help-Portal Redesign
 
     The ticket-volume dashboard shows a 3% drop in complaint tickets after we redesigned the help portal. The redesign is therefore the cause of the improvement, and similar redesigns should be rolled out to all internal tools.
-  expected_invalid_count: 2
-  target_answer: 'The document contains TWO distinct inferential errors that must be reported separately (different key sentences, different underlying problems). First, hasty generalization: three positive surveys are treated as evidence of excellent satisfaction across the entire customer base. Second, post hoc / correlation-implies-causation: a 3% drop in tickets after a portal redesign is treated as proof the redesign caused the improvement, with no consideration of confounders. Exactly two issues should be reported.'
+  expected_issues:
+  - id: satisfaction_generalization
+    title: Invalid Inference
+    anchor: we therefore conclude that customer satisfaction across the entire customer base is now excellent
+    rationale: >-
+      Hasty generalization: praise from three customers says nothing about satisfaction across the
+      whole customer base.
+  - id: redesign_post_hoc
+    title: Invalid Inference
+    anchor: The redesign is therefore the cause of the improvement
+    rationale: >-
+      Post hoc: a 3% drop after the redesign does not show the redesign caused it, and extending the
+      result to all internal tools goes further still.
+- input: |
+    # Evaluation of the Community Health Worker Program
+
+    ## Background
+
+    In 2023 the county health department began offering home visits by community health workers to adults with type 2 diabetes. Enrollment was voluntary: patients who wanted visits signed up through their clinic.
+
+    ## Data
+
+    We used clinic records for 1,840 adults with type 2 diabetes seen at county clinics in 2023 and 2024, of whom 410 enrolled in the program. Average HbA1c among enrolled patients fell from 8.4 to 7.6 percent over twelve months, and among patients who did not enroll it fell from 8.2 to 8.0 percent.
+
+    ## Findings
+
+    Enrolled patients were, on average, two years younger than those who did not enroll, and 62 percent of them had attended a diabetes education class before enrolling, compared with 35 percent of the others. The program therefore reduced HbA1c by about 0.6 percentage points relative to usual care, and the department should fund it for every adult with diabetes in the county.
+
+    ## Limitations
+
+    Clinic records do not capture diet or medication changes made outside the clinic, and twelve months is too short to observe complications.
+  expected_issues:
+  - id: selection_bias
+    title: Invalid Inference
+    anchor: The program therefore reduced HbA1c by about 0.6 percentage points relative to usual care
+    rationale: >-
+      Selection bias: enrollment was voluntary, and enrollees differed (younger, more likely to have
+      taken an education class), so the larger HbA1c drop may reflect who chose to enroll rather than
+      the program. The difference is not a causal effect relative to usual care.
+  decoys:
+  - anchor: Average HbA1c among enrolled patients fell from 8.4 to 7.6 percent over twelve months
+    reason: descriptive_statistic
+    title: Invalid Inference
+  - anchor: Clinic records do not capture diet or medication changes made outside the clinic
+    reason: stated_limitation
+    title: Invalid Inference
+  notes: >-
+    The document itself supplies the evidence of self-selection (age, prior education) one paragraph
+    before the causal claim.
+- input: |
+    # Congestion Pricing in Midvale: One Year Later
+
+    ## Summary
+
+    Midvale introduced a $6 weekday charge for driving into the central district in January 2024. This report reviews the first year.
+
+    ## Traffic
+
+    Automated counters at the 14 entry points recorded an average of 118,000 vehicle entries per weekday in 2023 and 94,000 in 2024, a 20 percent decline. Counts at the same points on weekends, when no charge applies, fell by 2 percent over the same period. Because the weekday decline is ten times the weekend decline at the same counters, the charge is the most likely explanation for most of the weekday reduction, although a shift in weekday commuting, such as more work from home, could account for part of it.
+
+    ## Transit
+
+    Weekday bus ridership into the district rose 9 percent. Since some drivers switched to buses, the charge has also improved air quality across the entire metropolitan region.
+
+    ## Business Activity
+
+    Sales tax receipts from central-district retailers were 1 percent higher in 2024 than in 2023, compared with 3 percent higher citywide. Several shop owners told us that business had been slow. The charge is therefore driving shoppers away from the district, and the council should repeal it before more stores close.
+
+    ## Revenue
+
+    The charge raised $71 million in its first year, of which $12 million went to administration and enforcement.
+  expected_issues:
+  - id: air_quality_leap
+    title: Invalid Inference
+    anchor: the charge has also improved air quality across the entire metropolitan region
+    rationale: >-
+      Unsupported leap: a 9 percent rise in bus ridership into one district does not show better air
+      quality, and certainly not across the whole region. No air-quality data are given.
+  - id: shopper_causation
+    title: Invalid Inference
+    anchor: The charge is therefore driving shoppers away from the district
+    rationale: >-
+      Causal claim from weak evidence: a gap of two points against citywide receipts and a few shop
+      owners' remarks do not establish that the charge drives shoppers away. Other explanations are
+      not considered, and the repeal recommendation goes beyond the data.
+  decoys:
+  - anchor: the charge is the most likely explanation for most of the weekday reduction
+    reason: hedged_claim
+    title: Invalid Inference
+  - anchor: The charge raised $71 million in its first year
+    reason: descriptive_statistic
+    title: Invalid Inference
+  notes: >-
+    A report of section length mixing a causal attribution sized to its evidence (the weekend comparison
+    is a control at the same counters, and the alternative it cannot rule out is named) with two
+    unsupported ones.
+- input: |
+    # Remote Onboarding at Halvorsen Logistics
+
+    ## What We Changed
+
+    In 2024 Halvorsen replaced its week-long in-person onboarding with a four-week remote program for all new warehouse supervisors.
+
+    ## What Happened
+
+    Of the 38 supervisors hired under the remote program, 7 left within six months, compared with 9 of the 41 hired under the in-person program in 2023. Supervisors in the remote cohort rated their onboarding 4.1 out of 5 on average, against 3.6 for the previous cohort.
+
+    ## Interpretation
+
+    The remote cohort's six-month attrition (18 percent) was similar to the in-person cohort's (22 percent), so on this evidence attrition among supervisors was no higher under the remote program than under the in-person one. Because remote onboarding worked for supervisors, it will work equally well for every role in the company, including drivers and seasonal pickers, and the company should move all onboarding online next year.
+  expected_issues:
+  - id: role_generalization
+    title: Invalid Inference
+    anchor: Because remote onboarding worked for supervisors, it will work equally well for every role in the company
+    rationale: >-
+      Overgeneralization beyond the population studied: supervisors differ from drivers and seasonal
+      pickers in work, tenure and training needs, and only supervisors were observed.
+  decoys:
+  - anchor: so on this evidence attrition among supervisors was no higher under the remote program than under the in-person one
+    reason: bounded_claim
+  notes: >-
+    The sound, bounded conclusion and the overreaching one sit on the same line, one sentence apart.
+    The decoy is untitled, so it is flagged only by an issue that quotes it; an issue bracketing the
+    line is taken as reporting the second sentence.
+
+# ---- the flaw sits in a figure ------------------------------------------------------------------
 - input: |
     # E-bike Adoption and the 2021 Purchase Subsidy
 
@@ -59,8 +487,17 @@
     **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
 
     Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
-  expected_invalid_count: 1
-  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 is an image and contradicts the premise: registrations rise steadily from about 4 thousand in 2016 to 35 thousand in 2021 and 63 thousand in 2023, so roughly half of the growth happened before the subsidy and there is no break at 2021. The conclusion is not supported by the document''s own evidence. The premise and the conclusion sit in one sentence, so exactly one invalid inference should be reported, anchored on it. The flaw is only visible by viewing the figure; the text alone is internally consistent.'
+  expected_issues:
+  - id: figure_contradicts_premise
+    title: Invalid Inference
+    anchor: the post-subsidy period accounts for nearly all of the growth between 2016 and 2023
+    rationale: >-
+      The premise contradicts Figure 1: registrations rise steadily from about 4 thousand in 2016 to 35
+      thousand in 2021 and 63 thousand in 2023, so roughly half the growth came before the subsidy and
+      there is no break at 2021. The conclusion does not follow from the document's own evidence.
+  notes: >-
+    The flaw is visible only by viewing the figure; the text alone is internally consistent. The
+    wording is identical to the next record, where the chart supports it.
 - input: |
     # E-bike Adoption and the 2021 Purchase Subsidy
 
@@ -77,5 +514,11 @@
     **Figure 1: Registered e-bikes, 2016 to 2023 (thousands)**
 
     Because registrations held roughly steady through 2020 and then rose sharply (Figure 1), with the increase concentrated in the years after 2021, the post-subsidy period accounts for nearly all of the growth between 2016 and 2023, and this report therefore treats 2021 as the break point for the projections that follow.
-  expected_invalid_count: 0
-  target_answer: 'The text states that registrations held steady through 2020 and rose sharply afterward, and concludes that the post-subsidy years account for nearly all of the growth between 2016 and 2023, so 2021 is treated as the break point. Figure 1 (an image) shows exactly that: about 4 to 6 thousand through 2021, then 22 and 41 thousand in 2022 and 2023, so the years after 2021 hold about 95 percent of the growth. The premise matches the chart and the conclusion follows from it; the text makes no causal claim. No invalid inference should be reported. The wording is identical to the companion sample; only the chart differs.'
+  decoys:
+  - anchor: the post-subsidy period accounts for nearly all of the growth between 2016 and 2023
+    reason: figure_supports_claim
+    title: Invalid Inference
+  notes: >-
+    Figure 1 shows about 4 to 6 thousand through 2021, then 22 and 41 thousand in 2022 and 2023, so the
+    years after 2021 hold about 95 percent of the growth. The premise matches the chart and the text
+    makes no causal claim.

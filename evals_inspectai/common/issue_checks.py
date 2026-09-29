@@ -154,7 +154,9 @@ def _title_matches(issue: IssueItem, kind: Optional[str]) -> bool:
 _CLAIMED_TITLE_PENALTY = 6
 
 
-def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = ()) -> Optional[int]:
+def hit_tier(
+    expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] = (), on_location: bool = False
+) -> Optional[int]:
     """How well ``issue`` reports ``expected``, lower is stronger; None when it
     does not report it.
 
@@ -174,7 +176,19 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] =
 
     An expected issue with no anchor has no text to quote and no line: the
     title alone reports it, at the strongest tier.
+
+    With ``on_location`` (an inventory whose titles are verdicts on the anchored
+    text, see ``ResolvedInventory.pair_on_location``) an anchored expected issue
+    is paired on its quote and line alone: the title does not rank the evidence,
+    so a report quoting this claim under the wrong verdict still outranks one
+    that merely shares the verdict and the line.
     """
+    if on_location and expected.anchor is not None:
+        quoted = normalize(expected.anchor) in _issue_text(issue)
+        in_range = expected.line is not None and issue.start_line <= expected.line <= issue.end_line
+        if not (quoted or in_range):
+            return None
+        return (0 if quoted else 1) * 2 + (0 if in_range else 1)
     penalty = _CLAIMED_TITLE_PENALTY if expected.title is None and any(_title_matches(issue, t) for t in claimed) else 0
     same_title = _title_matches(issue, expected.title)
     if expected.anchor is None:
@@ -192,19 +206,23 @@ def hit_tier(expected: ResolvedIssue, issue: IssueItem, claimed: Sequence[str] =
     return tier * 2 + (0 if in_range else 1) + penalty
 
 
-def ranked_hits(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> list[int]:
+def ranked_hits(
+    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
+) -> list[int]:
     """Indices of the issues that report ``expected``, strongest evidence first (ties in issue order)."""
     scored = []
     for index, issue in enumerate(issues):
-        tier = hit_tier(expected, issue, claimed)
+        tier = hit_tier(expected, issue, claimed, on_location)
         if tier is not None:
             scored.append((tier, index))
     return [index for _, index in sorted(scored)]
 
 
-def hit_issue(expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = ()) -> Optional[int]:
+def hit_issue(
+    expected: ResolvedIssue, issues: Sequence[IssueItem], claimed: Sequence[str] = (), on_location: bool = False
+) -> Optional[int]:
     """Index of the best-tier issue that reports this expected, or None."""
-    ranked = ranked_hits(expected, issues, claimed)
+    ranked = ranked_hits(expected, issues, claimed, on_location)
     return ranked[0] if ranked else None
 
 
@@ -419,10 +437,11 @@ def hit_pairs(
     order = _canonical_order(issues)
     ordered = [issues[i] for i in order]
     claimed = claimed_titles(inventory)
+    on_location = inventory.pair_on_location
     if one_to_one:
-        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed)
+        found = _one_to_one_hits(ordered, inventory.expected_issues, claimed, on_location)
     else:
-        found = {e.id: hit_issue(e, ordered, claimed) for e in inventory.expected_issues}
+        found = {e.id: hit_issue(e, ordered, claimed, on_location) for e in inventory.expected_issues}
     hits = {eid: (order[i] if i is not None else None) for eid, i in found.items()}
     pairs = [(e, issues[i]) for e in inventory.expected_issues if (i := hits[e.id]) is not None]
     return hits, pairs
@@ -460,7 +479,10 @@ _UNMATCHED_REQUIRED = 20_000
 
 
 def _one_to_one_hits(
-    issues: Sequence[IssueItem], expected_issues: Sequence[ResolvedIssue], claimed: Sequence[str] = ()
+    issues: Sequence[IssueItem],
+    expected_issues: Sequence[ResolvedIssue],
+    claimed: Sequence[str] = (),
+    on_location: bool = False,
 ) -> dict[str, Optional[int]]:
     """A one-to-one matching of expected issues to reported issues that covers
     as many expected issues as any pairing can and, among those, uses the
@@ -474,7 +496,7 @@ def _one_to_one_hits(
     cost = [[unmatched[row]] * size for row in range(size)]
     for row, e in enumerate(expected_issues):
         for col, issue in enumerate(issues):
-            tier = hit_tier(e, issue, claimed)
+            tier = hit_tier(e, issue, claimed, on_location)
             if tier is not None:
                 cost[row][col] = tier
     assignment = _min_cost_assignment(cost)
@@ -566,7 +588,7 @@ def issue_detection_scores(
         values["precision"] = precision
         values["f0_5"] = 1.25 * precision * recall / (0.25 * precision + recall) if (precision + recall) else 0.0
         missing = [e.id for e in required if hits[e.id] is None]
-        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues) is not None]
+        merged = [e.id for e in required if hits[e.id] is None and one_to_one and hit_issue(e, issues, on_location=inventory.pair_on_location) is not None]
         notes.append(f"recall {len(found_required)}/{len(required)}" + (f" (missing {', '.join(missing)})" if missing else ""))
         if merged:
             notes.append(f"merged into an issue that already covers another expected issue: {', '.join(merged)}")

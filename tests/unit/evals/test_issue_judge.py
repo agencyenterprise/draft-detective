@@ -239,3 +239,41 @@ def test_a_prompt_that_embeds_a_figure_attaches_the_image():
     assert isinstance(content[1], ContentText) and content[1].text == "Image files/figures/ft_logo.png:"
     assert isinstance(content[2], ContentImage) and content[2].image.startswith("data:image/png;base64,")
     assert grader_input("No figures here.") == "No figures here."
+
+
+@pytest.mark.asyncio
+async def test_an_analysis_criterion_grades_the_description_and_long_description():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Names the flaw.", scope="expected", reads="analysis")
+    issue = IssueItem(title="Passive Voice", description="Short analysis.", long_description="## Detail\n\nLong analysis.", start_line=5, end_line=5)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+
+    assert values == {"flaw": 1.0}
+    assert "[Reviewer's analysis]: Short analysis.\n\n## Detail\n\nLong analysis." in grader.prompts[0]
+    assert "[Reviewer's suggested action]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_an_analysis_criterion_fails_an_issue_with_no_analysis():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Names the flaw.", scope="expected", reads="analysis")
+    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Rewrite it.")
+
+    values, explanation = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+
+    assert values == {"flaw": 0.0} and grader.prompts == [] and "no analysis" in explanation
+
+
+@pytest.mark.asyncio
+async def test_a_reference_criterion_shows_the_labellers_rationale_and_skips_issues_without_one():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Same flaw.", scope="expected", reads="analysis", reference=True)
+    issue = IssueItem(title="Passive Voice", description="No actor.", start_line=5, end_line=5)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected(rationale="The actor is missing.")), [criterion])
+    assert values == {"flaw": 1.0}
+    assert "[Labeller's reference rationale]: The actor is missing.\n************\n[Reviewer's analysis]: No actor." in grader.prompts[0]
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+    assert math.isnan(values["flaw"]) and len(grader.prompts) == 1, "no rationale, nothing to compare against"

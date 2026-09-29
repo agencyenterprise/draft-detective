@@ -37,6 +37,7 @@ from evals_inspectai.common.issue_inventory import (
     locate_anchor,
     inventory_to_sample,
     overlaps,
+    quoted_verbatim,
     resolve_record,
 )
 
@@ -94,6 +95,14 @@ def test_overlaps_pairs_a_quote_with_its_sentence():
     assert overlaps("Data were collected", "Data were collected from 3 sites by the field team.")
     assert overlaps("collected from 3 sites by the team", "Data were collected from 3 sites by the field team.")
     assert not overlaps("We then coded the notes.", "Data were collected from 3 sites by the field team.")
+
+
+def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
+    assert quoted_verbatim("data were collected from 3 sites … coded the notes", DOC)
+    assert quoted_verbatim("“The scope is limited to urban sites.”", "The scope is\nlimited to urban sites.")
+    assert not quoted_verbatim("Data came from 3 sites", DOC)
+    assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
+    assert not quoted_verbatim("We then coded the notes … Data were collected", DOC), "pieces must keep their order"
 
 
 # --- detection ------------------------------------------------------------------
@@ -214,6 +223,17 @@ def test_title_severity_and_range_metrics_follow_the_hit():
     assert "f: reported as 'Something Else', not under 'Passive Voice'" in note
     assert "f: severity medium, expected low" in note
     assert "f: lines 1-1 do not bracket line 5" in note
+
+
+def test_pairing_on_location_ignores_the_title_when_ranking_evidence():
+    """By default a title match bracketing the line outranks a quote under another title; with
+    ``pair_on_location`` (titles that are verdicts) the quote wins, whatever the verdict."""
+    quoted_other = _issue(title="Other", description="“Data were collected”")
+    same_line = _issue(title="Passive Voice", description="no quote")
+    f = _expected()
+    assert hit_issue(f, [quoted_other, same_line]) == 1
+    assert hit_issue(f, [quoted_other, same_line], on_location=True) == 0
+    assert hit_issue(f, [_issue(title="Other", description="no quote", start=1, end=1)], on_location=True) is None
 
 
 def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
