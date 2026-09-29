@@ -1,5 +1,6 @@
 import {
   getNextAnnotationTaskApiAnnotationsSetsSlugNextGet,
+  exportAnnotationsApiAdminAnnotationsExportGet,
   listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet,
   listAnnotationSetsApiAnnotationsSetsGet,
   listAnnotationSetStatsApiAdminAnnotationsSetsGet,
@@ -67,4 +68,9 @@ export function useAnnotatedItems(slug: string | null, onlyDisagreements: boolea
       }),
     enabled: slug !== null,
   });
+}
+
+/** Fetches every set's annotation results on demand, for the admin download. */
+export function useExportAnnotations() {
+  return useMutation({ mutationFn: () => exportAnnotationsApiAdminAnnotationsExportGet() });
 }

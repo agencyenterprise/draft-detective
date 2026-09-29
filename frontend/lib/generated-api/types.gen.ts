@@ -725,6 +725,38 @@ export type AnnotationRecord = {
 };
 
 /**
+ * AnnotationSetExport
+ *
+ * One set in the full results export: enough to read its answers on their own.
+ */
+export type AnnotationSetExport = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Workflow Type
+   */
+  workflow_type: string;
+  /**
+   * Is Active
+   */
+  is_active: boolean;
+  /**
+   * Questions
+   */
+  questions: Array<AnnotationQuestion>;
+  /**
+   * Items
+   */
+  items: Array<AnnotatedItem>;
+};
+
+/**
  * AnnotationSetStats
  *
  * Admin overview of one set.
@@ -5318,6 +5350,25 @@ export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses = {
 
 export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponse =
   ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses[keyof ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses];
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/annotations/export';
+};
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetResponses = {
+  /**
+   * Response Export Annotations Api Admin Annotations Export Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetExport>;
+};
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetResponse =
+  ExportAnnotationsApiAdminAnnotationsExportGetResponses[keyof ExportAnnotationsApiAdminAnnotationsExportGetResponses];
 
 export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetData = {
   body?: never;

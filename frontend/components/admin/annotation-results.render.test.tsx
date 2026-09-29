@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
+import { downloadFile } from '@/lib/file-download';
 import {
+  exportAnnotationsApiAdminAnnotationsExportGet,
   listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet,
   listAnnotationSetStatsApiAdminAnnotationsSetsGet,
   type AnnotationSetStats,
@@ -12,7 +14,9 @@ vi.mock('@/lib/generated-api', async (original) => ({
   ...(await original<typeof import('@/lib/generated-api')>()),
   listAnnotationSetStatsApiAdminAnnotationsSetsGet: vi.fn(),
   listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet: vi.fn(),
+  exportAnnotationsApiAdminAnnotationsExportGet: vi.fn(),
 }));
+vi.mock('@/lib/file-download', () => ({ downloadFile: vi.fn() }));
 
 function stats(slug: string, title: string): AnnotationSetStats {
   return {
@@ -68,5 +72,44 @@ describe('AnnotationResults', () => {
     expect(vi.mocked(listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet)).toHaveBeenLastCalledWith(
       expect.objectContaining({ path: { slug: 'advocacy_tone_v2' } }),
     );
+  });
+
+  it('exports every set in one file, not just the one on screen', async () => {
+    const everySet = [
+      {
+        slug: 'active_voice',
+        title: 'Active Voice',
+        workflow_type: 'active_voice',
+        is_active: true,
+        questions: [],
+        items: [],
+      },
+      {
+        slug: 'advocacy_tone_v2',
+        title: 'Advocacy & Tone',
+        workflow_type: 'advocacy_tone_v2',
+        is_active: true,
+        questions: [],
+        items: [],
+      },
+    ];
+    vi.mocked(exportAnnotationsApiAdminAnnotationsExportGet).mockResolvedValue(everySet);
+
+    const button = [...rendered.container.querySelectorAll('button')].find((b) =>
+      b.textContent?.includes('Export all'),
+    );
+    if (!button) throw new Error('no export button');
+    await act(async () => button.click());
+    await flush();
+
+    expect(vi.mocked(listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet)).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: { slug: 'advocacy_tone_v2' } }),
+    );
+    const [{ filename, blob }] = vi.mocked(downloadFile).mock.calls[0];
+    expect(filename).toMatch(/^annotations-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(JSON.parse(await blob.text()).map((set: { slug: string }) => set.slug)).toEqual([
+      'active_voice',
+      'advocacy_tone_v2',
+    ]);
   });
 });

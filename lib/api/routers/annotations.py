@@ -12,6 +12,7 @@ from lib.services.annotations import service as annotation_service
 from lib.services.annotations.models import (
     AnnotatedItem,
     AnnotationOutcome,
+    AnnotationSetExport,
     AnnotationSetStats,
     AnnotationSetSummary,
     AnnotationSubmission,
@@ -58,6 +59,14 @@ async def list_annotation_set_stats(
 ) -> list[AnnotationSetStats]:
     """Agreement with the eval datasets for every set."""
     return await annotation_admin.list_set_stats()
+
+
+@router.get("/api/admin/annotations/export", response_model=list[AnnotationSetExport])
+async def export_annotations(
+    _admin: User = Depends(require_admin),
+) -> list[AnnotationSetExport]:
+    """Every annotation result across all sets, for download."""
+    return await annotation_admin.export_annotations()
 
 
 @router.get(

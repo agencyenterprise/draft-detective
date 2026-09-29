@@ -142,3 +142,14 @@ class AnnotatedItem(BaseModel):
     agreements: int
     disagreements: int
     abstentions: int
+
+
+class AnnotationSetExport(BaseModel):
+    """One set in the full results export: enough to read its answers on their own."""
+
+    slug: str
+    title: str
+    workflow_type: str
+    is_active: bool
+    questions: list[AnnotationQuestion]
+    items: list[AnnotatedItem]

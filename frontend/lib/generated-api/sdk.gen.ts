@@ -74,6 +74,8 @@ import type {
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData,
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
+  ExportAnnotationsApiAdminAnnotationsExportGetData,
+  ExportAnnotationsApiAdminAnnotationsExportGetResponses,
   ExtensionCreationRouteTusPost2Data,
   ExtensionCreationRouteTusPost2Errors,
   ExtensionCreationRouteTusPost2Responses,
@@ -446,6 +448,26 @@ export const listAnnotationSetStatsApiAdminAnnotationsSetsGet = <ThrowOnError ex
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/admin/annotations/sets',
+    ...options,
+  });
+
+/**
+ * Export Annotations
+ *
+ * Every annotation result across all sets, for download.
+ */
+export const exportAnnotationsApiAdminAnnotationsExportGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ExportAnnotationsApiAdminAnnotationsExportGetData, ThrowOnError>,
+): RequestResult<ExportAnnotationsApiAdminAnnotationsExportGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<
+    ExportAnnotationsApiAdminAnnotationsExportGetResponses,
+    unknown,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/annotations/export',
     ...options,
   });
 
