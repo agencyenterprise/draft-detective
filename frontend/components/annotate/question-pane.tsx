@@ -58,8 +58,13 @@ export function QuestionPane({ itemId, passage, questions, guidance, shownAt, on
     );
   };
 
+  // Same condition as the Next button, so no shortcut can move on while a
+  // changed answer is still saving: once the pane unmounts, a failure there
+  // could no longer be reported or rolled back.
+  const canAdvance = saved && !submit.isPending;
+
   const next = async () => {
-    if (!saved) return;
+    if (!canAdvance) return;
     if (comment.trim()) {
       try {
         await submit.mutateAsync({ itemId, submission: { answers, comment } });
@@ -79,7 +84,7 @@ export function QuestionPane({ itemId, passage, questions, guidance, shownAt, on
       choose(questions[0].key, option.value);
       return true;
     }
-    if (key === 'Enter' && saved) {
+    if (key === 'Enter' && canAdvance) {
       void next();
       return true;
     }
@@ -167,7 +172,7 @@ export function QuestionPane({ itemId, passage, questions, guidance, shownAt, on
             </Button>
           )}
           {submit.isPending && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
-          <Button size="xs" className="ml-auto" disabled={!saved || submit.isPending} onClick={() => void next()}>
+          <Button size="xs" className="ml-auto" disabled={!canAdvance} onClick={() => void next()}>
             {comment.trim() ? 'Save and next' : 'Next example'}
             <Kbd>{comment.trim() ? '⌘↵' : '↵'}</Kbd>
           </Button>

@@ -23,9 +23,11 @@ const QUESTION: AnnotationQuestion = {
 };
 
 let rendered: Rendered;
+let onNext: ReturnType<typeof vi.fn<() => void>>;
 
 beforeEach(async () => {
   submit.mockReset();
+  onNext = vi.fn<() => void>();
   rendered = await renderInto(
     withQueryClient(
       testQueryClient(),
@@ -35,7 +37,7 @@ beforeEach(async () => {
         questions={[QUESTION]}
         guidance="Rules."
         shownAt={Date.now()}
-        onNext={vi.fn()}
+        onNext={onNext}
         onSkip={vi.fn()}
       />,
     ),
@@ -86,4 +88,35 @@ describe('QuestionPane', () => {
     expect(rendered.container.textContent).not.toContain('Answer saved');
     expect(nextButton().disabled).toBe(true);
   });
+
+  it('does not advance on Enter while a changed answer is still saving', async () => {
+    submit.mockResolvedValueOnce({ item_id: 'item-1', answered_by_me: 1 });
+    await choose('Yes, flag it');
+
+    let finishChange: (value: { item_id: string; answered_by_me: number }) => void = () => {};
+    submit.mockReturnValueOnce(new Promise((resolve) => (finishChange = resolve)));
+    await choose('No, leave it');
+
+    await pressEnter(window);
+    await pressEnter(textarea(), { metaKey: true });
+    expect(onNext).not.toHaveBeenCalled();
+
+    await act(async () => finishChange({ item_id: 'item-1', answered_by_me: 1 }));
+    await flush();
+    await pressEnter(window);
+    expect(onNext).toHaveBeenCalledTimes(1);
+  });
 });
+
+function textarea(): HTMLTextAreaElement {
+  const element = rendered.container.querySelector('textarea');
+  if (!element) throw new Error('no comment box');
+  return element;
+}
+
+async function pressEnter(target: EventTarget, modifiers: KeyboardEventInit = {}) {
+  await act(async () => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, ...modifiers }));
+  });
+  await flush();
+}
