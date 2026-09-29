@@ -332,6 +332,15 @@ async def get_project_detail(project_id: str) -> dict[str, Any]:
         return await _fetch_project_detail(client, project_id)
 
 
+async def get_project_files(project_id: str) -> list[dict[str, Any]]:
+    """The project's files, as the app lists them (`GET /api/project/{id}/files`),
+    each with its role and cached markdown."""
+    async with _build_client() as client:
+        resp = await client.get(f"/api/project/{project_id}/files")
+        resp.raise_for_status()
+        return resp.json()
+
+
 async def get_workflow_state(workflow_run_id: str) -> dict[str, Any]:
     """Fetch the full state of a single workflow run."""
     async with _build_client() as client:
