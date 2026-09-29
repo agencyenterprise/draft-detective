@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 
 from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.agents.structured_output_salvage import ai_message_text, salvage_models
-from lib.config.llm_models import gpt_5_6_luna_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -95,7 +95,7 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
 
     name = "Abbreviation Chunk Extractor"
     description = "Catalogue every abbreviation occurrence in one line range of a document"
-    model = gpt_5_6_luna_model
+    model = gpt_5_6_terra_model
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(

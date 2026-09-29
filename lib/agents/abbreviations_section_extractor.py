@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
 from lib.agents.deep_agent_setup import agent_input, build_deep_agent
-from lib.config.llm_models import gpt_5_6_luna_model
+from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationSectionEntry,
@@ -74,7 +74,7 @@ glossary that defines only ordinary terms. Return no sections when the document 
 class AbbreviationsSectionExtractorAgent(LangChainAgent):
     name = "Abbreviations Section Extractor"
     description = "Find a document's Abbreviations section and read its entries"
-    model = gpt_5_6_luna_model
+    model = gpt_5_6_terra_model
     reasoning = {"effort": "low", "summary": "auto"}
     timeout = REQUEST_TIMEOUT_SECONDS
     max_retries = MAX_RETRIES
