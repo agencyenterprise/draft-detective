@@ -85,17 +85,45 @@ def headings(markdown: str) -> list[tuple[int, int, str]]:
     return found
 
 
-def _section(markdown: str, key: str) -> Optional[str]:
-    """The text under the first heading naming the section, up to the next heading at the
-    same or a higher level (a recommendation's own subheading does not end Section 4);
-    None when there is no such heading."""
-    lines = markdown.split("\n")
+def section_starts(markdown: str) -> dict[str, tuple[int, int]]:
+    """The line and level of each required section's heading: the largest set of sections
+    whose headings come in the skill's order, each heading heading one section at most, so a
+    composite heading ("Summary, Strengths and Weaknesses") cannot stand in for several and
+    a later heading that mentions a summary cannot displace Section 1. Among assignments of
+    the same size, each section takes its earliest heading. A section left without a heading
+    is left out."""
     marks = headings(markdown)
-    start = next(((n, level) for n, level, text in marks if SECTIONS[key].search(text)), None)
+    keys = list(SECTIONS)
+    matches = [[SECTIONS[k].search(text) is not None for k in keys] for _, _, text in marks]
+    # best[i][k]: most sections k.. that headings i.. can head in order.
+    best = [[0] * (len(keys) + 1) for _ in range(len(marks) + 1)]
+    for i in range(len(marks) - 1, -1, -1):
+        for k in range(len(keys) - 1, -1, -1):
+            take = 1 + best[i + 1][k + 1] if matches[i][k] else 0
+            best[i][k] = max(take, best[i + 1][k], best[i][k + 1])
+    starts: dict[str, tuple[int, int]] = {}
+    i = k = 0
+    while i < len(marks) and k < len(keys):
+        if matches[i][k] and best[i][k] == 1 + best[i + 1][k + 1]:
+            starts[keys[k]] = (marks[i][0], marks[i][1])
+            i, k = i + 1, k + 1
+        elif best[i][k] == best[i + 1][k]:
+            i += 1
+        else:
+            k += 1
+    return starts
+
+
+def _section(markdown: str, key: str) -> Optional[str]:
+    """The text under the section's heading (see ``section_starts``), up to the next heading
+    at the same or a higher level (a recommendation's own subheading does not end Section
+    4); None when the section has no heading."""
+    start = section_starts(markdown).get(key)
     if start is None:
         return None
+    lines = markdown.split("\n")
     line, level = start
-    ends = [n for n, other, _ in marks if n > line and other <= level]
+    ends = [n for n, other, _ in headings(markdown) if n > line and other <= level]
     return "\n".join(lines[line + 1 : ends[0] if ends else len(lines)])
 
 
@@ -153,7 +181,7 @@ def document_title(document: str) -> str:
 
 def structure_scores(output: Reviewer2Output, document: str, authors: Sequence[str]) -> tuple[dict[str, float], str]:
     """``both_produced``: 1 when both documents reach ``MIN_CHARS``. ``review_sections``:
-    share of the four sections the review heads. ``next_steps_in_range``: 1 when Section 4
+    share of the four sections the review heads, each under its own heading and in order. ``next_steps_in_range``: 1 when Section 4
     lists five to seven recommendations (0 when it is missing). ``header_block``: share of the
     header elements (reviewer name, disclaimer, title, each author) present at the top of
     both documents. The last three are NaN when the review was not produced."""
@@ -163,7 +191,7 @@ def structure_scores(output: Reviewer2Output, document: str, authors: Sequence[s
     if len(review) < MIN_CHARS:
         nan = {"review_sections": math.nan, "next_steps_in_range": math.nan, "header_block": math.nan}
         return {"both_produced": float(produced), **nan}, f"peer review missing or too short ({len(review)} chars)"
-    missing = [k for k in SECTIONS if _section(review, k) is None]
+    missing = [k for k in SECTIONS if k not in section_starts(review)]
     steps = _section(review, "next_steps")
     count = recommendation_count(steps) if steps is not None else 0
     low, high = NEXT_STEPS_RANGE

@@ -162,8 +162,8 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
       id: studies_identified                          # optional label for score explanations
       edit_expected: true                             # true: an edit must be attached; false: none may be
       severity: low                                   # optional
-      rationale: "No actor is named."                 # optional; the labeller's account of what is
-                                                    # wrong, shown to a reference criterion's grader
+      rationale: "No actor is named."                 # optional; the labeller's account of the issue,
+                                                    # shown to a reference criterion's grader
       edit:                                           # phrases a correct edit carries / avoids
         must_include: ["identified studies"]
         must_not_include: ["The authors"]
@@ -235,7 +235,7 @@ Check uses the first two plus its image check):
    suggested actions). A criterion about *why* the issue was raised rather than what to do
    sets `reads="analysis"` to grade the issue's description and long description instead of
    its action, and `reference=True` to also show the grader the expected issue's `rationale`,
-   the labeller's account of what is wrong (Inference Validation grades whether the reported
+   the labeller's account of the issue (Inference Validation grades whether the reported
    analysis names the labelled flaw; Claim Reference Validation whether the rationale says
    what the cited source actually backs). A reference criterion applies only to expected
    issues that carry a rationale.

@@ -102,6 +102,7 @@ def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
     assert quoted_verbatim("“The scope is limited to urban sites.”", "The scope is\nlimited to urban sites.")
     assert not quoted_verbatim("Data came from 3 sites", DOC)
     assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
+    assert not quoted_verbatim("We then coded the notes … Data were collected", DOC), "pieces must keep their order"
 
 
 # --- detection ------------------------------------------------------------------

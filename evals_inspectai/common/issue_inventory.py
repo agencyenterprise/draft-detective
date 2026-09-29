@@ -110,7 +110,7 @@ class ExpectedIssue(BaseModel):
     rationale: Optional[str] = Field(
         default=None,
         description=(
-            "What is wrong here, in the labeller's words: the flaw an inference commits, what a cited "
+            "The labeller's account of the expected issue: the flaw an inference commits, what a cited "
             "source actually says. Not scored deterministically; a judged criterion with `reference=True` "
             "shows it to the grader as the reference the reported analysis is compared against."
         ),
@@ -239,13 +239,19 @@ _QUOTE_WRAPPING = "*_\"'“”‘’ "
 
 
 def quoted_verbatim(quote: str, text: str) -> bool:
-    """Whether every ellipsis-separated piece of ``quote`` occurs in ``text`` after
-    normalising case, quotes and whitespace, so a sentence wrapped across lines counts.
-    An empty quote quotes nothing."""
+    """Whether the ellipsis-separated pieces of ``quote`` occur in ``text`` in order, each
+    after the previous one, after normalising case, quotes and whitespace, so a sentence
+    wrapped across lines counts and a reordered quote does not. An empty quote quotes nothing."""
     haystack = normalize(text)
     pieces = [normalize(p).strip(_QUOTE_WRAPPING) for p in _ELLIPSIS_RE.split(quote)]
     pieces = [p for p in pieces if p]
-    return bool(pieces) and all(p in haystack for p in pieces)
+    position = 0
+    for piece in pieces:
+        found = haystack.find(piece, position)
+        if found < 0:
+            return False
+        position = found + len(piece)
+    return bool(pieces)
 
 
 def locate_anchor(lines: list[str], anchor: str, label: str) -> int:

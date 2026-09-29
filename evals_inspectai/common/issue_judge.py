@@ -71,7 +71,7 @@ ISSUE_PREAMBLE = "You are grading one reviewer issue against one criterion."
 PASSAGE_LABELS = {"section": "Passage the issue is about", "document": "The full report"}
 # What an issue-level criterion reads of the reported issue, and the label it is shown under.
 READS_LABELS = {"suggested_action": "Reviewer's suggested action", "analysis": "Reviewer's analysis"}
-REFERENCE_LABEL = "What the labeller says is wrong here"
+REFERENCE_LABEL = "Labeller's reference rationale"
 
 # CommonMark allows up to three leading spaces; four or more make a code block.
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})(?:\s|$)")

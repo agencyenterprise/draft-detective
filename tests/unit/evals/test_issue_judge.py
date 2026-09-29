@@ -273,7 +273,7 @@ async def test_a_reference_criterion_shows_the_labellers_rationale_and_skips_iss
 
     values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected(rationale="The actor is missing.")), [criterion])
     assert values == {"flaw": 1.0}
-    assert "[What the labeller says is wrong here]: The actor is missing.\n************\n[Reviewer's analysis]: No actor." in grader.prompts[0]
+    assert "[Labeller's reference rationale]: The actor is missing.\n************\n[Reviewer's analysis]: No actor." in grader.prompts[0]
 
     values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
     assert math.isnan(values["flaw"]) and len(grader.prompts) == 1, "no rationale, nothing to compare against"

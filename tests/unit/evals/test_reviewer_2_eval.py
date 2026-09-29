@@ -99,6 +99,21 @@ def test_a_recommendation_subheading_does_not_end_the_next_steps_section():
     assert values["next_steps_in_range"] == 1.0, note
 
 
+def test_a_composite_heading_heads_one_section_only():
+    review = HEADER + "## Summary, Strengths, Weaknesses and Actionable Next Steps\n\n" + "x" * 300 + "\n\n" + TABLE * 5
+    values, note = structure_scores(Reviewer2Output(peer_review_markdown=review, rebuttal_markdown=REBUTTAL), DOC, RECORD.authors)
+    assert values["review_sections"] == 0.25 and "['strengths', 'weaknesses', 'next_steps']" in note
+
+
+def test_sections_are_found_in_the_skills_order():
+    """A "Summary" heading after the Strengths section does not count as Section 1."""
+    review = REVIEW.replace("## Section 1: Summary of Argument", "## Section 1: The Argument").replace(
+        "## Section 3: Weaknesses", "## Section 3: Weaknesses (summary)"
+    )
+    values, _ = structure_scores(Reviewer2Output(peer_review_markdown=review, rebuttal_markdown=REBUTTAL), DOC, RECORD.authors)
+    assert values["review_sections"] == 0.75
+
+
 def test_structure_checks_are_nan_without_a_review():
     values, _ = structure_scores(Reviewer2Output(rebuttal_markdown=REBUTTAL), DOC, RECORD.authors)
     assert values["both_produced"] == 0.0
