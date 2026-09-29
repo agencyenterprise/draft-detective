@@ -12,6 +12,18 @@ function normalize(text: string): string {
   return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+// A markdown link, text allowed one level of brackets so `[[26]](#footnote-27)` matches.
+const MARKDOWN_LINK = /\[((?:[^[\]]|\[[^[\]]*\])*)\]\([^)\s]*\)/g;
+
+/**
+ * The anchor as the reader sees it. Anchors are quoted from the markdown
+ * source, so a footnote marker arrives as `[[26]](#footnote-27)` while the
+ * rendered text says `[26]`; only the link text survives rendering.
+ */
+export function renderedAnchor(anchor: string): string {
+  return anchor.replace(MARKDOWN_LINK, '$1');
+}
+
 function textOf(node: RootContent): string {
   if (node.type === 'text') return node.value;
   if (node.type === 'element') return node.children.map(textOf).join('');
@@ -65,7 +77,8 @@ function markBlock(parent: Parent, target: string): boolean {
  */
 export function rehypeHighlightAnchor(options: { anchor: string }) {
   return (tree: Root) => {
-    if (!options.anchor.trim()) return;
-    if (!markInText(tree, options.anchor)) markBlock(tree, normalize(options.anchor));
+    const anchor = renderedAnchor(options.anchor);
+    if (!anchor.trim()) return;
+    if (!markInText(tree, anchor)) markBlock(tree, normalize(anchor));
   };
 }

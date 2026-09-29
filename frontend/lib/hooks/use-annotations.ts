@@ -31,6 +31,10 @@ export function useNextAnnotationTask(slug: string, skip: string[], round: numbe
       return { task, shownAt: Date.now() };
     },
     staleTime: Infinity,
+    // Dropped as soon as nothing shows it. Otherwise leaving a check and coming
+    // back would start at round 0 again and replay a cached, already-answered
+    // item with stale progress.
+    gcTime: 0,
     refetchOnWindowFocus: false,
     // Keeps the set's header on screen while the next item loads.
     placeholderData: keepPreviousData,

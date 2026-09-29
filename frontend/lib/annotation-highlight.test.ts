@@ -1,6 +1,6 @@
 import type { Element, Root } from 'hast';
 import { describe, expect, it } from 'vitest';
-import { rehypeHighlightAnchor } from './annotation-highlight';
+import { rehypeHighlightAnchor, renderedAnchor } from './annotation-highlight';
 
 function paragraph(...children: Element['children']): Element {
   return { type: 'element', tagName: 'p', properties: {}, children };
@@ -54,5 +54,35 @@ describe('rehypeHighlightAnchor', () => {
       'missing',
     );
     expect(JSON.stringify(tree)).not.toContain('dataAnnotationAnchor');
+  });
+
+  it('matches an anchor quoted with markdown footnote links as the rendered text', () => {
+    const link: Element = {
+      type: 'element',
+      tagName: 'a',
+      properties: { href: '#footnote-10' },
+      children: [{ type: 'text', value: '[9]' }],
+    };
+    const tree = highlight(
+      {
+        type: 'root',
+        children: [
+          paragraph({ type: 'text', value: 'Off-grid approaches, sometimes called bridge power,' }, link, {
+            type: 'text',
+            value: ' were not considered.',
+          }),
+        ],
+      },
+      'Off-grid approaches, sometimes called bridge power,[[9]](#footnote-10) were not considered',
+    );
+    expect((tree.children[0] as Element).properties.dataAnnotationAnchor).toBe(true);
+  });
+});
+
+describe('renderedAnchor', () => {
+  it('keeps only the text of markdown links', () => {
+    expect(renderedAnchor('bridge power,[[26]](#footnote-27) were not')).toBe('bridge power,[26] were not');
+    expect(renderedAnchor('see [the report](https://example.org/a) here')).toBe('see the report here');
+    expect(renderedAnchor('no links [here]')).toBe('no links [here]');
   });
 });

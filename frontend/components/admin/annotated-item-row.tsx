@@ -62,6 +62,7 @@ export function AnnotatedItemRow({ item }: { item: AnnotatedItem }) {
         <PassageDocument
           document={item.passage.document}
           anchor={item.passage.anchor}
+          line={item.passage.line}
           className="max-h-80 rounded-md border"
         />
         <ul className="divide-y">

@@ -35,7 +35,10 @@ interface QuestionPaneProps {
  */
 export function QuestionPane({ itemId, passage, questions, guidance, shownAt, onNext, onSkip }: QuestionPaneProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [saved, setSaved] = useState(false);
+  // What the server last stored, so a failed change can fall back to it: the
+  // selection on screen must never claim an answer that was not saved.
+  const [savedAnswers, setSavedAnswers] = useState<Record<string, string> | null>(null);
+  const saved = savedAnswers !== null;
   const [comment, setComment] = useState('');
   const submit = useSubmitAnnotation();
 
@@ -46,8 +49,11 @@ export function QuestionPane({ itemId, passage, questions, guidance, shownAt, on
     submit.mutate(
       { itemId, submission: { answers: next, time_spent_ms: saved ? undefined : Date.now() - shownAt } },
       {
-        onSuccess: () => setSaved(true),
-        onError: (error) => toast.error(getErrorMessage(error, 'Could not save your answer')),
+        onSuccess: () => setSavedAnswers(next),
+        onError: (error) => {
+          setAnswers(savedAnswers ?? {});
+          toast.error(getErrorMessage(error, 'Could not save your answer'));
+        },
       },
     );
   };

@@ -98,6 +98,7 @@ export function AnnotationView({ slug }: { slug: string }) {
                 key={item.id}
                 document={item.passage.document}
                 anchor={item.passage.anchor}
+                line={item.passage.line}
                 className="h-full"
               />
             ) : (

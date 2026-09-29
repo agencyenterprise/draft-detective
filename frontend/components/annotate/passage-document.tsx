@@ -19,6 +19,8 @@ const ROW_RULE = 'w-[2px] shrink-0 rounded-full bg-amber-500';
 interface PassageDocumentProps {
   document: string;
   anchor: string;
+  /** The passage's source line, used when the anchor cannot be found in the rendered text. */
+  line?: number | null;
   className?: string;
 }
 
@@ -28,7 +30,20 @@ interface PassageDocumentProps {
  * marked in the text, and its paragraph carries the wash and gutter rule a
  * selected finding gets in the explorer.
  */
-export function PassageDocument({ document, anchor, className }: PassageDocumentProps) {
+/** The row holding the passage: where the highlight landed, else the row for its source line. */
+function passageRow(container: HTMLElement, line?: number | null): HTMLElement | null {
+  const marked = container.querySelector<HTMLElement>(ANCHOR_SELECTOR);
+  if (marked) return marked.closest<HTMLElement>('[data-block-row]') ?? marked;
+  if (!line) return null;
+  for (const block of container.querySelectorAll<HTMLElement>('[data-block-owner][data-line-start]')) {
+    const start = Number(block.dataset.lineStart);
+    const end = Number(block.dataset.lineEnd ?? start);
+    if (start <= line && line <= end) return block.closest<HTMLElement>('[data-block-row]');
+  }
+  return null;
+}
+
+export function PassageDocument({ document, anchor, line, className }: PassageDocumentProps) {
   const rehypePlugins: PluggableList = useMemo(
     () => [...REHYPE_PLUGINS, [rehypeHighlightAnchor, { anchor }]],
     [anchor],
@@ -37,17 +52,19 @@ export function PassageDocument({ document, anchor, className }: PassageDocument
   // A ref callback rather than an effect: the content is fixed for the life of
   // the element (callers key it by item), so marking the row once on mount is
   // all there is to do. Scrolls the pane itself, not the page around it.
-  const markAndScroll = useCallback((container: HTMLDivElement | null) => {
-    const target = container?.querySelector<HTMLElement>(ANCHOR_SELECTOR);
-    if (!container || !target) return;
-    const row = target.closest<HTMLElement>('[data-block-row]');
-    row?.querySelector('[data-block-owner]')?.classList.add(...ROW_WASH);
-    const rule = row?.querySelector<HTMLElement>('[data-rule]');
-    if (rule) rule.className = ROW_RULE;
-    const anchorBox = (row ?? target).getBoundingClientRect();
-    const paneBox = container.getBoundingClientRect();
-    container.scrollTop += anchorBox.top - paneBox.top - container.clientHeight / 2 + anchorBox.height / 2;
-  }, []);
+  const markAndScroll = useCallback(
+    (container: HTMLDivElement | null) => {
+      const row = container && passageRow(container, line);
+      if (!container || !row) return;
+      row.querySelector('[data-block-owner]')?.classList.add(...ROW_WASH);
+      const rule = row.querySelector<HTMLElement>('[data-rule]');
+      if (rule) rule.className = ROW_RULE;
+      const rowBox = row.getBoundingClientRect();
+      const paneBox = container.getBoundingClientRect();
+      container.scrollTop += rowBox.top - paneBox.top - container.clientHeight / 2 + rowBox.height / 2;
+    },
+    [line],
+  );
 
   return (
     <div
