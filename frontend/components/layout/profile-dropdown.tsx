@@ -13,12 +13,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 const userNavigation = [
   { name: 'Settings', href: '/account' },
   { name: 'MCP Server', href: '/connect' },
+  { name: 'Help improve accuracy', href: '/annotate' },
   { name: 'Sign out', href: '/api/auth/signout' },
 ];
 const adminNavigation = [
   { name: 'Usage Dashboard', href: '/dashboard' },
   { name: 'Manage Users', href: '/users' },
   { name: 'User Feedback', href: '/feedbacks' },
+  { name: 'Annotation Results', href: '/annotation-results' },
   // App Settings (/settings) is hidden: the About page now reads from the
   // committed ABOUT.md and workflow customisation moved to skill files, so
   // there are no runtime configs left to manage in the UI.
