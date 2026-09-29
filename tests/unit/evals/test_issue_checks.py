@@ -711,3 +711,14 @@ def test_workflow_specific_edit_checks_are_reported_under_their_name():
     issue = _issue(edits=[_edit("Data were collected from 3 sites by the field team.", "The field team collected data from 3 sites.")])
     results = edit_checks(f, issue, LINES, {"mentions_team": lambda e: "team" in e.replacement_text})
     assert results["edit_mentions_team"][0] == 1.0
+
+
+def test_several_issues_on_one_expected_all_count_toward_precision():
+    """One issue per recommended source: a second source on the same claim is not a false positive."""
+    inventory = ResolvedInventory(document=DOC, expected_issues=[_expected(title=None)], decoys=[])
+    on_claim = [IssueItem(title=f"Source {n}", severity="low", start_line=5, end_line=5) for n in (1, 2)]
+    elsewhere = IssueItem(title="Source 3", severity="low", start_line=9, end_line=9)
+    paired, _ = issue_detection_scores([*on_claim, elsewhere], inventory, edits=False, titles=False)
+    several, _ = issue_detection_scores([*on_claim, elsewhere], inventory, edits=False, titles=False, several_per_expected=True)
+    assert paired["precision"] == pytest.approx(1 / 3) and several["precision"] == pytest.approx(2 / 3)
+    assert several["recall"] == 1.0

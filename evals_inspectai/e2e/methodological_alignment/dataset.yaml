@@ -1,0 +1,479 @@
+# Eval samples for the methodological_alignment workflow, in inventory form. Each record is the methods
+# of a short paper with two to four planted design risks. A plant is written the way a paper states its
+# choice, neutrally or by omission, never naming the flaw: the run has to know what the field does to see
+# it. Each is anchored on the sentence stating the choice (for an omission, the sentence describing the
+# analysis it affects), with the labeller's account of what the field does instead (`rationale`); a plant
+# that undermines the main result carries `severity: high`. Titles are free-form ("Methodology: <gap>"),
+# and the skill reports every missing standard component, not only the planted ones, so a report on another
+# gap is not a false positive. Decoys are sound design choices a correct run must not criticise, each with
+# the labeller's reason; several look like the gaps a reviewer checks for (no margin of error, a sample cut to
+# the establishments a mandate covers) but are the right call here. The skill anchors an omission on the passage it
+# affects, so a line cannot tell a criticism of a decoy from one of its neighbour, and decoys are judged,
+# not matched. Fields vary so the baseline search varies. Every paragraph is one line.
+# See evals_inspectai/common/issue_inventory.py.
+
+- input: |
+    # Impact of Four-Day Work Weeks on Software Team Output
+
+    ## Methods
+
+    We conducted a six-month field study across three engineering teams (N = 47 engineers) at a mid-size software company. One team kept the standard five-day schedule, while two teams moved to a compressed four-day, 32-hour week.
+
+    Each team's manager decided whether the team would adopt the four-day week.
+
+    Productivity was measured as the number of merged pull requests per engineer per week, extracted automatically from the version-control system.
+
+    Burnout was measured monthly with the Maslach Burnout Inventory, administered by an external survey firm so that managers never saw individual responses.
+
+    Weekly per-engineer pull-request counts were compared between the four-day and five-day conditions with a two-sample t-test.
+
+    We compared the two conditions on 14 outcome measures, each tested at p < 0.05.
+
+    ## Results
+
+    Four-day teams merged 11 percent more pull requests per engineer per week than the five-day team (p = 0.04). Burnout scores fell in four-day teams.
+
+    ## Conclusion
+
+    The four-day week improved throughput without harming well-being.
+  expected_issues:
+  - id: self_selection
+    anchor: Each team's manager decided whether the team would adopt the four-day week.
+    severity: high
+    rationale: >-
+      Self-selected assignment confounds the schedule with team and manager differences; field studies of
+      work-time interventions randomize or, failing that, use a difference-in-differences design with
+      pre-intervention trends and covariate adjustment.
+  - id: pr_proxy
+    anchor: Productivity was measured as the number of merged pull requests per engineer per week
+    rationale: >-
+      A single activity count is a weak proxy for software productivity; the field uses several measures
+      (the SPACE framework, DORA metrics, quality and review outcomes) because pull-request counts can be
+      split or gamed.
+  - id: independence
+    anchor: Weekly per-engineer pull-request counts were compared between the four-day and five-day conditions with a two-sample t-test.
+    severity: high
+    rationale: >-
+      Treatment is assigned by team and each engineer contributes many weeks, so observations are clustered;
+      the field uses mixed-effects or cluster-robust models, and with three teams a t-test on engineer-weeks
+      badly overstates precision.
+  - id: multiplicity
+    anchor: We compared the two conditions on 14 outcome measures, each tested at p < 0.05.
+    rationale: >-
+      Fourteen outcomes each at p < 0.05 make a false positive likely; practice is to prespecify a primary
+      outcome or correct for multiplicity (Bonferroni, Holm, false discovery rate).
+  decoys:
+  - anchor: Burnout was measured monthly with the Maslach Burnout Inventory
+    reason: validated_instrument
+    rationale: >-
+      The Maslach Burnout Inventory is the field's standard validated burnout measure, and third-party
+      administration protects candour.
+  notes: The original sample, with each plant stated neutrally.
+
+- input: |
+    # Lightweight Transformer for On-Device Intent Classification
+
+    ## Methodology
+
+    We fine-tune a 4-layer DistilBERT encoder on a proprietary dataset of 82,000 labeled utterances collected from 3,100 users of our assistant, spanning 30 intent classes.
+
+    The utterances were randomly split 70/15/15 into training, validation, and test sets.
+
+    Training used the AdamW optimizer with a learning rate of 3e-5 and batch size 64, with early stopping on validation macro-F1; the test set was used only once, for the final evaluation.
+
+    We report macro-F1 and per-class precision and recall of our model on the held-out test set.
+
+    All results are averaged over five random seeds and reported with standard deviations.
+
+    ## Results
+
+    The model reached a macro-F1 of 0.91 on the test set and ran inference in under 9 ms per utterance on a mobile CPU.
+  expected_issues:
+  - id: user_leakage
+    anchor: The utterances were randomly split 70/15/15
+    severity: high
+    rationale: >-
+      A random utterance-level split puts the same users' phrasing in training and test sets and inflates
+      scores; the field splits by user (a grouped split) to estimate performance on new users.
+  - id: no_baseline_or_benchmark
+    anchor: We report macro-F1 and per-class precision and recall of our model on the held-out test set.
+    severity: high
+    rationale: >-
+      Intent-classification papers compare against baselines (a full-size BERT, a non-neural classifier)
+      and report on public benchmarks (CLINC150, Banking77, SNIPS); with neither, 0.91 macro-F1 cannot be
+      interpreted.
+  decoys:
+  - anchor: the test set was used only once, for the final evaluation
+    reason: held_out_test
+    rationale: Model selection on validation data and a single use of the test set is standard practice.
+  - anchor: All results are averaged over five random seeds and reported with standard deviations.
+    reason: seed_variance_reported
+    rationale: Reporting the mean and spread over several seeds is the standard for fine-tuning variance.
+  notes: The original sample; the user leakage has to be inferred from the 3,100 users and the random split.
+
+- input: |
+    # Acupressure Wristbands for Postoperative Nausea: A Randomized Trial
+
+    ## Methods
+
+    The trial was registered at ClinicalTrials.gov before enrolment began, with nausea incidence at 24 hours after surgery as its primary outcome.
+
+    We randomized 220 adults undergoing laparoscopic surgery 1:1 to acupressure wristbands or to a control group that received no wristband, using a computer-generated sequence in permuted blocks of random size, with allocation concealed in sequentially numbered opaque envelopes.
+
+    All patients received the same anaesthetic protocol, including prophylactic ondansetron.
+
+    Ward nurses recorded each patient's nausea on a four-point scale at 2, 6 and 24 hours.
+
+    The sample size of 220 gave 80 percent power to detect a 15-point difference in nausea incidence at a two-sided alpha of 0.05.
+
+    The analysis included the 171 patients who kept their wristband on, or had none, for the full 24 hours.
+
+    Our primary outcome was nausea incidence at 6 hours after surgery.
+
+    ## Results
+
+    Nausea at 6 hours was lower with wristbands (21 percent vs 38 percent, p = 0.01).
+  expected_issues:
+  - id: no_sham
+    anchor: a control group that received no wristband
+    severity: high
+    rationale: >-
+      Nausea is a subjective outcome, and a no-wristband control lets patients and the nurses rating them
+      know the allocation; acupressure trials use sham wristbands and blinded outcome assessors (CONSORT,
+      Cochrane risk of bias).
+  - id: per_protocol
+    anchor: The analysis included the 171 patients who kept their wristband on
+    severity: high
+    rationale: >-
+      A per-protocol analysis that drops 22 percent of patients breaks randomization; CONSORT expects an
+      intention-to-treat primary analysis with missing-data handling.
+  - id: outcome_switching
+    anchor: Our primary outcome was nausea incidence at 6 hours after surgery.
+    severity: high
+    rationale: >-
+      The registered primary outcome was nausea at 24 hours; reporting 6 hours as primary is outcome
+      switching, which the field requires to be declared and justified, with the registered outcome reported.
+  decoys:
+  - anchor: permuted blocks of random size, with allocation concealed
+    reason: randomization_method
+    rationale: >-
+      Computer-generated randomization in blocks of varying size with concealed allocation is the standard,
+      sound method; varying block sizes keep the next allocation unpredictable even in an open trial.
+  - anchor: gave 80 percent power to detect a 15-point difference
+    reason: power_analysis
+    rationale: An a priori sample-size calculation with stated power, effect and alpha is standard practice.
+  - anchor: All patients received the same anaesthetic protocol
+    reason: standardized_cointervention
+    rationale: Standardizing anaesthesia and antiemetic prophylaxis across arms removes a co-intervention confound.
+  notes: The outcome switch has to be seen by comparing the registered and reported primary outcomes.
+
+- input: |
+    # Public Attitudes to Four-Day School Weeks: A National Survey
+
+    ## Methods
+
+    The questionnaire was pretested with 12 cognitive interviews, and two ambiguous items were reworded before fielding.
+
+    Respondents were recruited through posts on the research team's social media accounts, and the survey was open to anyone with the link.
+
+    We received 1,860 complete responses, and we report the percentage choosing each option as the national adult population's view.
+
+    The key item asked: "Given the well-documented benefits to teacher morale, would you support a four-day school week?"
+
+    Because the sample is not a probability sample, we do not report margins of error.
+
+    ## Results
+
+    Sixty-eight percent of respondents supported a four-day school week.
+  expected_issues:
+  - id: convenience_sample
+    anchor: Respondents were recruited through posts on the research team's social media accounts
+    severity: high
+    rationale: >-
+      An opt-in social-media sample is self-selected and unrepresentative; national attitude surveys use
+      probability samples (address-based sampling, probability panels) or at least quotas and weighting
+      (AAPOR guidance on non-probability samples).
+  - id: unweighted_national
+    anchor: we report the percentage choosing each option as the national adult population's view
+    severity: high
+    rationale: >-
+      Population estimates from a non-probability sample need weighting to known population margins and
+      caution about error; unweighted percentages reported as the nation's view are unsupported.
+  - id: leading_question
+    anchor: Given the well-documented benefits to teacher morale
+    severity: high
+    rationale: >-
+      The item presupposes benefits and leads respondents; questionnaire design standards call for neutral
+      wording and balanced framing.
+  decoys:
+  - anchor: pretested with 12 cognitive interviews
+    reason: pretested_instrument
+    rationale: Cognitive pretesting before fielding is standard, recommended survey practice.
+  - anchor: we do not report margins of error
+    reason: no_margin_of_error
+    rationale: >-
+      AAPOR advises against reporting a margin of sampling error for a non-probability sample; declining to
+      report one is correct, whatever the sample's other problems.
+
+- input: |
+    # State Paid Sick Leave Mandates and Employee Turnover
+
+    ## Data and design
+
+    We use quarterly establishment-level separation rates from the Quarterly Workforce Indicators, an administrative dataset built from unemployment-insurance records.
+
+    We compare four states whose paid sick leave mandates took effect in the first quarter of 2015 with 20 states without a mandate, in a difference-in-differences design.
+
+    Our panel runs from the fourth quarter of 2014 to the fourth quarter of 2016.
+
+    Standard errors are heteroskedasticity-robust.
+
+    We exclude establishments with fewer than five employees, which all four mandates exempt.
+
+    As a placebo test, we re-estimate the model on the public-sector workforce, which the mandates did not cover, and find no effect.
+
+    ## Results
+
+    Separation rates fell by 1.2 percentage points in mandate states relative to controls (p < 0.01).
+  expected_issues:
+  - id: no_pretrends
+    anchor: Our panel runs from the fourth quarter of 2014 to the fourth quarter of 2016.
+    severity: high
+    rationale: >-
+      With mandates in 2015Q1, the panel has a single pre-treatment quarter; difference-in-differences rests
+      on parallel trends, which the field shows with several pre-periods and an event-study plot of leads.
+  - id: unclustered_se
+    anchor: Standard errors are heteroskedasticity-robust.
+    severity: high
+    rationale: >-
+      Treatment is at the state level, so errors are correlated within states; the field clusters by state
+      (Bertrand, Duflo & Mullainathan 2004) and, with four treated states, uses a wild-cluster bootstrap or
+      randomization inference.
+  decoys:
+  - anchor: an administrative dataset built from unemployment-insurance records
+    reason: administrative_data
+    rationale: The Quarterly Workforce Indicators are a standard, high-quality administrative source for separations.
+  - anchor: As a placebo test, we re-estimate the model on the public-sector workforce
+    reason: placebo_test
+    rationale: A placebo on an uncovered group is a standard robustness check for this design.
+  - anchor: We exclude establishments with fewer than five employees
+    reason: coverage_restriction
+    rationale: Restricting the sample to establishments the mandates cover is the correct treatment definition.
+  notes: The single pre-period and the unclustered errors both have to be inferred.
+
+- input: |
+    # Deep Learning Detection of Pneumonia on Chest Radiographs
+
+    ## Methods
+
+    We collected 24,000 frontal chest radiographs of 9,800 patients from one hospital's archive, covering 2016 to 2020.
+
+    Each image was labelled by two radiologists, with a third resolving disagreements.
+
+    The images were randomly split 80/20 into training and test sets.
+
+    The operating threshold was set to maximise the F1 score on the test set.
+
+    We report the area under the ROC curve with 95 percent bootstrap confidence intervals.
+
+    ## Results
+
+    The model achieved an AUROC of 0.96 (95% CI 0.95 to 0.97) and an F1 score of 0.89.
+  expected_issues:
+  - id: patient_leakage
+    anchor: The images were randomly split 80/20 into training and test sets.
+    severity: high
+    rationale: >-
+      With several images per patient, an image-level split lets the model recognise patients rather than
+      disease; medical imaging studies split at the patient level (TRIPOD-AI, the CLAIM checklist).
+  - id: threshold_on_test
+    anchor: The operating threshold was set to maximise the F1 score on the test set.
+    severity: high
+    rationale: >-
+      Tuning the threshold on the test set leaks test information into the reported F1; it is set on a
+      validation set or by cross-validation.
+  - id: single_site
+    anchor: from one hospital's archive, covering 2016 to 2020
+    rationale: >-
+      A single-site dataset gives no evidence of generalization across scanners and populations; the field
+      expects external validation at another site (Zech et al. 2018 on site confounding).
+  decoys:
+  - anchor: labelled by two radiologists, with a third resolving disagreements
+    reason: reference_standard
+    rationale: Double reading with adjudication is a sound reference standard.
+  - anchor: with 95 percent bootstrap confidence intervals
+    reason: uncertainty_reported
+    rationale: Reporting AUROC with bootstrap confidence intervals is standard practice.
+
+- input: |
+    # Nurses' Experiences of Night-Shift Handovers: An Interview Study
+
+    ## Methods
+
+    We conducted semi-structured interviews using a topic guide that was piloted with two nurses and revised.
+
+    Six nurses from one ward were interviewed, at which point we judged that thematic saturation had been reached.
+
+    Transcripts were coded by the first author.
+
+    Participants reviewed a summary of the themes and confirmed that it reflected their experiences.
+
+    We report the percentage of participants endorsing each theme as an estimate of how common it is among hospital nurses nationally.
+
+    ## Findings
+
+    Four of six nurses (67 percent) described handovers as rushed.
+  expected_issues:
+  - id: saturation
+    anchor: Six nurses from one ward were interviewed
+    rationale: >-
+      Six interviews from one ward is a small, homogeneous sample; the literature on saturation (Guest et al.
+      2006; Hennink et al. 2017) expects a justified sample size and evidence that no new codes emerged.
+  - id: single_coder
+    anchor: Transcripts were coded by the first author.
+    rationale: >-
+      Qualitative rigour standards (COREQ; Lincoln and Guba's trustworthiness criteria) expect a second
+      coder, consensus coding, or an audit trail, with a reflexivity statement.
+  - id: prevalence
+    anchor: as an estimate of how common it is among hospital nurses nationally
+    severity: high
+    rationale: >-
+      Interview samples are purposive and not designed to estimate prevalence; percentages generalized to a
+      national population mismatch the design and the claim.
+  decoys:
+  - anchor: using a topic guide that was piloted with two nurses and revised
+    reason: piloted_guide
+    rationale: Piloting and revising the interview guide is standard qualitative practice.
+  - anchor: Participants reviewed a summary of the themes and confirmed
+    reason: member_checking
+    rationale: Member checking is a recognised credibility procedure.
+
+- input: |
+    # Effect of Nitrogen Addition on Grassland Plant Diversity
+
+    ## Methods
+
+    One meadow received nitrogen fertilizer at 100 kg per hectare per year, and a second meadow 2 km away was left unfertilized.
+
+    Species richness was recorded in 40 quadrats per meadow in the third summer after fertilization began.
+
+    Quadrats were placed at random coordinates generated before the survey.
+
+    Species were identified by a botanist who did not know which meadow was fertilized.
+
+    Richness was compared between the meadows with a t-test on the 80 quadrats.
+
+    ## Results
+
+    Richness was 23 percent lower in the fertilized meadow (p < 0.001).
+  expected_issues:
+  - id: pseudoreplication
+    anchor: Richness was compared between the meadows with a t-test on the 80 quadrats.
+    severity: high
+    rationale: >-
+      With one meadow per treatment, quadrats are pseudoreplicates (Hurlbert 1984): the treatment effect is
+      confounded with site. Nutrient-addition experiments replicate treatment across plots or sites (the
+      Nutrient Network) and analyse at the level of the experimental unit.
+  - id: no_baseline
+    anchor: in the third summer after fertilization began
+    rationale: >-
+      With no survey before fertilization, the pre-existing difference between meadows is unknown; a
+      before-after-control-impact design is standard when treatment cannot be replicated.
+  decoys:
+  - anchor: Quadrats were placed at random coordinates
+    reason: random_sampling
+    rationale: Randomly placed quadrats are standard, sound sampling within a site.
+  - anchor: identified by a botanist who did not know which meadow was fertilized
+    reason: blinding
+    rationale: Blind species identification guards against observer bias.
+
+- input: |
+    # Checkout Button Redesign: An Online Controlled Experiment
+
+    ## Methods
+
+    Users were randomized at the user level, by a hash of their account ID, to the current or the redesigned checkout button.
+
+    The experiment was planned to run for two full weeks to cover weekly traffic cycles.
+
+    We monitored conversion daily and ended the experiment on day five, once the difference in conversion was significant at p < 0.05.
+
+    Assignment was configured as a 50/50 split, and the treatment arm received 54 percent of users.
+
+    Of the 22 metrics on our dashboard, conversion showed a significant difference, and we report it here.
+
+    Guardrail metrics for page load time and error rate were monitored throughout and showed no degradation.
+
+    ## Results
+
+    Conversion rose from 3.1 to 3.4 percent (p = 0.04).
+  expected_issues:
+  - id: peeking
+    anchor: ended the experiment on day five, once the difference in conversion was significant
+    severity: high
+    rationale: >-
+      Stopping at the first significant daily look inflates the false-positive rate; online experimentation
+      practice fixes the sample size in advance or uses sequential tests (Kohavi, Tang & Xu 2020;
+      always-valid p-values).
+  - id: srm
+    anchor: the treatment arm received 54 percent of users
+    severity: high
+    rationale: >-
+      A 54/46 split on a configured 50/50 is a sample ratio mismatch, a sign of broken assignment or logging;
+      the standard is to test for it and not trust the result until it is explained.
+  - id: metric_fishing
+    anchor: Of the 22 metrics on our dashboard, conversion showed a significant difference
+    severity: high
+    rationale: >-
+      Reporting whichever of 22 metrics reached significance is a multiple-comparisons problem; practice is
+      a prespecified primary metric (an overall evaluation criterion) with corrections for the rest.
+  decoys:
+  - anchor: randomized at the user level, by a hash of their account ID
+    reason: unit_of_randomization
+    rationale: User-level randomization by a stable hash is the standard, sound assignment.
+  - anchor: planned to run for two full weeks to cover weekly traffic cycles
+    reason: full_weekly_cycles
+    rationale: Planning for full weekly cycles is recommended practice; the flaw is stopping early, not the plan.
+  - anchor: Guardrail metrics for page load time and error rate
+    reason: guardrail_metrics
+    rationale: Monitoring guardrail metrics is standard practice in online experiments.
+
+- input: |
+    # Does Holding a Warm Cup Increase Interpersonal Warmth? A Laboratory Experiment
+
+    ## Methods
+
+    Twenty-four undergraduates took part, twelve per condition.
+
+    Participants held a warm or a cold cup before rating a target person, with the order of the rating tasks counterbalanced across participants.
+
+    The experimenter who ran each session did not know which cup temperature the participant had been assigned.
+
+    After inspecting the data, we excluded three participants whose ratings looked implausible.
+
+    Warmth ratings of the target were compared between conditions with an independent-samples t-test.
+
+    ## Results
+
+    Participants who held a warm cup rated the target as warmer (p = 0.03).
+  expected_issues:
+  - id: underpowered
+    anchor: Twenty-four undergraduates took part, twelve per condition.
+    severity: high
+    rationale: >-
+      Twelve per group is badly underpowered for the small effects typical of this literature, and large
+      replications of this very effect failed (Lynott et al. 2014); the field now expects an a priori power
+      analysis and often preregistration.
+  - id: post_hoc_exclusion
+    anchor: After inspecting the data, we excluded three participants
+    severity: high
+    rationale: >-
+      Exclusions decided after seeing the data are a researcher degree of freedom (Simmons, Nelson &
+      Simonsohn 2011); criteria should be set in advance and results reported with and without exclusions.
+  decoys:
+  - anchor: with the order of the rating tasks counterbalanced across participants
+    reason: counterbalancing
+    rationale: Counterbalancing task order is standard practice against order effects.
+  - anchor: did not know which cup temperature the participant had been assigned
+    reason: blinding
+    rationale: An experimenter blind to condition guards against experimenter expectancy effects.
