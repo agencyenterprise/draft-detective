@@ -4,7 +4,8 @@ Idempotent: sets are upserted by slug and items by source key. An item whose
 passage left the dataset is retired, never deleted, so its annotations stay.
 A set dropped from the catalog is deactivated the same way.
 
-Run after changing a dataset or the catalog::
+Runs on every container start (``scripts/start_api.sh``), so a deploy picks up
+dataset and catalog changes by itself. To run it by hand::
 
     uv run python -m lib.services.annotations.sync
 """
@@ -14,7 +15,7 @@ import uuid
 from typing import Sequence
 
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -26,6 +27,9 @@ from lib.services.annotations.eval_items import (
     AnnotationItemDraft,
     items_from_inventory,
 )
+
+# Any constant works, as long as nothing else takes a Postgres advisory lock with it.
+SYNC_LOCK_KEY = 7_420_261_001
 
 
 class SetSyncReport(BaseModel):
@@ -91,22 +95,35 @@ async def sync_items(
 
 
 async def _deactivate_others(session: AsyncSession, slugs: set[str]) -> None:
-    stmt = select(AnnotationSet).where(col(AnnotationSet.slug).not_in(slugs))
-    for row in (await session.execute(stmt)).scalars():
-        row.is_active = False
+    """One UPDATE rather than loading the rows: a set deleted meanwhile is
+    simply not matched, where a per-row ORM update would fail on it."""
+    stmt = (
+        update(AnnotationSet)
+        .where(col(AnnotationSet.slug).not_in(slugs), col(AnnotationSet.is_active))
+        .values(is_active=False)
+    )
+    await session.execute(stmt)
 
 
 async def sync_annotation_sets(
     specs: Sequence[AnnotationSetSpec] = ANNOTATION_SETS,
+    deactivate_missing: bool = True,
 ) -> list[SetSyncReport]:
-    """Write every set and its items in one transaction."""
+    """Write every set and its items in one transaction. Sets not in ``specs``
+    are deactivated unless ``deactivate_missing`` is False, which leaves other
+    sets alone (the tests pass it so they do not hide each other's fixtures)."""
     reports = []
     async with get_async_db_session() as session:
+        # Every container runs the sync on start, so replicas starting together
+        # would race to insert the same rows. The lock makes them take turns;
+        # it is released when the transaction ends.
+        await session.execute(select(func.pg_advisory_xact_lock(SYNC_LOCK_KEY)))
         for spec in specs:
             row = await _upsert_set(session, spec)
             drafts = items_from_inventory(spec)
             reports.append(await sync_items(session, row.id, spec.slug, drafts))
-        await _deactivate_others(session, {spec.slug for spec in specs})
+        if deactivate_missing:
+            await _deactivate_others(session, {spec.slug for spec in specs})
         await session.commit()
     return reports
 
