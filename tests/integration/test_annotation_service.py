@@ -17,7 +17,8 @@ from lib.models.annotation import (
 )
 from lib.models.user import User, UserRole
 from lib.services.annotations import admin, service
-from lib.services.annotations.catalog import ACTIVE_VOICE, SHOULD_FLAG
+from lib.services.annotations.set_spec import SHOULD_FLAG
+from lib.services.annotations.sets.active_voice import ACTIVE_VOICE
 from lib.services.annotations.eval_items import AnnotationItemDraft
 from lib.services.annotations.models import (
     MAX_TIME_SPENT_MS,

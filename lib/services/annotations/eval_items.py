@@ -20,7 +20,7 @@ from evals_inspectai.common.issue_inventory import (
     normalize,
 )
 from lib.models.annotation import AnnotationItemKind
-from lib.services.annotations.catalog import SHOULD_FLAG, AnnotationSetSpec
+from lib.services.annotations.set_spec import SHOULD_FLAG, AnnotationSetSpec
 from lib.services.annotations.models import AnnotationPassage
 
 
