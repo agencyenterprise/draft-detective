@@ -114,7 +114,11 @@ def gap_prompt(criterion: str, expected: ResolvedIssue, issue: IssueItem, docume
 
 
 def _issue_summary(issue: IssueItem) -> str:
-    return f"- {issue.title} (lines {issue.start_line}-{issue.end_line}): {issue.description}"
+    """One reported issue in full, since its criticism of a choice may sit in any field."""
+    parts = [f"- {issue.title} (lines {issue.start_line}-{issue.end_line}): {issue.description}"]
+    parts += [f"  Analysis: {issue.long_description}"] if (issue.long_description or "").strip() else []
+    parts += [f"  Suggested action: {issue.suggested_action}"] if (issue.suggested_action or "").strip() else []
+    return "\n".join(parts)
 
 
 def decoy_prompt(decoy: Decoy, issues: Sequence[IssueItem], document: str) -> str:

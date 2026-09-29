@@ -108,15 +108,20 @@ def _same_source(a: Citation, b: Citation) -> bool:
     )
 
 
-def _names_own(issue: IssueItem, own: Sequence[Citation]) -> bool:
-    """Whether the issue names one of the document's own references by first author and
-    year: a recommendation to cite an existing reference in a new place, whose full
-    citation is already in the document and may have no link to give."""
+def _named_own(issue: IssueItem, own: Sequence[Citation], linked: Sequence[Citation]) -> list[Citation]:
+    """The document's own references the issue names by first author and year and does not
+    already give as a linked citation: a recommendation to cite an existing reference in a
+    new place, whose full citation is in the document and may have no link to give."""
     text = " ".join(part for part in (issue.title, issue.description, issue.long_description or ""))
-    return any(
-        r.first_author and r.year and re.search(rf"\b{re.escape(r.first_author)}\b", text) and str(r.year) in text
+    return [
+        r
         for r in own
-    )
+        if r.first_author
+        and r.year
+        and re.search(rf"\b{re.escape(r.first_author)}\b", text)
+        and str(r.year) in text
+        and not any(_same_source(r, c) for c in linked)
+    ]
 
 
 def _publication_year(inventory: ResolvedInventory) -> Optional[int]:
@@ -126,8 +131,12 @@ def _publication_year(inventory: ResolvedInventory) -> Optional[int]:
 def source_scores(
     issues: Sequence[IssueItem], inventory: ResolvedInventory, report: str, after: bool, new_sources_only: bool
 ) -> tuple[dict[str, float], str]:
-    """``cites_source``: share of reported issues giving at least one dated, linked citation,
-    or naming one of the document's own references (see ``_names_own``).
+    """``cites_source``: share of reported issues giving at least one dated, linked citation.
+    A literature review may also recommend one of the document's own references for a new
+    place (see ``_named_own``): the named reference then counts as that issue's citation and
+    goes through the date and report checks like any other. A live report (``new_sources_only``)
+    gets no such exception, since it must recommend a source the document does not cite, and
+    naming the document's own source there is usually a contrast with the newer one.
     ``sources_in_window``: share of dated citations published no later than the document's
     year (``after`` False, a literature review) or no earlier than it (``after`` True, a live
     report); a source from the publication year itself passes either way, since a year cannot
@@ -144,7 +153,9 @@ def source_scores(
     notes: list[str] = []
     own = document_references(inventory.document)
     per_issue = [(issue, issue_citations(issue)) for issue in issues]
-    uncited = [issue.title for issue, cites in per_issue if not (any(c.year for c in cites) or _names_own(issue, own))]
+    if not new_sources_only:
+        per_issue = [(issue, [*cites, *_named_own(issue, own, cites)]) for issue, cites in per_issue]
+    uncited = [issue.title for issue, cites in per_issue if not any(c.year for c in cites)]
     values["cites_source"] = 1 - len(uncited) / len(issues)
     notes += [f"no dated, linked citation: {uncited}"] if uncited else []
 
@@ -194,7 +205,7 @@ def source_checks(after: bool, new_sources_only: bool) -> Scorer:
 
 SOURCE_DESCRIPTIONS = {
     "report_lists_sources": "Share of recommended sources whose first author the report names: the report lists every recommended source. NaN when no source was cited.",
-    "cites_source": "Share of reported issues giving at least one full citation (a line with a DOI or URL and a publication year) or naming one of the document's own references by author and year. NaN when nothing was reported.",
+    "cites_source": "Share of reported issues giving at least one full citation (a line with a DOI or URL and a publication year); for a literature review, naming one of the document's own references by author and year also counts. NaN when nothing was reported.",
     "not_already_cited": "Share of recommended sources whose first author and year match no entry of the document's own reference list. NaN when no source was cited.",
 }
 

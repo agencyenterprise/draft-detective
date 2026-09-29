@@ -73,11 +73,19 @@ def test_sources_must_predate_a_literature_review():
     assert "not_already_cited" not in values
 
 
-def test_an_issue_citing_an_existing_reference_needs_no_link():
+def test_an_existing_reference_recommended_in_a_literature_review_goes_through_every_check():
     existing = _issue("Cite Fielding et al. (1999) here as well.", title="Cite the existing Fielding reference")
     bare = _issue("Some newer work shows this.")
     values, note = source_scores([existing, bare], INVENTORY, "", after=False, new_sources_only=False)
     assert values["cites_source"] == 0.5 and "no dated, linked citation" in note
+    assert values["sources_in_window"] == 1.0
+    assert values["report_lists_sources"] == 0.0 and "Fielding" in note
+
+
+def test_a_live_report_gets_no_credit_for_naming_the_documents_own_source():
+    reused = _issue("Cite Fielding et al. (1999) here as well.", title="Cite the existing Fielding reference")
+    values, note = source_scores([reused], INVENTORY, "Fielding", after=True, new_sources_only=True)
+    assert values["cites_source"] == 0.0 and "no dated, linked citation" in note
 
 
 def test_source_checks_are_nan_with_nothing_to_judge():

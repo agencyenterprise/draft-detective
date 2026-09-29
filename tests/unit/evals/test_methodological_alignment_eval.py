@@ -9,7 +9,7 @@ from inspect_ai.model import Model
 
 from evals_inspectai.common.issue_inventory import Decoy, InventoryRecord, ExpectedIssue, load_inventory_records, resolve_record
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
-from evals_inspectai.e2e.methodological_alignment.criteria import REQUIRED_SECTIONS, report_scores
+from evals_inspectai.e2e.methodological_alignment.criteria import REQUIRED_SECTIONS, decoy_prompt, report_scores
 from evals_inspectai.e2e.methodological_alignment.methodological_alignment_e2e import (
     judge_methodology,
     methodological_alignment_e2e,
@@ -104,3 +104,17 @@ async def test_a_criticised_sound_choice_fails_and_no_named_plant_leaves_actions
     values, _ = await judge_methodology(cast(Model, grader), [_issue("Methodology: Proxy", 5)], INVENTORY)
     assert values["gap_identified"] == 0.0 and math.isnan(values["action_repairs"])
     assert values["sound_choices_respected"] == 0.0
+
+
+def test_the_sound_choice_grader_sees_every_field_of_every_issue():
+    issue = IssueItem(
+        title="Methodology: Errors",
+        description="About inference.",
+        long_description="Cluster-robust errors with three teams are unreliable.",
+        suggested_action="Use a wild-cluster bootstrap.",
+        severity="high",
+        start_line=7,
+        end_line=7,
+    )
+    prompt = decoy_prompt(INVENTORY.decoys[0], [issue], DOC)
+    assert "Cluster-robust errors with three teams are unreliable." in prompt and "wild-cluster bootstrap" in prompt
