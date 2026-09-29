@@ -197,7 +197,8 @@ def structure_scores(output: Reviewer2Output, document: str, authors: Sequence[s
     low, high = NEXT_STEPS_RANGE
     title = document_title(document)
     checks = [(f"review {name}", ok) for name, ok in header_checks(review, title, authors)]
-    checks += [(f"rebuttal {name}", ok) for name, ok in header_checks(rebuttal, title, authors)] if rebuttal else []
+    # A missing rebuttal fails its header checks too; both_produced records that it is missing.
+    checks += [(f"rebuttal {name}", ok) for name, ok in header_checks(rebuttal, title, authors)]
     values = {
         "both_produced": float(produced),
         "review_sections": 1 - len(missing) / len(SECTIONS),

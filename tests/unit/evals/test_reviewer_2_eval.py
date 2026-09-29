@@ -64,7 +64,7 @@ def test_dataset_is_well_formed():
     records = [Reviewer2Record.model_validate(r) for r in raw]
     assert len(records) == 12
     assert all(r.weaknesses for r in records)
-    assert sum(len(r.weaknesses) for r in records) == 45 and sum(len(r.strengths) for r in records) == 21
+    assert sum(len(r.weaknesses) for r in records) == 45 and sum(len(r.strengths) for r in records) == 20
     for r in records:
         ids = [p.id for p in r.weaknesses + r.strengths]
         assert len(ids) == len(set(ids)), "point ids are unique within a record"
@@ -112,6 +112,12 @@ def test_sections_are_found_in_the_skills_order():
     )
     values, _ = structure_scores(Reviewer2Output(peer_review_markdown=review, rebuttal_markdown=REBUTTAL), DOC, RECORD.authors)
     assert values["review_sections"] == 0.75
+
+
+def test_a_missing_rebuttal_fails_its_header_checks():
+    values, note = structure_scores(Reviewer2Output(peer_review_markdown=REVIEW), DOC, RECORD.authors)
+    assert values["both_produced"] == 0.0 and values["header_block"] == 0.5
+    assert "rebuttal reviewer name" in note
 
 
 def test_structure_checks_are_nan_without_a_review():

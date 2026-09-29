@@ -384,9 +384,9 @@
   strengths:
   - id: reports_confounders
     point: It reports the adult decline and the jobs programs itself, giving readers the facts needed to question its conclusion.
-  - id: monthly_data
-    point: It provides monthly counts for both summers.
-  notes: Alternative explanations the document itself supplies.
+  notes: >-
+    Alternative explanations the document itself supplies. The monthly counts it says are in an appendix
+    are not in the document, so they are not listed as a strength.
 - input: |
     # Why Deterrence Cannot Work Against Non-State Actors
 
