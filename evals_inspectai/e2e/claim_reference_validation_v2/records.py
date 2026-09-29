@@ -53,7 +53,9 @@ def load_claim_records(path: Path) -> list[ClaimRecord]:
         records.append(ClaimRecord(inventory=inventory, sources=resolved))
     # Every level any record names is a titled kind, as ``load_inventory_records`` records it.
     named = sorted({e.title for r in records for e in r.inventory.expected_issues if e.title})
-    return [r.model_copy(update={"inventory": r.inventory.model_copy(update={"named_titles": named})}) for r in records]
+    # A level is the verdict on a citation, not the kind of issue: pair on the cited claim alone.
+    update = {"named_titles": named, "pair_on_location": True}
+    return [r.model_copy(update={"inventory": r.inventory.model_copy(update=update)}) for r in records]
 
 
 def claim_dataset(records: list[ClaimRecord], path: Path) -> MemoryDataset:

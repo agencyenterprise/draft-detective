@@ -91,6 +91,31 @@ def test_supported_does_not_match_a_partially_supported_report():
     assert values["recall"] == 1.0 and values["title_correct"] == 0.0
 
 
+def test_swapped_levels_on_one_line_are_both_scored_wrong():
+    """Two citations on one line with their levels swapped: pairing on the verdict would match
+    each report to the other citation and score both as right."""
+    doc = "# Evidence\n\nEarnings rose 12 percent (Mbeki, 2020). The gains lasted five years (Mbeki, 2020).\n"
+    inventory = ResolvedInventory(
+        document=doc,
+        expected_issues=[
+            _expected("two_years", "supported", "Earnings rose 12 percent", 3),
+            _expected("five_years", "unsupported", "The gains lasted five years", 3),
+        ],
+        decoys=[],
+        named_titles=list(LEVELS),
+        pair_on_location=True,
+    )
+    issues = [
+        IssueItem(**i)
+        for i in as_issues([_record("unsupported", "Earnings rose 12 percent (Mbeki, 2020).", 3), _record("supported", "The gains lasted five years (Mbeki, 2020).", 3)])
+    ]
+    values, _ = issue_detection_scores(issues, inventory, edits=False, one_to_one=True, severities=False)
+    assert values["recall"] == 1.0 and values["title_correct"] == 0.0
+    labels, _ = label_scores(issues, inventory)
+    assert labels["label_supported"] == 0.0 and labels["label_unsupported"] == 0.0
+    assert all(r.inventory.pair_on_location for r in load_claim_records(DATASET)), "the loader pairs on location"
+
+
 def test_label_accuracy_is_broken_down_by_the_expected_level():
     issues = [
         IssueItem(**i)
@@ -116,9 +141,10 @@ def test_an_evidence_quote_may_run_across_a_source_heading():
     assert evidence_scores(records, sources)[0]["evidence_verbatim"] == 1.0
 
 
-def test_the_action_criterion_skips_supported_citations():
+def test_the_action_criterion_checks_corrections_against_the_source_and_skips_supported_citations():
     rationale, action = JUDGE_CRITERIA
     assert (rationale.reads, rationale.reference, rationale.applies_to) == ("analysis", True, None)
+    assert (action.reads, action.reference) == ("suggested_action", True), "the grader needs the source's facts"
     assert action.applies_to is not None
     assert not action.applies_to(INVENTORY.expected_issues[1]) and action.applies_to(INVENTORY.expected_issues[0])
 

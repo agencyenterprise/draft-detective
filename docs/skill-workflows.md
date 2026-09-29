@@ -183,7 +183,11 @@ anchored by a verbatim quote, so the scorer knows whether the run found *that* s
 missing or repeated. An expected issue about something absent (a missing section, a
 numbering problem across a whole sequence) omits the anchor and must name a title; it has
 no line, is detected by any reported issue carrying that title, and is left out of
-`title_correct` and `anchor_in_range`. A record with `expected_issues: []` is a clean
+`title_correct` and `anchor_in_range`. When a title is a verdict on the anchored text rather than
+the kind of issue (Claim Reference Validation titles each citation with its support level), the
+loader sets `pair_on_location` on the inventory: reports then pair with expected issues on quote and
+line alone, so a wrong verdict is scored by `title_correct` instead of pairing the report with a
+neighbouring claim that shares the verdict. A record with `expected_issues: []` is a clean
 document: anything reported on it is a false positive. Fixture documents live under
 `evals_inspectai/e2e/<slug>/files/` and are referenced with `file://e2e/<slug>/files/...`.
 

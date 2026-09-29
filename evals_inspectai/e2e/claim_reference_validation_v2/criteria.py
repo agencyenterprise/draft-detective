@@ -21,7 +21,8 @@ text each record quotes must come verbatim from the document
 criteria read each detected citation against the labeller's account of what the
 source says: the rationale says what the source actually backs or fails to
 back, and, for a citation that is not supported, the suggested action tells the
-author what to change.
+author what to change, with any corrected figure or scope checked against that
+account.
 """
 
 import math
@@ -124,11 +125,13 @@ RATIONALE_CRITERION = (
 
 ACTION_CRITERION = (
     "The reviewer found that a cited source does not fully support a claim in a research document (the claim "
-    "overreaches the source, contradicts it, is not in it, or the source was not available), and the passage "
-    "the claim sits in is shown. Grade whether the suggested action tells the author concretely what to change: "
-    "narrow the claim to what the source covers (naming the scope), correct the figure or direction to the "
-    "source's, cite a source that does back the claim or remove it, or supply the missing source. Advice that "
-    "fits any citation (\"verify the citation\", \"ensure claims are supported\") is incorrect."
+    "overreaches the source, contradicts it, is not in it, or the source was not available), the passage the "
+    "claim sits in is shown, and the labeller has described what the source actually says. Grade whether the "
+    "suggested action tells the author concretely what to change: narrow the claim to what the source covers "
+    "(naming the scope), correct the figure or direction to the source's, cite a source that does back the claim "
+    "or remove it, or supply the missing source. A correction that states a figure, scope or finding the "
+    "labeller's account contradicts, or one the source does not contain, is incorrect. Advice that fits any "
+    "citation (\"verify the citation\", \"ensure claims are supported\") is incorrect."
 )
 
 
@@ -138,12 +141,19 @@ def _not_supported(expected: ResolvedIssue) -> bool:
 
 JUDGE_CRITERIA = [
     JudgeCriterion(key="rationale_matches_source", criterion=RATIONALE_CRITERION, scope="expected", passage="section", reads="analysis", reference=True),
-    JudgeCriterion(key="action_fixes_citation", criterion=ACTION_CRITERION, scope="expected", passage="section", applies_to=_not_supported),
+    JudgeCriterion(
+        key="action_fixes_citation",
+        criterion=ACTION_CRITERION,
+        scope="expected",
+        passage="section",
+        reference=True,
+        applies_to=_not_supported,
+    ),
 ]
 
 JUDGE_DESCRIPTIONS = {
     "rationale_matches_source": "Graded per detected citation against the labeller's account of the source: the reported rationale says what the source backs and does not back (C=1, P=0.5, I=0).",
-    "action_fixes_citation": "Graded per detected citation that is not supported: the suggested action says concretely what to change about the claim or its source (C=1, P=0.5, I=0).",
+    "action_fixes_citation": "Graded per detected citation that is not supported, against the labeller's account of the source: the suggested action says concretely what to change, and any correction it states matches the source (C=1, P=0.5, I=0).",
 }
 OWN_DESCRIPTIONS = {
     **{

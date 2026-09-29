@@ -201,6 +201,12 @@ class ResolvedInventory(BaseModel):
     # kinds with fixed titles. Set by ``load_inventory_records``; the pairing uses it
     # so an untitled expected issue prefers a free-form report over one of these kinds.
     named_titles: list[str] = Field(default_factory=list)
+    # True when a title is a verdict on the anchored text (a citation's support
+    # level) rather than the kind of issue it is: reports are then paired with
+    # expected issues on quote and line alone (see ``issue_checks.hit_tier``), so a
+    # wrong verdict is scored by title_correct instead of pairing the report with a
+    # neighbouring claim that happens to share the verdict.
+    pair_on_location: bool = False
     target_answer: Optional[str] = None
 
 
