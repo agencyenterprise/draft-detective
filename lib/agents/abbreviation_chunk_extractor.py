@@ -54,8 +54,8 @@ afterwards. So:
 - Do **not** count occurrences and do **not** look up the Abbreviations section. Both are
   computed after the ranges are combined; record each occurrence exactly as it appears.
 - Your range may fall on the cover page, inside the References / Bibliography section, among
-  footnotes or endnotes, or inside the Abbreviations section itself, and the rules above
-  treat each of those differently. When your range does not show where it sits (for example, it starts in the
+  footnotes or endnotes, or inside the Abbreviations section itself, none of which is
+  recorded. When your range does not show where it sits (for example, it starts in the
   middle of a section), find out before recording: read the lines just before it, or list the
   document's headings with `grep(pattern="#", path="/main.md", output_mode="content")`.
   `grep` matches literal text, not regular expressions.
@@ -65,11 +65,9 @@ Return `occurrences`, one entry per occurrence in reading order, each with:
 - `inline_definition`: the inline definition accompanying this exact occurrence, or an
   empty string when none accompanies it;
 - `line_start` / `line_end`: the 1-indexed line range in `/main.md`, as numbered by
-  `read_file` (equal for a single line);
-- `ignored`: `true` for occurrences excluded from compliance checks, `false` otherwise;
-- `ignored_reason`: a brief explanation when `ignored` is `true`, otherwise `null`.
+  `read_file` (equal for a single line).
 
-Return an empty list when your range contains no abbreviations.
+Return an empty list when your range contains no abbreviations to record.
 """
 
 _RANGE_MESSAGE = (

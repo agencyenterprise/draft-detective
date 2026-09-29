@@ -61,8 +61,10 @@ def test_system_prompt_is_the_skill_plus_static_guidance_and_the_range_goes_in_t
 def test_guidance_leaves_position_rules_to_the_agent_and_document_wide_fields_to_the_merge():
     assert "/main.md" in CHUNK_GUIDANCE and "read_file" in CHUNK_GUIDANCE
     assert "References" in CHUNK_GUIDANCE and "cover page" in CHUNK_GUIDANCE
-    for field in ("abbr", "inline_definition", "line_start", "line_end", "ignored", "ignored_reason"):
+    for field in ("abbr", "inline_definition", "line_start", "line_end"):
         assert f"`{field}`" in CHUNK_GUIDANCE
+    # Exempt occurrences are not recorded, so there is no exclusion flag to fill in.
+    assert "`ignored`" not in CHUNK_GUIDANCE and "ignored_reason" not in CHUNK_GUIDANCE
     assert "`occurrence_number`" not in CHUNK_GUIDANCE
     assert "`abbreviations_section_definition`" not in CHUNK_GUIDANCE
 

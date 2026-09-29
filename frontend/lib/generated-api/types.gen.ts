@@ -93,13 +93,13 @@ export type AbbreviationItem = {
   /**
    * Ignored
    *
-   * True if this occurrence should be excluded from compliance checks.
+   * Legacy: True if this occurrence was excluded from compliance checks.
    */
   ignored?: boolean;
   /**
    * Ignored Reason
    *
-   * Human-readable explanation of why this occurrence is ignored. Required when ignored=True, None otherwise. Example: "Defined in heading title — not a valid inline definition."
+   * Legacy: why the occurrence was excluded, when ignored is True.
    */
   ignored_reason?: string | null;
 };
@@ -1269,18 +1269,6 @@ export type ChunkOccurrence = {
    * Line number where the occurrence ends; equal to line_start for a single line.
    */
   line_end: number;
-  /**
-   * Ignored
-   *
-   * True when the occurrence is excluded from compliance checks.
-   */
-  ignored?: boolean;
-  /**
-   * Ignored Reason
-   *
-   * Brief reason for the exclusion; required when ignored is true, otherwise null.
-   */
-  ignored_reason?: string | null;
 };
 
 /**
