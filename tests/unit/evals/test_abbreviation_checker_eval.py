@@ -13,7 +13,9 @@ from pydantic import ValidationError
 
 from evals_inspectai.common.api_solver import PERSISTED_ISSUES_KEY
 from evals_inspectai.common.issue_inventory import decoy_reasons, expects_edits, normalize
+from evals_inspectai.e2e.abbreviation_checker import abbreviation_checker_report_e2e
 from evals_inspectai.e2e.abbreviation_checker.abbreviation_checker_e2e import (
+    DATASET,
     abbreviation_checker_e2e,
     catalogue_checks,
     load_records,
@@ -70,8 +72,12 @@ def test_dataset_is_well_formed():
     assert max(len(inventory.document) for inventory in inventories) > 8_000, "one document spans several chunks"
 
 
-def test_every_catalogue_occurrence_is_on_its_lines():
-    for inventory, catalogue in load_records():
+BOTH_DATASETS = pytest.mark.parametrize("dataset", [DATASET, abbreviation_checker_report_e2e.DATASET], ids=["short", "report"])
+
+
+@BOTH_DATASETS
+def test_every_catalogue_occurrence_is_on_its_lines(dataset):
+    for inventory, catalogue in load_records(dataset):
         lines = inventory.document.split("\n")
         for o in catalogue.abbreviations:
             assert o.line_end is not None and o.line_end <= len(lines)
@@ -86,8 +92,9 @@ def test_every_catalogue_occurrence_is_on_its_lines():
             assert all(o.abbreviations_section_definition is None for o in catalogue.abbreviations)
 
 
-def test_every_anchored_issue_sits_on_an_occurrence_line():
-    for inventory, catalogue in load_records():
+@BOTH_DATASETS
+def test_every_anchored_issue_sits_on_an_occurrence_line(dataset):
+    for inventory, catalogue in load_records(dataset):
         in_scope_lines = {o.line_start for o in catalogue.abbreviations if not o.ignored}
         for e in inventory.expected_issues:
             assert e.anchor is None or e.line in in_scope_lines, f"{e.id} is not on a non-excluded occurrence"
