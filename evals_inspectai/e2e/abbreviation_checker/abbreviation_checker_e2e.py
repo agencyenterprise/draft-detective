@@ -137,13 +137,17 @@ def abbreviation_checker_e2e(timeout_s: float = 600) -> Task:
     Args:
         timeout_s: How long to wait for one workflow run through the API.
     """
-    records = load_records()
+    return build_task(load_records(), DATASET, DATASET.parent.name, timeout_s)
+
+
+def build_task(records: list[AbbreviationRecord], dataset: Path, name: str, timeout_s: float) -> Task:
+    """The Abbreviation Scan task over ``records``, loaded from ``dataset``: the catalogue, issue and decoy scorers."""
     inventories = [inventory for inventory, _ in records]
     reasons = list(decoy_reasons(inventories))
     severities = expects_severities(inventories)
     keys = issue_check_keys(edits=False, severities=severities)
     return Task(
-        dataset=MemoryDataset(samples=[to_sample(*r) for r in records], name=DATASET.parent.name, location=str(DATASET)),
+        dataset=MemoryDataset(samples=[to_sample(*r) for r in records], name=name, location=str(dataset)),
         metadata={
             "ground_truth": (
                 "Per record, the occurrence catalogue a correct extraction records (matched on abbreviation and "

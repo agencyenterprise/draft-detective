@@ -37,7 +37,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 
 | Eval | Description |
 |------|-------------|
-| `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. |
+| `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. A second task, `abbreviation_checker_report_e2e.py`, runs the same checks on a full-length report and nine variants of it with definitions removed; it is kept separate because its samples are long. |
 | `e2e/about_this_ger` | Validates the preface / "About This" section and author biographies against publication requirements. |
 | `e2e/advocacy_tone_v2` | Flags trigger words, advocacy language, and subjective tone. |
 | `e2e/claim_reference_validation_v2` | Judges whether each cited source supports its claim. |
