@@ -43,6 +43,7 @@ Leave these occurrences out of the catalogue entirely. They are not compliance-c
 - **References / Bibliography section** — any abbreviation appearing inside a dedicated "References", "Bibliography", "Works Cited", or equivalent section.
 - **Front page / cover page** — any abbreviation appearing on the front or cover page (typically the first page, before the table of contents or any body section).
 - **Footnotes and endnotes** — any abbreviation appearing inside the text of a footnote or endnote: the numbered notes at the foot of a page, collected at the end of a chapter, or gathered in a "Notes" / "Endnotes" section (e.g. lines such as `12 Kyle Orland, "…," Ars Technica, 2017.` or `[^12]: …`). Notes are citation apparatus, not body text. Only the note's own text is skipped: the sentence in the body that carries the note marker is recorded as usual.
+- **Lists of figures and tables** — the entries of a "List of Figures", "List of Tables", "Figures and Tables", or equivalent list, which repeat the titles of the document's figures and tables. The figures, tables and captions themselves are recorded as usual: an abbreviation used only in a table or caption still needs its definition.
 - **The Abbreviations / Glossary section itself** — the dedicated "Abbreviations", "Acronyms", "Glossary", or equivalent section is the reference list, not document body text. (Its contents are still used to populate each recorded occurrence's "definition listed in the Abbreviations section".)
 - **URLs** — abbreviations inside a URL or web address, including a link whose visible text is itself an address, e.g. the "CAST" in `[www.rand.org/CAST](http://www.rand.org/CAST)`. A link whose visible text is ordinary prose (e.g. `[the NATO report](https://…)`) is recorded as usual; only the address itself is skipped.
 - **Always-excluded names** — **RAND**, **MIT** and **ChatGPT**, wherever they appear.
@@ -59,7 +60,7 @@ Leave these occurrences out of the catalogue entirely. They are not compliance-c
 | Statistical notation | N, n, M, SD, SE, R², R2, p, t, F, F1, df, Std. Dev. | When used as notation for a statistic, e.g. "N = 120", "Pseudo R2", an "F1" column |
 | Numeric magnitude suffixes | $9.6B, 10M, 5K, $1T | The letter attached to a number, meaning billion, million, thousand, trillion |
 | U.S. state and territory postal codes | CA, FL, NM, NY, UT, VA | In an address or place name, e.g. "Riverside, CA"; a postal code used on its own as a term is not exempt |
-| Product, model, software, and benchmark names | GPT-4, XGBoost, OpenAI, HumanEval, ARC-AGI-2 | Names used as names, not abbreviations standing for a longer form the reader needs |
+| Product, model, and software names | GPT-4, XGBoost, OpenAI, Llama 3 | Names used as names. Benchmark and dataset acronyms (MMLU, GPQA, WMDP) are abbreviations, not names: record them like any other |
 | Document and report identifiers | M-25-21, RR-A4036-1, TR-3 | Catalogue, memo, or report numbers |
 | Military ranks | Col., Gen., Sgt., Lt., Cpl., Adm., Maj. | |
 | Military equipment designators | C-141, F-35, Su-35, M-1, Ka-32 | |
