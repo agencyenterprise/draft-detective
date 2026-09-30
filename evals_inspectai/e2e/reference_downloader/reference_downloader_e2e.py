@@ -19,6 +19,10 @@ listing, so ``download_checks`` scores the file the app kept, not the agent's
 account of it, and ``download_judged`` grades from the file's opening, end and
 length whether it is the complete work rather than a preview or excerpt.
 
+The log carries the downloaded files' text, so the copy published under
+``docs/evals/`` is redacted with ``evals_inspectai.common.log_redaction``;
+rescore from the unredacted local log.
+
 Run (backend must be running)::
 
     uv run inspect eval evals_inspectai/e2e/reference_downloader/reference_downloader_e2e.py --epochs 3

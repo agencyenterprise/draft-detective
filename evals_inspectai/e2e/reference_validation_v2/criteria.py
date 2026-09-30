@@ -110,8 +110,8 @@ def validation_scores(result: ValidationResult, record: ReferenceRecord) -> tupl
     to_flag = [f for f in FIELDS if "correct" not in record.accepted(f)]
     to_leave = [f for f in FIELDS if record.accepted(f) == ["correct"]]
     carried = {
-        f: normalize(phrase) in normalize(f"{result.suggested(f)} {result.updated_reference or ''}")
-        for f, phrase in record.corrections.items()
+        f: any(normalize(p) in normalize(f"{result.suggested(f)} {result.updated_reference or ''}") for p in phrases)
+        for f, phrases in record.corrections.items()
     }
     expected_update = _updated_reference_expected(record)
     has_update = bool((result.updated_reference or "").strip())
@@ -129,8 +129,11 @@ def validation_scores(result: ValidationResult, record: ReferenceRecord) -> tupl
     }
     notes = [f"result {result.final_result}, expected {'/'.join(record.result)}"] if not values["result_correct"] else []
     notes += [f"{f}: reported {reported[f]}, expected {'/'.join(record.accepted(f))}" for f in FIELDS if not right[f]]
-    notes += [f"{f} correction lacks {record.corrections[f]!r}" for f, ok in carried.items() if not ok]
+    notes += [f"{f} correction lacks {' or '.join(repr(p) for p in record.corrections[f])}" for f, ok in carried.items() if not ok]
     notes += [f"final result {result.final_result} does not follow from the fields ({mechanical_result(result)})"] if not values["result_follows_fields"] else []
+    unreported = [f for f in FIELDS if result.problem(f) is None]
+    notes += [f"no entry for {', '.join(unreported)}"] if unreported else []
+    notes += ["no URL for a work that exists"] if values["url_when_found"] == 0.0 else []
     if expected_update is not None and has_update != expected_update:
         notes.append("updated reference given where none belongs" if has_update else "no updated reference where the skill requires one")
     return values, " | ".join(notes) if notes else "every field as labelled"
@@ -172,7 +175,7 @@ DESCRIPTIONS = {
     **{f"field_{f}": f"1 if {f} gets a problem type the record accepts." for f in FIELDS},
     "flags_found": "Of the fields the record says must be flagged (missing or incorrect), share flagged as labelled. NaN when none must be.",
     "no_false_flags": "Of the fields the record says are correct, share left correct. NaN when none is.",
-    "correction_given": "Share of the record's correction phrases found in the field's suggested value or the updated reference. NaN when the record has none.",
+    "correction_given": "Share of the record's corrections found, in any of their accepted forms, in the field's suggested value or the updated reference. NaN when the record has none.",
     "result_follows_fields": "1 if the final result is the one the skill's Step 6 derives from the reported fields.",
     "updated_reference_as_specified": "1 if an updated reference is given exactly when the skill requires one: for an incorrect found work or a bare URL, and never for a correct or fabricated reference. NaN when the skill leaves it open.",
     "all_fields_reported": "Share of the five fields the run reports an entry for.",

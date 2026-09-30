@@ -2,7 +2,8 @@
 # field against the reference-validation skill: `result` is the final result a correct run gives (a list
 # accepts any of them), `fields` the problem type each of author, title, publisher, year and identifier
 # gets (a field left out is `correct`; a list accepts any), `corrections` a phrase the field's suggested
-# value or the updated reference must carry, and `not_found` a fabricated reference, whose fields are all
+# value or the updated reference must carry (a list accepts any of its forms, such as NeurIPS for Neural
+# Information Processing Systems), and `not_found` a fabricated reference, whose fields are all
 # incorrect or unverifiable and which gets no updated reference. `rationale` is the labeller's account,
 # which the judged criterion compares the run's reasoning with. Labels follow the skill's rules where the
 # old labels did not: a year within one of the source's is correct, a first-author-only list is a
@@ -202,7 +203,9 @@
   fields:
     publisher: incorrect
   corrections:
-    publisher: EMNLP
+    publisher:
+    - EMNLP
+    - Empirical Methods in Natural Language Processing
   rationale: >-
     COGS appeared at EMNLP 2020, not NAACL. The cited year (2021) is within the skill's one-year tolerance, so only
     the venue is wrong.
@@ -221,7 +224,9 @@
   corrections:
     author: Lake
     year: '2019'
-    publisher: Neural Information Processing
+    publisher:
+    - Neural Information Processing
+    - NeurIPS
   rationale: >-
     The paper is by Brenden M. Lake alone, at NeurIPS 2019: the author list, venue and year (two years off) are
     all wrong.
@@ -350,7 +355,9 @@
     - incorrect
     author: correct
   corrections:
-    title: Instruction
+    title:
+    - Instruction
+    - AFI
   rationale: >-
     The document dated 27 April 2021 is Air Force Instruction 10-601, not an Air Force Policy Directive, so the
     designation in the title is wrong.
@@ -545,7 +552,9 @@
   fields:
     publisher: missing
   corrections:
-    publisher: NDSS
+    publisher:
+    - NDSS
+    - Network and Distributed System Security
   rationale: >-
     The venue is missing: the DOI resolves to an NDSS Symposium 2020 paper.
 - id: ndss_minor_name_forms
@@ -697,7 +706,9 @@
   fields:
     publisher: missing
   corrections:
-    publisher: Congressional Research Service
+    publisher:
+    - Congressional Research Service
+    - CRS
   rationale: >-
     A CRS report by a named analyst with the Congressional Research Service left out; the publisher is a different
     body from the author, so it is MISSING.

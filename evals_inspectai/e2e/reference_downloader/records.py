@@ -95,7 +95,7 @@ KEYS = (
 )
 
 
-def _loose(text: str) -> str:
+def loose_text(text: str) -> str:
     """Normalised text with hyphens read as spaces, so "bow-tie" matches "bow tie"."""
     return " ".join(normalize(text).replace("-", " ").replace("‐", " ").split())
 
@@ -118,8 +118,8 @@ def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: Downl
     found = item.final_conclusion == FOUND
     downloaded = [f for f in files if f.role == KEPT_ROLE]
     kept = kept_file(item, files)
-    text = _loose(f"{kept.markdown} {kept.markdown_tail}") if kept else ""
-    absent = [t for t in record.file_terms if _loose(t) not in text]
+    text = loose_text(f"{kept.markdown} {kept.markdown_tail}") if kept else ""
+    absent = [t for t in record.file_terms if loose_text(t) not in text]
     values = {
         "conclusion_accepted": float(item.final_conclusion in record.conclusion),
         "file_kept_when_found": float(kept is not None) if found else math.nan,
@@ -134,6 +134,7 @@ def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: Downl
     notes += [f"{len(downloaded)} supporting file(s) kept"] if not found and downloaded else []
     notes += [f"file {item.file_id} named"] if not found and item.file_id else []
     notes += ["no reason given for the inaccessible source"] if values["reason_when_inaccessible"] == 0.0 else []
+    notes += ["no source URL for the found source"] if values["url_when_found"] == 0.0 else []
     return values, " | ".join(notes) if notes else "outcome and file as expected"
 
 

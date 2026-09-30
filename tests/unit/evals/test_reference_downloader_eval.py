@@ -15,6 +15,7 @@ from evals_inspectai.e2e.reference_downloader.records import (
     DownloadRecord,
     FetchItem,
     ProjectFile,
+    loose_text,
     completeness_prompt,
     download_scores,
     load_records,
@@ -32,6 +33,16 @@ def test_dataset_is_well_formed():
     assert all(r.file_terms for r in records if "source_found" in r.conclusion)
 
 
+def test_file_terms_come_from_the_citation_and_identify_it():
+    """A term is a phrase of the work's own title, and no other record's citation carries all of
+    a record's terms, so a different downloaded work cannot pass for this one on a shared topic."""
+    records = [r for r in load_records(DATASET) if r.file_terms]
+    for record in records:
+        assert all(loose_text(t) in loose_text(record.reference) for t in record.file_terms), record.id
+        others = [o.id for o in records if o.id != record.id and all(loose_text(t) in loose_text(o.reference) for t in record.file_terms)]
+        assert not others, (record.id, others)
+
+
 def test_task_has_the_download_checks():
     t = reference_downloader_e2e()
     assert len(t.dataset) == 35 and len(t.metadata["metrics"]["download_checks"]) == 6
@@ -44,6 +55,13 @@ def test_a_found_source_is_checked_against_the_kept_file():
     values, _ = download_scores(item, [MAIN, kept], RECORD)
     assert values["conclusion_accepted"] == values["file_kept_when_found"] == values["file_matches_reference"] == 1.0
     assert math.isnan(values["no_file_when_not_found"]) and math.isnan(values["reason_when_inaccessible"])
+
+
+def test_a_found_source_without_a_url_is_named_in_the_explanation():
+    item = FetchItem(final_conclusion="source_found", file_id="f1", source_url="")
+    kept = ProjectFile(id="f1", role="support", file_name="aramis.pdf", markdown="More Explicit Demonstration of Risk Control")
+    values, note = download_scores(item, [MAIN, kept], RECORD)
+    assert values["url_when_found"] == 0.0 and "no source URL" in note
 
 
 def test_a_found_source_whose_file_is_another_work_fails():

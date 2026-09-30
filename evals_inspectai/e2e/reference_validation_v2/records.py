@@ -48,9 +48,12 @@ class ReferenceRecord(BaseModel):
     fields: dict[str, list[Problem]] = Field(
         default_factory=dict, description="Accepted problem types per field; a field left out must be correct"
     )
-    corrections: dict[str, str] = Field(
+    corrections: dict[str, list[str]] = Field(
         default_factory=dict,
-        description="Per field, a phrase the field's suggested value or the updated reference must carry",
+        description=(
+            "Per field, the phrase the field's suggested value or the updated reference must carry; a list "
+            "accepts any of its forms, for a name the skill accepts as a well-known abbreviation (NeurIPS)"
+        ),
     )
     not_found: bool = Field(default=False, description="A fabricated reference: nothing verifies, no updated reference")
     rationale: Optional[str] = Field(default=None, description="The labeller's account, for the judged criterion")
@@ -64,6 +67,11 @@ class ReferenceRecord(BaseModel):
     @field_validator("fields", mode="before")
     @classmethod
     def _one_or_many_problems(cls, value: object) -> object:
+        return {k: _as_list(v) for k, v in value.items()} if isinstance(value, dict) else value
+
+    @field_validator("corrections", mode="before")
+    @classmethod
+    def _one_or_many_phrases(cls, value: object) -> object:
         return {k: _as_list(v) for k, v in value.items()} if isinstance(value, dict) else value
 
     @model_validator(mode="after")

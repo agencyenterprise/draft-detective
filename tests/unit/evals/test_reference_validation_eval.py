@@ -73,6 +73,25 @@ def test_the_wrong_field_flagged_fails_the_field_checks_but_not_the_result():
     assert values["correction_given"] == 0.0 and "Eliahou" in note
 
 
+def test_a_correction_passes_in_any_accepted_form():
+    record = ReferenceRecord.model_validate(
+        {"id": "venue", "reference": "x", "result": "incorrect_fields", "fields": {"publisher": "incorrect"},
+         "corrections": {"publisher": ["Neural Information Processing", "NeurIPS"]}}
+    )
+    abbreviated = _result("incorrect_fields", updated="Brenden M. Lake. ... In NeurIPS, 2019.", publisher="incorrect")
+    assert validation_scores(abbreviated, record)[0]["correction_given"] == 1.0
+    values, note = validation_scores(_result("incorrect_fields", updated="Lake. ... ICML, 2019.", publisher="incorrect"), record)
+    assert values["correction_given"] == 0.0 and "'Neural Information Processing' or 'NeurIPS'" in note
+
+
+def test_missing_field_entries_and_url_are_named_in_the_explanation():
+    record = ReferenceRecord(id="ok", reference="x")
+    partial = ValidationResult(final_result="correct", url="", bibliography_field_validations=[FieldValidation(category="title", problem_type="correct")])
+    values, note = validation_scores(partial, record)
+    assert values["all_fields_reported"] == 0.2 and values["url_when_found"] == 0.0
+    assert "no entry for author, publisher, year, identifier" in note and "no URL" in note
+
+
 def test_the_final_result_must_follow_from_the_fields():
     correct = ReferenceRecord(id="ok", reference="x")
     values, note = validation_scores(_result("incorrect_fields"), correct)
