@@ -3,7 +3,7 @@
 Each chunk's agent answers only for its own lines, so the fields that depend
 on the whole document are computed here: occurrence numbers are counted in document order,
 the Abbreviations-section definition is looked up from the section's entries,
-and a heading line is always treated as exempt.
+and occurrences on a heading line are dropped, since the skill never records them.
 """
 
 import html
@@ -24,8 +24,6 @@ from lib.workflows.abbreviation_scan_v2.state import AbbreviationItem
 
 logger = logging.getLogger(__name__)
 
-_HEADING_REASON = "Appears in a heading."
-_FALLBACK_REASON = "Excluded as an exempt occurrence."
 _ALNUM_RUN_RE = re.compile(r"[0-9A-Za-z]+")
 
 
@@ -46,6 +44,7 @@ def assemble_catalogue(
         and _appears_on_its_lines(occurrence, lines)
         # The skill excludes the Abbreviations section itself.
         and not any(r.contains(occurrence.line_start) for r in section_ranges)
+        and not _on_heading(occurrence, lines)
     ]
     recorded = _within_text_count(recorded, lines)
     # Stable: occurrences on the same line keep the agent's reading order.
@@ -59,7 +58,6 @@ def assemble_catalogue(
     for occ in recorded:
         abbr = canonical(occ.abbr.strip())
         counts[abbr] += 1
-        ignored, reason = _exemption(occ, lines)
         catalogue.append(
             AbbreviationItem(
                 abbr=abbr,
@@ -68,8 +66,6 @@ def assemble_catalogue(
                 line_start=occ.line_start,
                 line_end=max(occ.line_end, occ.line_start),
                 abbreviations_section_definition=_lookup(definitions, abbr),
-                ignored=ignored,
-                ignored_reason=reason,
             )
         )
     return catalogue
@@ -166,17 +162,10 @@ def _abbreviation_pattern(abbr: str) -> Optional[re.Pattern[str]]:
     return re.compile(before + body + r"(?:'?s)?" + after)
 
 
-def _exemption(
-    occurrence: ChunkOccurrence, lines: List[str]
-) -> Tuple[bool, Optional[str]]:
-    """Keep the agent's exemption, and enforce the heading rule it sometimes misses."""
-    reason = (occurrence.ignored_reason or "").strip() or None
-    if occurrence.ignored:
-        return True, reason or _FALLBACK_REASON
+def _on_heading(occurrence: ChunkOccurrence, lines: List[str]) -> bool:
+    """Enforce the skill's heading rule, which the agent sometimes misses."""
     line = lines[occurrence.line_start - 1] if occurrence.line_start <= len(lines) else ""
-    if is_heading_line(line):
-        return True, _HEADING_REASON
-    return False, None
+    return is_heading_line(line)
 
 
 def _section_definitions(entries: List[AbbreviationSectionEntry]) -> Dict[str, str]:

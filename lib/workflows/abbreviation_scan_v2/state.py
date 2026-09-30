@@ -47,19 +47,15 @@ class AbbreviationItem(BaseModel):
             "None if the abbreviation is not listed there, or if no Abbreviations section exists."
         ),
     )
+    # Exempt occurrences are no longer catalogued, so these are always False/None on
+    # new runs. They stay so states stored before that change still load and score.
     ignored: bool = Field(
         default=False,
-        description=(
-            "True if this occurrence should be excluded from compliance checks."
-        ),
+        description="Legacy: True if this occurrence was excluded from compliance checks.",
     )
     ignored_reason: Optional[str] = Field(
         default=None,
-        description=(
-            "Human-readable explanation of why this occurrence is ignored. "
-            "Required when ignored=True, None otherwise. "
-            'Example: "Defined in heading title — not a valid inline definition."'
-        ),
+        description="Legacy: why the occurrence was excluded, when ignored is True.",
     )
 
 

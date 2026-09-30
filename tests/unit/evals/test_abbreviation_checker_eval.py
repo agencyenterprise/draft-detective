@@ -75,7 +75,8 @@ def test_dataset_is_well_formed():
     )
     assert all(inventory.notes for inventory in inventories), "every record says why it exists"
     assert all(inventory.target_answer is None for inventory in inventories), "the model-graded target was dropped"
-    assert sum(1 for _, catalogue in records if not catalogue.abbreviations) == 1, "one document has no abbreviations"
+    # The clean document and every record whose abbreviations are all exempt record nothing.
+    assert sum(1 for _, catalogue in records if not catalogue.abbreviations) == 19
     assert max(len(inventory.document) for inventory in inventories) > 8_000, "one document spans several chunks"
 
 
@@ -93,7 +94,7 @@ def test_every_catalogue_occurrence_is_on_its_lines(dataset):
         # The expected issues agree with the catalogue on where each rule fires.
         found = catalogue.abbreviations_section_found
         assert any(e.title == NO_SECTION for e in inventory.expected_issues) == (
-            not found and any(not o.ignored for o in catalogue.abbreviations)
+            not found and bool(catalogue.abbreviations)
         )
         if not found:
             assert all(o.abbreviations_section_definition is None for o in catalogue.abbreviations)
@@ -102,9 +103,9 @@ def test_every_catalogue_occurrence_is_on_its_lines(dataset):
 @BOTH_DATASETS
 def test_every_anchored_issue_sits_on_an_occurrence_line(dataset):
     for inventory, catalogue in load_records(dataset):
-        in_scope_lines = {o.line_start for o in catalogue.abbreviations if not o.ignored}
+        recorded_lines = {o.line_start for o in catalogue.abbreviations}
         for e in inventory.expected_issues:
-            assert e.anchor is None or e.line in in_scope_lines, f"{e.id} is not on a non-excluded occurrence"
+            assert e.anchor is None or e.line in recorded_lines, f"{e.id} is not on a recorded occurrence"
 
 
 def test_catalogue_occurrences_must_be_numbered_in_line_order():
@@ -137,7 +138,7 @@ EXPECTED = ExpectedCatalogue(
     abbreviations=[
         ExpectedOccurrence(abbr="AI", occurrence_number=1, line_start=5, inline_definition="Artificial Intelligence", abbreviations_section_definition="Artificial Intelligence"),
         ExpectedOccurrence(abbr="AI", occurrence_number=2, line_start=7, abbreviations_section_definition="Artificial Intelligence"),
-        ExpectedOccurrence(abbr="U.S.", occurrence_number=1, line_start=7, ignored=True),
+        ExpectedOccurrence(abbr="NATO", occurrence_number=1, line_start=7),
     ],
 )
 
@@ -168,18 +169,18 @@ def test_a_missing_occurrence_costs_recall_only():
 def test_a_missed_use_does_not_cost_the_later_uses_whose_numbers_it_shifts():
     expected = ExpectedCatalogue(
         abbreviations_section_found=False,
-        abbreviations=[ExpectedOccurrence(abbr="AI", occurrence_number=n, line_start=line, ignored=line == 9) for n, line in ((1, 5), (2, 7), (3, 9), (4, 11))],
+        abbreviations=[ExpectedOccurrence(abbr="AI", occurrence_number=n, line_start=line) for n, line in ((1, 5), (2, 7), (3, 9), (4, 11))],
     )
     # The workflow numbers the recorded uses, so without the use on line 7 the later ones come back as #2 and #3.
     reported = ReportedCatalogue(
         abbreviations=[
-            ReportedOccurrence(abbr="AI", occurrence_number=n, line_start=line, line_end=line, ignored=line == 9)
+            ReportedOccurrence(abbr="AI", occurrence_number=n, line_start=line, line_end=line)
             for n, line in ((1, 5), (2, 9), (3, 11))
         ]
     )
     values, note = catalogue_scores(reported, expected)
     assert values["occurrence_recall"] == 0.75 and values["occurrence_precision"] == 1.0
-    assert values["lines_correct"] == values["ignored_correct"] == 1.0
+    assert values["lines_correct"] == 1.0
     assert "missing 1: AI#2 (line 7)" in note
 
 
@@ -201,8 +202,8 @@ def test_a_wrong_line_costs_lines_correct_only():
 def test_definitions_are_compared_without_case_or_spacing():
     values, _ = catalogue_scores(_reported({"AI#1": {"inline_definition": " artificial  intelligence "}}), EXPECTED)
     assert values["inline_definition_correct"] == 1.0
-    values, _ = catalogue_scores(_reported({"AI#1": {"inline_definition": ""}, "U.S.#1": {"ignored": False}}), EXPECTED)
-    assert values["inline_definition_correct"] == pytest.approx(2 / 3) and values["ignored_correct"] == pytest.approx(2 / 3)
+    values, _ = catalogue_scores(_reported({"AI#1": {"inline_definition": ""}}), EXPECTED)
+    assert values["inline_definition_correct"] == pytest.approx(2 / 3)
     values, _ = catalogue_scores(_reported({"AI#2": {"abbreviations_section_definition": None}}), EXPECTED)
     assert values["section_definition_correct"] == pytest.approx(2 / 3)
 
@@ -215,6 +216,8 @@ def test_a_clean_document_scores_only_the_clean_catalogue():
     invented = ReportedCatalogue(abbreviations=[ReportedOccurrence(abbr="IT", occurrence_number=1, line_start=3, line_end=3)])
     values, note = catalogue_scores(invented, clean)
     assert values["clean_catalogue"] == 0.0 and "IT#1" in note
+    # An exempt-only document expects an empty catalogue too; recording its exempt "Dr." costs precision.
+    assert values["occurrence_precision"] == 0.0 and math.isnan(values["occurrence_recall"])
 
 
 def _state(completion: str) -> TaskState:
