@@ -1,13 +1,12 @@
-"""The Reference Downloader eval: its dataset and its checks of the kept file."""
+"""The Reference Downloader eval: its dataset, the solver's text checks and the scores of the kept file."""
 
 import json
 import math
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from inspect_ai.model import ModelName, ModelOutput
-from inspect_ai.scorer import Target
+from inspect_ai.model import ModelName
 from inspect_ai.solver import TaskState
 
 from evals_inspectai.e2e.reference_downloader import reference_downloader_e2e as task_module
@@ -15,22 +14,43 @@ from evals_inspectai.e2e.reference_downloader.records import (
     DownloadRecord,
     FetchItem,
     ProjectFile,
-    loose_text,
-    completeness_prompt,
     download_scores,
     load_records,
+    loose_text,
+    text_checks,
 )
-from evals_inspectai.e2e.reference_downloader.reference_downloader_e2e import download_judged, reference_downloader_e2e
+from evals_inspectai.e2e.reference_downloader.reference_downloader_e2e import (
+    project_file_summary,
+    reference_downloader_e2e,
+    reference_downloader_solver,
+)
 
 DATASET = Path("evals_inspectai/e2e/reference_downloader/dataset.yaml")
-RECORD = DownloadRecord(id="aramis", reference="de Dianous ... ARAMIS ...", conclusion=["source_found", "source_found_but_not_accessible"], file_terms=["ARAMIS", "bow-tie"])
-MAIN = ProjectFile(id="m", role="main", file_name="eval-document.md", markdown="## References")
+RECORD = DownloadRecord(
+    id="aramis",
+    reference="de Dianous ... ARAMIS Project: A More Explicit Demonstration of Risk Control ...",
+    conclusion=["source_found", "source_found_but_not_accessible"],
+    file_terms=["More Explicit Demonstration of Risk Control"],
+    end_terms=["References"],
+)
+MAIN = ProjectFile(id="m", role="main", file_name="eval-document.md")
+ARTICLE = "ARAMIS Project: A More Explicit Demonstration of Risk Control ... 5. Conclusion ... References 1. ..."
+PREVIEW = "ARAMIS Project: A More Explicit Demonstration of Risk Control ... pages 220-224 ... Download to read the full document."
+
+
+def _kept(title_found: bool = True, end_found: bool = True) -> ProjectFile:
+    return ProjectFile(id="f1", role="support", file_name="aramis.pdf", chars=60_000, title_found=title_found, end_found=end_found)
+
+
+def _found(**kw: str) -> FetchItem:
+    return FetchItem(**{"final_conclusion": "source_found", "file_id": "f1", "source_url": "https://x.org/aramis.pdf", **kw})
 
 
 def test_dataset_is_well_formed():
     records = load_records(DATASET)
     assert len(records) == 35
     assert all(r.file_terms for r in records if "source_found" in r.conclusion)
+    assert sum(1 for r in records if r.end_terms) == 28
 
 
 def test_file_terms_come_from_the_citation_and_identify_it():
@@ -45,32 +65,50 @@ def test_file_terms_come_from_the_citation_and_identify_it():
 
 def test_task_has_the_download_checks():
     t = reference_downloader_e2e()
-    assert len(t.dataset) == 35 and len(t.metadata["metrics"]["download_checks"]) == 6
-    assert len(t.scorer) == 2 and set(t.metadata["metrics"]["download_judged"]) == {"file_is_complete"}
+    assert len(t.dataset) == 35 and len(t.metadata["metrics"]["download_checks"]) == 7
+
+
+def test_the_text_checks_tell_a_complete_copy_from_a_preview():
+    assert text_checks(RECORD, ARTICLE) == (True, True)
+    assert text_checks(RECORD, PREVIEW) == (True, False)
+    assert text_checks(RECORD, "A different paper on risk.") == (False, False)
+    assert text_checks(RECORD.model_copy(update={"end_terms": []}), ARTICLE) == (True, None)
+
+
+def test_a_listed_file_is_reduced_to_its_verdicts():
+    summary = project_file_summary(RECORD, {"id": "f1", "role": "support", "file_name": "aramis.md", "markdown": PREVIEW})
+    assert summary == {"id": "f1", "role": "support", "file_name": "aramis.md", "chars": len(PREVIEW), "title_found": True, "end_found": False}
 
 
 def test_a_found_source_is_checked_against_the_kept_file():
-    item = FetchItem(final_conclusion="source_found", file_id="f1", source_url="https://x.org/aramis.pdf")
-    kept = ProjectFile(id="f1", role="support", file_name="aramis.pdf", markdown="# ARAMIS project\n\nBow tie diagrams ...")
-    values, _ = download_scores(item, [MAIN, kept], RECORD)
-    assert values["conclusion_accepted"] == values["file_kept_when_found"] == values["file_matches_reference"] == 1.0
+    values, note = download_scores(_found(), [MAIN, _kept()], RECORD)
+    assert values["conclusion_accepted"] == values["file_kept_when_found"] == values["file_matches_reference"] == values["file_complete"] == 1.0
     assert math.isnan(values["no_file_when_not_found"]) and math.isnan(values["reason_when_inaccessible"])
+    assert note == "outcome and file as expected"
 
 
-def test_a_found_source_without_a_url_is_named_in_the_explanation():
-    item = FetchItem(final_conclusion="source_found", file_id="f1", source_url="")
-    kept = ProjectFile(id="f1", role="support", file_name="aramis.pdf", markdown="More Explicit Demonstration of Risk Control")
-    values, note = download_scores(item, [MAIN, kept], RECORD)
-    assert values["url_when_found"] == 0.0 and "no source URL" in note
+def test_a_preview_kept_as_the_source_fails_completeness():
+    values, note = download_scores(_found(), [MAIN, _kept(end_found=False)], RECORD)
+    assert values["file_matches_reference"] == 1.0 and values["file_complete"] == 0.0
+    assert "lacks the end phrases" in note and "60000 characters" in note
 
 
 def test_a_found_source_whose_file_is_another_work_fails():
-    item = FetchItem(final_conclusion="source_found", file_id="f1", source_url="https://x.org")
-    other = ProjectFile(id="f1", role="support", file_name="other.pdf", markdown="A different paper on risk.")
-    values, note = download_scores(item, [MAIN, other], RECORD)
-    assert values["file_matches_reference"] == 0.0 and "lacks" in note
-    values, note = download_scores(item, [MAIN], RECORD)
-    assert values["file_kept_when_found"] == 0.0 and math.isnan(values["file_matches_reference"])
+    values, note = download_scores(_found(), [MAIN, _kept(title_found=False)], RECORD)
+    assert values["file_matches_reference"] == 0.0 and "lacks the title phrases" in note
+    values, note = download_scores(_found(), [MAIN], RECORD)
+    assert values["file_kept_when_found"] == 0.0 and math.isnan(values["file_matches_reference"]) and math.isnan(values["file_complete"])
+
+
+def test_completeness_is_unscored_for_a_record_without_end_phrases():
+    kept = ProjectFile(id="f1", role="support", chars=900, title_found=True, end_found=None)
+    values, _ = download_scores(_found(), [MAIN, kept], RECORD.model_copy(update={"end_terms": []}))
+    assert math.isnan(values["file_complete"])
+
+
+def test_a_found_source_without_a_url_is_named_in_the_explanation():
+    values, note = download_scores(_found(source_url=""), [MAIN, _kept()], RECORD)
+    assert values["url_when_found"] == 0.0 and "no source URL" in note
 
 
 def test_an_inaccessible_source_needs_a_reason_and_keeps_no_file():
@@ -84,70 +122,18 @@ def test_an_inaccessible_source_needs_a_reason_and_keeps_no_file():
     assert values["no_file_when_not_found"] == 0.0 and "named" in note
 
 
-
-PREVIEW = ProjectFile(
-    id="f1",
-    role="support",
-    file_name="aramis.md",
-    markdown="# ARAMIS project\n\nPages 220-224 of the bow-tie article ...",
-    markdown_tail="... Download to read the full document. Subscribe to Scribd for unlimited access.",
-    markdown_chars=41_200,
-)
-
-
-def test_the_completeness_grader_sees_the_files_end_and_length():
-    prompt = completeness_prompt(RECORD, PREVIEW)
-    assert "Subscribe to Scribd" in prompt and "41200 characters" in prompt and "Pages 220-224" in prompt
-
-
-def test_a_short_file_is_shown_whole_without_its_images():
-    page = ProjectFile(id="p", role="support", file_name="post.md", markdown="Headline ![logo](https://x.org/a.png) body text.", markdown_chars=48)
-    prompt = completeness_prompt(RECORD, page)
-    assert "[Text of the file]: Headline [image] body text." in prompt and "a.png" not in prompt
-
-
-def test_a_phrase_near_the_end_of_the_file_counts_for_the_file_terms():
-    record = RECORD.model_copy(update={"file_terms": ["Subscribe to Scribd"]})
-    item = FetchItem(final_conclusion="source_found", file_id="f1", source_url="https://x.org")
-    values, _ = download_scores(item, [MAIN, PREVIEW], record)
-    assert values["file_matches_reference"] == 1.0
-
-
-class _Completion:
-    def __init__(self, completion: str) -> None:
-        self.completion = completion
-
-
-class _Grader:
-    def __init__(self, grade: str) -> None:
-        self.grade = grade
-        self.prompts: list[str] = []
-
-    async def generate(self, prompt: str) -> _Completion:
-        self.prompts.append(prompt)
-        return _Completion(f"It is a preview.\n\nGRADE: {self.grade}")
-
-
-def _state(conclusion: str, files: list[ProjectFile]) -> TaskState:
+@pytest.mark.asyncio
+async def test_the_solver_keeps_verdicts_and_no_downloaded_text():
     state = TaskState(ModelName("none/none"), sample_id="aramis", epoch=1, input=RECORD.reference, messages=[], metadata={"record": RECORD.model_dump()})
-    fetch = {"final_conclusion": conclusion, "file_id": "f1" if conclusion == "source_found" else None, "source_url": "https://x.org"}
-    completion = {"fetched_references": [{"result": fetch}], "project_files": [f.model_dump() for f in files]}
-    state.output = ModelOutput.from_content(model="none", content=json.dumps(completion))
-    return state
-
-
-@pytest.mark.asyncio
-async def test_a_preview_kept_as_the_source_fails_completeness():
-    grader = _Grader("I")
-    with patch.object(task_module, "get_model", return_value=grader):
-        score = await download_judged()(_state("source_found", [MAIN, PREVIEW]), Target(""))
-    assert score.value == {"file_is_complete": 0.0} and score.explanation == "It is a preview."
-    assert len(grader.prompts) == 1
-
-
-@pytest.mark.asyncio
-async def test_completeness_is_unscored_without_a_kept_file():
-    grader = _Grader("C")
-    with patch.object(task_module, "get_model", return_value=grader):
-        score = await download_judged()(_state("source_found_but_not_accessible", [MAIN]), Target(""))
-    assert isinstance(score.value, dict) and math.isnan(score.value["file_is_complete"]) and not grader.prompts
+    listing = [{"id": "m", "role": "main", "file_name": "eval-document.md", "markdown": "## References"}, {"id": "f1", "role": "support", "file_name": "aramis.md", "markdown": PREVIEW}]
+    run = {"state": {"fetched_references": [{"result": {"final_conclusion": "source_found", "file_id": "f1"}}]}, "run": {"id": "r"}}
+    with (
+        patch.object(task_module, "create_project_and_start_workflows", AsyncMock(return_value="p1")),
+        patch.object(task_module, "start_workflow", AsyncMock(return_value="r")),
+        patch.object(task_module, "poll_workflow_run_until_complete", AsyncMock(return_value=run)),
+        patch.object(task_module, "get_project_files", AsyncMock(return_value=listing)),
+    ):
+        state = await reference_downloader_solver()(state, AsyncMock())
+    output = json.loads(state.output.completion)
+    assert "pages 220-224" not in state.output.completion
+    assert output["project_files"][1] == {"id": "f1", "role": "support", "file_name": "aramis.md", "chars": len(PREVIEW), "title_found": True, "end_found": False}
