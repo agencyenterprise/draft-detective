@@ -32,19 +32,8 @@ from inspect_ai import Task, task
 from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    EDIT_DESCRIPTIONS,
-    PER_KEY_METRICS,
-    decoy_checks,
-    decoy_descriptions,
-    deterministic_scorer,
-    extra_edit_scores,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import decoy_reasons, inventory_dataset, load_inventory_records
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.issue_checks import PER_KEY_METRICS, deterministic_scorer, extra_edit_scores
 from evals_inspectai.e2e.writing_consistency.criteria import (
     EXTRA_EDIT_CHECKS,
     EXTRA_EDIT_DESCRIPTIONS,
@@ -55,6 +44,12 @@ from evals_inspectai.e2e.writing_consistency.criteria import (
 
 WORKFLOW_TYPE = "writing_consistency"
 DATASET = Path(__file__).parent / "dataset.yaml"
+GROUND_TRUTH = (
+    "Inventory: one expected issue per inconsistency, anchored at the first minority occurrence, with "
+    "edit expectations, plus decoy sentences whose variation is legitimate. A NaN metric value means the "
+    "sample gave that check nothing to judge."
+)
+OWN_METRICS = {"consistency_edit_checks": EXTRA_EDIT_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -71,34 +66,12 @@ def writing_consistency_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Tas
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded edit; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
-    reasons = list(decoy_reasons(records))
-    own = [
-        *(("consistency_edit_checks", f"edit_{name}") for name in EXTRA_EDIT_CHECKS),
-        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
-    ]
+    suite = InventorySuite.load(DATASET)
     return Task(
-        dataset=inventory_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per inconsistency, anchored at the first minority occurrence, with "
-                "edit expectations, plus decoy sentences whose variation is legitimate. A NaN metric value means the "
-                "sample gave that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {**DETECTION_DESCRIPTIONS, **EDIT_DESCRIPTIONS},
-                "decoy_checks": decoy_descriptions(reasons),
-                "consistency_edit_checks": EXTRA_EDIT_DESCRIPTIONS,
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-            },
-        },
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s),
-        scorer=[
-            issue_checks(),
-            decoy_checks(reasons),
-            consistency_edit_checks(),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls),
-        ],
+        scorer=[*suite.scorers(), consistency_edit_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(reasons, edits=True, extra=own, labels=SCORE_LABELS),
+        viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

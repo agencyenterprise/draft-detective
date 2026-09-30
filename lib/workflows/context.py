@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from lib.config.llm_models import LLMModel
 from lib.services.file_artifacts_service.file_artifacts_service_type import FileArtifactsServiceType
 from lib.services.vector_store import VectorStoreService
 
@@ -37,6 +38,14 @@ class ContextSchema(BaseModel):
         default=1,
         description="The project revision this workflow execution belongs to.",
     )
+    model_override: Optional[LLMModel] = Field(
+        default=None,
+        description="The model every agent in this execution uses instead of its own.",
+    )
+
+    def agent_model(self, default: LLMModel) -> LLMModel:
+        """The model an agent whose own model is `default` runs on here."""
+        return self.model_override or default
 
 
 # Context variable for progress tracking (thread-safe for async)

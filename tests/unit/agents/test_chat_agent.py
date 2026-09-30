@@ -53,7 +53,7 @@ class TestBuildChatAgent:
         llm, saver = object(), object()
         with (
             patch.object(chat_agent, "build_llm", return_value=llm) as build_llm,
-            patch.object(chat_agent, "create_deep_agent", return_value="graph") as create,
+            patch.object(chat_agent, "build_deep_agent", return_value="graph") as create,
         ):
             assert build_chat_agent(resolve_chat_model("gpt-5.6-sol"), "sk-user", saver) == "graph"  # type: ignore[arg-type]
 

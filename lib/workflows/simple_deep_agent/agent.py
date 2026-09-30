@@ -7,12 +7,12 @@ override the system prompt when the default is not appropriate.
 
 from typing import Any, Callable, Literal, Optional, Sequence, Union
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent, ReasoningDict
@@ -82,7 +82,6 @@ class SimpleDeepAgent(LangChainAgent):
     name = "Simple Deep Agent"
     description = "Runs a deep-agent validation pass and records issues through tools"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     def __init__(
@@ -143,23 +142,21 @@ class SimpleDeepAgent(LangChainAgent):
         if issue_reporter is not None:
             tools.extend(issue_reporter.tools)
 
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
             tools=tools,
             context_schema=ContextSchema,
             skills=["/skills/"],
         )
 
-        # deepagents types the compiled graph's context as None instead of
-        # threading `context_schema` through; the runtime accepts it fine.
-        result = await deep_agent.ainvoke(  # type: ignore[call-overload]
-            {
-                "files": files,
-                "messages": [
+        result = await deep_agent.ainvoke(
+            agent_input(
+                files=files,
+                messages=[
                     SystemMessage(content=self._system_prompt),
                     HumanMessage(content=self._user_prompt),
                 ],
-            },
+            ),
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
             context=self.context,
         )

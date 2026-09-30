@@ -1,0 +1,386 @@
+# Eval samples for the live_reports_v2 workflow, in inventory form. Each record dates the project
+# (`publication_date`) and each expected issue is anchored on a claim that later evidence overturned
+# or materially updated: a standard superseded, a guideline reversed, a record broken. Topics are
+# chosen so the later evidence is plentiful and settled, and the search almost always finds it. Its
+# `rationale` names what changed and where, for the judged criterion; no source is asserted. Titles are
+# free-form and several issues may cover one claim. Claims that still hold are optional: the skill may
+# cite newer evidence that supports them. Decoys are sentences newer research cannot update: historical
+# facts, local facts, procedure. Every paragraph is one line, so a line identifies one claim.
+# See evals_inspectai/common/issue_inventory.py.
+
+- input: |
+    # State of the Art in Machine Translation (2017)
+
+    ## Overview
+
+    This brief summarizes the leading approaches to automated machine translation as of early 2017.
+
+    ## Claims
+
+    Phrase-based statistical machine translation (SMT) is the most accurate approach to automated translation.
+
+    Phrase-based SMT is also the most widely deployed approach in commercial translation services.
+
+    Neural approaches show early promise but remain experimental and are not yet competitive with SMT on standard benchmarks for most language pairs.
+
+    IBM's Candide project introduced statistical methods to machine translation in the early 1990s.
+
+    ## References
+
+    1. Koehn, P. (2010). Statistical Machine Translation. Cambridge University Press.
+  publication_date: "2017-01-01"
+  expected_issues:
+  - id: most_accurate
+    anchor: Phrase-based statistical machine translation (SMT) is the most accurate approach
+    rationale: >-
+      Overturned: the Transformer (Vaswani et al. 2017) and neural systems at the WMT shared tasks from 2017
+      on outperformed phrase-based SMT; comparative studies (Bentivogli et al. 2018) and reviews (Stahlberg
+      2020) document neural MT as the more accurate approach.
+  - id: most_deployed
+    anchor: Phrase-based SMT is also the most widely deployed approach
+    rationale: >-
+      Overturned: the major commercial services moved to neural MT (Google's GNMT from late 2016, followed by
+      Microsoft, DeepL, Amazon), and later reviews (Stahlberg 2020) describe neural MT as having superseded
+      statistical MT in deployment.
+  - id: neural_experimental
+    anchor: remain experimental and are not yet competitive with SMT
+    rationale: >-
+      Overturned by the same evidence: neural systems won most WMT 2017 and later tasks, and the Transformer
+      became the standard architecture.
+  decoys:
+  - anchor: IBM's Candide project introduced statistical methods
+    reason: historical_fact
+  - anchor: This brief summarizes the leading approaches
+    reason: procedural
+  notes: The original sample, with its claims on separate lines and a historical fact added.
+
+- input: |
+    # The HTTP Protocol: Current Version (2015)
+
+    ## Overview
+
+    This brief describes the current state of the Hypertext Transfer Protocol (HTTP) as of the start of 2015.
+
+    ## Claims
+
+    HTTP/1.1 is the current and latest standardized version of the HTTP protocol.
+
+    There is no newer standardized version of HTTP in use.
+
+    Every version of HTTP runs over TCP connections.
+
+    HTTP/1.1 was first published as RFC 2068 in 1997 and revised as RFC 2616 in 1999.
+
+    ## References
+
+    1. Fielding, R., et al. (1999). RFC 2616: Hypertext Transfer Protocol -- HTTP/1.1. IETF.
+  publication_date: "2015-01-01"
+  expected_issues:
+  - id: latest
+    anchor: HTTP/1.1 is the current and latest standardized version
+    rationale: >-
+      Overturned in May 2015 when HTTP/2 was standardized as RFC 7540 (Belshe, Peon & Thomson), later revised
+      as RFC 9113 (2022), and HTTP/3 followed as RFC 9114 (2022).
+  - id: no_newer
+    anchor: There is no newer standardized version of HTTP in use.
+    rationale: >-
+      Overturned by HTTP/2 (RFC 7540, 2015) and HTTP/3 (RFC 9114, 2022), both widely deployed.
+  - id: tcp
+    anchor: Every version of HTTP runs over TCP connections.
+    rationale: >-
+      Overturned by HTTP/3, which runs over QUIC on UDP (RFC 9000, 2021; RFC 9114, 2022).
+  - id: rfc_history
+    anchor: HTTP/1.1 was first published as RFC 2068 in 1997
+    required: false
+  notes: >-
+    The original sample, with its claims split and the transport claim added. The RFC history is optional:
+    true as history, but RFC 2616 was since obsoleted (RFC 7230 in 2014, RFC 9112 in 2022), which a run may
+    fairly point out.
+
+- input: |
+    # Internal Note: Renaming the Export Button
+
+    ## Context
+
+    This internal note documents a minor UI copy change in our web application. The button currently labelled "Download" on the reports page will be renamed to "Export". This is a cosmetic wording change with no functional impact, and the note makes no empirical, scientific, or statistical claims.
+
+    ## Decision
+
+    We will rename the button in the next release. No user research or external literature informed or is relevant to this decision.
+
+    ## References
+
+    None.
+  publication_date: "2026-01-01"
+  decoys:
+  - anchor: This is a cosmetic wording change with no functional impact
+    reason: implementation_scope
+  notes: No claim newer research could update, so a correct run reports nothing.
+
+- input: |
+    # The Solar System: A Classroom Fact Sheet (2005)
+
+    ## Planets
+
+    The Solar System has nine planets, the smallest and most distant of which is Pluto.
+
+    Pluto was discovered by Clyde Tombaugh at Lowell Observatory in 1930.
+
+    No spacecraft has ever visited Pluto.
+
+    ## Activity
+
+    Students will build a scale model of the planets' orbits using string and beads.
+  publication_date: "2005-06-01"
+  expected_issues:
+  - id: nine_planets
+    anchor: The Solar System has nine planets
+    rationale: >-
+      Overturned in August 2006, when the International Astronomical Union's Resolution B5 defined a planet
+      so that Pluto became a dwarf planet, leaving eight planets.
+  - id: no_spacecraft
+    anchor: No spacecraft has ever visited Pluto.
+    rationale: >-
+      Overturned in July 2015 by NASA's New Horizons flyby (launched January 2006); first results in Stern et
+      al. (2015, Science).
+  decoys:
+  - anchor: Pluto was discovered by Clyde Tombaugh at Lowell Observatory in 1930.
+    reason: historical_fact
+  - anchor: Students will build a scale model
+    reason: procedural
+
+- input: |
+    # Hormone Therapy After Menopause: Patient Information (2001)
+
+    ## Benefits
+
+    Hormone replacement therapy reduces the risk of coronary heart disease in healthy postmenopausal women, as large observational studies have shown (Grodstein et al., 2000).
+
+    Hormone therapy relieves hot flushes and night sweats.
+
+    ## Our service
+
+    Our menopause clinic offers appointments on Tuesday and Thursday mornings.
+
+    ## References
+
+    1. Grodstein, F., Manson, J. E., Colditz, G. A., Willett, W. C., Speizer, F. E., & Stampfer, M. J. (2000). A prospective, observational study of postmenopausal hormone therapy and primary prevention of cardiovascular disease. Annals of Internal Medicine, 133(12), 933–941.
+  publication_date: "2001-06-01"
+  expected_issues:
+  - id: chd
+    anchor: reduces the risk of coronary heart disease in healthy postmenopausal women
+    rationale: >-
+      Overturned by the Women's Health Initiative randomized trial (Writing Group for the WHI Investigators,
+      Rossouw et al. 2002, JAMA), which found estrogen plus progestin increased coronary events; later
+      analyses (Manson et al. 2013, JAMA) refined the timing picture but no longer support it for prevention.
+  - id: hot_flushes
+    anchor: Hormone therapy relieves hot flushes and night sweats.
+    required: false
+  decoys:
+  - anchor: Our menopause clinic offers appointments
+    reason: local_fact
+  notes: The document's own source (Grodstein 2000) must not be recommended back to it.
+
+- input: |
+    # Introducing Allergenic Foods: Guidance for Parents (2014)
+
+    ## Advice
+
+    Infants at high risk of peanut allergy should avoid peanut until at least age three.
+
+    Delaying the introduction of allergenic foods such as egg and peanut helps prevent food allergy.
+
+    Peanut allergy affects roughly 1 to 2 percent of children in Western countries.
+
+    ## About this leaflet
+
+    This leaflet is given to parents at the six-month health visit.
+  publication_date: "2014-06-01"
+  expected_issues:
+  - id: avoid_peanut
+    anchor: should avoid peanut until at least age three
+    rationale: >-
+      Reversed by the LEAP randomized trial (Du Toit et al. 2015, New England Journal of Medicine), in which
+      early peanut introduction cut peanut allergy in high-risk infants by about 80 percent, and by the 2017
+      NIAID addendum guidelines (Togias et al. 2017) recommending early introduction.
+  - id: delay_prevents
+    anchor: Delaying the introduction of allergenic foods
+    rationale: >-
+      Contradicted by LEAP (2015), the EAT trial (Perkin et al. 2016, NEJM) and the meta-analysis of Ierodiakonou
+      et al. (2016, JAMA), which associate early egg and peanut introduction with lower allergy risk.
+  - id: prevalence
+    anchor: affects roughly 1 to 2 percent of children
+    required: false
+  decoys:
+  - anchor: This leaflet is given to parents at the six-month health visit.
+    reason: procedural
+
+- input: |
+    # Dietary Cholesterol: What the Guidelines Say (2014)
+
+    ## Guidance
+
+    The Dietary Guidelines for Americans advise limiting dietary cholesterol to less than 300 mg per day.
+
+    Eggs should be limited because the cholesterol they contain raises blood cholesterol and heart disease risk.
+
+    ## Background
+
+    The first Dietary Guidelines for Americans were published in 1980.
+  publication_date: "2014-06-01"
+  expected_issues:
+  - id: limit_300
+    anchor: limiting dietary cholesterol to less than 300 mg per day
+    rationale: >-
+      Updated: the 2015 Dietary Guidelines Advisory Committee report found cholesterol not a nutrient of
+      concern for overconsumption, and the 2015–2020 Dietary Guidelines dropped the 300 mg limit, advising
+      intake "as low as possible" within a healthy pattern.
+  - id: eggs
+    anchor: Eggs should be limited because the cholesterol they contain
+    rationale: >-
+      Newer evidence is mixed: large cohort analyses (Drouin-Chartier et al. 2020, BMJ) found no association
+      of moderate egg intake with cardiovascular disease, while Zhong et al. (2019, JAMA) found a modest one;
+      an update should present this as contested rather than settled.
+  decoys:
+  - anchor: The first Dietary Guidelines for Americans were published in 1980.
+    reason: historical_fact
+
+- input: |
+    # Aspirin for Healthy Older Adults (2017)
+
+    ## Recommendations
+
+    Daily low-dose aspirin prevents first heart attacks and strokes in healthy adults over 70, and its benefits outweigh the bleeding risk.
+
+    Low-dose aspirin reduces the risk of a second heart attack in people who have already had one.
+
+    ## History
+
+    Aspirin was first synthesized in its pure form by Bayer chemist Felix Hoffmann in 1897.
+  publication_date: "2017-01-01"
+  expected_issues:
+  - id: primary_prevention
+    anchor: prevents first heart attacks and strokes in healthy adults over 70
+    rationale: >-
+      Overturned by the ASPREE trial (McNeil et al. 2018, New England Journal of Medicine): no reduction in
+      cardiovascular events and more major bleeding in healthy older adults; the 2019 ACC/AHA guideline and
+      the 2022 USPSTF recommendation advise against starting aspirin for primary prevention at 60 or older.
+  - id: secondary_prevention
+    anchor: reduces the risk of a second heart attack
+    required: false
+  decoys:
+  - anchor: first synthesized in its pure form by Bayer chemist Felix Hoffmann in 1897
+    reason: historical_fact
+
+- input: |
+    # Computers and the Game of Go (2014)
+
+    ## Where things stand
+
+    No computer program has defeated a professional Go player in an even game on a full 19×19 board.
+
+    Experts expect it will take at least another decade before a program can beat a top professional.
+
+    Monte Carlo tree search programs now play at a strong amateur level.
+
+    ## Background
+
+    IBM's Deep Blue defeated world chess champion Garry Kasparov in 1997.
+  publication_date: "2014-06-01"
+  expected_issues:
+  - id: no_win
+    anchor: No computer program has defeated a professional Go player
+    rationale: >-
+      Overturned: DeepMind's AlphaGo beat the European champion Fan Hui 5–0 in October 2015 (Silver et al.
+      2016, Nature) and Lee Sedol 4–1 in March 2016.
+  - id: decade
+    anchor: it will take at least another decade
+    rationale: >-
+      Overturned within two years by AlphaGo (Silver et al. 2016) and surpassed by AlphaGo Zero (Silver et al.
+      2017, Nature).
+  - id: mcts
+    anchor: Monte Carlo tree search programs now play at a strong amateur level.
+    required: false
+  decoys:
+  - anchor: IBM's Deep Blue defeated world chess champion Garry Kasparov in 1997.
+    reason: historical_fact
+
+- input: |
+    # Alcohol and Heart Health: A Briefing for Primary Care (2010)
+
+    ## Evidence
+
+    Moderate drinking, about one drink a day, lowers the risk of coronary heart disease compared with abstaining.
+
+    Heavy drinking raises blood pressure and the risk of stroke.
+
+    ## Background
+
+    The J-shaped curve relating alcohol intake to mortality was first described in cohort studies in the 1980s.
+  publication_date: "2010-01-01"
+  expected_issues:
+  - id: moderate_protective
+    anchor: Moderate drinking, about one drink a day, lowers the risk of coronary heart disease
+    rationale: >-
+      Qualified by later evidence rather than simply confirmed: Mendelian randomization studies (Holmes et al.
+      2014, BMJ; Biddinger et al. 2022, JAMA Network Open) find no protective effect, and meta-analyses
+      correcting for abstainer bias (Stockwell et al. 2016; Zhao et al. 2023) find the apparent benefit largely
+      disappears. The claim should be presented as contested, not established.
+  - id: heavy_harm
+    anchor: Heavy drinking raises blood pressure and the risk of stroke.
+    required: false
+  - id: j_curve
+    anchor: first described in cohort studies in the 1980s
+    required: false
+  notes: >-
+    A subtler update: newer evidence does not reverse a guideline outright but undercuts the causal reading
+    of an observational association. A run that cites a supporting cohort study has missed it. The J-curve's
+    history is optional: it implies the benefit the newer evidence questions.
+
+- input: |
+    # The Human Microbiome: Classroom Notes (2014)
+
+    ## Key facts
+
+    Bacterial cells in the human body outnumber human cells by about ten to one.
+
+    Gut bacteria help digest dietary fibre that human enzymes cannot break down.
+
+    ## History
+
+    Antonie van Leeuwenhoek first observed bacteria through his microscopes in the 1670s.
+  publication_date: "2014-06-01"
+  expected_issues:
+  - id: ten_to_one
+    anchor: outnumber human cells by about ten to one
+    rationale: >-
+      Revised by Sender, Fuchs & Milo (2016, Cell and PLOS Biology), who estimated about 38 trillion bacteria
+      and 30 trillion human cells, a ratio near 1.3 to 1; the ten-to-one figure traces to a 1970s
+      back-of-envelope estimate.
+  - id: fibre
+    anchor: Gut bacteria help digest dietary fibre
+    required: false
+  decoys:
+  - anchor: Antonie van Leeuwenhoek first observed bacteria
+    reason: historical_fact
+  notes: A well-known figure revised by a single, widely reported 2016 estimate.
+
+- input: |
+    # Garden Committee: Minutes of the March 2019 Meeting
+
+    ## Attendance
+
+    Seven members attended; the chair opened the meeting at 19:00.
+
+    ## Decisions
+
+    The committee agreed to buy two new water butts and to move the compost bins behind the shed.
+
+    ## Next meeting
+
+    The next meeting will be held on 9 April 2019 in the church hall.
+  publication_date: "2019-03-15"
+  decoys:
+  - anchor: The committee agreed to buy two new water butts
+    reason: local_fact
+  notes: Minutes of a local meeting; nothing newer research could update.

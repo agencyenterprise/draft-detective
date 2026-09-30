@@ -11,6 +11,9 @@ first and the Teams agent imported it from there, which had the dependency the w
 way round: answering a question in a chat has nothing to do with Word comments, and
 one agent should not be the other's utility library.
 
+Every deep agent we run is built with ``build_deep_agent``: ``create_deep_agent``
+with our additions, so they live in one place rather than at every call site.
+
 ``/main.md`` is the document path shared by ``build_agent_files``,
 ``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
 Those prompts designate the document used for structured issue line numbers;
@@ -19,13 +22,18 @@ requiring a particular document path.
 """
 
 import logging
-from collections.abc import Collection
+from collections.abc import Callable, Collection, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, ParamSpec, TypeVar, cast
 
+from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
+from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT, SubAgent
+from langchain.agents.middleware import AgentMiddleware, InputAgentState, TodoListMiddleware
 from langchain.chat_models import BaseChatModel, init_chat_model
+from langchain_core.messages import BaseMessage
 
+from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
@@ -85,6 +93,81 @@ def build_skill_files(
     return files
 
 
+def agent_input(files: dict[str, Any], messages: Sequence[BaseMessage]) -> InputAgentState:
+    """A deep agent's input: its conversation plus the files mounted for it.
+
+    `files` is the filesystem middleware's state. The runtime takes it, but the
+    compiled graph types its input as LangChain's `InputAgentState`, which only
+    declares `messages`, hence the cast.
+    """
+    return cast(InputAgentState, {"files": files, "messages": list(messages)})
+
+
+def agent_middleware() -> list[AgentMiddleware[Any, Any, Any]]:
+    """The middleware every deep agent of ours runs, and every subagent it delegates to.
+
+    `TodoListMiddleware` gives the agent its `write_todos` planning tool. deepagents
+    included it by default until 0.7, so it is added back here.
+    """
+    return [TodoListMiddleware(), ReadFileLineNumbersMiddleware()]
+
+
+def general_purpose_subagent(skills: list[str] | None = None) -> SubAgent:
+    """deepagents' general-purpose subagent, running our middleware as well.
+
+    Replaces the default one: deepagents builds that with its own default
+    middleware only, so a parent's middleware never reaches delegated work.
+    Takes the parent's `skills`, which the default subagent also gets.
+    """
+    spec: SubAgent = {**GENERAL_PURPOSE_SUBAGENT, "middleware": agent_middleware()}
+    if skills is not None:
+        spec["skills"] = skills
+    return spec
+
+
+def _running_our_middleware(spec: Mapping[str, Any]) -> Mapping[str, Any]:
+    """A caller's subagent spec with our middleware ahead of its own.
+
+    deepagents builds a declared subagent with its own default stack plus the
+    spec's middleware, so without this it would miss ours. A precompiled subagent
+    (one with a `runnable`) is used as given, since its middleware was fixed when
+    it was built. A kind of middleware the spec already runs is not added twice.
+    """
+    if "runnable" in spec:
+        return spec
+    own = list(spec.get("middleware") or ())
+    kinds = {type(m) for m in own}
+    ours = [m for m in agent_middleware() if type(m) not in kinds]
+    return {**spec, "middleware": [*ours, *own]}
+
+
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+def _with_our_additions(create: Callable[_P, _R]) -> Callable[_P, _R]:
+    def build(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        # The ParamSpec types every keyword argument as `object`; these are the
+        # types `create_deep_agent` declares for the three it reads.
+        middleware = cast(Sequence[AgentMiddleware[Any, Any, Any]], kwargs.get("middleware") or ())
+        declared = cast(Sequence[Mapping[str, Any]], kwargs.get("subagents") or ())
+        subagents = [_running_our_middleware(spec) for spec in declared]
+        skills = cast(Optional[list[str]], kwargs.get("skills"))
+        kwargs["middleware"] = [*agent_middleware(), *middleware]
+        if not any(spec.get("name") == GENERAL_PURPOSE_SUBAGENT["name"] for spec in subagents):
+            subagents.append(general_purpose_subagent(skills=skills))
+        kwargs["subagents"] = subagents
+        return create(*args, **kwargs)
+
+    return build
+
+
+build_deep_agent = _with_our_additions(create_deep_agent)
+"""``create_deep_agent``, same signature, with our middleware added to the caller's
+and to every subagent the caller declares, and the general-purpose subagent replaced
+by ours (unless the caller passes one)."""
+
+
 def build_agent_files(document_text: str) -> dict[str, Any]:
     """Mount the document and the project's skills into the agent's filesystem.
 
@@ -117,7 +200,6 @@ def build_llm(
 
     kwargs: dict[str, Any] = {
         "model": model.model_name,
-        "temperature": 0.0,
         "timeout": REQUEST_TIMEOUT,
         "max_retries": 4,
         "rate_limiter": get_rate_limiter(hash_api_key(resolved or "default")),

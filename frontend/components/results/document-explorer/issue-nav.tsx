@@ -87,7 +87,7 @@ export function IssueNav({ position, total, onStep }: IssueNavProps) {
  */
 const OVERLAYS = '[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"]';
 
-function overlayHasKeyboard(target: EventTarget | null): boolean {
+export function overlayHasKeyboard(target: EventTarget | null): boolean {
   const focused = document.activeElement;
   if (focused instanceof HTMLElement && focused.closest(OVERLAYS)) return true;
   return target instanceof HTMLElement && !!target.closest(OVERLAYS);
@@ -96,7 +96,7 @@ function overlayHasKeyboard(target: EventTarget | null): boolean {
 /** Widgets that steer themselves with the arrow keys and must keep them. */
 const ARROW_OWNERS = '[role="menu"],[role="listbox"],[role="radiogroup"],[role="tablist"],[role="slider"]';
 
-function isTyping(target: EventTarget | null): boolean {
+export function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   return target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
 }

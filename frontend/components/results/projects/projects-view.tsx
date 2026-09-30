@@ -9,6 +9,7 @@ import { FolderOpen, Loader2, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
 import { ReactNode, useCallback, useState } from 'react';
 import { useDebounce } from 'use-debounce';
+import { AnnotateCallout } from '@/components/annotate/annotate-callout';
 import { ProjectRow } from './project-row';
 import { readProjectState } from './project-state';
 
@@ -84,6 +85,7 @@ export function ProjectsView() {
 
   return (
     <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <AnnotateCallout />
       {/* The bar spans the window so its rule does; its contents line up with
           the list on the same centred column. */}
       <div className="flex h-10 shrink-0 items-center border-b px-4">

@@ -22,7 +22,6 @@ Two things are particular to the chat:
 
 from typing import Any, AsyncIterator, Optional, Sequence
 
-from deepagents import create_deep_agent
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -30,7 +29,7 @@ from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
-from lib.agents.deep_agent_setup import RECURSION_LIMIT, build_llm, build_skill_files
+from lib.agents.deep_agent_setup import RECURSION_LIMIT, build_deep_agent, build_llm, build_skill_files
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import (
@@ -214,7 +213,7 @@ def build_chat_agent(
 ) -> CompiledStateGraph:
     """A fresh agent for one turn over a durable thread: skills and web search bound."""
 
-    return create_deep_agent(
+    return build_deep_agent(
         model=build_llm(
             model, api_key, reasoning=CHAT_REASONING, output_version="v1"
         ),

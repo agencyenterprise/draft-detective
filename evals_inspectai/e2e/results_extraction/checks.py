@@ -29,7 +29,6 @@ from evals_inspectai.e2e.results_extraction.contract import (
     IMPORTANCE_RANK,
     MIN_REPORT_CHARS,
     NOT_REPRODUCIBLE,
-    REAL_SEVERITIES,
     SEVERITY_RANK,
     severity_matches_label,
 )

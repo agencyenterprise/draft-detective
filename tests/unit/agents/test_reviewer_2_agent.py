@@ -22,7 +22,7 @@ def _agent() -> Reviewer2Agent:
 @pytest.mark.asyncio
 async def test_reviewer_2_reads_both_documents_from_files():
     agent = _agent()
-    with patch("lib.agents.reviewer_2.create_deep_agent") as create_agent:
+    with patch("lib.agents.reviewer_2.build_deep_agent") as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={
                 "messages": ["the conversation"],
@@ -44,7 +44,7 @@ async def test_reviewer_2_reads_both_documents_from_files():
 @pytest.mark.asyncio
 async def test_reviewer_2_fails_when_either_document_is_missing():
     agent = _agent()
-    with patch("lib.agents.reviewer_2.create_deep_agent") as create_agent:
+    with patch("lib.agents.reviewer_2.build_deep_agent") as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={
                 "messages": [],
@@ -63,7 +63,7 @@ async def test_reviewer_2_can_look_at_the_figures_it_critiques():
     through all have to arrive together; any one missing surfaces only as a
     tool error deep inside a live run."""
     agent = _agent()
-    with patch("lib.agents.reviewer_2.create_deep_agent") as create_agent:
+    with patch("lib.agents.reviewer_2.build_deep_agent") as create_agent:
         create_agent.return_value.ainvoke = AsyncMock(
             return_value={
                 "messages": [],

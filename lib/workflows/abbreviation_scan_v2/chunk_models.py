@@ -34,14 +34,6 @@ class ChunkOccurrence(BaseModel):
     line_end: int = Field(
         description="Line number where the occurrence ends; equal to line_start for a single line."
     )
-    ignored: bool = Field(
-        default=False,
-        description="True when the occurrence is excluded from compliance checks.",
-    )
-    ignored_reason: Optional[str] = Field(
-        default=None,
-        description="Brief reason for the exclusion; required when ignored is true, otherwise null.",
-    )
 
 
 class ChunkExtractionResult(BaseModel):

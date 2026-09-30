@@ -1,113 +1,77 @@
-"""E2E eval for the literature_review_v2 workflow.
+"""E2E eval for the Literature Review workflow, on the issue-inventory structure.
 
-Literature Review searches the web for academic sources the document may have
-missed, returning the simple-deep-agent output (`AgentCheckResult`: a list of
-`issues` plus a `report_markdown`). Because the recommended sources come from
-live web search, the output is non-deterministic — so we score on stable
-structural signals (issue-count band, valid line ranges, report contains
-citations) plus an LLM-graded rubric stored per-sample in the dataset.
+Declared by ``skills/literature-review/SKILL.md``; runs through the API like
+every other e2e eval. The workflow searches the web for sources the document
+should cite or discuss, both supporting and conflicting, and reports one issue
+per recommended source, anchored at the claim it relates to.
+
+Ground truth is ``dataset.yaml``: claims that need sources (well-studied
+claims left uncited, one-sided claims with a known conflicting literature, a
+claim a reference already in the bibliography supports but is never cited
+for), optional claims a run may reasonably add to, and decoys no source is
+needed for (the document's own data, local facts, procedure). Two documents
+make no claim at all. Several records set a publication date, so the run may
+recommend only what the authors could have cited.
+
+Scorers: the reusable ``issue_checks`` and ``decoy_checks`` (titles are
+free-form, so matching is on the anchor quoted or its line bracketed; severity
+is not checked), the shared ``source_checks`` (a findable citation, dated
+before the publication date, listed in the report), and two judged criteria
+(the source bears on the claim; the action says what to do with it). One issue
+is reported per source, so several may cover one claim: with
+``several_per_expected`` each of them counts toward precision and each is
+judged, not only the one paired with the claim.
+
+Run (backend must be running)::
+
+    uv run inspect eval evals_inspectai/e2e/literature_review_v2/literature_review_v2_e2e.py --epochs 3
 """
 
-import re
 from pathlib import Path
 
 from inspect_ai import Task, task
-from inspect_ai.dataset import Sample, json_dataset
-from inspect_ai.scorer import Score
-from inspect_ai.solver import TaskState
 
-from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.loaders import resolve_input
-from evals_inspectai.common.scorers import model_graded_check, structured_output_scorer
-from evals_inspectai.common.simple_deep_agent_types import SimpleDeepAgentOutput
+from evals_inspectai.common.api_solver import api_workflow_solver
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.source_citations import source_checks
+from evals_inspectai.e2e.literature_review_v2.criteria import (
+    JUDGE_CRITERIA,
+    JUDGE_DESCRIPTIONS,
+    OWN_DESCRIPTIONS,
+    SCORE_LABELS,
+)
 
-# Matches a 4-digit year (19xx/20xx) or a DOI/URL token — used to heuristically
-# confirm the report includes full citations for recommended sources.
-_CITATION_HINT = re.compile(r"\b(?:19|20)\d{2}\b|https?://|doi\.org|10\.\d{4,}", re.I)
-
-
-def _record_to_sample(record: dict) -> Sample:
-    return Sample(
-        input=resolve_input(record["input"]),
-        target=record.get("target_answer", ""),
-        metadata={
-            "min_issues": record.get("min_issues", 0),
-            "max_issues": record.get("max_issues"),
-            "target_answer": record.get("target_answer", ""),
-        },
-    )
+WORKFLOW_TYPE = "literature_review_v2"
+DATASET = Path(__file__).parent / "dataset.yaml"
+GROUND_TRUTH = (
+    "Inventory: one expected issue per claim that needs a source, anchored on the claim and carrying "
+    "the labeller's account of the literature it should engage with; documents with no claim expect "
+    "none. Any number of issues may cover a claim. Decoys are sentences no source is needed for. "
+    "Severity is not checked and no edits are expected. A NaN metric value means the sample gave "
+    "that check nothing to judge."
+)
+OWN_METRICS = {"source_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
 
 
 @task
-def literature_review_v2_e2e():
-    dataset = json_dataset(
-        str(Path(__file__).parent / "dataset.json"),
-        _record_to_sample,
-    )
+def literature_review_v2_e2e(timeout_s: float = 1200, judge_calls: int = 1) -> Task:
+    """Run Literature Review on every sample and score it against the inventory.
 
-    return Task(
-        dataset=dataset,
-        fail_on_error=0.2,
-        # The full chain (document processing -> reference extraction -> a
-        # multi-step web-search deep agent whose own per-call LLM timeout is
-        # already 600s) regularly approaches 600s, so allow generous headroom.
-        solver=api_workflow_agent("literature_review_v2", timeout_s=1200),
-        scorer=[
-            structured_output_scorer(SimpleDeepAgentOutput, _score_structure),
-            model_graded_check(
-                target_from_metadata="target_answer", partial_credit=True
-            ),
-        ],
-    )
-
-
-def _score_structure(output: SimpleDeepAgentOutput, state: TaskState) -> Score:
-    """Deterministic structural checks, averaged into a [0, 1] score.
-
-    Exact recommended sources are not asserted (web search is non-deterministic);
-    instead we check the output's shape: a result is present with a non-empty
-    report, the issue count falls within the sample's expected band, every issue
-    carries a sane line range, and — when recommendations are expected — the
-    report includes citation-like detail.
+    Args:
+        timeout_s: How long to wait for one workflow run through the API; the
+            web-search agent's own per-call timeout is already 600s.
+        judge_calls: Grader calls per graded issue; the median grade is kept.
     """
-    min_issues: int = state.metadata.get("min_issues", 0)
-    max_issues = state.metadata.get("max_issues")
-
-    if output.result is None:
-        return Score(value=0.0, explanation="No result in workflow state")
-
-    issues = output.result.issues
-    report = output.result.report_markdown or ""
-
-    checks: list[tuple[str, bool]] = []
-
-    checks.append(("report_markdown non-empty", bool(report.strip())))
-
-    count_ok = len(issues) >= min_issues
-    if max_issues is not None:
-        count_ok = count_ok and len(issues) <= max_issues
-    band = f">={min_issues}" + (f" and <={max_issues}" if max_issues is not None else "")
-    checks.append((f"issue count {len(issues)} in band ({band})", count_ok))
-
-    line_ranges_ok = all(
-        issue.start_line >= 1 and issue.end_line >= issue.start_line
-        for issue in issues
+    suite = InventorySuite.load(DATASET, pairing="several_per_expected")
+    return Task(
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
+        solver=api_workflow_solver(WORKFLOW_TYPE, timeout_s=timeout_s),
+        scorer=[
+            *suite.scorers(),
+            source_checks(after=False, new_sources_only=False),
+            suite.judged(JUDGE_CRITERIA, calls=judge_calls),
+        ],
+        fail_on_error=0.2,
+        viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )
-    checks.append(("all issues have valid line ranges", line_ranges_ok))
-
-    # Only meaningful when recommendations are expected: the report should carry
-    # full citations (years / DOIs / URLs) for the recommended sources.
-    if min_issues > 0:
-        checks.append(
-            ("report includes citation detail", bool(_CITATION_HINT.search(report)))
-        )
-
-    passed = sum(1 for _, ok in checks if ok)
-    value = passed / len(checks)
-    failed = [name for name, ok in checks if not ok]
-    explanation = (
-        "All structural checks passed"
-        if not failed
-        else f"Failed: {'; '.join(failed)} ({passed}/{len(checks)} passed)"
-    )
-    return Score(value=value, explanation=explanation)

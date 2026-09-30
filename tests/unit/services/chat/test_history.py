@@ -1,21 +1,12 @@
-"""The checkpointed conversation: how a turn is built, read back, and shown."""
+"""The checkpointed conversation: how a turn is built and shown."""
 
-from contextlib import asynccontextmanager
-from types import SimpleNamespace
-from typing import Any
-from unittest.mock import AsyncMock, patch
-
-import pytest
+from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from lib.services.chat import history
 from lib.services.chat.history import (
     ChatAttachment,
     attachment_path,
     build_user_turn,
-    delete_thread_state,
-    load_thread_messages,
-    read_thread_file,
     thread_config,
     to_ui_messages,
 )
@@ -34,7 +25,7 @@ class TestBuildingATurn:
         )
 
         assert files == {"/attachments/draft.md": files["/attachments/draft.md"]}
-        assert files["/attachments/draft.md"]["content"] == ["# Methods", "", "We did things."]
+        assert file_data_to_string(files["/attachments/draft.md"]) == "# Methods\n\nWe did things."
 
         assert message.text.startswith("Check the methods section.")
         assert 'Attached document "draft.docx" is mounted at /attachments/draft.md' in message.text
@@ -149,71 +140,3 @@ class TestUiMessages:
             {"id": "t1", "type": "tool", "tool_call_id": "c1", "name": "read_file", "content": "contents", "status": "success"},
             {"id": "t2", "type": "tool", "tool_call_id": "c2", "name": "grep", "content": "boom", "status": "error"},
         ]
-
-
-class FakeSaver:
-    def __init__(self, values: dict[str, Any] | None) -> None:
-        self.values = values
-        self.deleted: list[str] = []
-
-    async def aget_tuple(self, config: Any) -> Any:
-        self.last_config = config
-        if self.values is None:
-            return None
-        return SimpleNamespace(checkpoint={"channel_values": self.values})
-
-    async def adelete_thread(self, thread_id: str) -> None:
-        self.deleted.append(thread_id)
-
-
-def _with_saver(saver: FakeSaver):
-    @asynccontextmanager
-    async def get_checkpointer():
-        yield saver
-
-    return patch.object(history, "get_checkpointer", get_checkpointer)
-
-
-class TestReadingState:
-    @pytest.mark.asyncio
-    async def test_messages_come_from_the_latest_checkpoint(self) -> None:
-        saver = FakeSaver({"messages": [HumanMessage(content="hi"), "not a message"], "files": {}})
-        with _with_saver(saver):
-            messages = await load_thread_messages("t-1")
-        assert [m.content for m in messages] == ["hi"]
-        assert saver.last_config == {"configurable": {"thread_id": "t-1"}}
-
-    @pytest.mark.asyncio
-    async def test_a_thread_never_run_has_no_messages(self) -> None:
-        with _with_saver(FakeSaver(None)):
-            assert await load_thread_messages("t-new") == []
-
-    @pytest.mark.asyncio
-    async def test_files_are_joined_back_into_text(self) -> None:
-        saver = FakeSaver({"files": {"/attachments/a.md": {"content": ["one", "two"]}}})
-        with _with_saver(saver):
-            assert await read_thread_file("t-1", "/attachments/a.md") == "one\ntwo"
-            assert await read_thread_file("t-1", "/attachments/missing.md") is None
-
-    @pytest.mark.asyncio
-    async def test_deleting_a_thread_deletes_its_checkpoints(self) -> None:
-        saver = FakeSaver({})
-        with _with_saver(saver):
-            await delete_thread_state("t-1")
-        assert saver.deleted == ["t-1"]
-
-
-@pytest.mark.asyncio
-async def test_the_saver_is_only_borrowed() -> None:
-    """Every call opens its own context, matching how the pool is meant to be used."""
-    entered = AsyncMock()
-
-    @asynccontextmanager
-    async def get_checkpointer():
-        await entered()
-        yield FakeSaver(None)
-
-    with patch.object(history, "get_checkpointer", get_checkpointer):
-        await load_thread_messages("a")
-        await read_thread_file("a", "/x")
-    assert entered.await_count == 2

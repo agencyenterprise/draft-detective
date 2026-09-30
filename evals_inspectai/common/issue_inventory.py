@@ -39,11 +39,12 @@ quote: it omits the anchor, names a title instead, and is matched on the title
 alone, wherever the reported issue sits.
 """
 
+import re
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Any, Literal, Optional, Sequence
 
 import yaml
-from inspect_ai.dataset import MemoryDataset, Sample
+from inspect_ai.dataset import Sample
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from evals_inspectai.common.loaders import resolve_input
@@ -106,6 +107,14 @@ class ExpectedIssue(BaseModel):
         default=None,
         description="Phrases the proposed edit's replacement must carry or avoid; feeds edit_expected_phrases",
     )
+    rationale: Optional[str] = Field(
+        default=None,
+        description=(
+            "The labeller's account of the expected issue: the flaw an inference commits, what a cited "
+            "source actually says. Not scored deterministically; a judged criterion with `reference=True` "
+            "shows it to the grader as the reference the reported analysis is compared against."
+        ),
+    )
     required: bool = Field(
         default=True,
         description=(
@@ -134,6 +143,13 @@ class Decoy(BaseModel):
 
     anchor: str = Field(description="Verbatim text of a sentence that looks like an issue but is not; must appear in the document")
     reason: str = Field(description="Which rule of the check would misfire here; becomes the metric no_fp_<reason>")
+    rationale: Optional[str] = Field(
+        default=None,
+        description=(
+            "The labeller's account of why the sentence is sound. Not scored deterministically; a workflow "
+            "whose decoys are judged (a methodology choice no line match can tell apart) shows it to the grader."
+        ),
+    )
     title: Optional[str] = Field(
         default=None,
         description=(
@@ -155,6 +171,13 @@ class InventoryRecord(BaseModel):
     )
     decoys: list[Decoy] = Field(default_factory=list, description="Sentences a correct run leaves alone")
     notes: Optional[str] = Field(default=None, description="Why the record exists or how it was labelled; not scored")
+    publication_date: Optional[str] = Field(
+        default=None,
+        description=(
+            "The document's publication date (YYYY-MM-DD), set on the project before the run, for a "
+            "date-sensitive workflow (sources before it, or after it); omit to leave the project undated"
+        ),
+    )
     target_answer: Optional[str] = Field(
         default=None,
         description="Free-text expectation for a model-graded scorer, passed as the sample's target; the checks here ignore it",
@@ -181,6 +204,49 @@ def anchored(expected: ResolvedIssue) -> AnchoredIssue:
     return AnchoredIssue(**expected.model_dump())
 
 
+Pairing = Literal["shared", "one_to_one", "several_per_expected"]
+
+
+class ScoringPolicy(BaseModel):
+    """Dataset-wide scoring choices, carried on every resolved inventory of an eval.
+
+    Derived from the dataset once at load (see ``derive_policy``), apart from how
+    reports pair with expected issues, which is the workflow's to say. Every
+    scoring layer reads it from the inventory it scores, so the generic checks,
+    the judge and a workflow's own criteria pair the same reports and emit the
+    same keys without each being told.
+    """
+
+    pairing: Pairing = Field(
+        default="shared",
+        description=(
+            "How reported issues cover expected ones. shared: one report may cover several expected issues "
+            "(a check that reports one issue per paragraph). one_to_one: a report covers at most one, so a run "
+            "that merges two occurrences it must report apart misses the second. several_per_expected: several "
+            "reports may cover one expected issue (one issue per recommended source), each counting for "
+            "precision and each graded by the judge."
+        ),
+    )
+    # True when a title is a verdict on the anchored text (a citation's support
+    # level) rather than the kind of issue it is: reports are then paired with
+    # expected issues on quote and line alone (see ``issue_checks.hit_rank``), so a
+    # wrong verdict is scored by title_correct instead of pairing the report with a
+    # neighbouring claim that happens to share the verdict.
+    pair_on_location: bool = False
+    # Every title the dataset's expected issues name, across all records: the issue
+    # kinds with fixed titles. The pairing uses it so an untitled expected issue
+    # prefers a free-form report over one of these kinds.
+    named_titles: list[str] = Field(default_factory=list)
+    # Every decoy reason the dataset uses, so each sample's decoy score carries the same keys.
+    decoy_reasons: list[str] = Field(default_factory=list)
+    # Which generic checks the dataset gives something to score; a check it never
+    # can is left out of the keys rather than emitted as NaN on every sample.
+    edits: bool = True
+    titles: bool = True
+    anchors: bool = True
+    severities: bool = True
+
+
 class ResolvedInventory(BaseModel):
     """A record with every anchor located in the document text."""
 
@@ -188,11 +254,13 @@ class ResolvedInventory(BaseModel):
     expected_issues: list[ResolvedIssue]
     decoys: list[Decoy]
     notes: Optional[str] = None
-    # Every title the dataset's expected issues name, across all records: the issue
-    # kinds with fixed titles. Set by ``load_inventory_records``; the pairing uses it
-    # so an untitled expected issue prefers a free-form report over one of these kinds.
-    named_titles: list[str] = Field(default_factory=list)
+    policy: ScoringPolicy = Field(default_factory=ScoringPolicy)
+    publication_date: Optional[str] = None
     target_answer: Optional[str] = None
+
+    def with_policy(self, **changes: Any) -> "ResolvedInventory":
+        """This inventory scored under its policy with ``changes`` applied."""
+        return self.model_copy(update={"policy": self.policy.model_copy(update=changes)})
 
 
 def normalize(text: str) -> str:
@@ -215,6 +283,28 @@ def overlaps(a: str, b: str, words: int = 4) -> bool:
     ta, tb = na.split(), nb.split()
     grams = {tuple(ta[i : i + words]) for i in range(len(ta) - words + 1)}
     return any(tuple(tb[i : i + words]) in grams for i in range(len(tb) - words + 1))
+
+
+# Ellipses a quote may use to skip words; each piece must still be verbatim.
+_ELLIPSIS_RE = re.compile(r"\s*(?:\.\.\.|…|\[\.\.\.\])\s*")
+# Emphasis and quote marks a quotation may be wrapped in.
+_QUOTE_WRAPPING = "*_\"'“”‘’ "
+
+
+def quoted_verbatim(quote: str, text: str) -> bool:
+    """Whether the ellipsis-separated pieces of ``quote`` occur in ``text`` in order, each
+    after the previous one, after normalising case, quotes and whitespace, so a sentence
+    wrapped across lines counts and a reordered quote does not. An empty quote quotes nothing."""
+    haystack = normalize(text)
+    pieces = [normalize(p).strip(_QUOTE_WRAPPING) for p in _ELLIPSIS_RE.split(quote)]
+    pieces = [p for p in pieces if p]
+    position = 0
+    for piece in pieces:
+        found = haystack.find(piece, position)
+        if found < 0:
+            return False
+        position = found + len(piece)
+    return bool(pieces)
 
 
 def locate_anchor(lines: list[str], anchor: str, label: str) -> int:
@@ -262,21 +352,16 @@ def resolve_record(record: InventoryRecord) -> ResolvedInventory:
         expected_issues=issues,
         decoys=record.decoys,
         notes=record.notes,
+        publication_date=record.publication_date,
         target_answer=record.target_answer,
     )
 
 
-def _read_records(path: Path) -> list[dict]:
+def _read_records(path: Path) -> list[dict[str, Any]]:
     records = yaml.safe_load(path.read_text())
     if not isinstance(records, list):
         raise ValueError(f"{path}: expected a YAML list of records")
     return records
-
-
-def load_inventory_records(path: Path) -> list[ResolvedInventory]:
-    records = [resolve_record(InventoryRecord.model_validate(r)) for r in _read_records(path)]
-    named = sorted({e.title for r in records for e in r.expected_issues if e.title})
-    return [r.model_copy(update={"named_titles": named}) for r in records]
 
 
 def decoy_reasons(records: Sequence[ResolvedInventory]) -> tuple[str, ...]:
@@ -311,25 +396,49 @@ def expects_edits(records: Sequence[ResolvedInventory]) -> bool:
     return any(e.edit_expected is not None or e.edit is not None for r in records for e in r.expected_issues)
 
 
+def derive_policy(
+    records: Sequence[ResolvedInventory], pairing: Pairing = "shared", pair_on_location: bool = False
+) -> ScoringPolicy:
+    """The dataset-wide policy: what the records give each generic check to score,
+    their named titles and decoy reasons, plus the pairing the workflow asks for."""
+    return ScoringPolicy(
+        pairing=pairing,
+        pair_on_location=pair_on_location,
+        named_titles=sorted({e.title for r in records for e in r.expected_issues if e.title}),
+        decoy_reasons=list(decoy_reasons(records)),
+        edits=expects_edits(records),
+        titles=expects_titles(records),
+        anchors=expects_anchors(records),
+        severities=expects_severities(records),
+    )
+
+
+def load_inventory(
+    path: Path, extra_fields: Sequence[str] = (), pairing: Pairing = "shared", pair_on_location: bool = False
+) -> tuple[list[ResolvedInventory], list[dict[str, Any]]]:
+    """The records of an inventory file, each carrying the dataset's policy, and
+    beside them each record's ``extra_fields``: fields a workflow's records add to
+    the inventory (an expected catalogue, the sources to upload), taken out before
+    the rest is validated as an ``InventoryRecord``, which forbids unknown fields."""
+    raw = _read_records(path)
+    extras = [{k: record.pop(k) for k in extra_fields if k in record} for record in raw]
+    records = [resolve_record(InventoryRecord.model_validate(r)) for r in raw]
+    policy = derive_policy(records, pairing, pair_on_location)
+    return [r.model_copy(update={"policy": policy}) for r in records], extras
+
+
+def load_inventory_records(
+    path: Path, pairing: Pairing = "shared", pair_on_location: bool = False
+) -> list[ResolvedInventory]:
+    return load_inventory(path, pairing=pairing, pair_on_location=pair_on_location)[0]
+
+
 def inventory_to_sample(inventory: ResolvedInventory) -> Sample:
     """A resolved inventory becomes a Sample whose input is the document, whose
     target is the record's free-text expectation (empty when it has none), and
-    whose metadata carries the inventory for the scorers."""
-    return Sample(
-        input=inventory.document,
-        target=inventory.target_answer or "",
-        metadata={"inventory": inventory.model_dump()},
-    )
-
-
-def inventory_dataset(records: Sequence[ResolvedInventory], path: Path) -> MemoryDataset:
-    """A dataset over already-loaded records, so a task that also needs the
-    records (for decoy reasons, say) reads the file once."""
-    return MemoryDataset(
-        samples=[inventory_to_sample(r) for r in records], name=path.parent.name, location=str(path)
-    )
-
-
-def load_inventory_dataset(path: Path) -> MemoryDataset:
-    """The dataset for an inventory file."""
-    return inventory_dataset(load_inventory_records(path), path)
+    whose metadata carries the inventory for the scorers and, when the record has
+    one, the publication date for the solver (see ``api_solver.api_workflow_solver``)."""
+    metadata: dict = {"inventory": inventory.model_dump()}
+    if inventory.publication_date:
+        metadata["publication_date"] = inventory.publication_date
+    return Sample(input=inventory.document, target=inventory.target_answer or "", metadata=metadata)

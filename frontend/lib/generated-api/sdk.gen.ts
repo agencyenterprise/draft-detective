@@ -74,6 +74,8 @@ import type {
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetData,
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetErrors,
   ExportAdminFeedbacksCsvApiAdminFeedbacksExportGetResponses,
+  ExportAnnotationsApiAdminAnnotationsExportGetData,
+  ExportAnnotationsApiAdminAnnotationsExportGetResponses,
   ExtensionCreationRouteTusPost2Data,
   ExtensionCreationRouteTusPost2Errors,
   ExtensionCreationRouteTusPost2Responses,
@@ -113,6 +115,9 @@ import type {
   GetIssueEndpointApiIssuesIssueIdGetData,
   GetIssueEndpointApiIssuesIssueIdGetErrors,
   GetIssueEndpointApiIssuesIssueIdGetResponses,
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData,
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors,
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses,
   GetProjectEndpointApiProjectProjectIdGetData,
   GetProjectEndpointApiProjectProjectIdGetErrors,
   GetProjectEndpointApiProjectProjectIdGetResponses,
@@ -147,6 +152,13 @@ import type {
   LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostData,
   LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostErrors,
   LinkReferenceFileEndpointApiProjectProjectIdReferencesReferenceIdFilesPostResponses,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetData,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses,
+  ListAnnotationSetsApiAnnotationsSetsGetData,
+  ListAnnotationSetsApiAnnotationsSetsGetResponses,
+  ListAnnotationSetStatsApiAdminAnnotationsSetsGetData,
+  ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses,
   ListAppConfigsApiAppConfigsGetData,
   ListAppConfigsApiAppConfigsGetResponses,
   ListChatModelsApiChatModelsGetData,
@@ -199,6 +211,9 @@ import type {
   StreamChatTurnApiChatThreadsThreadIdStreamPostData,
   StreamChatTurnApiChatThreadsThreadIdStreamPostErrors,
   StreamChatTurnApiChatThreadsThreadIdStreamPostResponses,
+  SubmitAnnotationApiAnnotationsItemsItemIdPutData,
+  SubmitAnnotationApiAnnotationsItemsItemIdPutErrors,
+  SubmitAnnotationApiAnnotationsItemsItemIdPutResponses,
   SubmitFeedbackApiFeedbackPostData,
   SubmitFeedbackApiFeedbackPostErrors,
   SubmitFeedbackApiFeedbackPostResponses,
@@ -344,6 +359,140 @@ export const getDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsers
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/admin/dashboard/default-ignored-users',
+    ...options,
+  });
+
+/**
+ * List Annotation Sets
+ *
+ * The sets a user can annotate, with their progress in each.
+ */
+export const listAnnotationSetsApiAnnotationsSetsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListAnnotationSetsApiAnnotationsSetsGetData, ThrowOnError>,
+): RequestResult<ListAnnotationSetsApiAnnotationsSetsGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<ListAnnotationSetsApiAnnotationsSetsGetResponses, unknown, ThrowOnError, 'data'>({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/annotations/sets',
+    ...options,
+  });
+
+/**
+ * Get Next Annotation Task
+ *
+ * The next item for the user to judge, without its reference answers.
+ */
+export const getNextAnnotationTaskApiAnnotationsSetsSlugNextGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData, ThrowOnError>,
+): RequestResult<
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses,
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses,
+    GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/annotations/sets/{slug}/next',
+    ...options,
+  });
+
+/**
+ * Submit Annotation
+ *
+ * Save (or replace) the user's answers. Never reveals the reference answers.
+ */
+export const submitAnnotationApiAnnotationsItemsItemIdPut = <ThrowOnError extends boolean = true>(
+  options: Options<SubmitAnnotationApiAnnotationsItemsItemIdPutData, ThrowOnError>,
+): RequestResult<
+  SubmitAnnotationApiAnnotationsItemsItemIdPutResponses,
+  SubmitAnnotationApiAnnotationsItemsItemIdPutErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).put<
+    SubmitAnnotationApiAnnotationsItemsItemIdPutResponses,
+    SubmitAnnotationApiAnnotationsItemsItemIdPutErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/annotations/items/{item_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List Annotation Set Stats
+ *
+ * Agreement with the eval datasets for every set.
+ */
+export const listAnnotationSetStatsApiAdminAnnotationsSetsGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ListAnnotationSetStatsApiAdminAnnotationsSetsGetData, ThrowOnError>,
+): RequestResult<ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<
+    ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses,
+    unknown,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/annotations/sets',
+    ...options,
+  });
+
+/**
+ * Export Annotations
+ *
+ * Every annotation result across all sets, for download.
+ */
+export const exportAnnotationsApiAdminAnnotationsExportGet = <ThrowOnError extends boolean = true>(
+  options?: Options<ExportAnnotationsApiAdminAnnotationsExportGetData, ThrowOnError>,
+): RequestResult<ExportAnnotationsApiAdminAnnotationsExportGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<
+    ExportAnnotationsApiAdminAnnotationsExportGetResponses,
+    unknown,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/annotations/export',
+    ...options,
+  });
+
+/**
+ * List Annotated Items
+ *
+ * Every annotated item in a set with its annotations, the most contested first.
+ */
+export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetData, ThrowOnError>,
+): RequestResult<
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses,
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses,
+    ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/admin/annotations/sets/{slug}/items',
     ...options,
   });
 

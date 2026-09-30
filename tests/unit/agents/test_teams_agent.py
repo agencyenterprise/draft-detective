@@ -75,7 +75,7 @@ class TestWhatTheAgentIsGiven:
 
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
@@ -91,7 +91,7 @@ class TestWhatTheAgentIsGiven:
     async def test_the_asker_is_named_in_the_prompt(self) -> None:
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "hello?",
@@ -182,7 +182,7 @@ class TestTheAnswer:
     @pytest.mark.asyncio
     async def test_a_normal_answer_comes_back(self) -> None:
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
+            "lib.agents.teams_agent.build_deep_agent",
             return_value=agent_returning("It overclaims in two places."),
         ):
             answer = await answer_question(
@@ -197,7 +197,7 @@ class TestTheAnswer:
     @pytest.mark.asyncio
     async def test_an_empty_answer_is_a_failure_rather_than_a_blank_post(self) -> None:
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
+            "lib.agents.teams_agent.build_deep_agent",
             return_value=agent_returning("   "),
         ):
             answer = await answer_question(
@@ -215,7 +215,7 @@ class TestTheAnswer:
         broken = agent_returning("never gets this far")
         broken.ainvoke = AsyncMock(side_effect=RuntimeError("upstream timeout"))
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=broken
+            "lib.agents.teams_agent.build_deep_agent", return_value=broken
         ):
             answer = await answer_question(
                 "does this overclaim?",
@@ -236,7 +236,7 @@ class TestContinuingAConversation:
 
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "and the second one?", graph_token=TOKEN, thread_id=THREAD
@@ -249,7 +249,7 @@ class TestContinuingAConversation:
     @pytest.mark.asyncio
     async def test_a_checkpointer_is_given_to_the_agent(self) -> None:
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
+            "lib.agents.teams_agent.build_deep_agent",
             return_value=agent_returning("an answer"),
         ) as build:
             await answer_question(
@@ -275,7 +275,7 @@ class TestContinuingAConversation:
 
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ) as build:
             await answer_question(
                 "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
@@ -294,7 +294,7 @@ class TestTheLinksHandedOver:
     async def test_one_link_is_named_in_the_prompt(self) -> None:
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "is this right?",
@@ -314,7 +314,7 @@ class TestTheLinksHandedOver:
         second = "https://x.sharepoint.com/sites/X/b.docx"
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "compare these",
@@ -331,7 +331,7 @@ class TestTheLinksHandedOver:
     async def test_no_links_says_nothing_about_them(self) -> None:
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ):
             await answer_question(
                 "what can you do?", graph_token=TOKEN, thread_id=THREAD
@@ -351,7 +351,7 @@ class TestTheLinksHandedOver:
         load = AsyncMock()
         agent = agent_returning("an answer")
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent", return_value=agent
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
         ), patch.object(sharepoint.documents, "load", load):
             await answer_question(
                 "what can you do?",
@@ -372,7 +372,7 @@ class TestTheToolsTheAgentGets:
         """Checking is what makes a kept copy safe to use in a later turn."""
 
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
+            "lib.agents.teams_agent.build_deep_agent",
             return_value=agent_returning("an answer"),
         ) as build:
             await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
@@ -397,7 +397,7 @@ class TestTheToolsTheAgentGets:
         resolve = AsyncMock(return_value={"name": "a.docx"})
 
         with patch("lib.agents.teams_agent.build_llm"), patch(
-            "lib.agents.teams_agent.create_deep_agent",
+            "lib.agents.teams_agent.build_deep_agent",
             return_value=agent_returning("an answer"),
         ) as build:
             await answer_question("hello?", graph_token="carlos", thread_id=THREAD)

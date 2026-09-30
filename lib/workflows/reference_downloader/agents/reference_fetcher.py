@@ -80,7 +80,6 @@ class ReferenceFetcherAgent(LangChainAgent):
     name = "Reference Fetcher"
     description = "Fetch a reference from the internet"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(  # type: ignore[override]

@@ -7,7 +7,6 @@ number or strands a comma, an edit attached where none is expected.
 
 import json
 import math
-from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
 
@@ -18,6 +17,7 @@ from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEd
 from evals_inspectai.common.issue_checks import (
     DETECTION_KEYS,
     EDIT_KEYS,
+    HitRank,
     issue_check_keys,
     decoy_hits,
     decoy_scores,
@@ -34,9 +34,11 @@ from evals_inspectai.common.issue_inventory import (
     InventoryRecord,
     ResolvedIssue,
     ResolvedInventory,
+    ScoringPolicy,
     locate_anchor,
     inventory_to_sample,
     overlaps,
+    quoted_verbatim,
     resolve_record,
 )
 
@@ -96,6 +98,14 @@ def test_overlaps_pairs_a_quote_with_its_sentence():
     assert not overlaps("We then coded the notes.", "Data were collected from 3 sites by the field team.")
 
 
+def test_quoted_verbatim_reads_across_lines_and_ellipses_but_not_paraphrase():
+    assert quoted_verbatim("data were collected from 3 sites … coded the notes", DOC)
+    assert quoted_verbatim("“The scope is limited to urban sites.”", "The scope is\nlimited to urban sites.")
+    assert not quoted_verbatim("Data came from 3 sites", DOC)
+    assert not quoted_verbatim(" … ", DOC), "a quote with no words quotes nothing"
+    assert not quoted_verbatim("We then coded the notes … Data were collected", DOC), "pieces must keep their order"
+
+
 # --- detection ------------------------------------------------------------------
 
 
@@ -149,7 +159,7 @@ def test_decoy_hits_by_reason_over_the_dataset_wide_reason_list():
     decoys = [Decoy(anchor="is limited to", reason="stative"), Decoy(anchor="We then coded", reason="active")]
     issue = _issue(description="“The scope is limited to urban sites.”", start=9, end=9)
     assert [d.reason for d in decoy_hits(decoys, [issue])] == ["stative"]
-    values, note = decoy_scores([issue], _inventory(decoys=decoys), REASONS)
+    values, note = decoy_scores([issue], _inventory(decoys=decoys).with_policy(decoy_reasons=list(REASONS)))
     assert set(values) == {f"no_fp_{r}" for r in REASONS}
     assert values["no_fp_stative"] == 0.0
     assert values["no_fp_active"] == 1.0
@@ -170,9 +180,9 @@ def test_titled_decoy_is_flagged_only_under_its_title():
     assert decoy_hits([decoy], [quoted], LINES) == [decoy]
     assert decoy_hits([decoy], [bracketing], LINES) == [decoy]
     assert decoy_hits([decoy], [elsewhere], LINES) == []
-    values, _ = decoy_scores([support, elsewhere], _inventory(decoys=[decoy]), ("lead_in",))
+    values, _ = decoy_scores([support, elsewhere], _inventory(decoys=[decoy]).with_policy(decoy_reasons=["lead_in"]))
     assert values["no_fp_lead_in"] == 1.0
-    values, _ = decoy_scores([support, bracketing], _inventory(decoys=[decoy]), ("lead_in",))
+    values, _ = decoy_scores([support, bracketing], _inventory(decoys=[decoy]).with_policy(decoy_reasons=["lead_in"]))
     assert values["no_fp_lead_in"] == 0.0, "decoy_scores passes the document lines, so bracketing counts"
 
 
@@ -186,15 +196,15 @@ def test_untitled_expected_prefers_a_free_form_report_over_a_named_kind():
     extra = _issue(title="Audience Unclear", description="“Data were collected”", severity="medium")
     free_form = _issue(title="Collect data at three sites", description="“Data were collected”", severity="none")
     for one_to_one in (False, True):
-        values, note = issue_detection_scores([extra, free_form], _inventory([support, other]), edits=False, one_to_one=one_to_one)
+        values, note = issue_detection_scores([extra, free_form], _inventory([support, other]).with_policy(edits=False, pairing="one_to_one" if one_to_one else "shared"))
         assert values["severity_correct"] == 1.0, note
         assert values["precision"] == 0.5, "the extra issue still costs precision"
     # The kind may be named only in another record of the dataset.
-    elsewhere = ResolvedInventory(document=DOC, expected_issues=[support], decoys=[], named_titles=["Audience Unclear"])
-    values, note = issue_detection_scores([extra, free_form], elsewhere, edits=False, one_to_one=True)
+    elsewhere = _inventory([support]).with_policy(named_titles=["Audience Unclear"])
+    values, note = issue_detection_scores([extra, free_form], elsewhere.with_policy(edits=False, pairing="one_to_one"))
     assert values["severity_correct"] == 1.0, note
     # With no free-form report, the named-kind issue still covers it: recall is unchanged.
-    values, _ = issue_detection_scores([extra], _inventory([support, other]), edits=False, one_to_one=True)
+    values, _ = issue_detection_scores([extra], _inventory([support, other]).with_policy(edits=False, pairing="one_to_one"))
     assert values["recall"] == 0.5
 
 
@@ -214,6 +224,23 @@ def test_title_severity_and_range_metrics_follow_the_hit():
     assert "f: reported as 'Something Else', not under 'Passive Voice'" in note
     assert "f: severity medium, expected low" in note
     assert "f: lines 1-1 do not bracket line 5" in note
+
+
+def test_pairing_on_location_ignores_the_title_when_ranking_evidence():
+    """By default a title match bracketing the line outranks a quote under another title; with
+    ``pair_on_location`` (titles that are verdicts) the quote wins, whatever the verdict."""
+    quoted_other = _issue(title="Other", description="“Data were collected”")
+    same_line = _issue(title="Passive Voice", description="no quote")
+    f = _expected()
+    assert hit_issue(f, [quoted_other, same_line]) == 1
+    assert hit_issue(f, [quoted_other, same_line], on_location=True) == 0
+    assert hit_issue(f, [_issue(title="Other", description="no quote", start=1, end=1)], on_location=True) is None
+
+
+def test_hit_rank_cost_orders_exactly_as_the_rank():
+    ranks = [HitRank(claimed, evidence, off) for claimed in (False, True) for evidence in range(3) for off in (False, True)]
+    assert sorted(ranks, key=HitRank.cost) == sorted(ranks)
+    assert len({r.cost() for r in ranks}) == len(ranks), "no two ranks share a cost"
 
 
 def test_title_matches_as_whole_words_anywhere_in_the_reported_title():
@@ -249,12 +276,12 @@ def test_one_to_one_matching_counts_a_merged_occurrence_as_missing():
     values, _ = issue_detection_scores([merged], _inventory([first, second]))
     assert values["recall"] == 1.0, "by default one paragraph-level issue may cover several expected issues"
 
-    values, note = issue_detection_scores([merged], _inventory([first, second]), one_to_one=True)
+    values, note = issue_detection_scores([merged], _inventory([first, second]).with_policy(pairing="one_to_one"))
     assert values["recall"] == 0.5 and values["precision"] == 1.0
     assert "missing second" in note and "merged into an issue that already covers another expected issue: second" in note
 
     separate = [_issue(title="A", description="“Data were collected”"), _issue(title="B", description="“Findings are listed”", start=9, end=9)]
-    values, _ = issue_detection_scores(separate, _inventory([first, second]), one_to_one=True)
+    values, _ = issue_detection_scores(separate, _inventory([first, second]).with_policy(pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["precision"] == 1.0
 
 
@@ -266,7 +293,7 @@ def test_one_to_one_matching_finds_a_complete_pairing_regardless_of_order():
     broad = _issue(title="Both", description="“Data were collected” “Findings are listed”", start=5, end=9)
     narrow = _issue(title="A only", description="“Data were collected”")
 
-    values, _ = issue_detection_scores([broad, narrow], _inventory([a, b]), one_to_one=True)
+    values, _ = issue_detection_scores([broad, narrow], _inventory([a, b]).with_policy(pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["precision"] == 1.0
 
 
@@ -280,7 +307,7 @@ def test_one_to_one_matching_keeps_the_strongest_evidence_whatever_the_output_or
     paraphrases_b = _issue(title="B", description="The appendix listing is passive.", start=5, end=9, severity="high")
     issues = [paraphrases_b, quotes_a] if reversed_order else [quotes_a, paraphrases_b]
 
-    values, _ = issue_detection_scores(issues, _inventory([a, b]), one_to_one=True)
+    values, _ = issue_detection_scores(issues, _inventory([a, b]).with_policy(pairing="one_to_one"))
 
     assert values["recall"] == 1.0 and values["severity_correct"] == 1.0
 
@@ -297,7 +324,7 @@ def test_line_range_breaks_a_tie_between_issues_that_quote_both_occurrences(one_
     on_detailed = _issue(title="Partially supported: detailed", description=both, start=9, end=9, severity="medium")
     issues = [on_detailed, on_summary] if reversed_order else [on_summary, on_detailed]
 
-    values, _ = issue_detection_scores(issues, _inventory([summary, detailed]), one_to_one=one_to_one)
+    values, _ = issue_detection_scores(issues, _inventory([summary, detailed]).with_policy(pairing="one_to_one" if one_to_one else "shared"))
 
     assert values["recall"] == 1.0 and values["severity_correct"] == 1.0 and values["anchor_in_range"] == 1.0
 
@@ -309,7 +336,7 @@ def test_one_to_one_matching_gives_a_shared_report_to_the_required_expectation(o
     shared = _issue(title="One report", description="“Data were collected” and “We then coded”")
     expected = [optional, required] if optional_first else [required, optional]
 
-    values, note = issue_detection_scores([shared], _inventory(expected), one_to_one=True)
+    values, note = issue_detection_scores([shared], _inventory(expected).with_policy(pairing="one_to_one"))
 
     assert values["recall"] == 1.0, "the optional expectation must not consume the report the required one needs"
     assert "missing" not in note
@@ -324,8 +351,8 @@ def test_evidence_tied_reports_are_matched_the_same_way_in_either_order(one_to_o
     partial = _issue(title="Partially supported recommendation: continue encouraging", description="Direction only.", severity="medium")
     supported = _issue(title="Supported recommendation: treat increases as positive", description="Directly grounded.", severity="none")
 
-    forward, _ = issue_detection_scores([partial, supported], _inventory([expected]), one_to_one=one_to_one)
-    backward, _ = issue_detection_scores([supported, partial], _inventory([expected]), one_to_one=one_to_one)
+    forward, _ = issue_detection_scores([partial, supported], _inventory([expected]).with_policy(pairing="one_to_one" if one_to_one else "shared"))
+    backward, _ = issue_detection_scores([supported, partial], _inventory([expected]).with_policy(pairing="one_to_one" if one_to_one else "shared"))
 
     assert forward == backward
     assert forward["recall"] == 1.0
@@ -349,8 +376,8 @@ def test_reports_differing_only_in_severity_are_matched_the_same_way_in_either_o
     high = _issue(title="Same title", description="Same text.", severity="high")
     none = _issue(title="Same title", description="Same text.", severity="none")
 
-    forward, _ = issue_detection_scores([high, none], _inventory([expected]), one_to_one=one_to_one)
-    backward, _ = issue_detection_scores([none, high], _inventory([expected]), one_to_one=one_to_one)
+    forward, _ = issue_detection_scores([high, none], _inventory([expected]).with_policy(pairing="one_to_one" if one_to_one else "shared"))
+    backward, _ = issue_detection_scores([none, high], _inventory([expected]).with_policy(pairing="one_to_one" if one_to_one else "shared"))
 
     assert forward == backward
     assert forward["severity_correct"] in (0.0, 1.0)
@@ -369,15 +396,15 @@ def test_repeated_expected_ids_are_rejected_at_load():
 
 
 def test_title_key_is_left_out_when_the_inventory_names_no_titles():
-    assert "title_correct" not in issue_check_keys(edits=False, titles=False)
-    assert "title_correct" in issue_check_keys(edits=False, titles=True)
+    assert "title_correct" not in issue_check_keys(ScoringPolicy(edits=False, titles=False))
+    assert "title_correct" in issue_check_keys(ScoringPolicy(edits=False, titles=True))
     f = _expected(title=None)
-    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([f]), edits=False, titles=False)
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([f]).with_policy(edits=False, titles=False))
     assert "title_correct" not in values and values["recall"] == 1.0
 
 
 def test_edit_keys_are_left_out_for_a_workflow_that_proposes_no_edits():
-    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([_expected()]), edits=False)
+    values, _ = issue_detection_scores([_issue(description="“Data were collected”")], _inventory([_expected()]).with_policy(edits=False))
     assert set(values) == set(DETECTION_KEYS)
     assert values["recall"] == 1.0
 
@@ -429,24 +456,24 @@ def test_an_expected_issue_without_an_anchor_is_hit_by_its_title_wherever_the_is
 def test_anchorless_expected_issues_are_matched_one_to_one_by_title():
     results, references = _absent(), _absent(id="no_refs", title="Missing Section: References")
     issues = [_issue(title="Missing Section: References", start=1, end=1), _issue(title="Missing Section: Results", start=1, end=1)]
-    values, _ = issue_detection_scores(issues, _inventory([results, references]), edits=False, one_to_one=True)
+    values, _ = issue_detection_scores(issues, _inventory([results, references]).with_policy(edits=False, pairing="one_to_one"))
     assert values["recall"] == 1.0 and values["precision"] == 1.0
 
 
 def test_a_false_positive_beside_an_anchorless_hit_costs_precision():
     issues = [_issue(title="Missing Section: Results", start=1, end=1), _issue(title="Missing Section: Methods", start=1, end=1)]
-    values, _ = issue_detection_scores(issues, _inventory([_absent()]), edits=False)
+    values, _ = issue_detection_scores(issues, _inventory([_absent()]).with_policy(edits=False))
     assert values["recall"] == 1.0 and values["precision"] == 0.5
 
 
 def test_title_and_line_are_not_scored_for_an_expected_issue_without_an_anchor():
     """Its title is how it was matched and it has no line, so neither says anything about the run."""
-    values, _ = issue_detection_scores([_issue(title="Missing Section: Results", start=1, end=1)], _inventory([_absent()]), edits=False)
+    values, _ = issue_detection_scores([_issue(title="Missing Section: Results", start=1, end=1)], _inventory([_absent()]).with_policy(edits=False))
     assert math.isnan(values["title_correct"]) and math.isnan(values["anchor_in_range"])
 
     anchored = _expected(id="anchored")
     issues = [_issue(title="Missing Section: Results", start=1, end=1), _issue(description="“Data were collected”", start=1, end=1)]
-    values, note = issue_detection_scores(issues, _inventory([_absent(), anchored]), edits=False)
+    values, note = issue_detection_scores(issues, _inventory([_absent(), anchored]).with_policy(edits=False))
     assert values["title_correct"] == 1.0 and values["anchor_in_range"] == 0.0, "only the anchored issue is scored"
     assert "anchored: lines 1-1 do not bracket line 5" in note
 
@@ -457,10 +484,10 @@ def test_every_edit_of_the_matching_issue_belongs_to_an_expected_issue_without_a
 
 
 def test_keys_that_cannot_be_scored_are_left_out():
-    assert issue_check_keys(edits=False, anchors=False) == ("recall", "precision", "f0_5", "clean_document_untouched", "severity_correct")
-    assert "severity_correct" not in issue_check_keys(edits=False, severities=False)
+    assert issue_check_keys(ScoringPolicy(edits=False, anchors=False)) == ("recall", "precision", "f0_5", "clean_document_untouched", "severity_correct")
+    assert "severity_correct" not in issue_check_keys(ScoringPolicy(edits=False, severities=False))
     values, _ = issue_detection_scores(
-        [_issue(title="Missing Section: Results")], _inventory([_absent()]), edits=False, anchors=False, severities=False
+        [_issue(title="Missing Section: Results")], _inventory([_absent()]).with_policy(edits=False, anchors=False, severities=False)
     )
     assert set(values) == {"recall", "precision", "f0_5", "clean_document_untouched"}
 
@@ -691,3 +718,14 @@ def test_workflow_specific_edit_checks_are_reported_under_their_name():
     issue = _issue(edits=[_edit("Data were collected from 3 sites by the field team.", "The field team collected data from 3 sites.")])
     results = edit_checks(f, issue, LINES, {"mentions_team": lambda e: "team" in e.replacement_text})
     assert results["edit_mentions_team"][0] == 1.0
+
+
+def test_several_issues_on_one_expected_all_count_toward_precision():
+    """One issue per recommended source: a second source on the same claim is not a false positive."""
+    inventory = ResolvedInventory(document=DOC, expected_issues=[_expected(title=None)], decoys=[])
+    on_claim = [IssueItem(title=f"Source {n}", severity="low", start_line=5, end_line=5) for n in (1, 2)]
+    elsewhere = IssueItem(title="Source 3", severity="low", start_line=9, end_line=9)
+    paired, _ = issue_detection_scores([*on_claim, elsewhere], inventory.with_policy(edits=False, titles=False))
+    several, _ = issue_detection_scores([*on_claim, elsewhere], inventory.with_policy(edits=False, titles=False, pairing="several_per_expected"))
+    assert paired["precision"] == pytest.approx(1 / 3) and several["precision"] == pytest.approx(2 / 3)
+    assert several["recall"] == 1.0

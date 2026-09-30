@@ -6,13 +6,16 @@ a wrong answer inspectable in Langfuse, the shared rate limiter, and the mountin
 the document and skills at the paths every skill's line numbers are defined against.
 """
 
+from typing import Any
 from unittest.mock import patch
 
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
+    _with_our_additions,
     build_agent_files,
     build_llm,
     build_skill_files,
+    general_purpose_subagent,
     number_paragraphs,
     tool_names,
 )
@@ -27,7 +30,6 @@ class TestModelConstruction:
 
         kwargs = init.call_args.kwargs
         assert kwargs["reasoning"] == {"effort": "medium", "summary": "auto"}
-        assert kwargs["temperature"] == 0.0
         assert kwargs["max_retries"] == 4
         assert kwargs["rate_limiter"] is not None, "share the project's rate limiter"
         assert "output_version" not in kwargs, "batch agents keep the default layout"
@@ -116,3 +118,62 @@ class TestToolNames:
 
     def test_messages_without_tool_calls_are_ignored(self) -> None:
         assert tool_names([object(), object()]) == []
+
+
+class TestBuildingADeepAgent:
+    @staticmethod
+    def _captured(**kwargs: Any) -> dict[str, Any]:
+        seen: dict[str, Any] = {}
+
+        def create(**received: Any) -> str:
+            seen.update(received)
+            return "graph"
+
+        assert _with_our_additions(create)(**kwargs) == "graph"
+        return seen
+
+    def test_our_middleware_runs_ahead_of_the_callers(self) -> None:
+        own = object()
+        seen = self._captured(model="m", middleware=[own])
+        assert [type(m).__name__ for m in seen["middleware"][:-1]] == [
+            "TodoListMiddleware",
+            "ReadFileLineNumbersMiddleware",
+        ]
+        assert seen["middleware"][-1] is own
+
+    def test_the_general_purpose_subagent_runs_our_middleware_and_the_parents_skills(self) -> None:
+        (subagent,) = self._captured(model="m", skills=["/skills/"])["subagents"]
+        assert subagent["name"] == "general-purpose"
+        assert subagent["skills"] == ["/skills/"]
+        assert [type(m).__name__ for m in subagent["middleware"]] == [
+            "TodoListMiddleware",
+            "ReadFileLineNumbersMiddleware",
+        ]
+
+    def test_a_callers_own_general_purpose_subagent_is_kept(self) -> None:
+        own = {"name": "general-purpose", "description": "mine", "system_prompt": "mine"}
+        (subagent,) = self._captured(model="m", subagents=[own])["subagents"]
+        assert {k: v for k, v in subagent.items() if k != "middleware"} == own
+
+    def test_a_declared_subagent_runs_our_middleware_ahead_of_its_own(self) -> None:
+        own = object()
+        spec = {"name": "checker", "description": "d", "system_prompt": "p", "middleware": [own]}
+        declared, _general_purpose = self._captured(model="m", subagents=[spec])["subagents"]
+        assert [type(m).__name__ for m in declared["middleware"][:-1]] == [
+            "TodoListMiddleware",
+            "ReadFileLineNumbersMiddleware",
+        ]
+        assert declared["middleware"][-1] is own
+
+    def test_middleware_a_subagent_already_runs_is_not_added_twice(self) -> None:
+        spec = general_purpose_subagent()
+        (subagent,) = self._captured(model="m", subagents=[spec])["subagents"]
+        assert [type(m).__name__ for m in subagent["middleware"]] == [
+            "TodoListMiddleware",
+            "ReadFileLineNumbersMiddleware",
+        ]
+
+    def test_a_precompiled_subagent_is_used_as_given(self) -> None:
+        compiled = {"name": "compiled", "description": "d", "runnable": object()}
+        declared, _general_purpose = self._captured(model="m", subagents=[compiled])["subagents"]
+        assert declared is compiled

@@ -114,7 +114,6 @@ class BatchedReferenceMatcherAgent(LangChainAgent):
     name = "Batched Reference Matcher"
     description = "Match multiple bibliographic references to their candidate documents in a single call"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     output_schema = BatchedMatchResult
 
     async def ainvoke(

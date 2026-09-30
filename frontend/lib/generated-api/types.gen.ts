@@ -93,13 +93,13 @@ export type AbbreviationItem = {
   /**
    * Ignored
    *
-   * True if this occurrence should be excluded from compliance checks.
+   * Legacy: True if this occurrence was excluded from compliance checks.
    */
   ignored?: boolean;
   /**
    * Ignored Reason
    *
-   * Human-readable explanation of why this occurrence is ignored. Required when ignored=True, None otherwise. Example: "Defined in heading title — not a valid inline definition."
+   * Legacy: why the occurrence was excluded, when ignored is True.
    */
   ignored_reason?: string | null;
 };
@@ -128,6 +128,12 @@ export type AbbreviationScanV2Config = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -251,6 +257,12 @@ export type AboutThisGerConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -521,6 +533,383 @@ export type AgentConversation = {
   messages?: Array<{
     [key: string]: unknown;
   }>;
+};
+
+/**
+ * AnnotatedItem
+ *
+ * An item with every annotation it has received.
+ */
+export type AnnotatedItem = {
+  /**
+   * Item Id
+   */
+  item_id: string;
+  /**
+   * Source Key
+   */
+  source_key: string;
+  kind: AnnotationItemKind;
+  passage: AnnotationPassage;
+  /**
+   * Reference Answers
+   */
+  reference_answers: {
+    [key: string]: string;
+  };
+  /**
+   * Reference Explanation
+   */
+  reference_explanation: string | null;
+  /**
+   * Annotations
+   */
+  annotations: Array<AnnotationRecord>;
+  /**
+   * Agreements
+   */
+  agreements: number;
+  /**
+   * Disagreements
+   */
+  disagreements: number;
+  /**
+   * Abstentions
+   */
+  abstentions: number;
+};
+
+/**
+ * AnnotationItemKind
+ *
+ * Where an item comes from in the eval dataset.
+ */
+export const AnnotationItemKind = { ExpectedIssue: 'expected_issue', Decoy: 'decoy' } as const;
+
+/**
+ * AnnotationItemKind
+ *
+ * Where an item comes from in the eval dataset.
+ */
+export type AnnotationItemKind = (typeof AnnotationItemKind)[keyof typeof AnnotationItemKind];
+
+/**
+ * AnnotationOption
+ *
+ * One answer a question offers.
+ */
+export type AnnotationOption = {
+  /**
+   * Value
+   *
+   * Stored in answers and compared with the reference
+   */
+  value: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Shortcut
+   *
+   * Keyboard key that picks it
+   */
+  shortcut?: string | null;
+};
+
+/**
+ * AnnotationOutcome
+ *
+ * Confirms a saved answer. Deliberately says nothing about the reference
+ * answers: knowing how the dataset answered would sway the next answer.
+ */
+export type AnnotationOutcome = {
+  /**
+   * Item Id
+   */
+  item_id: string;
+  /**
+   * Answered By Me
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationPassage
+ *
+ * What the user judges: a passage in a short document.
+ */
+export type AnnotationPassage = {
+  /**
+   * Document
+   *
+   * The document as markdown
+   */
+  document: string;
+  /**
+   * Anchor
+   *
+   * Verbatim passage to highlight
+   */
+  anchor: string;
+  /**
+   * Line
+   *
+   * 1-indexed line the passage is on
+   */
+  line?: number | null;
+};
+
+/**
+ * AnnotationQuestion
+ *
+ * A question every item in a set asks.
+ */
+export type AnnotationQuestion = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Prompt
+   */
+  prompt: string;
+  /**
+   * Options
+   */
+  options: Array<AnnotationOption>;
+  /**
+   * Abstain Value
+   *
+   * The option meaning 'not sure'; it neither agrees nor disagrees with the reference
+   */
+  abstain_value?: string | null;
+};
+
+/**
+ * AnnotationRecord
+ *
+ * One annotation as the admin view and the export show it.
+ */
+export type AnnotationRecord = {
+  /**
+   * User Name
+   */
+  user_name: string;
+  /**
+   * User Email
+   */
+  user_email: string;
+  /**
+   * Answers
+   */
+  answers: {
+    [key: string]: string;
+  };
+  /**
+   * Agrees
+   */
+  agrees: boolean | null;
+  /**
+   * Comment
+   */
+  comment: string | null;
+  /**
+   * Time Spent Ms
+   */
+  time_spent_ms: number | null;
+  /**
+   * Created At
+   */
+  created_at: Date;
+};
+
+/**
+ * AnnotationSetExport
+ *
+ * One set in the full results export: enough to read its answers on their own.
+ */
+export type AnnotationSetExport = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Workflow Type
+   */
+  workflow_type: string;
+  /**
+   * Is Active
+   */
+  is_active: boolean;
+  /**
+   * Questions
+   */
+  questions: Array<AnnotationQuestion>;
+  /**
+   * Items
+   */
+  items: Array<AnnotatedItem>;
+};
+
+/**
+ * AnnotationSetStats
+ *
+ * Admin overview of one set.
+ */
+export type AnnotationSetStats = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Item Count
+   */
+  item_count: number;
+  /**
+   * Annotated Items
+   *
+   * Active items with at least one annotation
+   */
+  annotated_items: number;
+  /**
+   * Annotation Count
+   */
+  annotation_count: number;
+  /**
+   * Annotator Count
+   */
+  annotator_count: number;
+  /**
+   * Agreements
+   *
+   * Annotations that match the reference
+   */
+  agreements: number;
+  /**
+   * Disagreements
+   *
+   * Annotations that contradict the reference
+   */
+  disagreements: number;
+  /**
+   * Abstentions
+   */
+  abstentions: number;
+};
+
+/**
+ * AnnotationSetSummary
+ *
+ * A set as its card shows it, with the current user's progress.
+ */
+export type AnnotationSetSummary = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Summary
+   */
+  summary: string;
+  /**
+   * Workflow Type
+   */
+  workflow_type: string;
+  /**
+   * Item Count
+   *
+   * Active items in the set
+   */
+  item_count: number;
+  /**
+   * Answered By Me
+   *
+   * Active items the current user has answered
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationSubmission
+ *
+ * A user's answers to one item. Submitting again replaces them.
+ */
+export type AnnotationSubmission = {
+  /**
+   * Answers
+   */
+  answers: {
+    [key: string]: string;
+  };
+  /**
+   * Comment
+   */
+  comment?: string | null;
+  /**
+   * Time Spent Ms
+   */
+  time_spent_ms?: number | null;
+};
+
+/**
+ * AnnotationTask
+ *
+ * The next item to judge. It never carries the reference answers.
+ */
+export type AnnotationTask = {
+  set: AnnotationTaskSet;
+  /**
+   * Item Id
+   *
+   * None when the user has answered every item
+   */
+  item_id?: string | null;
+  passage?: AnnotationPassage | null;
+  /**
+   * Item Count
+   */
+  item_count: number;
+  /**
+   * Answered By Me
+   */
+  answered_by_me: number;
+};
+
+/**
+ * AnnotationTaskSet
+ *
+ * The parts of a set the annotation screen needs.
+ */
+export type AnnotationTaskSet = {
+  /**
+   * Slug
+   */
+  slug: string;
+  /**
+   * Title
+   */
+  title: string;
+  /**
+   * Guidance
+   */
+  guidance: string;
+  /**
+   * Questions
+   */
+  questions: Array<AnnotationQuestion>;
 };
 
 /**
@@ -880,18 +1269,6 @@ export type ChunkOccurrence = {
    * Line number where the occurrence ends; equal to line_start for a single line.
    */
   line_end: number;
-  /**
-   * Ignored
-   *
-   * True when the occurrence is excluded from compliance checks.
-   */
-  ignored?: boolean;
-  /**
-   * Ignored Reason
-   *
-   * Brief reason for the exclusion; required when ignored is true, otherwise null.
-   */
-  ignored_reason?: string | null;
 };
 
 /**
@@ -1001,6 +1378,12 @@ export type ClaimReferenceValidationV2Config = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -1242,6 +1625,12 @@ export type DocumentProcessingWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'document_processing';
@@ -1308,6 +1697,12 @@ export type DocumentSummarizationWorkflowConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -2758,6 +3153,12 @@ export type ReferenceDownloaderWorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_downloader';
@@ -2793,6 +3194,12 @@ export type ReferenceExtractionConfig = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -3005,6 +3412,12 @@ export type ReferenceFileMatchingConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_file_matching';
@@ -3172,6 +3585,12 @@ export type ReferenceValidationV2WorkflowConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * Type
    */
   type?: 'reference_validation_v2';
@@ -3201,6 +3620,12 @@ export type Reviewer2Config = {
    * Publication date of the document (YYYY-MM-DD format)
    */
   publication_date?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
   /**
    * Type
    */
@@ -3435,6 +3860,12 @@ export type SimpleDeepAgentConfig = {
    */
   publication_date?: string | null;
   /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every agent in this run uses instead of its own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
+  /**
    * The workflow type, set per-manifest at runtime
    */
   type: WorkflowRunType;
@@ -3493,6 +3924,12 @@ export type StartMultipleWorkflowsRequest = {
    * Openai Api Key
    */
   openai_api_key?: string | null;
+  /**
+   * Model
+   *
+   * LangChain model name with its provider (e.g. 'openai:gpt-5.6-sol') every started workflow runs on instead of its agents' own. Only accepted when the server enables ALLOW_WORKFLOW_MODEL_OVERRIDE.
+   */
+  model?: string | null;
 };
 
 /**
@@ -4060,6 +4497,12 @@ export type WorkflowRun = {
    */
   failure_message?: string | null;
   /**
+   * Model
+   *
+   * The model this run was asked to run every agent on, when the start request named one. Null means each agent's own model. Kept on the run so a run released later from a gate still runs on it.
+   */
+  model?: string | null;
+  /**
    * State Json
    *
    * Serialized WorkflowState; written after every node yield. Schema is the WorkflowState subclass for `type`.
@@ -4176,6 +4619,10 @@ export type WorkflowRunPublic = {
    * Failure Message
    */
   failure_message?: string | null;
+  /**
+   * Model
+   */
+  model?: string | null;
 };
 
 /**
@@ -4224,9 +4671,9 @@ export const WorkflowRunType = {
   ActiveVoice: 'active_voice',
   AudienceFit: 'audience_fit',
   ConcisionPrecision: 'concision_precision',
+  HeadersSkimmability: 'headers_skimmability',
   NarrativeSynthesis: 'narrative_synthesis',
   WritingConsistency: 'writing_consistency',
-  HeadersSkimmability: 'headers_skimmability',
 } as const;
 
 /**
@@ -4784,6 +5231,171 @@ export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersG
 
 export type GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponse =
   GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses[keyof GetDashboardDefaultIgnoredUsersApiAdminDashboardDefaultIgnoredUsersGetResponses];
+
+export type ListAnnotationSetsApiAnnotationsSetsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/annotations/sets';
+};
+
+export type ListAnnotationSetsApiAnnotationsSetsGetResponses = {
+  /**
+   * Response List Annotation Sets Api Annotations Sets Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetSummary>;
+};
+
+export type ListAnnotationSetsApiAnnotationsSetsGetResponse =
+  ListAnnotationSetsApiAnnotationsSetsGetResponses[keyof ListAnnotationSetsApiAnnotationsSetsGetResponses];
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData = {
+  body?: never;
+  path: {
+    /**
+     * Slug
+     */
+    slug: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: Array<string>;
+  };
+  url: '/api/annotations/sets/{slug}/next';
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetError =
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors[keyof GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors];
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: AnnotationTask;
+};
+
+export type GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponse =
+  GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses[keyof GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses];
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutData = {
+  body: AnnotationSubmission;
+  path: {
+    /**
+     * Item Id
+     */
+    item_id: string;
+  };
+  query?: never;
+  url: '/api/annotations/items/{item_id}';
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutError =
+  SubmitAnnotationApiAnnotationsItemsItemIdPutErrors[keyof SubmitAnnotationApiAnnotationsItemsItemIdPutErrors];
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutResponses = {
+  /**
+   * Successful Response
+   */
+  200: AnnotationOutcome;
+};
+
+export type SubmitAnnotationApiAnnotationsItemsItemIdPutResponse =
+  SubmitAnnotationApiAnnotationsItemsItemIdPutResponses[keyof SubmitAnnotationApiAnnotationsItemsItemIdPutResponses];
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/annotations/sets';
+};
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses = {
+  /**
+   * Response List Annotation Set Stats Api Admin Annotations Sets Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetStats>;
+};
+
+export type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponse =
+  ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses[keyof ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses];
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/admin/annotations/export';
+};
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetResponses = {
+  /**
+   * Response Export Annotations Api Admin Annotations Export Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotationSetExport>;
+};
+
+export type ExportAnnotationsApiAdminAnnotationsExportGetResponse =
+  ExportAnnotationsApiAdminAnnotationsExportGetResponses[keyof ExportAnnotationsApiAdminAnnotationsExportGetResponses];
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Slug
+     */
+    slug: string;
+  };
+  query?: {
+    /**
+     * Only Disagreements
+     */
+    only_disagreements?: boolean;
+  };
+  url: '/api/admin/annotations/sets/{slug}/items';
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetError =
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors[keyof ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetErrors];
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses = {
+  /**
+   * Response List Annotated Items Api Admin Annotations Sets  Slug  Items Get
+   *
+   * Successful Response
+   */
+  200: Array<AnnotatedItem>;
+};
+
+export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse =
+  ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses[keyof ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponses];
 
 export type ListAppConfigsApiAppConfigsGetData = {
   body?: never;

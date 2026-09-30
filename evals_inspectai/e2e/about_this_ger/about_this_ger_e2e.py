@@ -49,24 +49,8 @@ from inspect_ai import Task, task
 from inspect_ai.scorer import Scorer, scorer
 
 from evals_inspectai.common.api_solver import api_workflow_agent
-from evals_inspectai.common.issue_checks import (
-    DETECTION_DESCRIPTIONS,
-    PER_KEY_METRICS,
-    decoy_checks,
-    decoy_descriptions,
-    deterministic_scorer,
-    issue_check_keys,
-    issue_checks,
-)
-from evals_inspectai.common.issue_inventory import (
-    decoy_reasons,
-    expects_anchors,
-    expects_severities,
-    inventory_dataset,
-    load_inventory_records,
-)
-from evals_inspectai.common.issue_judge import judged_criteria
-from evals_inspectai.common.issue_viewer import issue_viewer_config
+from evals_inspectai.common.inventory_suite import InventorySuite
+from evals_inspectai.common.issue_checks import PER_KEY_METRICS, deterministic_scorer
 from evals_inspectai.e2e.about_this_ger.criteria import (
     JUDGE_CRITERIA,
     JUDGE_DESCRIPTIONS,
@@ -79,6 +63,14 @@ WORKFLOW_TYPE = "about_this_ger"
 DATASET = Path(__file__).parent / "dataset.yaml"
 # The state fields holding each validator's AgentCheckResult.
 RESULTS = ("preface_result", "authors_result")
+GROUND_TRUTH = (
+    "Inventory: one expected issue per broken rule across both validators, severity medium. Preface "
+    "elements and missing sections are matched on their title (no anchor, since the content is absent); "
+    "author issues are anchored on the bio. Where one author fails two rules, the second is optional, "
+    "since the skill allows one combined issue. Decoys mark bios a correct run leaves alone. No edits "
+    "are expected. A NaN metric value means the sample gave that check nothing to judge."
+)
+OWN_METRICS = {"about_checks": OWN_DESCRIPTIONS, "judged_criteria": JUDGE_DESCRIPTIONS}
 
 
 @scorer(metrics=PER_KEY_METRICS)
@@ -96,40 +88,12 @@ def about_this_ger_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded issue; the median grade is kept.
     """
-    records = load_inventory_records(DATASET)
-    reasons = list(decoy_reasons(records))
-    anchors, severities = expects_anchors(records), expects_severities(records)
-    keys = issue_check_keys(edits=False, anchors=anchors, severities=severities)
-    own = [
-        *(("about_checks", key) for key in OWN_DESCRIPTIONS),
-        *(("judged_criteria", c.key) for c in JUDGE_CRITERIA),
-    ]
+    suite = InventorySuite.load(DATASET, pairing="one_to_one", results=RESULTS)
     return Task(
-        dataset=inventory_dataset(records, DATASET),
-        metadata={
-            "ground_truth": (
-                "Inventory: one expected issue per broken rule across both validators, severity medium. Preface "
-                "elements and missing sections are matched on their title (no anchor, since the content is absent); "
-                "author issues are anchored on the bio. Where one author fails two rules, the second is optional, "
-                "since the skill allows one combined issue. Decoys mark bios a correct run leaves alone. No edits "
-                "are expected. A NaN metric value means the sample gave that check nothing to judge."
-            ),
-            "metrics": {
-                "issue_checks": {k: v for k, v in DETECTION_DESCRIPTIONS.items() if k in keys},
-                "decoy_checks": decoy_descriptions(reasons),
-                "about_checks": OWN_DESCRIPTIONS,
-                "judged_criteria": JUDGE_DESCRIPTIONS,
-            },
-        },
+        dataset=suite.dataset(),
+        metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),
         solver=api_workflow_agent(WORKFLOW_TYPE, timeout_s=timeout_s, item_messages_key="agent_conversations"),
-        scorer=[
-            issue_checks(edits=False, one_to_one=True, anchors=anchors, severities=severities, results=RESULTS),
-            decoy_checks(reasons, results=RESULTS),
-            about_checks(),
-            judged_criteria(JUDGE_CRITERIA, calls=judge_calls, one_to_one=True, results=RESULTS),
-        ],
+        scorer=[*suite.scorers(), about_checks(), suite.judged(JUDGE_CRITERIA, calls=judge_calls)],
         fail_on_error=0.2,
-        viewer=issue_viewer_config(
-            reasons, edits=False, extra=own, labels=SCORE_LABELS, anchors=anchors, severities=severities
-        ),
+        viewer=suite.viewer(OWN_METRICS, SCORE_LABELS),
     )

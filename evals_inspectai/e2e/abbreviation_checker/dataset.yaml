@@ -1,0 +1,1191 @@
+# Eval samples for the abbreviation_scan_v2 workflow. One record per document; `input` is the document under
+# review as markdown.
+#
+# Each record carries two layers of ground truth.
+#
+# The catalogue (`abbreviations_section_found`, `abbreviations`) is what the extraction agents should record,
+# following skills/abbreviation-extraction/SKILL.md: one entry per occurrence, keyed by the abbreviation in its
+# singular base form and its occurrence number (1 = first appearance), with its line span, the inline
+# definition that accompanies that occurrence (omitted when there is none), the definition listed in the
+# Abbreviations section (omitted when it is not listed or there is no section). Exempt occurrences are not
+# recorded at all (headings, references, footnotes, exempt classes, the always-excluded RAND, MIT and ChatGPT,
+# and the Abbreviations section itself), so they do not count toward occurrence numbers. `line_end` is omitted
+# when it equals `line_start`.
+#
+# The inventory (`expected_issues`, `decoys`, see evals_inspectai/common/issue_inventory.py) is what a user
+# sees: the issues the workflow builds from that catalogue, following skills/abbreviation-scan/SKILL.md. Each
+# uses the rule's exact title and severity medium, and is anchored on a short verbatim quote from the line of
+# the offending occurrence (the first non-excluded use, or for Rule 5 the first conflicting definition), except
+# "No Abbreviations section found", which concerns the whole document and is matched on its title alone.
+# Decoys are lines a correct run must not report under the given title: excluded occurrences (by the exclusion
+# that applies), later uses that the first-use rules must not reach, and definitions that do not conflict.
+- input: |
+    # Artificial Intelligence in Healthcare
+
+    ## Abbreviations
+
+    - AI: Artificial Intelligence
+    - LLM: Large Language Model
+    - NLP: Natural Language Processing
+
+    ## Introduction
+
+    Artificial Intelligence (AI) is transforming healthcare. Large Language Models (LLM) and Natural Language Processing (NLP) are key enabling technologies.
+
+    AI enables faster diagnosis and triage. LLMs can process vast amounts of medical literature and summarise findings. NLP extracts structured insights from unstructured clinical notes.
+
+    ## Conclusion
+
+    AI, LLM, and NLP will continue to shape the future of healthcare delivery.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "AI", occurrence_number: 1, line_start: 11, inline_definition: "Artificial Intelligence", abbreviations_section_definition: "Artificial Intelligence"}
+    - {abbr: "LLM", occurrence_number: 1, line_start: 11, inline_definition: "Large Language Models", abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "NLP", occurrence_number: 1, line_start: 11, inline_definition: "Natural Language Processing", abbreviations_section_definition: "Natural Language Processing"}
+    - {abbr: "AI", occurrence_number: 2, line_start: 13, abbreviations_section_definition: "Artificial Intelligence"}
+    - {abbr: "LLM", occurrence_number: 2, line_start: 13, abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "NLP", occurrence_number: 2, line_start: 13, abbreviations_section_definition: "Natural Language Processing"}
+    - {abbr: "AI", occurrence_number: 3, line_start: 17, abbreviations_section_definition: "Artificial Intelligence"}
+    - {abbr: "LLM", occurrence_number: 3, line_start: 17, abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "NLP", occurrence_number: 3, line_start: 17, abbreviations_section_definition: "Natural Language Processing"}
+  expected_issues: []
+  notes: >-
+    AI, LLM, and NLP each have an inline definition at their first occurrence on line 11 and all three are listed
+    in the Abbreviations section. Each appears again on lines 13 and 17 without inline definitions. Issues: none.
+    LLM's inline 'Large Language Models' differs from its entry 'Large Language Model' only by the plural, which
+    Rule 4 treats as trivial.
+- input: |
+    # Climate Change and Economic Growth
+
+    ## Abbreviations
+
+    - CO2: Carbon Dioxide
+    - IPCC: Intergovernmental Panel on Climate Change
+    - GDP: Gross Domestic Product
+
+    ## Introduction
+
+    CO2 emissions continue to rise globally despite international agreements. The IPCC has issued increasingly urgent warnings about rising temperatures. GDP growth must be decoupled from greenhouse gas emissions.
+
+    ## Methods
+
+    CO2 concentration levels were measured using satellite data. IPCC assessment reports from 2014 to 2023 were reviewed. GDP data was sourced from the World Bank open data portal.
+
+    ## Conclusion
+
+    Decoupling CO2 emissions from GDP growth remains the central challenge of climate policy, and IPCC guidance will continue to inform national targets.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "CO2", occurrence_number: 1, line_start: 11, abbreviations_section_definition: "Carbon Dioxide"}
+    - {abbr: "IPCC", occurrence_number: 1, line_start: 11, abbreviations_section_definition: "Intergovernmental Panel on Climate Change"}
+    - {abbr: "GDP", occurrence_number: 1, line_start: 11, abbreviations_section_definition: "Gross Domestic Product"}
+    - {abbr: "CO2", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Carbon Dioxide"}
+    - {abbr: "IPCC", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Intergovernmental Panel on Climate Change"}
+    - {abbr: "GDP", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Gross Domestic Product"}
+    - {abbr: "CO2", occurrence_number: 3, line_start: 19, abbreviations_section_definition: "Carbon Dioxide"}
+    - {abbr: "GDP", occurrence_number: 3, line_start: 19, abbreviations_section_definition: "Gross Domestic Product"}
+    - {abbr: "IPCC", occurrence_number: 3, line_start: 19, abbreviations_section_definition: "Intergovernmental Panel on Climate Change"}
+  expected_issues:
+    - id: co2_undefined
+      title: Abbreviation not defined at first use
+      anchor: "CO2 emissions continue to rise"
+      severity: medium
+    - id: ipcc_undefined
+      title: Abbreviation not defined at first use
+      anchor: "The IPCC has issued"
+      severity: medium
+    - id: gdp_undefined
+      title: Abbreviation not defined at first use
+      anchor: "GDP growth must be decoupled"
+      severity: medium
+  decoys:
+    - anchor: "CO2 concentration levels were measured"
+      reason: later_occurrence
+      title: Abbreviation not defined at first use
+  notes: >-
+    CO2, IPCC, and GDP are all listed in the Abbreviations section but none have an inline definition at any
+    occurrence — every occurrence has an empty inline_definition. Each appears 3 times (lines 11, 15, 19). Issues:
+    Rule 2 for each of CO2, IPCC and GDP at its first use on line 11 (listed in the section, never spelled out);
+    not again at the later uses.
+- input: |
+    # Cybersecurity Landscape Report
+
+    ## Abbreviations
+
+    - TLS: Transport Layer Security
+
+    ## Introduction
+
+    Transport Layer Security (TLS) is the foundational protocol for encrypted web communications. Distributed Denial of Service (DDoS) attacks have also grown significantly in scale and frequency.
+
+    ## Threat Analysis
+
+    TLS version 1.3 introduced major improvements over prior versions. DDoS attacks increasingly target critical infrastructure and cloud services.
+
+    ## Conclusion
+
+    Organisations must upgrade to TLS 1.3 and deploy DDoS mitigation strategies to maintain a secure posture.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "TLS", occurrence_number: 1, line_start: 9, inline_definition: "Transport Layer Security", abbreviations_section_definition: "Transport Layer Security"}
+    - {abbr: "DDoS", occurrence_number: 1, line_start: 9, inline_definition: "Distributed Denial of Service"}
+    - {abbr: "TLS", occurrence_number: 2, line_start: 13, abbreviations_section_definition: "Transport Layer Security"}
+    - {abbr: "DDoS", occurrence_number: 2, line_start: 13}
+    - {abbr: "TLS", occurrence_number: 3, line_start: 17, abbreviations_section_definition: "Transport Layer Security"}
+    - {abbr: "DDoS", occurrence_number: 3, line_start: 17}
+  expected_issues:
+    - id: ddos_not_listed
+      title: Abbreviation missing from Abbreviations section
+      anchor: "Distributed Denial of Service (DDoS)"
+      severity: medium
+  decoys:
+    - anchor: "DDoS attacks increasingly target"
+      reason: later_occurrence
+      title: Abbreviation missing from Abbreviations section
+  notes: >-
+    TLS has an inline definition at first use ('Transport Layer Security') and is listed in the Abbreviations
+    section. DDoS has an inline definition at first use ('Distributed Denial of Service') but has no
+    abbreviations_section_definition (not listed in the section). Both appear 3 times (lines 9, 13, 17). Issues:
+    Rule 3 for DDoS, once, at its first use.
+- input: |
+    # Defense Technology Assessment
+
+    ## Office of the Under Secretary of War (OUSW)
+
+    The OUSW was established in 1941 to coordinate wartime procurement. The OUSW played a pivotal role in managing contracts across all branches of the armed forces.
+
+    ## Advanced Research Projects Agency (ARPA)
+
+    ARPA was founded in 1958 in response to the Soviet Sputnik launch. ARPA later became DARPA when the 'Defense' prefix was added.
+
+    ## Conclusion
+
+    Both the OUSW and ARPA represent landmark moments in the institutional history of U.S. defense technology.
+  abbreviations_section_found: false
+  abbreviations:
+    - {abbr: "OUSW", occurrence_number: 1, line_start: 5}
+    - {abbr: "OUSW", occurrence_number: 2, line_start: 5}
+    - {abbr: "ARPA", occurrence_number: 1, line_start: 9}
+    - {abbr: "ARPA", occurrence_number: 2, line_start: 9}
+    - {abbr: "DARPA", occurrence_number: 1, line_start: 9}
+    - {abbr: "OUSW", occurrence_number: 3, line_start: 13}
+    - {abbr: "ARPA", occurrence_number: 3, line_start: 13}
+  expected_issues:
+    - id: no_section
+      title: No Abbreviations section found
+      severity: medium
+    - id: ousw_undefined
+      title: Abbreviation not defined at first use
+      anchor: "The OUSW was established"
+      severity: medium
+    - id: arpa_undefined
+      title: Abbreviation not defined at first use
+      anchor: "ARPA was founded in 1958"
+      severity: medium
+    - id: darpa_undefined
+      title: Abbreviation not defined at first use
+      anchor: "later became DARPA"
+      severity: medium
+  decoys:
+    - anchor: "U.S. defense technology"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    OUSW and ARPA first appear in headings (lines 3 and 7) with inline definitions; heading occurrences are not
+    recorded. Both appear twice on their next body lines (line 5 for OUSW, line 9 for ARPA) without inline
+    definitions, and DARPA once on line 9. Line 13 has OUSW (occurrence 3), ARPA (occurrence 3) and U.S., which is
+    exempt (United States abbreviation) and not recorded. No abbreviations section exists. 7 recorded occurrences.
+    Issues: Rule 1 (no section), and Rule 2 for OUSW, ARPA and DARPA: the heading definitions do not count, so
+    each first use is the bare body mention after the heading.
+- input: |
+    # Research Team Profiles
+
+    ## Senior Investigators
+
+    Dr. Johnson leads the epidemiology division and has published over 80 peer-reviewed articles. Mr. Patel manages the data infrastructure team and oversees all database systems. Ms. Chen coordinates outreach with partner institutions across the U.S.
+
+    ## Methodology
+
+    All protocols were approved by Dr. Johnson and reviewed by Mr. Patel. Data transfers comply with applicable U.S. federal regulations.
+
+    ## Conclusion
+
+    The team, led by Dr. Johnson, has established a strong track record of collaboration across U.S. institutions.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "Dr. Johnson leads the epidemiology division"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    Dr., Mr., Ms., and U.S. are all exempt abbreviation classes (personal titles and United States abbreviation),
+    so none of their occurrences is recorded. Dr. appears 3 times (lines 5, 9, 13), Mr. appears twice (lines 5,
+    9), Ms. appears once (line 5), U.S. appears 3 times (lines 5, 9, 13). No abbreviations section exists. The
+    catalogue is empty. Issues: none: every occurrence is exempt, so there is nothing for the rules to check and
+    no section is needed.
+- input: |
+    # Machine Learning in Drug Discovery
+
+    ## Abbreviations
+
+    - ML: Machine Learning
+    - FDA: Food and Drug Administration
+    - API: Active Pharmaceutical Ingredient
+
+    ## Introduction
+
+    Machine Learning (ML) is accelerating the drug discovery pipeline. Regulatory submissions to the Food and Drug Administration (FDA) must now account for ML-derived evidence. The Active Pharmaceutical Ingredient (API) characterisation phase is one area where ML models have proven particularly effective.
+
+    ## Applications
+
+    ML models can screen millions of molecular candidates in hours. FDA guidance documents now address the validation of ML-based diagnostic tools. API purity testing has been automated using ML-driven spectroscopic analysis.
+
+    ## References
+
+    - Smith, J. and Brown, A. (2022). ML Methods for API Synthesis Optimisation. Journal of Pharmaceutical Sciences, 111(4), 1200-1215.
+    - Jones, R. (2023). FDA Regulatory Frameworks for ML in Clinical Trials. Drug Safety, 46(2), 88-102.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "ML", occurrence_number: 1, line_start: 11, inline_definition: "Machine Learning", abbreviations_section_definition: "Machine Learning"}
+    - {abbr: "FDA", occurrence_number: 1, line_start: 11, inline_definition: "Food and Drug Administration", abbreviations_section_definition: "Food and Drug Administration"}
+    - {abbr: "ML", occurrence_number: 2, line_start: 11, abbreviations_section_definition: "Machine Learning"}
+    - {abbr: "API", occurrence_number: 1, line_start: 11, inline_definition: "Active Pharmaceutical Ingredient", abbreviations_section_definition: "Active Pharmaceutical Ingredient"}
+    - {abbr: "ML", occurrence_number: 3, line_start: 11, abbreviations_section_definition: "Machine Learning"}
+    - {abbr: "ML", occurrence_number: 4, line_start: 15, abbreviations_section_definition: "Machine Learning"}
+    - {abbr: "FDA", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Food and Drug Administration"}
+    - {abbr: "ML", occurrence_number: 5, line_start: 15, abbreviations_section_definition: "Machine Learning"}
+    - {abbr: "API", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Active Pharmaceutical Ingredient"}
+    - {abbr: "ML", occurrence_number: 6, line_start: 15, abbreviations_section_definition: "Machine Learning"}
+  expected_issues: []
+  notes: >-
+    ML, FDA, and API all have inline definitions at first use and are listed in the Abbreviations section.
+    Occurrences in the References section (lines 19-20) are not recorded. 10 recorded occurrences. Issues: none.
+- input: |
+    Mr. Thompson submitted the complaint on behalf of his client.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "Mr. Thompson submitted"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    Mr. is a personal title — an exempt abbreviation class. It is not recorded. No abbreviations section exists.
+    The catalogue is empty.
+- input: |
+    The keynote speaker, Jane Morris, Ph.D., opened the conference on Monday.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "Jane Morris, Ph.D."
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    Ph.D. is an academic degree — an exempt abbreviation class. It is not recorded. No abbreviations section
+    exists. The catalogue is empty.
+- input: |
+    The antenna output was measured at 43 mW across a 120 cm cable run.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "43 mW across a 120 cm"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    mW and cm are common units of measurement — an exempt abbreviation class. Neither is recorded. No
+    abbreviations section exists. The catalogue is empty.
+- input: |
+    As Kahneman (2011) observed, "A reliable way to make people believe in falsehoods is frequent repetition" (p. 62), a principle with clear implications for how misinformation spreads in digital environments.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "(p. 62)"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    p. is a citation element (page number) — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    Col. Davidson briefed the unit commanders before the exercise began.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "Col. Davidson briefed"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    Col. is a military rank — an exempt abbreviation class. It is not recorded. No abbreviations section exists.
+    The catalogue is empty.
+- input: |
+    The device was certified for use in U.S. markets in early 2019.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "certified for use in U.S. markets"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    U.S. is the United States abbreviation — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    The intercepted signal data has not been released to partner agencies. (U)
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "released to partner agencies. (U)"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    (U) is a security marking — an exempt abbreviation class. It is not recorded. No abbreviations section exists.
+    The catalogue is empty.
+- input: |
+    Dr. Sarah Chen, Ph.D., and Mr. James Okafor, M.A., co-authored a study on low-power wireless systems, demonstrating that a signal of 15 mW transmitted over a distance of 340 cm achieved reliable coverage. Their findings drew on field tests conducted by Col. Marcus Webb during a U.S. Army communications trial. (U) The unclassified summary confirmed the results, while the full technical annex remains marked Secret pending declassification review. IT has confirmed that this information is stored securely. Artificial Intelligence (AI) is an emerging technology.
+  abbreviations_section_found: false
+  abbreviations:
+    - {abbr: "IT", occurrence_number: 1, line_start: 1}
+    - {abbr: "AI", occurrence_number: 1, line_start: 1, inline_definition: "Artificial Intelligence"}
+  expected_issues:
+    - id: no_section
+      title: No Abbreviations section found
+      severity: medium
+    - id: it_undefined
+      title: Abbreviation not defined at first use
+      anchor: "IT has confirmed"
+      severity: medium
+  notes: >-
+    Dr., Ph.D., Mr., M.A., mW, cm, Col., U.S., and (U) are all exempt abbreviation classes and are not recorded.
+    IT appears once without an inline definition and AI once with one ('Artificial Intelligence'); no
+    abbreviations section exists. 2 recorded occurrences. Issues: Rule 1 (no section) and Rule 2 for IT; every
+    other abbreviation on the line is exempt or, like AI, defined.
+- input: |
+    The C-141 Starlifter was the primary strategic airlifter for U.S. forces during the Cold War.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "The C-141 Starlifter"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    C-141 is a military equipment designator and U.S. is the United States abbreviation — both are exempt
+    abbreviation classes. Neither is recorded. No abbreviations section exists. The catalogue is empty.
+- input: |
+    Ka-32 helicopters were used extensively in the firefighting operation over the mountain range.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "Ka-32 helicopters"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    Ka-32 is a military equipment designator — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    RAND has recently celebrated the 75th year since it's founding.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "RAND has recently celebrated"
+      reason: always_excluded
+      title: Abbreviation not defined at first use
+  notes: >-
+    RAND is a corporation name (all-caps) — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    CNA provides risk management and insurance services to businesses across the U.S.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "CNA provides risk management"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    CNA is a corporation name (all-caps) and U.S. is the United States abbreviation — both are exempt abbreviation
+    classes. Neither is recorded. No abbreviations section exists. The catalogue is empty.
+- input: |
+    The MITRE Corporation operates federally funded research and development centers supporting national security.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "The MITRE Corporation"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    MITRE is a corporation name (all-caps) — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    IBM released its quarterly earnings report ahead of analyst expectations.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "IBM released its quarterly"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    IBM is a corporation name (all-caps) — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    The contract was awarded jointly to SAIC and Leidos following a competitive review.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "awarded jointly to SAIC"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    SAIC is a corporation name (all-caps) — an exempt abbreviation class. It is not recorded. No abbreviations
+    section exists. The catalogue is empty.
+- input: |
+    The investigation revealed that the suspected Royal Air Force (RAF) operative had traveled through three countries before arriving in Berlin, where local authorities had been monitoring known Red Army Faction (RAF) sympathizers for several months.
+  abbreviations_section_found: false
+  abbreviations:
+    - {abbr: "RAF", occurrence_number: 1, line_start: 1, inline_definition: "Royal Air Force"}
+    - {abbr: "RAF", occurrence_number: 2, line_start: 1, inline_definition: "Red Army Faction"}
+  expected_issues:
+    - id: no_section
+      title: No Abbreviations section found
+      severity: medium
+    - id: raf_ambiguous
+      title: Ambiguous abbreviation
+      anchor: "Red Army Faction (RAF)"
+      severity: medium
+  notes: >-
+    RAF appears twice on line 1 with two different inline definitions: 'Royal Air Force' at occurrence 1 and 'Red
+    Army Faction' at occurrence 2. No abbreviations section exists. 2 total occurrences. Issues: Rule 1 (no
+    section) and one Rule 5 for RAF at its second, conflicting definition.
+- input: |
+    # The Effect of AI on Critical Thinking
+
+    This report examines how recent advances in technology have reshaped the way analysts evaluate evidence and form judgments.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "The Effect of AI on Critical Thinking"
+      reason: heading
+      title: Abbreviation not defined at first use
+  notes: >-
+    AI appears only in the document title heading ('# The Effect of AI on Critical Thinking'), which is not
+    recorded, so the catalogue is empty. No abbreviations section exists.
+- input: |
+    # Space Exploration Policy Review
+
+    ## A Subheading Containing a NASA Undefined Acronym
+
+    The committee reviewed several proposals for future missions and recommended increased funding for planetary science.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "A Subheading Containing a NASA"
+      reason: heading
+      title: Abbreviation not defined at first use
+  notes: >-
+    NASA appears only in a subheading ('## A Subheading Containing a NASA Undefined Acronym'), which is not
+    recorded, so the catalogue is empty. No abbreviations section exists.
+- input: |
+    Water samples collected downstream from the agricultural site tested positive for Escherichia coli. Researchers later introduced a modified strain of E. coli to evaluate its effectiveness.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  decoys:
+    - anchor: "modified strain of E. coli"
+      reason: exempt_class
+      title: Abbreviation not defined at first use
+  notes: >-
+    E. coli is a biological genus abbreviation — an exempt abbreviation class. It is not recorded. The full genus
+    name 'Escherichia coli' appears earlier in the sentence but is not an inline definition in the 'Full Name
+    (ABBR)' pattern. No abbreviations section exists. The catalogue is empty.
+- input: |
+    # Advances in Language Technology
+
+    ## Abbreviations
+
+    - LLM: Large Language Model
+    - GPU: Graphics Processing Unit
+
+    ## Introduction
+
+    Large Language Models (LLMs) have transformed natural language processing. Training these models requires powerful Graphics Processing Units (GPUs).
+
+    ## Methods
+
+    Each LLM was fine-tuned on domain-specific datasets. We used 8 GPUs per training run. The LLMs achieved state-of-the-art performance across all benchmarks.
+
+    ## Conclusion
+
+    LLMs will continue to improve as GPU availability increases.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "LLM", occurrence_number: 1, line_start: 10, inline_definition: "Large Language Models", abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "GPU", occurrence_number: 1, line_start: 10, inline_definition: "Graphics Processing Units", abbreviations_section_definition: "Graphics Processing Unit"}
+    - {abbr: "LLM", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "GPU", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Graphics Processing Unit"}
+    - {abbr: "LLM", occurrence_number: 3, line_start: 14, abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "LLM", occurrence_number: 4, line_start: 18, abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "GPU", occurrence_number: 3, line_start: 18, abbreviations_section_definition: "Graphics Processing Unit"}
+  expected_issues: []
+  notes: >-
+    Plural forms (LLMs, GPUs) should be treated as the same abbreviation as their singular forms (LLM, GPU) and
+    recorded with the singular base form as the abbr value. 'Large Language Models (LLMs)' on line 10 is recorded
+    as the inline definition for LLM. 'Graphics Processing Units (GPUs)' on line 10 is recorded as the inline
+    definition for GPU. Both are listed in the Abbreviations section. LLM appears 4 times (lines 10, 14, 14, 18),
+    GPU appears 3 times (lines 10, 14, 18). Issues: none: the plural definitions satisfy first use and match the
+    singular entries.
+- input: |
+    # Community Gardens and Neighbourhood Wellbeing
+
+    ## Introduction
+
+    Community gardens have spread across many cities over the past two decades. This report asks whether residents who take part in a shared garden describe stronger ties with their neighbours than residents who do not.
+
+    ## Methods
+
+    We interviewed forty-two gardeners and thirty-eight neighbours who lived within walking distance of six gardens. Each interview followed the same set of open questions about daily contact, trust and shared projects, and two researchers coded every transcript independently.
+
+    ## Findings
+
+    Gardeners described more frequent informal contact with neighbours, most often while tending plots on weekend mornings. Several neighbours who did not garden still reported that the gardens gave them a reason to stop and talk. Trust was described in similar terms by both groups.
+
+    ## Conclusion
+
+    Shared gardens appear to create occasions for contact rather than to change how residents feel about one another. Planners who want to strengthen neighbourhood ties may find that the value of a garden lies in the routine meetings it makes possible.
+  abbreviations_section_found: false
+  abbreviations: []
+  expected_issues: []
+  notes: >-
+    Clean, and the only document with no abbreviations at all: a short qualitative report with no acronyms,
+    titles, units or Latin shorthand. The catalogue is empty, no Abbreviations section is needed, and the skill
+    says to report nothing (in particular, not 'No Abbreviations section found').
+- input: |
+    # Broadband Access in Rural Counties
+
+    ## Introduction
+
+    The Federal Communications Commission (FCC) estimates that millions of rural households still lack a fixed connection that meets its minimum speed benchmark. Many of these households are served only by digital subscriber line (DSL) service over ageing copper lines.
+
+    ## Provider Coverage
+
+    Internet service providers (ISPs) report coverage by census block, and the FCC publishes those filings in its national broadband map. Because a block counts as served when a single address can be connected, ISPs can overstate coverage in sparsely settled areas.
+
+    ## Findings
+
+    Across the counties we studied, DSL remained the only wired option for about a third of households. Field checks found that a quarter of the addresses the FCC map listed as served could not order the advertised speed.
+
+    ## Conclusion
+
+    Coverage data that reflects individual addresses, rather than whole blocks, would give ISPs and state agencies a clearer picture of where investment is needed.
+  abbreviations_section_found: false
+  abbreviations:
+    - {abbr: "FCC", occurrence_number: 1, line_start: 5, inline_definition: "Federal Communications Commission"}
+    - {abbr: "DSL", occurrence_number: 1, line_start: 5, inline_definition: "digital subscriber line"}
+    - {abbr: "ISP", occurrence_number: 1, line_start: 9, inline_definition: "Internet service providers"}
+    - {abbr: "FCC", occurrence_number: 2, line_start: 9}
+    - {abbr: "ISP", occurrence_number: 2, line_start: 9}
+    - {abbr: "DSL", occurrence_number: 2, line_start: 13}
+    - {abbr: "FCC", occurrence_number: 3, line_start: 13}
+    - {abbr: "ISP", occurrence_number: 3, line_start: 17}
+  expected_issues:
+    - id: no_section
+      title: No Abbreviations section found
+      severity: medium
+  decoys:
+    - anchor: "DSL remained the only wired option"
+      reason: later_occurrence
+      title: Abbreviation not defined at first use
+  notes: >-
+    Rule 1 on its own: every abbreviation (FCC, DSL, the plural ISPs) is defined at its first use, but the
+    document has no Abbreviations section, so the only issue is 'No Abbreviations section found' (unanchored: it
+    concerns the whole document). The bare later uses need no definition (decoy).
+- input: |
+    # Hospital Readmission Trends, 2018–2023
+
+    ## Abbreviations
+
+    - CMS: Centers for Medicare and Medicaid Services
+    - ICU: Intensive Care Unit
+    - LOS: Length of Stay
+
+    ## Introduction
+
+    CMS penalties for excess readmissions have pushed hospitals to rethink discharge planning. This report examines how readmission rates changed across a regional network of twelve hospitals.
+
+    ## Data
+
+    We linked discharge records to follow-up admissions within thirty days. Patients discharged from an intensive care unit (ICU) were analysed separately, and length of stay (LOS) was recorded for every index admission.
+
+    ## Results
+
+    Readmission rates fell in nine of the twelve hospitals. Patients with a longer LOS were less likely to return, and ICU patients returned at twice the rate of other patients. After CMS adjusted its penalty formula in 2021, the decline slowed.
+
+    ## Conclusion
+
+    Discharge planning that begins early in the ICU stay may do more to reduce readmissions than any single post-discharge programme.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "CMS", occurrence_number: 1, line_start: 11, abbreviations_section_definition: "Centers for Medicare and Medicaid Services"}
+    - {abbr: "ICU", occurrence_number: 1, line_start: 15, inline_definition: "intensive care unit", abbreviations_section_definition: "Intensive Care Unit"}
+    - {abbr: "LOS", occurrence_number: 1, line_start: 15, inline_definition: "length of stay", abbreviations_section_definition: "Length of Stay"}
+    - {abbr: "LOS", occurrence_number: 2, line_start: 19, abbreviations_section_definition: "Length of Stay"}
+    - {abbr: "ICU", occurrence_number: 2, line_start: 19, abbreviations_section_definition: "Intensive Care Unit"}
+    - {abbr: "CMS", occurrence_number: 2, line_start: 19, abbreviations_section_definition: "Centers for Medicare and Medicaid Services"}
+    - {abbr: "ICU", occurrence_number: 3, line_start: 23, abbreviations_section_definition: "Intensive Care Unit"}
+  expected_issues:
+    - id: cms_undefined
+      title: Abbreviation not defined at first use
+      anchor: "CMS penalties for excess readmissions"
+      severity: medium
+  decoys:
+    - anchor: "After CMS adjusted its penalty formula"
+      reason: later_occurrence
+      title: Abbreviation not defined at first use
+  notes: >-
+    Rule 2 on its own: CMS is listed in the Abbreviations section but its first use (the opening sentence) is bare
+    and it is never spelled out. ICU and LOS are defined at first use, in lowercase, which matches the section's
+    title-case entries. Rule 2 is raised once, at the first use; the later bare CMS is a decoy.
+- input: |
+    # Groundwater Quality Near Former Industrial Sites
+
+    ## Abbreviations
+
+    - EPA: Environmental Protection Agency
+    - VOC: Volatile Organic Compound
+
+    ## Background
+
+    The Environmental Protection Agency (EPA) sets a maximum contaminant level (MCL) for each regulated pollutant in drinking water. Several volatile organic compounds (VOCs) used as industrial solvents persist in groundwater for decades.
+
+    ## Sampling
+
+    We sampled forty monitoring wells near three former manufacturing sites. Each sample was analysed for eleven VOCs using the methods the EPA prescribes for drinking water.
+
+    ## Results
+
+    Trichloroethylene exceeded its MCL in nine wells, all within half a kilometre of the largest site. No other VOC exceeded its MCL.
+
+    ## Conclusion
+
+    Wells close to former solvent users should be tested at least once a year until concentrations fall below the MCL.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "EPA", occurrence_number: 1, line_start: 10, inline_definition: "Environmental Protection Agency", abbreviations_section_definition: "Environmental Protection Agency"}
+    - {abbr: "MCL", occurrence_number: 1, line_start: 10, inline_definition: "maximum contaminant level"}
+    - {abbr: "VOC", occurrence_number: 1, line_start: 10, inline_definition: "volatile organic compounds", abbreviations_section_definition: "Volatile Organic Compound"}
+    - {abbr: "VOC", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Volatile Organic Compound"}
+    - {abbr: "EPA", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Environmental Protection Agency"}
+    - {abbr: "MCL", occurrence_number: 2, line_start: 18}
+    - {abbr: "VOC", occurrence_number: 3, line_start: 18, abbreviations_section_definition: "Volatile Organic Compound"}
+    - {abbr: "MCL", occurrence_number: 3, line_start: 18}
+    - {abbr: "MCL", occurrence_number: 4, line_start: 22}
+  expected_issues:
+    - id: mcl_not_listed
+      title: Abbreviation missing from Abbreviations section
+      anchor: "maximum contaminant level (MCL)"
+      severity: medium
+  decoys:
+    - anchor: "Trichloroethylene exceeded its MCL"
+      reason: later_occurrence
+      title: Abbreviation missing from Abbreviations section
+  notes: >-
+    Rule 3 on its own: MCL is defined at first use but missing from the Abbreviations section, reported once at
+    its first use; its three later uses are not reported again (decoy on the Results line). EPA and the plural
+    VOCs are defined and listed.
+- input: |
+    # Evaluating a Workforce Training Subsidy
+
+    ## Abbreviations
+
+    - CBA: Collective Bargaining Agreement
+    - GDP: Gross Domestic Product
+
+    ## Introduction
+
+    This report presents a cost-benefit analysis (CBA) of a state subsidy that pays employers to train newly hired workers. The subsidy costs the state about 0.1 percent of its gross domestic product (GDP) each year.
+
+    ## Approach
+
+    The CBA compares the subsidy's cost with the additional earnings of trained workers over ten years, discounted at three percent.
+
+    ## Results
+
+    Under every discount rate we tested, the CBA found that benefits exceeded costs, although the margin narrowed when earnings gains were assumed to fade after five years. Relative to GDP, the net benefit is small.
+
+    ## Conclusion
+
+    The subsidy appears to pay for itself, but the estimate depends heavily on how long the earnings gains last.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "CBA", occurrence_number: 1, line_start: 10, inline_definition: "cost-benefit analysis", abbreviations_section_definition: "Collective Bargaining Agreement"}
+    - {abbr: "GDP", occurrence_number: 1, line_start: 10, inline_definition: "gross domestic product", abbreviations_section_definition: "Gross Domestic Product"}
+    - {abbr: "CBA", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Collective Bargaining Agreement"}
+    - {abbr: "CBA", occurrence_number: 3, line_start: 18, abbreviations_section_definition: "Collective Bargaining Agreement"}
+    - {abbr: "GDP", occurrence_number: 2, line_start: 18, abbreviations_section_definition: "Gross Domestic Product"}
+  expected_issues:
+    - id: cba_mismatch
+      title: Inline definition does not match Abbreviations section
+      anchor: "cost-benefit analysis (CBA)"
+      severity: medium
+  notes: >-
+    Rule 4 on its own: CBA is spelled out at first use as 'cost-benefit analysis' but listed in the Abbreviations
+    section as 'Collective Bargaining Agreement'. It is defined only once, so this is a mismatch with the section,
+    not an ambiguity. GDP differs from its entry only in case, which the rule ignores.
+- input: |
+    # Scope of Practice and Access to Primary Care
+
+    ## Acronyms
+
+    - NP: Nurse Practitioner
+    - PA: Physician Assistant
+
+    ## Introduction
+
+    Physician assistants (PAs) and nurse practitioners (NPs) now deliver a growing share of primary care visits in rural areas. States differ in how much independence they grant each profession.
+
+    ## Methods
+
+    We compared visit volumes in states that allow NPs to practise without physician oversight with volumes in states that require it. PA supervision rules were coded from each state's statutes.
+
+    ## Results
+
+    Visit volumes grew fastest where NPs practise independently. Insurers' prior authorization (PA) requirements, rather than supervision rules, were the barrier clinics mentioned most often.
+
+    ## Conclusion
+
+    Loosening supervision rules may matter less for access than simplifying the approval processes that insurers impose.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "PA", occurrence_number: 1, line_start: 10, inline_definition: "Physician assistants", abbreviations_section_definition: "Physician Assistant"}
+    - {abbr: "NP", occurrence_number: 1, line_start: 10, inline_definition: "nurse practitioners", abbreviations_section_definition: "Nurse Practitioner"}
+    - {abbr: "NP", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Nurse Practitioner"}
+    - {abbr: "PA", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Physician Assistant"}
+    - {abbr: "NP", occurrence_number: 3, line_start: 18, abbreviations_section_definition: "Nurse Practitioner"}
+    - {abbr: "PA", occurrence_number: 3, line_start: 18, inline_definition: "prior authorization", abbreviations_section_definition: "Physician Assistant"}
+  expected_issues:
+    - id: pa_ambiguous
+      title: Ambiguous abbreviation
+      anchor: "prior authorization (PA)"
+      severity: medium
+  notes: >-
+    Rule 5 on its own, under an 'Acronyms' heading (an equivalent section): PA is introduced as 'physician
+    assistants', matching its entry, and later redefined as 'prior authorization'. One 'Ambiguous abbreviation'
+    issue at the conflicting occurrence; Rule 4 compares only the first use, which matches the section.
+- input: |
+    # Students' Use of Chatbots for Writing Assignments
+
+    ## Abbreviations
+
+    - LLM: Large Language Model
+
+    ## Introduction
+
+    Chatbots built on a large language model (LLM) have become a routine part of how many students draft essays. This review summarises recent studies of that shift.
+
+    ## Evidence
+
+    A RAND survey of high school teachers found that most had seen assignments they suspected were drafted with a chatbot.
+
+    A classroom experiment at MIT found that students who drafted with an LLM finished sooner but recalled less of their own arguments a week later.
+
+    Students most often named ChatGPT as the tool they used, followed by assistants built into word processors.
+
+    ## Conclusion
+
+    Teachers are adapting assignments rather than banning the tools outright.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "LLM", occurrence_number: 1, line_start: 9, inline_definition: "large language model", abbreviations_section_definition: "Large Language Model"}
+    - {abbr: "LLM", occurrence_number: 2, line_start: 15, abbreviations_section_definition: "Large Language Model"}
+  expected_issues: []
+  decoys:
+    - anchor: "A RAND survey of high school teachers"
+      reason: always_excluded
+      title: Abbreviation not defined at first use
+    - anchor: "A RAND survey of high school teachers"
+      reason: always_excluded
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "A classroom experiment at MIT"
+      reason: always_excluded
+      title: Abbreviation not defined at first use
+    - anchor: "A classroom experiment at MIT"
+      reason: always_excluded
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "Students most often named ChatGPT"
+      reason: always_excluded
+      title: Abbreviation not defined at first use
+    - anchor: "Students most often named ChatGPT"
+      reason: always_excluded
+      title: Abbreviation missing from Abbreviations section
+  notes: >-
+    Clean. RAND, MIT and ChatGPT are used bare and are not in the Abbreviations section, which would fail Rules 2
+    and 3, but they are never recorded (the extraction skill names them as always excluded). Each is a
+    decoy under both titles. LLM is defined and listed.
+- input: |
+    # Childhood Obesity Trends in the United States
+
+    ## Abbreviations
+
+    - BMI: Body Mass Index
+    - CDC: Centers for Disease Control and Prevention
+
+    ## Introduction
+
+    The Centers for Disease Control and Prevention (CDC) classifies a child as obese when their body mass index (BMI) is at or above the 95th percentile for their age and sex.
+
+    ## BMI Trends by Age Group
+
+    Obesity prevalence rose in every age group between the two survey periods.[^1] The increase was steepest among children aged six to eleven, whose average BMI rose by nearly one point.
+
+    ## NHANES Measurement Protocol
+
+    Height and weight were measured by trained examiners rather than reported by parents, which the CDC regards as the more reliable approach.[^2]
+
+    ## Conclusion
+
+    Measured rather than reported data confirm that childhood obesity continues to rise.
+
+    ## References
+
+    - Hales, Craig, Margaret Carroll, Cheryl Fryar, and Cynthia Ogden (2020). Prevalence of Obesity and Severe Obesity Among Adults: United States, 2017–2018. NCHS Data Brief 360.
+    - Stierman, Bryan, and colleagues (2021). NHANES 2017–March 2020 Prepandemic Data Files. National Health Statistics Reports 158.
+
+    [^1]: Prevalence estimates come from the NHANES survey cycles published by the NCHS.
+    [^2]: The NCHS examination manual describes the measurement procedure in detail.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "CDC", occurrence_number: 1, line_start: 10, inline_definition: "Centers for Disease Control and Prevention", abbreviations_section_definition: "Centers for Disease Control and Prevention"}
+    - {abbr: "BMI", occurrence_number: 1, line_start: 10, inline_definition: "body mass index", abbreviations_section_definition: "Body Mass Index"}
+    - {abbr: "BMI", occurrence_number: 2, line_start: 14, abbreviations_section_definition: "Body Mass Index"}
+    - {abbr: "CDC", occurrence_number: 2, line_start: 18, abbreviations_section_definition: "Centers for Disease Control and Prevention"}
+  expected_issues: []
+  decoys:
+    - anchor: "## BMI Trends by Age Group"
+      reason: heading
+      title: Abbreviation not defined at first use
+    - anchor: "## NHANES Measurement Protocol"
+      reason: heading
+      title: Abbreviation not defined at first use
+    - anchor: "## NHANES Measurement Protocol"
+      reason: heading
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "NCHS Data Brief 360"
+      reason: references
+      title: Abbreviation not defined at first use
+    - anchor: "NCHS Data Brief 360"
+      reason: references
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "NHANES 2017–March 2020"
+      reason: references
+      title: Abbreviation not defined at first use
+    - anchor: "NHANES 2017–March 2020"
+      reason: references
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "published by the NCHS"
+      reason: footnote
+      title: Abbreviation not defined at first use
+    - anchor: "published by the NCHS"
+      reason: footnote
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "The NCHS examination manual"
+      reason: footnote
+      title: Abbreviation not defined at first use
+    - anchor: "The NCHS examination manual"
+      reason: footnote
+      title: Abbreviation missing from Abbreviations section
+  notes: >-
+    Clean. Every abbreviation the body never introduces sits only where the extraction skill excludes it: BMI's
+    first appearance is a heading (the body then defines it), NHANES appears only in a heading, a reference and a
+    footnote, and NCHS only in references and footnotes. Neither NHANES nor NCHS is listed, so an exclusion that
+    failed would raise Rule 2 or Rule 3 on that line; each is a decoy under both titles. The body sentences
+    carrying the note markers are checked as usual (and pass).
+- input: |
+    # Rural Clinic Referral Patterns
+
+    ## Abbreviations
+
+    - EHR: Electronic Health Record
+    - PT: Physical Therapy
+
+    ## Introduction
+
+    EHR adoption among rural clinics lagged behind urban practices for most of the past decade. This report asks how that gap shaped referral patterns for musculoskeletal injuries.
+
+    ## Background
+
+    An electronic health record (EHR) lets a clinic send a referral, with the patient's history attached, in a single step. Clinics without one relied on faxed forms, and many referrals to PT were never completed.
+
+    ## Findings
+
+    Referrals for physical therapy (PT) were completed twice as often at clinics with an electronic record. Completion also depended on whether patient transport (PT) services were available to carry patients to appointments in the county seat.
+
+    ## Conclusion
+
+    Clinics that moved to electronic health records (EHRs) closed most of the referral gap within two years.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "EHR", occurrence_number: 1, line_start: 10, abbreviations_section_definition: "Electronic Health Record"}
+    - {abbr: "EHR", occurrence_number: 2, line_start: 14, inline_definition: "electronic health record", abbreviations_section_definition: "Electronic Health Record"}
+    - {abbr: "PT", occurrence_number: 1, line_start: 14, abbreviations_section_definition: "Physical Therapy"}
+    - {abbr: "PT", occurrence_number: 2, line_start: 18, inline_definition: "physical therapy", abbreviations_section_definition: "Physical Therapy"}
+    - {abbr: "PT", occurrence_number: 3, line_start: 18, inline_definition: "patient transport", abbreviations_section_definition: "Physical Therapy"}
+    - {abbr: "EHR", occurrence_number: 3, line_start: 22, inline_definition: "electronic health records", abbreviations_section_definition: "Electronic Health Record"}
+  expected_issues:
+    - id: ehr_undefined
+      title: Abbreviation not defined at first use
+      anchor: "EHR adoption among rural clinics"
+      severity: medium
+    - id: pt_undefined
+      title: Abbreviation not defined at first use
+      anchor: "many referrals to PT were never completed"
+      severity: medium
+    - id: pt_ambiguous
+      title: Ambiguous abbreviation
+      anchor: "patient transport (PT)"
+      severity: medium
+  decoys:
+    - anchor: "An electronic health record (EHR) lets a clinic"
+      reason: first_definition
+      title: Ambiguous abbreviation
+    - anchor: "electronic health records (EHRs)"
+      reason: consistent_redefinition
+      title: Ambiguous abbreviation
+  notes: >-
+    Abbreviations used bare before they are defined. EHR and PT both first appear bare (Rule 2 at that first use)
+    and are spelled out later. Rule 5's baseline is the first occurrence that carries a definition, not the bare
+    first use: EHR's later 'electronic health records (EHRs)' agrees with its first definition (decoy), while PT,
+    defined as 'physical therapy', is redefined as 'patient transport' on the same line (one 'Ambiguous
+    abbreviation'). Both first uses are bare, so Rule 4 has nothing to compare; both are listed, so Rule 3 passes.
+- input: |
+    # Food Assistance and Household Food Security After the Pandemic
+
+    ## Abbreviations
+
+    - CPS: Current Population Survey
+    - EBT: Electronic Benefit Transfer
+    - FNS: Food and Nutrition Service
+    - SNAP: Supplemental Nutrition Assistance Program
+    - USDA: United States Department of Agriculture
+    - WIC: Special Supplemental Nutrition Program for Women, Infants, and Children
+
+    ## Summary
+
+    This report examines how participation in the Supplemental Nutrition Assistance Program (SNAP) changed between 2019 and 2023, and how those changes relate to household food security. It draws on administrative caseload data and on the food security questions fielded each December in the CPS.
+
+    Emergency allotments raised SNAP benefits for most households during the pandemic and ended in early 2023. Food insecurity fell while the allotments were in place and rose again within months of their end.
+
+    The sharpest increases after the allotments ended were among households with young children, and the smallest among households headed by older adults.
+
+    ## Introduction
+
+    Food insecurity, the condition of lacking reliable access to enough food for an active and healthy life, is measured in the United States through an eighteen-item questionnaire administered to a nationally representative sample of households.
+
+    The questionnaire asks about experiences over the previous twelve months, from worrying that food would run out before there was money to buy more, to skipping meals or going a whole day without eating. Households that report several of these experiences are classified as having low or very low food security.
+
+    The United States Department of Agriculture (USDA) publishes annual estimates from that questionnaire, and those estimates have become the standard benchmark against which food assistance programs are judged.
+
+    Two programs account for most federal food assistance to low-income households. SNAP provides monthly benefits that households spend at authorized retailers.
+
+    The Special Supplemental Nutrition Program for Women, Infants, and Children (WIC) provides specific foods, nutrition education and referrals to pregnant women, new mothers and young children.
+
+    Both programs are administered at the federal level by the Food and Nutrition Service (FNS), an agency within the USDA, and delivered by state and local agencies that set many of the procedures participants encounter.
+
+    The pandemic changed both programs at once. Congress authorized emergency allotments that raised every SNAP household's benefit to the maximum for its size, and states were allowed to waive interview requirements.
+
+    WIC agencies were permitted to certify participants remotely rather than in person. These changes were temporary, and most had ended by the spring of 2023.
+
+    This report asks three questions. First, how did participation in each program change over the period? Second, how did food security change among eligible households, and did those changes track the emergency measures?
+
+    Third, which households were most affected when the measures ended, and what do their experiences suggest about the design of future emergency responses?
+
+    ## Background
+
+    ### Program Rules Before the Pandemic
+
+    Before 2020, a household's SNAP benefit was calculated as the maximum benefit for its size minus thirty percent of its net income. Households with no net income received the maximum, and most working households received considerably less.
+
+    Benefits were loaded monthly onto an electronic benefit transfer (EBT) card that works like a debit card at participating stores. Households could carry unspent benefits forward from one month to the next.
+
+    Most households must recertify their eligibility every six or twelve months, reporting changes in income and household size, and many are required to complete an interview each time. Households that miss a recertification deadline lose their benefits until they reapply.
+
+    WIC operates differently. Participants receive a monthly package of specific foods chosen for their nutritional value, such as infant formula, milk, whole grains and fresh produce.
+
+    In most states the package is redeemed through the same kind of EBT card. Eligibility depends on income and on a nutritional risk assessment carried out by a health professional.
+
+    ### Emergency Measures
+
+    The emergency allotments began in March 2020 and were extended month by month. At their peak, they raised the average benefit per person by more than a third.
+
+    A later increase in the Thrifty Food Plan, the cost benchmark on which the maximum benefit is based, took effect in October 2021 and remained in place after the allotments ended.
+
+    Other temporary measures ran alongside the allotments. Schools that closed during the pandemic issued replacement benefits for the free and reduced-price meals their students would have received, and some states extended certification periods so that households did not have to reapply while offices were closed.
+
+    States ended the allotments on different schedules. Eighteen states ended them before the federal end date, most during 2021 and 2022, while the remainder continued until February 2023.
+
+    This staggered timing provides the variation our analysis relies on, since households in neighbouring states with similar economies lost the allotments many months apart.
+
+    ## Data and Methods
+
+    ### Food Security Measures
+
+    Our food security measures come from the December food security supplement to the Census Bureau's monthly labor force survey, which the Bureau fields on behalf of the USDA each year.
+
+    We pool the supplements from 2019 through 2023 and restrict the sample to households with incomes below 185 percent of the poverty line, the group broadly eligible for at least one of the two programs.
+
+    A household is classified as food insecure when it reports three or more of the conditions the questionnaire asks about, such as worrying that food would run out or cutting the size of meals.
+
+    ### Participation and Population Data
+
+    Participation data come from monthly state caseload reports that FNS publishes for each program. Survey respondents are known to under-report receipt of benefits, so we rely on the administrative counts for participation.
+
+    County measures of poverty, household composition and housing costs come from the American Community Survey (ACS) five-year estimates. We use them to weight state caseload trends by the characteristics of the eligible population.
+
+    ### Comparison Design
+
+    Our main comparison contrasts states that ended the emergency allotments early with states that continued them until the federal end date.
+
+    We estimate the change in food insecurity in each group relative to its own 2019 level, adjusting for state unemployment rates and the ACS measures described above.
+
+    We test the sensitivity of the results to the choice of comparison year, to the exclusion of the largest states, and to alternative thresholds for classifying a household as food insecure.
+
+    ## Results
+
+    ### SNAP Participation
+
+    SNAP participation rose from about thirty-six million people in early 2020 to more than forty-two million by the middle of 2021, then held roughly steady through the end of the emergency allotments.
+
+    The rise was concentrated in the first six months of the pandemic, when unemployment was highest and many households applied for assistance for the first time.
+
+    Participation did not fall sharply when the allotments ended. The number of participants in early-ending states declined by less than two percent in the six months after their last allotment.
+
+    This suggests that households stayed enrolled even as their benefits fell, rather than leaving the program once the additional support was withdrawn.
+
+    ### WIC Participation
+
+    WIC participation followed a different path. Enrollment had been falling for a decade before the pandemic, and it continued to fall during 2020 despite the move to remote certification.
+
+    It began to recover in 2022, a change that state agencies attributed to remote services and to a temporary increase in the fruit and vegetable benefit.
+
+    ### Food Security
+
+    Among eligible households, the share reporting food insecurity fell from 27 percent in 2019 to 23 percent in 2021, the lowest level recorded for this group since the Current Population Survey (CPS) began asking the questions.
+
+    In states that ended the allotments early, food insecurity returned to its 2019 level within a year. In states that continued them, it remained below that level until 2023.
+
+    The increase after the allotments ended was largest among households with children under five, many of which also participated in WIC.
+
+    It was smallest among households headed by someone aged sixty or older, whose benefits had been lower before the pandemic and fell least when the allotments ended.
+
+    These patterns are consistent with a RAND analysis of benefit timing, which found that households spend most of their monthly benefit within the first two weeks after it is loaded onto their EBT card.
+
+    The same analysis found that food insecurity is most often reported in the final week of the month, when the benefit has largely been spent.
+
+    ## Discussion
+
+    The emergency allotments appear to have done what they were intended to do. They raised the resources available for food at a time of economic disruption, and food insecurity fell while they were in place.
+
+    Their end reversed much of that improvement, and the reversal was sharpest for the households the allotments had helped most.
+
+    The stability of SNAP participation after the allotments ended deserves attention. It suggests that the fall in food security reflected the size of the benefit rather than a loss of access.
+
+    That distinction matters for policy, because it points toward benefit levels rather than enrollment procedures as the lever with the larger effect on food security.
+
+    Our results have limits. State decisions to end the allotments early were not random: early-ending states had lower unemployment and, on average, lower benefit take-up before the pandemic.
+
+    Adjusting for unemployment and the ACS population measures narrows but may not remove these differences, so the estimates should be read as upper bounds on the effect of the allotments.
+
+    ## Policy Implications
+
+    The FNS could make the evaluation of both programs easier by publishing caseload counts by household type, not only by state. Without that detail, analysts must rely on survey data that under-report participation.
+
+    States considering changes to SNAP administration may also wish to retain the remote certification options that WIC agencies used during the pandemic.
+
+    Those options appear to have helped reverse a long decline in enrollment, and they cost little to maintain once the systems supporting them are in place.
+
+    ## Conclusion
+
+    Temporary increases in food assistance lowered food insecurity among low-income households during the pandemic, and their end raised it again.
+
+    The evidence from states that ended the allotments early suggests that the size of the benefit, more than enrollment, drove those changes.
+
+    ## References
+
+    - Food and Nutrition Service (2023). SNAP Data Tables: National Level Annual Summary. United States Department of Agriculture.
+    - Rabbitt, Matthew, and colleagues (2023). Household Food Security in the United States in 2022. USDA Economic Research Service, Economic Research Report 325.
+    - RAND Corporation (2022). Benefit Timing and Food Spending Among SNAP Households.
+  abbreviations_section_found: true
+  abbreviations:
+    - {abbr: "SNAP", occurrence_number: 1, line_start: 14, inline_definition: "Supplemental Nutrition Assistance Program", abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "CPS", occurrence_number: 1, line_start: 14, abbreviations_section_definition: "Current Population Survey"}
+    - {abbr: "SNAP", occurrence_number: 2, line_start: 16, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "USDA", occurrence_number: 1, line_start: 26, inline_definition: "United States Department of Agriculture", abbreviations_section_definition: "United States Department of Agriculture"}
+    - {abbr: "SNAP", occurrence_number: 3, line_start: 28, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "WIC", occurrence_number: 1, line_start: 30, inline_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children", abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+    - {abbr: "FNS", occurrence_number: 1, line_start: 32, inline_definition: "Food and Nutrition Service", abbreviations_section_definition: "Food and Nutrition Service"}
+    - {abbr: "USDA", occurrence_number: 2, line_start: 32, abbreviations_section_definition: "United States Department of Agriculture"}
+    - {abbr: "SNAP", occurrence_number: 4, line_start: 34, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "WIC", occurrence_number: 2, line_start: 36, abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+    - {abbr: "SNAP", occurrence_number: 5, line_start: 46, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "EBT", occurrence_number: 1, line_start: 48, inline_definition: "electronic benefit transfer", abbreviations_section_definition: "Electronic Benefit Transfer"}
+    - {abbr: "WIC", occurrence_number: 3, line_start: 52, abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+    - {abbr: "EBT", occurrence_number: 2, line_start: 54, abbreviations_section_definition: "Electronic Benefit Transfer"}
+    - {abbr: "USDA", occurrence_number: 3, line_start: 72, abbreviations_section_definition: "United States Department of Agriculture"}
+    - {abbr: "FNS", occurrence_number: 2, line_start: 80, abbreviations_section_definition: "Food and Nutrition Service"}
+    - {abbr: "ACS", occurrence_number: 1, line_start: 82, inline_definition: "American Community Survey"}
+    - {abbr: "ACS", occurrence_number: 2, line_start: 88}
+    - {abbr: "SNAP", occurrence_number: 6, line_start: 96, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "WIC", occurrence_number: 4, line_start: 106, abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+    - {abbr: "CPS", occurrence_number: 2, line_start: 112, inline_definition: "Current Population Survey", abbreviations_section_definition: "Current Population Survey"}
+    - {abbr: "WIC", occurrence_number: 5, line_start: 116, abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+    - {abbr: "EBT", occurrence_number: 3, line_start: 120, abbreviations_section_definition: "Electronic Benefit Transfer"}
+    - {abbr: "SNAP", occurrence_number: 7, line_start: 130, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "ACS", occurrence_number: 3, line_start: 136}
+    - {abbr: "FNS", occurrence_number: 3, line_start: 140, abbreviations_section_definition: "Food and Nutrition Service"}
+    - {abbr: "SNAP", occurrence_number: 8, line_start: 142, abbreviations_section_definition: "Supplemental Nutrition Assistance Program"}
+    - {abbr: "WIC", occurrence_number: 6, line_start: 142, abbreviations_section_definition: "Special Supplemental Nutrition Program for Women, Infants, and Children"}
+  expected_issues:
+    - id: cps_undefined
+      title: Abbreviation not defined at first use
+      anchor: "fielded each December in the CPS"
+      severity: medium
+    - id: acs_not_listed
+      title: Abbreviation missing from Abbreviations section
+      anchor: "American Community Survey (ACS)"
+      severity: medium
+  decoys:
+    - anchor: "### SNAP Participation"
+      reason: heading
+      title: Abbreviation not defined at first use
+    - anchor: "### WIC Participation"
+      reason: heading
+      title: Abbreviation not defined at first use
+    - anchor: "consistent with a RAND analysis"
+      reason: always_excluded
+      title: Abbreviation not defined at first use
+    - anchor: "consistent with a RAND analysis"
+      reason: always_excluded
+      title: Abbreviation missing from Abbreviations section
+    - anchor: "Food Spending Among SNAP Households"
+      reason: references
+      title: Abbreviation not defined at first use
+    - anchor: "adjusting for state unemployment rates and the ACS"
+      reason: later_occurrence
+      title: Abbreviation missing from Abbreviations section
+  notes: >-
+    A long multi-section report (well over the workflow's 8,000-character chunk size), so it is catalogued in
+    several chunks and occurrence numbers must run across them. Two issues, both of which need document-wide
+    context: CPS is used bare in the Summary and only spelled out in the Results, which fall in a later chunk
+    (Rule 2 at the first use), and ACS is defined but not listed (Rule 3 once, not again at its later uses). SNAP,
+    USDA, WIC, FNS and EBT are defined at first use and listed; the SNAP and WIC subheadings, the reference list
+    and RAND are not recorded.

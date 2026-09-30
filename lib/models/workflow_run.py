@@ -126,6 +126,15 @@ class WorkflowRun(SQLModel, table=True):
         default=None,
         description="Short human-readable detail of the failure. Populated only when status == FAILED.",
     )
+    model: Optional[str] = Field(
+        sa_column=Column(String(255), nullable=True),
+        default=None,
+        description=(
+            "The model this run was asked to run every agent on, when the start "
+            "request named one. Null means each agent's own model. Kept on the run "
+            "so a run released later from a gate still runs on it."
+        ),
+    )
     state_json: Optional[dict[str, Any]] = Field(
         sa_column=Column(JSONB, nullable=True),
         default=None,
@@ -191,6 +200,7 @@ class WorkflowRunPublic(BaseModel):
     heartbeat_at: Optional[datetime]
     failure_reason: Optional[WorkflowRunFailureReason] = None
     failure_message: Optional[str] = None
+    model: Optional[str] = None
 
 
 # Mark `state_json` as deferred-load by default. Payloads can be multiple MB

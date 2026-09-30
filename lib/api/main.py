@@ -21,6 +21,7 @@ from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.api.routers import (
     about,
     admin_dashboard,
+    annotations,
     analysis,
     app_configs,
     chat,
@@ -111,6 +112,7 @@ app.add_middleware(GZipMiddleware)
 app.include_router(health.router)
 app.include_router(about.router)
 app.include_router(admin_dashboard.router)
+app.include_router(annotations.router)
 app.include_router(app_configs.router)
 app.include_router(chat.router)
 app.include_router(analysis.router)

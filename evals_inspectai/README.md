@@ -6,7 +6,7 @@ LLM evaluation tasks built with [Inspect AI](https://inspect.ai-safety-institute
 
 ```
 evals_inspectai/
-├── common/                            # Shared utilities (scorers, comparers, API client, solver)
+├── common/                            # Shared utilities (scorers, issue inventory and checks, API client, solver)
 └── e2e/                               # Evals that call the API end-to-end
     ├── abbreviation_checker/
     ├── about_this_ger/
@@ -37,7 +37,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 
 | Eval | Description |
 |------|-------------|
-| `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. |
+| `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. A second task, `abbreviation_checker_report_e2e.py`, runs the same checks on a full-length report and nine variants of it with definitions removed; it is kept separate because its samples are long. |
 | `e2e/about_this_ger` | Validates the preface / "About This" section and author biographies against publication requirements. |
 | `e2e/advocacy_tone_v2` | Flags trigger words, advocacy language, and subjective tone. |
 | `e2e/claim_reference_validation_v2` | Judges whether each cited source supports its claim. |
@@ -74,6 +74,24 @@ uv run dev.py
 # Run an e2e eval
 uv run inspect eval evals_inspectai/e2e/abbreviation_checker/abbreviation_checker_e2e.py
 ```
+
+### Choosing the workflow model
+
+Without `--model`, every agent runs on its own model. `--model` switches all of
+the run's agents to another one, and the log records it as the eval's model:
+
+```bash
+uv run inspect eval evals_inspectai/e2e/figures_tables_check/figures_tables_check_e2e.py \
+  --model openai/gpt-5.6-sol --model-role grader=openai/gpt-5.4
+```
+
+The API server must be started with `ALLOW_WORKFLOW_MODEL_OVERRIDE=true`; any
+model LangChain can build is then accepted (Inspect's `google/...` is sent as
+`google_genai:...`). Each agent's reasoning effort is passed in the provider's
+own terms: OpenAI's `reasoning`, and adaptive thinking plus `effort` on Claude,
+which needs a Claude 4.6 or later model. A sample fails if its run was not
+served by the requested model.
+Graders are unaffected: they use the `grader` role, or their own default.
 
 ## Viewing Results
 

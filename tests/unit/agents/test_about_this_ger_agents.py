@@ -50,11 +50,11 @@ def test_agent_composes_skill_with_env_guidance(skill: str, env_guidance: str):
     [
         (
             PrefaceValidatorAgent,
-            "lib.agents.preface_validator.create_deep_agent",
+            "lib.agents.preface_validator.build_deep_agent",
         ),
         (
             AuthorsValidatorAgent,
-            "lib.agents.authors_validator.create_deep_agent",
+            "lib.agents.authors_validator.build_deep_agent",
         ),
     ],
 )

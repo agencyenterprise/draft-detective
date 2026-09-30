@@ -1,6 +1,6 @@
 """Tests for combining chunk extractions into the document-wide catalogue."""
 
-from typing import List, Optional
+from typing import List
 
 from lib.workflows.abbreviation_scan_v2.catalogue import assemble_catalogue
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -22,21 +22,8 @@ LINES[28] = "OpenAI released a new MAIN model."  # line 29: "AI" only inside oth
 LINES[29] = "The AI team at OpenAI met; the U.S. and US teams, a Ph.D. and a PhD, cost $9.6B."  # line 30
 
 
-def _occ(
-    abbr: str,
-    line: int,
-    inline_definition: str = "",
-    ignored: bool = False,
-    ignored_reason: Optional[str] = None,
-) -> ChunkOccurrence:
-    return ChunkOccurrence(
-        abbr=abbr,
-        inline_definition=inline_definition,
-        line_start=line,
-        line_end=line,
-        ignored=ignored,
-        ignored_reason=ignored_reason,
-    )
+def _occ(abbr: str, line: int, inline_definition: str = "") -> ChunkOccurrence:
+    return ChunkOccurrence(abbr=abbr, inline_definition=inline_definition, line_start=line, line_end=line)
 
 
 def _chunk(
@@ -116,22 +103,11 @@ def test_failed_and_skipped_chunks_contribute_nothing_but_partial_ones_do():
     assert [i.abbr for i in catalogue] == ["EU"]
 
 
-def test_heading_occurrences_are_forced_to_ignored():
-    catalogue = _assemble([_chunk(0, 11, 20, [_occ("NATO", 20), _occ("EU", 12)])])
-    assert [(i.abbr, i.ignored, i.ignored_reason) for i in catalogue] == [
-        ("EU", False, None),
-        ("NATO", True, "Appears in a heading."),
-    ]
-
-
-def test_model_exemptions_are_kept_and_given_a_reason_when_missing():
-    catalogue = _assemble(
-        [_chunk(0, 1, 10, [_occ("Dr.", 2, ignored=True, ignored_reason="Personal title"), _occ("cm", 3, ignored=True)])]
-    )
-    assert [(i.ignored, i.ignored_reason) for i in catalogue] == [
-        (True, "Personal title"),
-        (True, "Excluded as an exempt occurrence."),
-    ]
+def test_heading_occurrences_are_dropped():
+    # The skill never records a heading's abbreviations; the agent sometimes does.
+    catalogue = _assemble([_chunk(0, 11, 21, [_occ("NATO", 20), _occ("EU", 12), _occ("NATO", 21)])])
+    assert [(i.abbr, i.line_start, i.occurrence_number) for i in catalogue] == [("EU", 12, 1), ("NATO", 21, 1)]
+    assert not any(i.ignored for i in catalogue)
 
 
 def test_occurrences_inside_the_abbreviations_section_are_dropped():
@@ -156,7 +132,7 @@ def test_occurrences_outside_the_chunk_and_blank_abbrs_are_dropped():
 
 def test_occurrences_not_on_their_reported_lines_are_dropped():
     catalogue = _assemble(
-        [_chunk(0, 20, 30, [_occ("NATO", 20), _occ("ML", 25), _occ("Ph.D.", 26), _occ("R&D", 27)])]
+        [_chunk(0, 20, 30, [_occ("NATO", 21), _occ("ML", 25), _occ("Ph.D.", 26), _occ("R&D", 27)])]
     )
     assert [i.abbr for i in catalogue] == ["NATO", "R&D"]
 

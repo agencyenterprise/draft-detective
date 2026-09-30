@@ -98,7 +98,6 @@ class DocumentSummarizerAgent(LangChainAgent):
     name = "Document Summarizer"
     description = "Read a document and produce a ~1000-word argument-focused miniature version plus basic metadata."
     model = gpt_5_6_terra_model
-    temperature = 0.5
     output_schema = DocumentSummarizerResponse
 
     async def ainvoke(

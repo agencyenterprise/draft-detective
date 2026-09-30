@@ -6,7 +6,7 @@ from typing import cast
 import pytest
 from inspect_ai.model import ContentImage, ContentText, Model
 
-from evals_inspectai.common.issue_judge import JudgeCriterion, grader_input, judge_sample, section_text
+from evals_inspectai.common.issue_judge import JudgeCriterion, gist, grader_input, judge_sample, section_text
 from evals_inspectai.common.issue_inventory import ResolvedInventory, ResolvedIssue
 from evals_inspectai.common.simple_deep_agent_types import IssueItem, ProposedEdit
 
@@ -239,3 +239,60 @@ def test_a_prompt_that_embeds_a_figure_attaches_the_image():
     assert isinstance(content[1], ContentText) and content[1].text == "Image files/figures/ft_logo.png:"
     assert isinstance(content[2], ContentImage) and content[2].image.startswith("data:image/png;base64,")
     assert grader_input("No figures here.") == "No figures here."
+
+
+@pytest.mark.asyncio
+async def test_an_analysis_criterion_grades_the_description_and_long_description():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Names the flaw.", scope="expected", reads="analysis")
+    issue = IssueItem(title="Passive Voice", description="Short analysis.", long_description="## Detail\n\nLong analysis.", start_line=5, end_line=5)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+
+    assert values == {"flaw": 1.0}
+    assert "[Reviewer's analysis]: Short analysis.\n\n## Detail\n\nLong analysis." in grader.prompts[0]
+    assert "[Reviewer's suggested action]" not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
+async def test_an_analysis_criterion_fails_an_issue_with_no_analysis():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Names the flaw.", scope="expected", reads="analysis")
+    issue = IssueItem(title="Passive Voice", start_line=5, end_line=5, suggested_action="Rewrite it.")
+
+    values, explanation = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+
+    assert values == {"flaw": 0.0} and grader.prompts == [] and "no analysis" in explanation
+
+
+@pytest.mark.asyncio
+async def test_a_reference_criterion_shows_the_labellers_rationale_and_skips_issues_without_one():
+    grader = _Grader()
+    criterion = JudgeCriterion(key="flaw", criterion="Same flaw.", scope="expected", reads="analysis", reference=True)
+    issue = IssueItem(title="Passive Voice", description="No actor.", start_line=5, end_line=5)
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected(rationale="The actor is missing.")), [criterion])
+    assert values == {"flaw": 1.0}
+    assert "[Labeller's reference rationale]: The actor is missing.\n************\n[Reviewer's analysis]: No actor." in grader.prompts[0]
+
+    values, _ = await judge_sample(cast(Model, grader), [issue], _inventory(_expected()), [criterion])
+    assert math.isnan(values["flaw"]) and len(grader.prompts) == 1, "no rationale, nothing to compare against"
+
+
+@pytest.mark.asyncio
+async def test_several_per_expected_grades_every_issue_covering_the_expected():
+    criterion = JudgeCriterion(key="asked", criterion="The action fits.", scope="expected")
+    expected = _expected(title=None)
+    issues = [IssueItem(title=f"Source {n}", severity="low", start_line=5, end_line=5, suggested_action="Cite it.") for n in (1, 2)]
+    grader = _Grader()
+    values, _ = await judge_sample(cast(Model, grader), issues, _inventory(expected).with_policy(pairing="several_per_expected"), [criterion])
+    assert values["asked"] == 1.0 and len(grader.prompts) == 2
+    grader = _Grader()
+    await judge_sample(cast(Model, grader), issues, _inventory(expected), [criterion])
+    assert len(grader.prompts) == 1
+
+
+def test_a_score_note_quotes_the_graders_conclusion_not_its_first_step():
+    reasoning = "Step 1: Identify the claim.\n\nThe source is on topic but indirect, so partial credit.\n\nGRADE: P"
+    assert gist(reasoning) == "The source is on topic but indirect, so partial credit."
+    assert gist("GRADE: C") == ""

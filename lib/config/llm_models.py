@@ -40,6 +40,17 @@ class LLMModel(BaseModel):
         return self.model_name.replace(":", "/")
 
     @staticmethod
+    def from_model_name(model_name: str) -> "LLMModel":
+        """Create an LLMModel from a LangChain model name (e.g. 'openai:gpt-5.6-sol').
+
+        A name without a provider parses with an empty one. Workflow start requests
+        refuse those, since agents pick their API key, reasoning settings and
+        web-search tool by the provider.
+        """
+        provider, _, name = model_name.rpartition(":")
+        return LLMModel(provider=provider, name=name)
+
+    @staticmethod
     def from_inspectai_name(inspectai_name: str) -> "LLMModel":
         """Create an LLMModel from an InspectAI model name (e.g. 'openai/gpt-5.2')."""
         if "/" in inspectai_name:
@@ -51,14 +62,13 @@ class LLMModel(BaseModel):
 
 # OpenAI models
 #
-# Every agent runs on gpt-5.6-terra. It replaced the gpt-5.4-mini / gpt-5.4 /
-# gpt-5.5 tiers on 28 Aug 2026, after a comparison found it flat against all three
-# on 17 of 18 evals at roughly half the premium tier's cost. `figures_tables_check`
-# is the one eval it scores below the old stack on.
+# The default tier: agents run on it unless they name a smaller one.
 gpt_5_6_terra_model = LLMModel(provider="openai", name="gpt-5.6-terra")
-# Sibling tiers of the same generation. Not used by any workflow; offered in the
-# /chat model picker so a reviewer can compare them on a real question.
+# The smaller tier, for mostly mechanical tasks where the evals show no loss
+# against the default.
 gpt_5_6_luna_model = LLMModel(provider="openai", name="gpt-5.6-luna")
+# Not used by any workflow; offered in the /chat model picker (with the smaller
+# tier) so a reviewer can compare the tiers on a real question.
 gpt_5_6_sol_model = LLMModel(provider="openai", name="gpt-5.6-sol")
 gpt_4_1_model = LLMModel(provider="openai", name="gpt-4.1")
 
@@ -84,19 +94,27 @@ ALL_MODELS = {
 
 
 # Server-side web search is declared differently per provider: OpenAI's Responses API
-# takes a bare {"type": "web_search"}, while Anthropic needs a dated tool type and a
-# name. Passing the OpenAI shape to a Claude model raises KeyError('function') inside
-# LangChain's tool conversion, so the declaration has to follow the model. Build it
-# through this helper rather than writing the dict at the call site.
+# takes a bare {"type": "web_search"}, Anthropic needs a dated tool type and a name,
+# and Gemini grounds on Google Search. Passing the OpenAI shape to a Claude model
+# raises KeyError('function') inside LangChain's tool conversion, and to Gemini it
+# becomes an ordinary function that nothing ever executes, so the declaration has to
+# follow the model. Build it through this helper rather than writing the dict at the
+# call site.
 def web_search_tool(model: LLMModel) -> dict:
     """The server-side web-search tool declaration this model understands."""
 
-    if model.provider != "anthropic":
+    if model.provider == "openai":
         return {"type": "web_search"}
-    # Deliberately the basic variant even on models that support the newer
-    # web_search_20260209. That one performs dynamic filtering by running code
-    # execution internally, and LangChain does not round-trip the resulting
-    # `code_execution` blocks: the next turn is rejected with "code_execution tool use
-    # ... found without a corresponding code_execution_tool_result block". The basic
-    # variant returns only web_search blocks, which LangChain handles.
-    return {"type": "web_search_20250305", "name": "web_search"}
+    if model.provider == "anthropic":
+        # Deliberately the basic variant even on models that support the newer
+        # web_search_20260209. That one performs dynamic filtering by running code
+        # execution internally, and LangChain does not round-trip the resulting
+        # `code_execution` blocks: the next turn is rejected with "code_execution tool
+        # use ... found without a corresponding code_execution_tool_result block". The
+        # basic variant returns only web_search blocks, which LangChain handles.
+        return {"type": "web_search_20250305", "name": "web_search"}
+    if model.provider == "google_genai":
+        return {"google_search": {}}
+    raise ValueError(
+        f"No web-search tool is declared for provider {model.provider!r} (model {model})."
+    )

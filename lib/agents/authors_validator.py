@@ -7,10 +7,10 @@ through tools and writes a markdown summary report to a file.
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
@@ -52,7 +52,6 @@ class AuthorsValidatorAgent(LangChainAgent):
     name = "Authors Validator"
     description = "Validate author biographies against publication rules"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "medium", "summary": "auto"}
 
     async def ainvoke(
@@ -62,16 +61,16 @@ class AuthorsValidatorAgent(LangChainAgent):
     ) -> tuple[AgentCheckResult, List[BaseMessage]]:
         """Return the check result and the agent's full conversation, system prompt included."""
         issue_reporter = IssueReporter()
-        deep_agent = create_deep_agent(
+        deep_agent = build_deep_agent(
             model=self.llm,
             tools=issue_reporter.tools,
             context_schema=ContextSchema,
         )
 
         result = await deep_agent.ainvoke(
-            {
-                "files": await self.context.file_artifacts_service.get_deepagent_backend_files(),
-                "messages": [
+            agent_input(
+                files=await self.context.file_artifacts_service.get_deepagent_backend_files(),
+                messages=[
                     SystemMessage(
                         content=load_skill_prompt("about-this-authors") + _ENV_GUIDANCE
                     ),
@@ -83,7 +82,7 @@ class AuthorsValidatorAgent(LangChainAgent):
                         )
                     ),
                 ],
-            },
+            ),
             config={"recursion_limit": DEEP_AGENT_RECURSION_LIMIT, **(config or {})},
         )
 

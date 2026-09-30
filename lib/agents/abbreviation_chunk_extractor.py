@@ -7,12 +7,12 @@ one agent whose conversation grows until it overflows.
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
 from langchain.agents.structured_output import AutoStrategy, StructuredOutputError
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.agents.structured_output_salvage import ai_message_text, salvage_models
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
@@ -54,8 +54,8 @@ afterwards. So:
 - Do **not** count occurrences and do **not** look up the Abbreviations section. Both are
   computed after the ranges are combined; record each occurrence exactly as it appears.
 - Your range may fall on the cover page, inside the References / Bibliography section, among
-  footnotes or endnotes, or inside the Abbreviations section itself, and the rules above
-  treat each of those differently. When your range does not show where it sits (for example, it starts in the
+  footnotes or endnotes, or inside the Abbreviations section itself, none of which is
+  recorded. When your range does not show where it sits (for example, it starts in the
   middle of a section), find out before recording: read the lines just before it, or list the
   document's headings with `grep(pattern="#", path="/main.md", output_mode="content")`.
   `grep` matches literal text, not regular expressions.
@@ -65,11 +65,9 @@ Return `occurrences`, one entry per occurrence in reading order, each with:
 - `inline_definition`: the inline definition accompanying this exact occurrence, or an
   empty string when none accompanies it;
 - `line_start` / `line_end`: the 1-indexed line range in `/main.md`, as numbered by
-  `read_file` (equal for a single line);
-- `ignored`: `true` for occurrences excluded from compliance checks, `false` otherwise;
-- `ignored_reason`: a brief explanation when `ignored` is `true`, otherwise `null`.
+  `read_file` (equal for a single line).
 
-Return an empty list when your range contains no abbreviations.
+Return an empty list when your range contains no abbreviations to record.
 """
 
 _RANGE_MESSAGE = (
@@ -96,7 +94,6 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
     name = "Abbreviation Chunk Extractor"
     description = "Catalogue every abbreviation occurrence in one line range of a document"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
 
     async def ainvoke(
@@ -105,7 +102,7 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
         config: Optional[RunnableConfig] = None,
     ) -> tuple[ChunkExtractionResult, List[BaseMessage]]:
         """Expects `markdown` (the whole document), `start_line` and `end_line`."""
-        agent = create_deep_agent(
+        agent = build_deep_agent(
             model=self.llm,
             context_schema=ContextSchema,
             response_format=AutoStrategy(ChunkExtractionResult),
@@ -113,10 +110,10 @@ class AbbreviationChunkExtractorAgent(LangChainAgent):
         messages = build_messages(prompt_kwargs)
         try:
             result = await agent.ainvoke(
-                {
-                    "files": {"/main.md": create_file_data(prompt_kwargs["markdown"])},
-                    "messages": messages,
-                },
+                agent_input(
+                    files={"/main.md": create_file_data(prompt_kwargs["markdown"])},
+                    messages=messages,
+                ),
                 config={"recursion_limit": RECURSION_LIMIT, **(config or {})},
             )
         except StructuredOutputError as e:

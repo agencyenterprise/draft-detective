@@ -7,13 +7,13 @@ extraction can leave the section's own lines out of the catalogue.
 
 from typing import List, Optional
 
-from deepagents import create_deep_agent
 from deepagents.backends.utils import create_file_data
 from langchain.agents.structured_output import AutoStrategy
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel, Field
 
+from lib.agents.deep_agent_setup import agent_input, build_deep_agent
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.abbreviation_scan_v2.chunk_models import (
@@ -24,6 +24,13 @@ from lib.workflows.context import ContextSchema
 
 # A few searches and a handful of reads for a long section.
 RECURSION_LIMIT = 60
+
+# Each turn is a search, a read, or the final answer, and normally returns in
+# seconds. A turn that runs for minutes is a runaway, and resending the same
+# request repeats it, so fail it early (below the 240s gateway cutoff seen in
+# production) and retry once rather than four times.
+REQUEST_TIMEOUT_SECONDS = 180
+MAX_RETRIES = 1
 
 
 class AbbreviationsSectionExtraction(BaseModel):
@@ -68,8 +75,9 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
     name = "Abbreviations Section Extractor"
     description = "Find a document's Abbreviations section and read its entries"
     model = gpt_5_6_terra_model
-    temperature = 0.0
     reasoning = {"effort": "low", "summary": "auto"}
+    timeout = REQUEST_TIMEOUT_SECONDS
+    max_retries = MAX_RETRIES
 
     async def ainvoke(
         self,
@@ -80,7 +88,7 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
         the agent's full conversation, system prompt included."""
         markdown: str = prompt_kwargs["markdown"]
         total_lines = markdown.count("\n") + 1
-        agent = create_deep_agent(
+        agent = build_deep_agent(
             model=self.llm,
             context_schema=ContextSchema,
             response_format=AutoStrategy(AbbreviationsSectionExtraction),
@@ -95,7 +103,7 @@ class AbbreviationsSectionExtractorAgent(LangChainAgent):
             ),
         ]
         result = await agent.ainvoke(
-            {"files": {"/main.md": create_file_data(markdown)}, "messages": messages},
+            agent_input(files={"/main.md": create_file_data(markdown)}, messages=messages),
             config={"recursion_limit": RECURSION_LIMIT, **(config or {})},
         )
         return result["structured_response"], result["messages"]

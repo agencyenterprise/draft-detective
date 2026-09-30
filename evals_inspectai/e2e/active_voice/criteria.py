@@ -17,7 +17,6 @@ from evals_inspectai.common.issue_inventory import ResolvedIssue
 from evals_inspectai.common.issue_judge import JudgeCriterion
 
 PASSIVE_TITLE = "Passive Voice"
-AMBIGUOUS_TITLE = "Ambiguous Actor"
 
 # A form of be or get, optionally chained ("are being made", "has been sent"),
 # any run of adverbs or negation ("were not considered", "was first proposed",
@@ -124,3 +123,11 @@ JUDGE_CRITERIA = [
         applies_to=_unknown_actor_passive,
     ),
 ]
+
+# Column headers for this workflow's own checks in the log viewer.
+SCORE_LABELS = {
+    "edit_removes_passive": "Passive gone",
+    "edit_meaning_preserved": "Meaning",
+    "edit_reads_well": "Reads well",
+    "unknown_actor_asked_not_guessed": "Asks, no guess",
+}
