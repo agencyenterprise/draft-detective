@@ -9,6 +9,7 @@ reference is fabricated. A list accepts any of its values, for a field the
 skill leaves open or a fact the web disputes.
 """
 
+import re
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -70,6 +71,11 @@ class ReferenceRecord(BaseModel):
             # record survives a round trip through sample metadata.
             self.result = ["incorrect_fields"]
         return self
+
+    @property
+    def is_bare_url(self) -> bool:
+        """A reference that is only a URL, which the skill's Step 1 reconstructs in full."""
+        return re.fullmatch(r"https?://\S+", self.reference.strip()) is not None
 
     def accepted(self, field: str) -> list[Problem]:
         """The problem types a correct run may give ``field``."""

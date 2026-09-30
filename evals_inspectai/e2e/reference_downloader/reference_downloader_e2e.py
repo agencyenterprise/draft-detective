@@ -6,11 +6,11 @@ candidate, verifies it, and concludes found, found but not accessible, or not
 found; a found file is kept in the project as a supporting document, and every
 other download is cleaned up.
 
-Ground truth is ``dataset.yaml``: 31 references of many kinds (reports,
+Ground truth is ``dataset.yaml``: references of many kinds (reports,
 articles, preprints, testimony, doctrine, a public law, press releases, a
-database, a homepage, a social post, a paywalled forecast), each with the
-conclusions a correct run may reach and phrases the downloaded file must
-contain (see ``records``).
+database, a homepage, a social post, a paywalled forecast, fabricated
+references), each with the conclusions a correct run may reach and phrases
+the downloaded file must contain (see ``records``).
 
 The solver runs the workflow the way the app does (upload the document, run
 document processing and reference extraction, start the downloader for the

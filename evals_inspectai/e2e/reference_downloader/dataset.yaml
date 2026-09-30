@@ -155,14 +155,12 @@
 - id: jtts_slides
   reference: Costanzo, George, and Mary Ann Spott, "Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry
     (JTTR)," briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.
-  conclusion:
-  - source_found
-  - source_not_found
+  conclusion: source_found
   file_terms:
   - Joint Theater Trauma
   notes: >-
-    Labelled not found before, but every run downloads the slides from health.mil; found is accepted when the file
-    carries them.
+    Labelled not found before, but the slides are hosted on health.mil and every run downloads them, so the old label
+    was wrong: found, with the file carrying the slides.
 - id: carter_memo
   reference: Carter, Ashton B., "0% Headquarters Reductions," memorandum to secretaries of the military departments
     et al., U.S. Department of Defense, July 31, 2013.

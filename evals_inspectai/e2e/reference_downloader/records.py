@@ -23,8 +23,10 @@ Conclusion = Literal["source_found", "source_found_but_not_accessible", "source_
 FOUND = "source_found"
 NOT_ACCESSIBLE = "source_found_but_not_accessible"
 
-# Roles of the files the downloader adds; the uploaded document is `main`.
-DOWNLOADED_ROLES = ("support", "supporting_candidate")
+# The role a kept download has. The app's file listing shows only main, support and
+# reviewer-memo files, so a transient `supporting_candidate` left behind by cleanup is not
+# visible to the eval, which reads the project through the same endpoint as the app.
+KEPT_ROLE = "support"
 
 
 class DownloadRecord(BaseModel):
@@ -98,13 +100,14 @@ def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: Downl
 
     ``file_kept_when_found``: a found source names a file the project keeps as a
     supporting document. ``file_matches_reference``: that file's text carries every
-    ``file_terms`` phrase. ``no_file_when_not_found``: any other conclusion leaves no
-    downloaded file behind. ``reason_when_inaccessible``: a found-but-not-accessible
+    ``file_terms`` phrase. ``no_file_when_not_found``: any other conclusion keeps no
+    supporting file and names none (a leftover candidate file is not visible through the
+    app's listing, see ``KEPT_ROLE``). ``reason_when_inaccessible``: a found-but-not-accessible
     source says why. ``url_when_found``: a found source gives its URL. Each is NaN
     when the conclusion makes it moot."""
     found = item.final_conclusion == FOUND
-    downloaded = [f for f in files if f.role in DOWNLOADED_ROLES]
-    kept = next((f for f in files if item.file_id and f.id == item.file_id and f.role == "support"), None)
+    downloaded = [f for f in files if f.role == KEPT_ROLE]
+    kept = next((f for f in files if item.file_id and f.id == item.file_id and f.role == KEPT_ROLE), None)
     text = _loose(kept.markdown) if kept else ""
     absent = [t for t in record.file_terms if _loose(t) not in text]
     values = {
@@ -118,7 +121,8 @@ def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: Downl
     notes = [f"concluded {item.final_conclusion}, expected {'/'.join(record.conclusion)}"] if not values["conclusion_accepted"] else []
     notes += [f"file {item.file_id} is not a kept supporting file"] if found and kept is None else []
     notes += [f"the downloaded file lacks {absent} ({kept.file_name})"] if found and kept and absent else []
-    notes += [f"{len(downloaded)} downloaded file(s) left behind"] if not found and downloaded else []
+    notes += [f"{len(downloaded)} supporting file(s) kept"] if not found and downloaded else []
+    notes += [f"file {item.file_id} named"] if not found and item.file_id else []
     notes += ["no reason given for the inaccessible source"] if values["reason_when_inaccessible"] == 0.0 else []
     return values, " | ".join(notes) if notes else "outcome and file as expected"
 
@@ -127,7 +131,7 @@ DESCRIPTIONS = {
     "conclusion_accepted": "1 if the conclusion is one the record accepts (found, found but not accessible, not found).",
     "file_kept_when_found": "On source_found, 1 if the named file is among the project's supporting files. NaN otherwise.",
     "file_matches_reference": "On source_found with a kept file, 1 if its text contains every phrase the record names from the work. NaN otherwise.",
-    "no_file_when_not_found": "On any other conclusion, 1 if no downloaded file is left in the project and no file is named. NaN on source_found.",
+    "no_file_when_not_found": "On any other conclusion, 1 if the project keeps no supporting file and no file is named (a leftover candidate file is not visible through the app's file listing). NaN on source_found.",
     "reason_when_inaccessible": "On source_found_but_not_accessible, 1 if a reason is given. NaN otherwise.",
     "url_when_found": "On source_found, 1 if the source URL is given. NaN otherwise.",
 }

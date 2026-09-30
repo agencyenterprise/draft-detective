@@ -90,6 +90,15 @@ def test_a_fabricated_reference_gets_no_updated_reference_and_no_url_check():
     assert math.isnan(values["url_when_found"]) and values["field_accuracy"] == 1.0
 
 
+def test_a_bare_url_must_get_an_updated_reference():
+    bare = ReferenceRecord.model_validate({"id": "url", "reference": "https://example.org/post", "result": "missing_fields", "fields": {f: "missing" for f in FIELDS}})
+    assert bare.is_bare_url
+    values, note = validation_scores(_result("missing_fields", author="missing"), bare)
+    assert values["updated_reference_as_specified"] == 0.0 and "no updated reference" in note
+    values, _ = validation_scores(_result("missing_fields", updated="Author. (2024). Post.", author="missing"), bare)
+    assert values["updated_reference_as_specified"] == 1.0
+
+
 def test_a_record_rejects_unknown_fields_and_labels_on_a_fabricated_reference():
     with pytest.raises(ValueError):
         ReferenceRecord.model_validate({"id": "x", "reference": "x", "fields": {"venue": "incorrect"}})
@@ -117,9 +126,11 @@ RULE_CASES = {
         ["la_times_1991", "guardian_no_standfirst", "zero_days_no_subtitle"],
         ["ipcc_ambiguous_title"],
     ),
+    # Fabricated references on one side; on the other, real works whose URL or identifier is
+    # broken but whose title a search finds, which must be validated, not called fabricated.
     "a fabricated reference is not matched to a similar work": (
         ["nonexistent_google_saif", "nonexistent_claude_3_safety_case", "nonexistent_microsoft_blog"],
-        [],
+        ["semianalysis_misspelled_author", "dissanayake_wrong_doi", "gdpval_wrong_arxiv", "perficient_study"],
     ),
 }
 
@@ -130,9 +141,13 @@ def test_each_skill_rule_has_cases_on_both_sides(rule):
     cases expect the flag the rule does not excuse."""
     records = {r.id: r for r in load_records(DATASET)}
     passing, failing = RULE_CASES[rule]
+    assert passing and failing, "a rule needs cases on both sides"
+    if rule.startswith("a fabricated"):
+        assert all(records[r].not_found and records[r].result == ["incorrect_fields"] for r in passing)
+        assert not any(records[r].not_found for r in failing), "a real work with a broken link is not fabricated"
+        return
     for rid in passing:
-        record = records[rid]
-        assert record.not_found or record.result == ["correct"], rid
+        assert records[rid].result == ["correct"], rid
     for rid in failing:
         assert "correct" not in records[rid].result, rid
     if rule.startswith("organization"):

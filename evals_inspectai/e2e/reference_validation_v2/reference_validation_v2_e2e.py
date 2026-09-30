@@ -5,7 +5,7 @@ every other e2e eval. The workflow extracts the document's references and, for
 each, searches the web for the cited work, gives each of author, title,
 publisher, year and identifier a problem type, and derives a final result.
 
-Ground truth is ``dataset.yaml``: 70 references, each placed alone under a
+Ground truth is ``dataset.yaml``: one reference per record, placed alone under a
 References heading, labelled per field (see ``records``). They cover correct
 citations of many kinds (journal articles, preprints, RAND and CRS reports,
 testimony, press releases, databases, homepages, social posts, public laws),

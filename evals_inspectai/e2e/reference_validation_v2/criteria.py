@@ -92,11 +92,13 @@ def _share(values: Sequence[bool]) -> float:
 
 
 def _updated_reference_expected(record: ReferenceRecord) -> Optional[bool]:
-    """True when the skill requires an updated reference, False when it forbids one, None
-    when it leaves it open (a missing field, or a record that accepts several results)."""
+    """True when the skill requires an updated reference (an incorrect found work, or a bare
+    URL, which Step 1 says to reconstruct), False when it forbids one (a correct or fabricated
+    reference), None when it leaves it open (another missing field, or a record that accepts
+    several results)."""
     if record.not_found or record.result == ["correct"]:
         return False
-    if record.result == ["incorrect_fields"]:
+    if record.result == ["incorrect_fields"] or record.is_bare_url:
         return True
     return None
 
@@ -130,7 +132,7 @@ def validation_scores(result: ValidationResult, record: ReferenceRecord) -> tupl
     notes += [f"{f} correction lacks {record.corrections[f]!r}" for f, ok in carried.items() if not ok]
     notes += [f"final result {result.final_result} does not follow from the fields ({mechanical_result(result)})"] if not values["result_follows_fields"] else []
     if expected_update is not None and has_update != expected_update:
-        notes.append("updated reference given where none belongs" if has_update else "no updated reference for an incorrect found work")
+        notes.append("updated reference given where none belongs" if has_update else "no updated reference where the skill requires one")
     return values, " | ".join(notes) if notes else "every field as labelled"
 
 
@@ -172,7 +174,7 @@ DESCRIPTIONS = {
     "no_false_flags": "Of the fields the record says are correct, share left correct. NaN when none is.",
     "correction_given": "Share of the record's correction phrases found in the field's suggested value or the updated reference. NaN when the record has none.",
     "result_follows_fields": "1 if the final result is the one the skill's Step 6 derives from the reported fields.",
-    "updated_reference_as_specified": "1 if an updated reference is given exactly when the skill requires one: for an incorrect found work, and never for a correct or fabricated reference. NaN when the skill leaves it open.",
+    "updated_reference_as_specified": "1 if an updated reference is given exactly when the skill requires one: for an incorrect found work or a bare URL, and never for a correct or fabricated reference. NaN when the skill leaves it open.",
     "all_fields_reported": "Share of the five fields the run reports an entry for.",
     "url_when_found": "1 if a URL is given for a reference that exists. NaN for a fabricated one.",
 }

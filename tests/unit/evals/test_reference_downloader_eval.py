@@ -39,9 +39,12 @@ def test_a_found_source_whose_file_is_another_work_fails():
     assert values["file_kept_when_found"] == 0.0 and math.isnan(values["file_matches_reference"])
 
 
-def test_an_inaccessible_source_needs_a_reason_and_leaves_no_file():
+def test_an_inaccessible_source_needs_a_reason_and_keeps_no_file():
     item = FetchItem(final_conclusion="source_found_but_not_accessible")
-    stray = ProjectFile(id="f2", role="supporting_candidate", file_name="preview.html")
+    stray = ProjectFile(id="f2", role="support", file_name="preview.html")
     values, note = download_scores(item, [MAIN, stray], RECORD)
     assert values["no_file_when_not_found"] == 0.0 and values["reason_when_inaccessible"] == 0.0
-    assert "left behind" in note and "no reason" in note
+    assert "kept" in note and "no reason" in note
+    named = FetchItem(final_conclusion="source_not_found", file_id="f3")
+    values, note = download_scores(named, [MAIN], RECORD)
+    assert values["no_file_when_not_found"] == 0.0 and "named" in note
