@@ -1,0 +1,747 @@
+# Eval samples for the reference_validation_v2 workflow. Each record is one reference, labelled field by
+# field against the reference-validation skill: `result` is the final result a correct run gives (a list
+# accepts any of them), `fields` the problem type each of author, title, publisher, year and identifier
+# gets (a field left out is `correct`; a list accepts any), `corrections` a phrase the field's suggested
+# value or the updated reference must carry (a list accepts any of its forms, such as NeurIPS for Neural
+# Information Processing Systems), and `not_found` a fabricated reference, whose fields are all
+# incorrect or unverifiable and which gets no updated reference. `rationale` is the labeller's account,
+# which the judged criterion compares the run's reasoning with. Labels follow the skill's rules where the
+# old labels did not: a year within one of the source's is correct, a first-author-only list is a
+# truncated list, an organization that is both author and publisher is named once, and a title may omit
+# its subtitle or deck while it still identifies the work. Each of those rules has cases on both sides.
+# See evals_inspectai/e2e/reference_validation_v2/records.py.
+
+- id: britannica_bare_url
+  reference: https://www.britannica.com/topic/think-tank/Think-tanks-in-practice
+  result: missing_fields
+  fields:
+    author: missing
+    title: missing
+    publisher: missing
+    year: missing
+    identifier: correct
+  corrections:
+    publisher: Britannica
+  rationale: >-
+    A bare URL: author, title, publisher and year are all missing and should be reconstructed from the Britannica
+    page; the identifier is optional.
+- id: youtube_bare_url
+  reference: https://www.youtube.com/watch?v=wKfq63nU9CM
+  result: missing_fields
+  fields:
+    author: missing
+    title: missing
+    publisher: missing
+    year: missing
+    identifier: correct
+  corrections:
+    title: Tools of Public Policy Analysis
+    publisher: YouTube
+  rationale: >-
+    A bare YouTube URL for the video 'Tools of Public Policy Analysis'; every field but the identifier is missing.
+- id: ieakenya_bare_url
+  reference: https://ieakenya.or.ke/blog/the-ai-preparedness-landscape-for-think-tanks/
+  result: missing_fields
+  fields:
+    author: missing
+    title: missing
+    publisher: missing
+    year: missing
+    identifier: correct
+  corrections:
+    title: AI Preparedness Landscape for Think Tanks
+  rationale: >-
+    A bare URL for the IEA Kenya post 'The AI Preparedness Landscape for Think Tanks'; every field but the identifier
+    is missing.
+- id: webvoyager_fake_authors
+  reference: 'John Doe and Jane Smith. Webvoyager: Building an end-to-end web agent with large multimodal models.
+    arXiv preprint arXiv:2401.00001, 2024.'
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    identifier: incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    author: Hongliang He
+    identifier: '2401.13919'
+  rationale: >-
+    WebVoyager is by Hongliang He et al., not John Doe and Jane Smith, and its arXiv ID is 2401.13919, not 2401.00001;
+    the paper also appeared at ACL 2024, so an official-venue publisher is acceptable.
+- id: fabricated_emnlp_paraphrase
+  reference: Asma Issa, George Mohler, and John Johnson. Paraphrase identification using deep contextualized representations.
+    In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP), pp. 517-526,
+    2018.
+  not_found: true
+  rationale: >-
+    A fabricated reference: no such work exists, so every field is incorrect or unverifiable and no updated reference
+    is suggested.
+- id: fabricated_ieee_avatar
+  reference: 'John Smith and Jane Doe. Deep learning techniques for avatar-based interaction in virtual environments.
+    IEEE Transactions on Neural Networks and Learning Systems, 32(12):5600-5612, 2021. doi: 10.1109/ TNNLS.2021.3071234.
+    URL https://ieeexplore.ieee.org/document/307123'
+  not_found: true
+  rationale: >-
+    A fabricated reference: no such work exists, so every field is incorrect or unverifiable and no updated reference
+    is suggested. Its DOI is fabricated too.
+- id: goodison_rand
+  reference: 'Goodison, Sean E., Robert C. Davis, and Brian A. Jackson. Digital Evidence and the U.S. Criminal Justice
+    System: Identifying Technology and Other Needs to More Effectively Acquire and Utilize Digital Evidence. Santa
+    Monica, CA: RAND Corporation, 2015.'
+  result: correct
+- id: fabricated_widgets
+  reference: Doe, John. The Effects of Widgets on Gadgets. Journal of Widgetry, 2020.
+  not_found: true
+  rationale: >-
+    A fabricated reference: no such work exists, so every field is incorrect or unverifiable and no updated reference
+    is suggested.
+- id: vermeer_year_within_one
+  reference: 'Vermeer, Michael J. D., Dulani Woods, and Brian A. Jackson. Identifying Law Enforcement Needs for
+    Access to Digital Evidence in Remote Data Centers. Santa Monica, CA: RAND Corporation, 2019.'
+  result: correct
+  rationale: >-
+    The cited year (2019) is one year from the RAND publication year (2018), within the skill's one-year tolerance,
+    so every field is correct.
+- id: bistline_science
+  reference: Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen
+    Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, Ben King, Hannah Kolus, John Larsen, Amanda Levin, Megan
+    Mahajan, Cara Marcy, Erin Mayfield, James McFarland, Haewon McJeon, Robbie Orvis, Neha Patankar, Kevin Rennert,
+    Christopher Roney, Nicholas Roy, Greg Schivley, Daniel Steinberg, Nadejda Victor, Shelley Wenzel, John Weyant,
+    Ryan Wiser, Mei Yuan, and Alicia Zhao, "Emissions and energy impacts of the Inflation Reduction Act," Science,
+    Vol. 380, No. 6652, 1324 – 1327, 29 June 2023. https://doi.org/10.1126/science.adg3781
+  result: correct
+- id: goldman_sachs_report
+  reference: 'Davenport, Carly, Brian Singer, Neil Mehta, Brian Lee, and John Mackay, "Generational growth: AI,
+    data centers and the coming US power demand surge," Goldman Sachs Equity Research, April 28, 2024: https://www.goldmansachs.com/pdfs/insights/pages/generational-growth-ai-data-centers-and-the-coming-us-power-surge/report.pdf'
+  result: correct
+- id: semianalysis_misspelled_author
+  reference: 'Patel, Dylan, Daniel Nishball, and Jeremie Elliahou Ontiveros, "AI Data center Energy Dilemma - Race
+    for AI Data center Space," SemiAnalysis, March 13, 2024. As of September 18, 2024: https://www.semianalysis.com/p/ai-data
+    center-energy-dilemma-race'
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    identifier:
+    - correct
+    - incorrect
+  corrections:
+    author: Eliahou
+  rationale: >-
+    The third author is Jeremie Eliahou Ontiveros, not Elliahou, and the cited URL has a space in its slug ('ai-data
+    center-energy-dilemma-race'), which does not resolve; the post is at newsletter.semianalysis.com/p/ai-datacenter-energy-dilemma-race.
+    'Data center' for 'Datacenter' in the title is a spelling variant that leaves the post identifiable, so the
+    title is correct.
+- id: furrer_wrong_authors
+  reference: 'Daniel Furrer, Jonathan Berant, Panupong Pasupat, Don Tuggener, Mark Cieliebak, and Mark Steedman.
+    Compositional generalization in semantic parsing: Pre-training vs. specialized architectures. In Findings of
+    the Association for Computational Linguistics: EMNLP, 2020.'
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    author: van Zee
+  rationale: >-
+    The author list is wrong: the paper is by Furrer, van Zee, Scales and Schärli; it appeared on arXiv, so the
+    cited venue is also doubtful.
+- id: herzig_wrong_venue
+  reference: Jonathan Herzig. Unlocking compositional generalization in pretrained models using intermediate representations.
+    In EMNLP, 2021a.
+  result: incorrect_fields
+  fields:
+    publisher: incorrect
+    author: correct
+  corrections:
+    publisher: arXiv
+  rationale: >-
+    The paper is an arXiv preprint, not an EMNLP paper. The reference names only the first author, which the skill
+    counts as a truncated author list, not an error.
+- id: herzig_berant_no_venue
+  reference: Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using
+    intermediate representations.
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    publisher: missing
+    year: missing
+  corrections:
+    author: Peter Shaw
+    year: '2021'
+  rationale: >-
+    Jonathan Berant is not an author (the paper is by Herzig, Shaw, Chang, Guu, Pasupat and Zhang), and the venue
+    (arXiv) and year (2021) are missing.
+- id: herzig_berant_emnlp
+  reference: Jonathan Herzig and Jonathan Berant. Unlocking compositional generalization in pretrained models using
+    intermediate representations. In EMNLP, 2021c.
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    publisher: incorrect
+  corrections:
+    author: Peter Shaw
+  rationale: >-
+    Wrong co-author (Berant) and wrong venue (EMNLP): the paper is an arXiv preprint by Herzig, Shaw, Chang, Guu,
+    Pasupat and Zhang; 2021 is the right year.
+- id: ito_wrong_authors
+  reference: Takashi Ito, Brenden M. Lake, and Marco Baroni. Compositional generalization through abstract representations
+    in human and artificial neural networks. In NeurIPS, 2022.
+  result: incorrect_fields
+  fields:
+    author: incorrect
+  corrections:
+    author: Klinger
+  rationale: >-
+    The NeurIPS 2022 paper is by Takuya Ito, Klinger, Schultz, Murray, Cole and Rigotti, not Lake and Baroni. The
+    identifier is optional, so its absence is not an error.
+- id: cogs_wrong_venue
+  reference: 'Najoung Kim and Tal Linzen. Cogs: A compositional generalization challenge based on semantic interpretation.
+    In NAACL, 2021.'
+  result: incorrect_fields
+  fields:
+    publisher: incorrect
+  corrections:
+    publisher:
+    - EMNLP
+    - Empirical Methods in Natural Language Processing
+  rationale: >-
+    COGS appeared at EMNLP 2020, not NAACL. The cited year (2021) is within the skill's one-year tolerance, so only
+    the venue is wrong.
+- id: lake_baroni_icml
+  reference: 'Brenden M. Lake and Marco Baroni. Generalization without systematicity: On the compositional skills
+    of sequence-to-sequence recurrent networks. ICML, 2018.'
+  result: correct
+- id: meta_seq2seq_wrong_citation
+  reference: Xueguang Li, Yizhe Zhang, Xuezhe Ma, Lemao Liu, Xiang Chen, Ming Zhou, Tie-Yan Liu, and Jianfeng Gao.
+    Compositional generalization through meta sequence-to-sequence learning. In EMNLP, 2021.
+  result: incorrect_fields
+  fields:
+    author: incorrect
+    publisher: incorrect
+    year: incorrect
+  corrections:
+    author: Lake
+    year: '2019'
+    publisher:
+    - Neural Information Processing
+    - NeurIPS
+  rationale: >-
+    The paper is by Brenden M. Lake alone, at NeurIPS 2019: the author list, venue and year (two years off) are
+    all wrong.
+- id: ruis_neurips
+  reference: Laura Ruis, Jacob Andreas, Marco Baroni, Diane Bouchacourt, and Brenden M. Lake. A benchmark for systematic
+    generalization in grounded language understanding. In NeurIPS, 2020.
+  result: correct
+- id: herzig_full_arxiv
+  reference: Herzig, Jonathan, Peter Shaw, Ming-Wei Chang, Kelvin Guu, Panupong Pasupat, and Yuan Zhang. "Unlocking
+    compositional generalization in pre-trained models using intermediate representations." arXiv preprint arXiv:2104.07478
+    (2021).
+  result: correct
+- id: nerc_org_publisher
+  reference: 'North American Electric Reliability Corporation, "2024 Long-Term Reliability Assessment," December
+    2024: https://www.nerc.com/pa/RAPA/ra/Reliability%20Assessments%20DL/NERC_Long%20Term%20Reliability%20Assessment_2024.pdf'
+  result: correct
+  rationale: >-
+    An organization that is both the author and the publisher need not be named twice (see the labeller's note on
+    the Frontier Model Forum record), so the omitted publisher is correct.
+- id: epoch_ai_blog
+  reference: 'Sevilla, Jaime, Tamay Besiroglu, Ben Cottier, Josh You, Edu Roldán, Pablo Villalobos, and Ege Erdil,
+    "Can AI Scaling Continue Through 2030?" Epoch AI, August 20, 2024: https://epoch.ai/blog/can-ai-scaling-continue-through-2030'
+  result: correct
+- id: mckinsey_wrong_authors
+  reference: 'Srivathsan, Bhargs, Haripreet Batra, Raman Sharma, Rishi Gupta, and Surbhi Choudhary, "AI power: Expanding
+    data center capacity to meet growing demand," McKinsey & Company, October 2024: https://www.mckinsey.com/industries/technology-media-and-telecommunications/our-insights/ai-power-expanding-data-center-capacity-to-meet-growing-demand#/'
+  result: incorrect_fields
+  fields:
+    author: incorrect
+  corrections:
+    author: Sorel
+  rationale: >-
+    The listed authors skip the article's second and third authors (Marc Sorel, Pankaj Sachdeva), so it is not a
+    truncated list but a wrong one.
+- id: crs_kenya
+  reference: 'Blanchard, Lauren Ploch, U.S.-Kenya Relations: Current Political and Security Issues, Congressional
+    Research Service, R42967, July 23, 2015.'
+  result: correct
+- id: rand_gun_policy
+  reference: 'Smart, Rosanna, Andrew R. Morral, Sierra Smucker, Samantha Cherney, Terry L. Schell, Samuel Peterson,
+    Sangeeta C. Ahluwalia, Matthew Cefalu, Lea Xenakis, Rajeev Ramchand, and Carole Roan Gresenz, The Science of
+    Gun Policy: A Critical Synthesis of Research Evidence on the Effects of Gun Policies in the United States, 2nd
+    ed., RAND Corporation, RR-2088-1-RC/AV, 2020. As of May 21, 2022: https://www.rand.org/pubs/research_reports/RR2088-1.html'
+  result: correct
+- id: pew_ai_workers
+  reference: 'Lin, Luona, and Kim Parker, "US workers are more worried than hopeful about future AI use in the workplace,"
+    Pew Research Center, 2025. As of November 13, 2025: https://www.pewresearch.org/wp-content/uploads/sites/20/2025/02/ST_2025.2.25_AI-Workers_REPORT.pdf'
+  result: correct
+- id: aramis_journal
+  reference: 'de Dianous, Valérie, and Cécile Fiévez, "ARAMIS Project: A More Explicit Demonstration of Risk Control
+    Through the Use of Bow-Tie Diagrams and the Evaluation of Safety Barrier Performance," Journal of Hazardous
+    Materials, Vol. 130, No. 3, March 31, 2006.'
+  result: correct
+- id: nber_generative_ai
+  reference: 'Bick, Alexander, Adam Blandin, and David J. Deming, "The Rapid Adoption of Generative AI," NBER Working
+    Paper 32966, 2024. As of November 13, 2025: https://doi.org/10.3386/w32966'
+  result: correct
+- id: brachman_acm
+  reference: 'Brachman, Michelle, Amina El-Ashry, Casey Dugan, and Werner Geyer, "Current and future use of large
+    language models for knowledge work," Proceedings of the ACM on Human-Computer Interaction, Vol. 9, No. 7, 2025.
+    As of November 13, 2025: https://dl.acm.org/doi/pdf/10.1145/3757403'
+  result: correct
+- id: becker_arxiv
+  reference: 'Becker, Joel, Nate Rush, Elizabeth Barnes, and David Rein, "Measuring the impact of early-2025 AI
+    on experienced open-source developer productivity," arXiv, 2025. As of November 13, 2025: https://arxiv.org/abs/2507.09089'
+  result: correct
+- id: wang_arxiv
+  reference: 'Wang, Dakuo, Q. Vera Liao, Yunfeng Zhang, Udayan Khurana, Horst Samulowitz, Soya Park, Michael Muller,
+    and Lisa Amini, "How much automation does a data scientist want?" arXiv, arXiv:2101.03970, 2021. As of November
+    13, 2025: https://arxiv.org/abs/2101.03970'
+  result: correct
+- id: la_times_1991
+  reference: Murphy, Kim, "Iraq Rejects Warning, Assails Mubarak," Los Angeles Times, January 2, 1991.
+  result: correct
+  rationale: >-
+    The reference gives the headline without the deck the archive prints inside its <h1> ('Mideast: Egyptian leader
+    is labeled ...'). An omitted deck is CORRECT under the skill's title note: the headline, byline, paper and date
+    still identify the article.
+- id: xinhua_no_byline
+  reference: '"Xi urges good start to 15th Five-Year Plan period," Xinhua, February 26, 2026.'
+  result: correct
+  rationale: >-
+    A wire story with no byline is cited under its agency, which is the publisher; nothing is missing.
+- id: perficient_study
+  reference: 'Perficient. "The State of GenAI in the Workforce," Perficient, 2025. As of January 30, 2026: https://www.perficient.com/insights/generative-ai-workforce-study'
+  result: correct
+  rationale: >-
+    Correct as cited. The URL resolved on 17 January 2026 (Wayback Machine, status 200) to 'The State of GenAI in
+    the Workforce' by Perficient, 2025; the live site now answers automated clients with a bot checkpoint, which
+    is not evidence that the URL is wrong.
+- id: gallup_article
+  reference: 'Kemp, Andy. "AI Use at Work Rises," Gallup, December 2025. As of January 30, 2026: https://www.gallup.com/workplace/699689/ai-use-at-work-rises.aspx'
+  result: correct
+- id: rtx_homepage
+  reference: Raytheon Technologies, homepage, undated. As of May 11, 2022:https://www.rtx.com
+  result: correct
+  rationale: >-
+    Raytheon Technologies and RTX are the same organization after a rebrand, the skill's own example; 'homepage'
+    describes the page, and the organization is both author and publisher. An organization that is both the author
+    and the publisher need not be named twice (see the labeller's note on the Frontier Model Forum record), so the
+    omitted publisher is correct.
+- id: under_secretary_of_war
+  reference: 'Office of the Under Secretary of War (Comptroller), "Defense Wide Budget Documentation," webpage,
+    undated. As of September 18, 2025: https://comptroller.defense.gov/Budget-Materials/FY2009BudgetJustification'
+  result: correct
+  rationale: >-
+    Executive Order 14347 (5 September 2025) authorizes 'Department of War' and 'Under Secretary of War (Comptroller)',
+    so a reference dated 18 September 2025 uses the current name. The old label called it a pre-1947 title, which
+    predates the order. An organization that is both the author and the publisher need not be named twice (see the
+    labeller's note on the Frontier Model Forum record), so the omitted publisher is correct.
+- id: bluesky_post
+  reference: 'Phoebe Liu, "Three months after a blockbuster $20 billion deal, Nvidia announced its plans for Groq''s
+    inference-speed tech. Here''s how it came together and what''s next," Bluesky post, March 18, 2026. As of March
+    18, 2026: https://bsky.app/profile/pheebini.bsky.social/post/3mhdyfduj2k2a'
+  result: correct
+- id: afi_not_policy_directive
+  reference: Air Force Policy Directive 10-601, Operational Capability Requirements Documentation and Validation,
+    Department of the Air Force, April 27, 2021.
+  result: incorrect_fields
+  fields:
+    title:
+    - correct
+    - incorrect
+    identifier:
+    - correct
+    - incorrect
+    author: correct
+  corrections:
+    title:
+    - Instruction
+    - AFI
+  rationale: >-
+    The document dated 27 April 2021 is Air Force Instruction 10-601, not an Air Force Policy Directive, so the
+    designation in the title is wrong.
+- id: joint_pub_1
+  reference: Joint Chiefs of Staff, Doctrine for the Armed Forces of the United States, Joint Publication 1, March
+    25, 2013, change 1, July 12, 2017.
+  result: correct
+  rationale: >-
+    An organization that is both the author and the publisher need not be named twice (see the labeller's note on
+    the Frontier Model Forum record), so the omitted publisher is correct.
+- id: public_law_107_296
+  reference: Public Law 107-296, Homeland Security Act of 2002, November 25, 2002.
+  result: correct
+  rationale: >-
+    A public law is cited by its number, name and date; there is no author or publisher to add.
+- id: brownlee_testimony
+  reference: Brownlee, Les, "Current Army Issues," testimony before the U.S. Senate Committee on Armed Services,
+    U.S. Government Printing Office, November 19, 2003.
+  result: correct
+- id: rand_testimony
+  reference: 'Williams, Heather J., and Alexandra T. Evans, "Extremist Use of Online Spaces," testimony submitted
+    to the Select Committee to Investigate the January 6th Attack on the United States Capitol, RAND Corporation,
+    CT-A1458-1, April 25, 2022. As of July 7, 2022: https://www.rand.org/pubs/testimonies/CTA1458-1.html'
+  result: correct
+- id: jtts_slides_same_year
+  reference: Costanzo, George, and Mary Ann Spott, "Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry
+    (JTTR)," briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.
+  result: correct
+  rationale: >-
+    The cited date (July 10, 2010) and the date on the hosting page (July 14, 2010) are in the same year, which
+    the skill's year rule counts as correct.
+- id: carter_memo_title
+  reference: Carter, Ashton B., "0% Headquarters Reductions," memorandum to secretaries of the military departments
+    et al., U.S. Department of Defense, July 31, 2013.
+  result: incorrect_fields
+  fields:
+    title: incorrect
+  corrections:
+    title: 20% Headquarters Reductions
+  rationale: >-
+    The memo's subject is '20% Headquarters Reductions', not '0% Headquarters Reductions'; author, publisher and
+    date are right.
+- id: jordan_press_release
+  reference: Embassy of the United States in Jordan, "The United States and the Hashemite Kingdom of Jordan Sign
+    Memorandum of Understanding on Assistance," press release, September 23, 2008.
+  result: correct
+  rationale: >-
+    Correct as cited. The U.S. Embassy in Amman posted 'The United States and the Hashemite Kingdom of Jordan Sign
+    Memorandum of Understanding on Assistance (September 23, 2008)' (jordan.usembassy.gov/pr_assistancememorandom_092308.html,
+    archived). It reposts the State Department's Office of the Spokesman media note of September 22, so citing the
+    embassy's release under its own date is right, not a misattribution.
+- id: wits_database
+  reference: 'World Bank, World Integrated Trade Solution, database, undated. As of May 2, 2022: https://wits.worldbank.org'
+  result: correct
+  rationale: >-
+    An organization that is both the author and the publisher need not be named twice (see the labeller's note on
+    the Frontier Model Forum record), so the omitted publisher is correct.
+- id: dmdc_spreadsheet
+  reference: Defense Manpower Data Center, "Number of Military and DoD Appropriated Fund (APF) Civilian Personnel
+    Permanently Assigned," spreadsheet, last updated September 30, 2019.
+  result:
+  - correct
+  - incorrect_fields
+  fields:
+    title:
+    - correct
+    - incorrect
+  rationale: >-
+    The 2019 date is in the same year as the source's, which the skill counts as correct. Every run gives the full
+    title as '... Permanently Assigned by Duty Location and Service/Component'; DMDC publishes several reports of
+    this family for the same date, so whether the shortened title still identifies the spreadsheet is the skill's
+    subtitle test, and it stays open here (the workbook is no longer served, so the title could not be checked).
+    The organization is both author and publisher, so the omitted publisher is correct.
+- id: register_headline
+  reference: Brandon Vigliarolo. "Anthropic accidentally exposes Claude Code source code." The Register. Mar 31,
+    2026. https://www.theregister.com/2026/03/31/anthropic_claude_code_source_code/ (The Register, 2026)
+  result: incorrect_fields
+  fields:
+    title: incorrect
+  corrections:
+    title: goes nude
+  rationale: >-
+    The on-page headline is 'Anthropic goes nude, exposes Claude Code source by accident', not the sanitized title
+    in the reference; author, publisher, year and URL are right.
+- id: nonexistent_microsoft_blog
+  reference: Microsoft Security Blog. (2024, April 1). Navigating the cyber threat landscape with AI. https://www.microsoft.com/en-us/security/blog/2024/04/01/navigating-cyber-threat-landscape-ai
+  not_found: true
+  rationale: >-
+    The blog post does not exist at the URL and cannot be found; a plausible URL pattern is not evidence.
+- id: bass_1969
+  reference: 'Bass, Frank M., "A New Product Growth for Model Consumer Durables," Management Science, Vol. 15, No.
+    5, 1969. As of April 9, 2026: https://doi.org/10.1287/mnsc.15.5.215.'
+  result: correct
+  notes: >-
+    False positive: DD flagged inconsistencies in the title, but the reference is actually correct.
+- id: medium_redirect
+  reference: 'Battula, Narendar, "Prompt-Driven Vulnerability Chains: How to Build Multi-Step Exploits from Low-Severity
+    Bugs with AI," Medium, As of July 23, 2025: https://medium.com/@narendarlb123/prompt-driven-vulnerability-chains-how-to-build-multi-step-exploits-from-low-severity-bugs-with-ai-7f79a701535b.'
+  result: correct
+  rationale: >-
+    The article exists on a custom Medium domain the link redirects to; every field is correct.
+  notes: >-
+    Link redirects to a custom site on Medium; AI may be unable to follow the redirect and may incorrectly report
+    not_found.
+- id: frontier_model_forum
+  reference: Frontier Model Forum. (n.d.). About. https://www.frontiermodelforum.org/about-us/
+  result: correct
+  rationale: >-
+    The page has no listed author, so the organization is the author, and it need not be repeated as publisher.
+  notes: >-
+    Page has no listed author, so entry in 'author' field should be publisher. Publisher does not need to be repeated
+    twice in the reference.
+- id: nonexistent_google_saif
+  reference: 'Google Security Blog. (2024, June 12). Secure AI Framework (SAIF): Conceptualizing secure AI systems.
+    https://security.googleblog.com/2024/06/secure-ai-framework.html'
+  not_found: true
+  rationale: >-
+    Fabricated. The cited URL returns 404, and the blog's June 2024 archive has no such post. The similar 2023 post
+    (Hansen and Venables, 'Introducing Google's Secure AI Framework', Google Blog) differs in title, author, publisher
+    and year, so it is a different work: the reference is not found, and no updated reference pointing to the 2023
+    post should be suggested.
+  notes: >-
+    DD completions often return found_with_inconsistencies citing a closely matching official Google source (Hansen,
+    R., & Venables, P. (2023, June 8). Introducing Google's Secure AI Framework. The Keyword.) — however all 4 fields
+    differ from the original reference. The result should be not_found when all 4 fields are different.
+- id: khare_arxiv_latest_year
+  reference: Khare, A., Dutta, S., Li, Z., Solko-Breslin, A., Alur, R., & Naik, M. (2024). Understanding the Effectiveness
+    of Large Language Models in Detecting Security Vulnerabilities. arXiv [Cs.CR]. Retrieved from http://arxiv.org/abs/2311.16169.
+  result: correct
+  rationale: >-
+    For an unversioned arXiv citation the most recent version is authoritative, and its 2024 date matches the reference.
+  notes: >-
+    False positive: DD thinks year should be 2023. Original submission on arXiv is 2023, but there is an updated
+    submission in 2024. For an arXiv citation to the unversioned record, the year should refer to the most recent
+    submission (2024).
+- id: fang_v1_authors
+  reference: Fang, R., Bindu, R., Gupta, A., Zhan, Q., & Kang, D. (2024b). Teams of LLM Agents can Exploit Zero-Day
+    Vulnerabilities. ArXiv, abs/2406.01637.
+  result: incorrect_fields
+  fields:
+    author: incorrect
+  corrections:
+    author: Zhu
+  rationale: >-
+    The reference gives the v1 author list; the current arXiv version lists Zhu, Kellermann, Gupta, Li, Fang, Bindu
+    and Kang.
+  notes: >-
+    Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields
+    against the most recent version, unless the citation explicitly references an older version (e.g. https://arxiv.org/abs/2406.01637v1).
+- id: kwa_v1_title
+  reference: Kwa, T., West, B., Becker, J., Deng, A., Garcia, K., Hasin, M., Jawhar, S., Kinniment, M., Rush, N.,
+    Arx, S.V., Bloom, R., Broadley, T., Du, H., Goodrich, B., Jurkovic, N., Miles, L.H., Nix, S., Lin, T.R., Parikh,
+    N., Rein, D., Sato, L.J., Wijk, H., Ziegler, D.M., Barnes, E., & Chan, L. (2025). Measuring AI Ability to Complete
+    Long Tasks. ArXiv, abs/2503.14499.
+  result: incorrect_fields
+  fields:
+    title: incorrect
+    author:
+    - correct
+    - incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    title: Long Software Tasks
+  rationale: >-
+    The reference uses the v1 title; the current title is 'Measuring AI Ability to Complete Long Software Tasks'.
+    The paper also appeared at NeurIPS 2025.
+  notes: >-
+    Some arXiv papers have multiple uploaded versions with different author lists. DD should always match fields
+    against the most recent version, unless the citation explicitly references an older version.
+- id: gdpval_wrong_arxiv
+  reference: 'Patwardhan, T., Dias, R., Proehl, E., Kim, G., Wang, M., Watkins, O., Fishman, S. P., Aljubeh, M.,
+    Thacker, P., Fauconnet, L., Kim, N. S., Chao, P., Miserendino, S., Chabot, G., Li, D., Sharman, M., Barr, A.,
+    Glaese, A., ... Tworek, J. (2025). GDPval: Evaluating AI model performance on real-world economically valuable
+    tasks (arXiv:2312.12575v2). arXiv. https://arxiv.org/html/2312.12575v2'
+  result: incorrect_fields
+  fields:
+    identifier: incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    identifier: '2510.04374'
+  rationale: >-
+    The arXiv identifier 2312.12575 belongs to an unrelated paper; GDPval is arXiv:2510.04374.
+- id: ndss_missing_venue
+  reference: 'Stevens, Rock & Dykstra, Josiah & Everette, Wendy Knox & Chapman, James & Bladow, Garrett & Farmer,
+    Alexander & Halliday, Kevin & Mazurek, Michelle L. (2020). Compliance Cautions: Investigating Security Issues
+    Associated with U.S. Digital-Security Standards. 10.14722/ndss.2020.24003.'
+  result: missing_fields
+  fields:
+    publisher: missing
+  corrections:
+    publisher:
+    - NDSS
+    - Network and Distributed System Security
+  rationale: >-
+    The venue is missing: the DOI resolves to an NDSS Symposium 2020 paper.
+- id: ndss_minor_name_forms
+  reference: 'Stevens, Rock & Dykstra, Josiah & Everette, Wendy & Chapman, James & Bladow, Garrett & Farmer, Alexander
+    & Halliday, Kevin & Mazurek, Michelle. (2020). Compliance Cautions: Investigating Security Issues Associated
+    with U.S. Digital-Security Standards. NDSS Symposium (Internet Society). 10.14722/ndss.2020.24003.'
+  result: correct
+  rationale: >-
+    Missing middle names (Wendy Knox, Michelle L.) are name-form differences the skill counts as correct.
+  notes: >-
+    Minor name inconsistencies (Everette, Wendy vs. Everette, Wendy Knox; Mazurek, Michelle vs. Mazurek, Michelle
+    L.) should not trigger found_with_inconsistencies.
+- id: ghosh_name_particle
+  reference: 'Ghosh, R., Farri, O., Stockhausen, H.V., Schmitt, M., & Vasile, G.M. (2024). CVE-LLM : Automatic vulnerability
+    evaluation in medical device industry using large language models. ArXiv, abs/2407.14640.'
+  result: correct
+  rationale: >-
+    'Stockhausen, H.V.' for 'von Stockhausen, H. M.' is a surname-particle and initial difference the skill counts
+    as correct.
+  notes: >-
+    Consistency test: 'Stockhausen, H.V.' should be 'von Stockhausen, H. M.' — a small author name discrepancy that
+    should not trigger found_with_inconsistencies.
+- id: dissanayake_wrong_doi
+  reference: 'Dissanayake, N., Zahedi, M., Jayatilaka, A., & Babar, M. A. (2022). Why, how and where of delays in
+    software security patch management: An empirical investigation in the healthcare sector. Proceedings of the
+    ACM on Human-Computer Interaction, 6(CSCW1), 1–28. https://doi.org/10.1145/3512948'
+  result: incorrect_fields
+  fields:
+    identifier: incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    identifier: '3555087'
+  rationale: >-
+    The DOI resolves to a different ACM article; the paper's DOI is 10.1145/3555087, in CSCW2 rather than CSCW1.
+- id: pearce_year_within_one
+  reference: Pearce, H., Tan, B., Ahmad, B., Karri, R., & Dolan-Gavitt, B. (2024). Examining zero-shot vulnerability
+    repair with large language models. Proceedings of the 2024 IEEE Symposium on Security and Privacy (SP), 2339–2356.
+  result:
+  - correct
+  - incorrect_fields
+  fields:
+    publisher:
+    - correct
+    - incorrect
+  rationale: >-
+    The paper appeared at IEEE S&P 2023; the cited year 2024 is within the skill's one-year tolerance, and whether
+    '2024 IEEE Symposium' in the venue is a wrong venue is borderline.
+  notes: >-
+    Reference is also missing an identifier (DOI or link), but a missing identifier alone should not trigger found_with_inconsistencies
+    — the year error is the primary issue.
+- id: cybermetric_html_title
+  reference: 'Tihanyi, N., Ferrag, M. A., Jain, R., Bisztray, T., & Debbah, M. (2024). CyberMetric: Creating a benchmark
+    dataset RAG with human validation for evaluating cybersecurity knowledge of LLMs. arXiv. https://arxiv.org/html/2402.07688v2'
+  result: incorrect_fields
+  fields:
+    title: incorrect
+    publisher:
+    - correct
+    - incorrect
+  corrections:
+    title: Retrieval-Augmented Generation
+  rationale: >-
+    The title comes from arXiv's HTML rendering; the paper's title is 'CyberMetric: A Benchmark Dataset based on
+    Retrieval-Augmented Generation for Evaluating LLMs in Cybersecurity Knowledge', and it appeared at an IEEE conference,
+    the preferred venue.
+  notes: >-
+    The link is technically valid but points to the experimental arXiv HTML view, which contains rendering errors
+    that produced the wrong title. Listing publisher as 'arXiv' is not wrong per se, but the paper was officially
+    published at an IEEE conference and that should be preferred.
+- id: snowball_sampling_2019
+  reference: 'Parker, Charlie, Sam Scott, and Alistair Geddes. "Snowball Sampling." In Sage Research Methods Foundations,
+    edited by Paul Atkinson, Sara Delamont, Alexandru Cernat, Joseph W. Sakshaug, and Richard A. Williams. London:
+    SAGE Publications Ltd, 2019. https://doi.org/10.4135/9781526421036831710.'
+  result: correct
+  rationale: >-
+    Sage lists the entry as 2019; a 2020 listing elsewhere is within the one-year tolerance.
+  notes: >-
+    False positive: DD says year should be 2020 (Google Books lists 2020) but Google Scholar lists the year as 2019,
+    which matches the citation.
+- id: oxford_benefit_sharing
+  reference: 'Adan, Sumaya Nur, Joanna Wiaterek, Varun Sen Bahl, Ima Bello, Camila Beltran, Tobias Dierks, Luise
+    Eder, Liam Epstein, Abra Ganz, Natalie Kiilu, Marianne Lu, Chinasa T. Okolo, Sydney Reis, Said Saillant, Krishna
+    Sharma, Marjia Siddik, Jan Pieter Snoeij, José Jaime Villalobos, and Anna Yelizarova. AI Benefit-Sharing Framework:
+    Balancing Access and Safety. Oxford Martin AI Governance Initiative, Oxford Martin School, University of Oxford,
+    December 1, 2025. As of January 22, 2026: https://aigi.ox.ac.uk/publications/ai-benefit-sharing-framework-balancing-access-and-safety/'
+  result: correct
+  rationale: >-
+    The white paper exists at the cited URL; every field is correct.
+  notes: >-
+    DD returned 'not_found' but article exists.
+- id: small_journal_2025
+  reference: Sundharbaabu, P.R., J. Chang, Y. Kim, Y. Shim, B. Lee, C. Noh, S. Heo, S. S. Lee, S. H. Shim, K. L.
+    Lim, K. Jo, and J. H. Lee. "Artificial Intelligence‐Enhanced Analysis of Genomic DNA Visualized with Nanoparticle‐Tagged
+    Peptides under Electron Microscopy," Small, Vol. 21, No. 12, Mar, 2025.
+  result: correct
+  rationale: >-
+    The article exists in Small, volume 21, 2025; every field is correct.
+  notes: >-
+    DD returned 'not_found' but article exists.
+- id: rand_working_paper
+  reference: 'Rajan, Kanna and Karlyn D. Stanley, Unmanned Cargo Vessels: A Working Paper, RAND Corporation, WR-A2889-1,
+    2023. As of April 18, 2026: https://www.rand.org/pubs/working_papers/WRA2889-1.html'
+  result: correct
+- id: epa_filtration_facts
+  reference: 'Environmental Protection Agency, Water Health Series: Filtration Facts, September 2005.'
+  result: correct
+  rationale: >-
+    An EPA fact sheet cited under the agency that issued it, as RAND's RR-A4036-1 cites it; the publisher is the
+    author and is not repeated. RAND style and APA both name an organization that is author and publisher once;
+    the skill's publisher note makes the omitted publisher CORRECT.
+- id: rand_r322_org_author
+  reference: 'RAND Corporation, Report on a Study of Non-Military Defense, R-322-RC, 1958. As of May 1, 2025: https://www.rand.org/pubs/reports/R0322.html'
+  result: correct
+  rationale: >-
+    A RAND report with no personal author, cited under RAND itself, as RAND's own reference lists do; nothing is
+    missing. RAND style and APA both name an organization that is author and publisher once; the skill's publisher
+    note makes the omitted publisher CORRECT.
+- id: aphis_parent_publisher
+  reference: 'Animal and Plant Health Inspection Service, "National Veterinary Stockpile," webpage, U.S. Department
+    of Agriculture, last updated March 30, 2024. As of May 2, 2025: https://www.aphis.usda.gov/animal-emergencies/nvs'
+  result: correct
+  rationale: >-
+    An office cited as author with its parent department as publisher, the case where RAND style does name a different
+    publisher; every field is present and correct.
+- id: anthropic_author_date
+  reference: 'Anthropic. 2025. ''Agentic Misalignment: How LLMs Could Be Insider Threats.'' 20 June. As of 3 December
+    2025: https://www.anthropic.com/research/agentic-misalignment'
+  result: correct
+  rationale: >-
+    An author-date citation (RAND Europe's RR-A4636-1 style) of a company research post under the company, named
+    once. RAND style and APA both name an organization that is author and publisher once; the skill's publisher
+    note makes the omitted publisher CORRECT.
+- id: gallup_publisher_omitted
+  reference: 'Kemp, Andy. "AI Use at Work Rises," December 2025. As of January 30, 2026: https://www.gallup.com/workplace/699689/ai-use-at-work-rises.aspx'
+  result: missing_fields
+  fields:
+    publisher: missing
+  corrections:
+    publisher: Gallup
+  rationale: >-
+    A personally authored article with its publisher, Gallup, left out. The organization-named-once rule does not
+    apply, since the author is a person: the publisher is MISSING.
+- id: crs_publisher_omitted
+  reference: 'Blanchard, Lauren Ploch, U.S.-Kenya Relations: Current Political and Security Issues, R42967, July
+    23, 2015.'
+  result: missing_fields
+  fields:
+    publisher: missing
+  corrections:
+    publisher:
+    - Congressional Research Service
+    - CRS
+  rationale: >-
+    A CRS report by a named analyst with the Congressional Research Service left out; the publisher is a different
+    body from the author, so it is MISSING.
+- id: guardian_no_standfirst
+  reference: Guardian staff and agencies, "Trump agrees deal for UAE to build largest AI campus outside US," The
+    Guardian, May 15, 2025.
+  result: correct
+  rationale: >-
+    The headline without the article's standfirst ('Agreement that would give Gulf country better access to advanced
+    AI chips ...'), as RAND's RR-A4636-1 cites it; the headline identifies the article.
+- id: zero_days_no_subtitle
+  reference: Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights, RAND Corporation, RR-1751-RC, 2017.
+  result: correct
+  rationale: >-
+    The report's title without its subtitle ('The Life and Times of Zero-Day Vulnerabilities and Their Exploits');
+    the main title and report number still identify it.
+- id: ipcc_ambiguous_title
+  reference: IPCC, Climate Change 2022, Cambridge University Press, 2022.
+  result:
+  - incorrect_fields
+  - missing_fields
+  fields:
+    title:
+    - incorrect
+    - missing
+  rationale: >-
+    Two IPCC Sixth Assessment volumes share this main title in 2022 ('Climate Change 2022: Impacts, Adaptation and
+    Vulnerability' and 'Climate Change 2022: Mitigation of Climate Change'), so the omitted subtitle is what identifies
+    the work: the title does not pass the skill's subtitle test.
+- id: nonexistent_claude_3_safety_case
+  reference: Anthropic. (2024, February 2). Claude 3 Safety Case. https://www.anthropic.com/news/claude-3-safety-case
+  not_found: true
+  rationale: >-
+    Fabricated. The URL returns 404 and no Anthropic post has this title; the similar real documents (the Claude
+    3 model card, 'Introducing the next generation of Claude', March 2024) are different works, so the reference
+    is not found and gets no updated reference.
