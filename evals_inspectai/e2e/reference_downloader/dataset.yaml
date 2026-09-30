@@ -1,0 +1,326 @@
+# Eval samples for the reference_downloader workflow. Each record is one reference: `conclusion` is the
+# outcome a correct run reaches (a list accepts any of them, for a source whose accessibility depends on the
+# live web or on which copy counts). A found source is checked against the file the app kept, not taken on
+# the agent's word: `file_terms` are phrases of the work's own title the file must contain, and `end_terms`
+# phrases from the work's last part (a final section, references, a back cover), which a complete copy has
+# and a preview of the first pages does not. Each phrase was checked against the kept copies of a run: found
+# in every copy of its work, and a title phrase in no other record's file. See
+# evals_inspectai/e2e/reference_downloader/records.py.
+
+- id: crs_kenya
+  reference: 'Blanchard, Lauren Ploch, U.S.-Kenya Relations: Current Political and Security Issues, Congressional
+    Research Service, R42967, July 23, 2015.'
+  conclusion: source_found
+  file_terms:
+  - U.S.-Kenya Relations
+  end_terms:
+  - Author Contact Information
+- id: rand_gun_policy
+  reference: 'Smart, Rosanna, Andrew R. Morral, Sierra Smucker, Samantha Cherney, Terry L. Schell, Samuel Peterson,
+    Sangeeta C. Ahluwalia, Matthew Cefalu, Lea Xenakis, Rajeev Ramchand, and Carole Roan Gresenz, The Science of
+    Gun Policy: A Critical Synthesis of Research Evidence on the Effects of Gun Policies in the United States, 2nd
+    ed., RAND Corporation, RR-2088-1-RC/AV, 2020. As of May 21, 2022: https://www.rand.org/pubs/research_reports/RR2088-1.html'
+  conclusion: source_found
+  file_terms:
+  - Science of Gun Policy
+  end_terms:
+  - illuminate areas where more and better information could make important contributions
+- id: pew_ai_workers
+  reference: 'Lin, Luona, and Kim Parker, "US workers are more worried than hopeful about future AI use in the workplace,"
+    Pew Research Center, 2025. As of November 13, 2025: https://www.pewresearch.org/wp-content/uploads/sites/20/2025/02/ST_2025.2.25_AI-Workers_REPORT.pdf'
+  conclusion: source_found
+  file_terms:
+  - more worried than hopeful
+  end_terms:
+  - Pine Bluff metropolitan area
+- id: aramis_journal
+  reference: 'de Dianous, Valérie, and Cécile Fiévez, "ARAMIS Project: A More Explicit Demonstration of Risk Control
+    Through the Use of Bow-Tie Diagrams and the Evaluation of Safety Barrier Performance," Journal of Hazardous
+    Materials, Vol. 130, No. 3, March 31, 2006.'
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - More Explicit Demonstration of Risk Control
+  end_terms:
+  - References
+  notes: >-
+    A paywalled Elsevier article; full-text copies hosted elsewhere (Scribd) are accepted if the file carries the
+    article. A Scribd copy of its first five pages is not the article: the full text ends with its references, which
+    the preview lacks.
+- id: nber_generative_ai
+  reference: 'Bick, Alexander, Adam Blandin, and David J. Deming, "The Rapid Adoption of Generative AI," NBER Working
+    Paper 32966, 2024. As of November 13, 2025: https://doi.org/10.3386/w32966'
+  conclusion: source_found
+  file_terms:
+  - Rapid Adoption of Generative AI
+  end_terms:
+  - Noy, S. and W. Zhang
+- id: brachman_acm
+  reference: 'Brachman, Michelle, Amina El-Ashry, Casey Dugan, and Werner Geyer, "Current and future use of large
+    language models for knowledge work," Proceedings of the ACM on Human-Computer Interaction, Vol. 9, No. 7, 2025.
+    As of November 13, 2025: https://dl.acm.org/doi/pdf/10.1145/3757403'
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - large language models for knowledge work
+  end_terms:
+  - Job Responsibility (select all that apply)
+  notes: >-
+    The ACM version may be blocked; the arXiv preprint of the same paper is the full text, so found is accepted.
+- id: becker_arxiv
+  reference: 'Becker, Joel, Nate Rush, Elizabeth Barnes, and David Rein, "Measuring the impact of early-2025 AI
+    on experienced open-source developer productivity," arXiv, 2025. As of November 13, 2025: https://arxiv.org/abs/2507.09089'
+  conclusion: source_found
+  file_terms:
+  - experienced open-source developer productivity
+  end_terms:
+  - We aim to measure the speedup factor due to AI
+- id: wang_arxiv
+  reference: 'Wang, Dakuo, Q. Vera Liao, Yunfeng Zhang, Udayan Khurana, Horst Samulowitz, Soya Park, Michael Muller,
+    and Lisa Amini, "How much automation does a data scientist want?" arXiv, arXiv:2101.03970, 2021. As of November
+    13, 2025: https://arxiv.org/abs/2101.03970'
+  conclusion: source_found
+  file_terms:
+  - How much automation does a data scientist want
+  end_terms:
+  - Types of Explanation
+- id: la_times_1991
+  reference: Murphy, Kim, "Iraq Rejects Warning, Assails Mubarak," Los Angeles Times, January 2, 1991.
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - Iraq Rejects Warning
+  end_terms:
+  - semiofficial sources close to Greek security authorities
+  notes: >-
+    A 1991 newspaper article; the LA Times archive page may block automated access.
+- id: xinhua_2026
+  reference: '"Xi urges good start to 15th Five-Year Plan period," Xinhua, February 26, 2026.'
+  conclusion: source_found
+  file_terms:
+  - Xi urges good start
+  end_terms:
+  - annual work reports of senior Party officials
+- id: perficient_study
+  reference: 'Perficient. "The State of GenAI in the Workforce," Perficient, 2025. As of January 30, 2026: https://www.perficient.com/insights/generative-ai-workforce-study'
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - State of GenAI in the Workforce
+  notes: >-
+    The study page may be gated behind a form.
+- id: gallup_article
+  reference: 'Kemp, Andy. "AI Use at Work Rises," Gallup, December 2025. As of January 30, 2026: https://www.gallup.com/workplace/699689/ai-use-at-work-rises.aspx'
+  conclusion: source_found
+  file_terms:
+  - AI Use at Work Rises
+  end_terms:
+  - margin of sampling error at the 95% confidence level
+- id: rtx_homepage
+  reference: Raytheon Technologies, homepage, undated. As of May 11, 2022:https://www.rtx.com
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - RTX
+  end_terms:
+  - COVID-19 information and resources
+  notes: >-
+    An undated homepage cited as of 2022: the live homepage or an archived copy is accepted, and so is reporting
+    that the dated copy is blocked.
+- id: comptroller_budget_page
+  reference: 'Office of the Under Secretary of War (Comptroller), "Defense Wide Budget Documentation," webpage,
+    undated. As of September 18, 2025: https://comptroller.defense.gov/Budget-Materials/FY2009BudgetJustification'
+  conclusion: source_found
+  file_terms:
+  - Defense Wide Budget Documentation
+  end_terms:
+  - SnAP Information Technology
+- id: bluesky_post
+  reference: 'Phoebe Liu, "Three months after a blockbuster $20 billion deal, Nvidia announced its plans for Groq''s
+    inference-speed tech. Here''s how it came together and what''s next," Bluesky post, March 18, 2026. As of March
+    18, 2026: https://bsky.app/profile/pheebini.bsky.social/post/3mhdyfduj2k2a'
+  conclusion: source_found
+  file_terms:
+  - Groq
+  end_terms:
+  - My latest for @forbes.com
+- id: afi_10_601
+  reference: Air Force Policy Directive 10-601, Operational Capability Requirements Documentation and Validation,
+    Department of the Air Force, April 27, 2021.
+  conclusion: source_found
+  file_terms:
+  - 10-601
+  - Operational Capability Requirements
+  end_terms:
+  - Non-Materiel Capability Solution
+  notes: >-
+    Cited as a Policy Directive; the document is Air Force Instruction 10-601, which carries both terms.
+- id: joint_pub_1
+  reference: Joint Chiefs of Staff, Doctrine for the Armed Forces of the United States, Joint Publication 1, March
+    25, 2013, change 1, July 12, 2017.
+  conclusion: source_found
+  file_terms:
+  - Doctrine for the Armed Forces
+  end_terms:
+  - is the capstone joint doctrine publication
+- id: public_law_107_296
+  reference: Public Law 107-296, Homeland Security Act of 2002, November 25, 2002.
+  conclusion: source_found
+  file_terms:
+  - Homeland Security Act of 2002
+  end_terms:
+  - SEC. 1717
+- id: brownlee_testimony
+  reference: Brownlee, Les, "Current Army Issues," testimony before the U.S. Senate Committee on Armed Services,
+    U.S. Government Printing Office, November 19, 2003.
+  conclusion: source_found
+  file_terms:
+  - Current Army Issues
+  end_terms:
+  - the committee adjourned
+- id: rand_testimony
+  reference: 'Williams, Heather J., and Alexandra T. Evans, "Extremist Use of Online Spaces," testimony submitted
+    to the Select Committee to Investigate the January 6th Attack on the United States Capitol, RAND Corporation,
+    CT-A1458-1, April 25, 2022. As of July 7, 2022: https://www.rand.org/pubs/testimonies/CTA1458-1.html'
+  conclusion: source_found
+  file_terms:
+  - Extremist Use of Online Spaces
+  end_terms:
+  - Slipping Racism into the Mainstream
+- id: jtts_slides
+  reference: Costanzo, George, and Mary Ann Spott, "Joint Theater Trauma System (JTTS)/Joint Theater Trauma Registry
+    (JTTR)," briefing slides, U.S. Army Institute of Surgical Research, July 10, 2010.
+  conclusion: source_found
+  file_terms:
+  - Joint Theater Trauma Registry
+  end_terms:
+  - reviewed after 18 months
+  notes: >-
+    Labelled not found before, but the slides are hosted on health.mil and every run downloads them, so the old
+    label was wrong: found, with the file carrying the slides.
+- id: carter_memo
+  reference: Carter, Ashton B., "0% Headquarters Reductions," memorandum to secretaries of the military departments
+    et al., U.S. Department of Defense, July 31, 2013.
+  conclusion: source_found
+  file_terms:
+  - Headquarters Reductions
+  end_terms:
+  - Program Objective Memorandum submissions
+- id: jordan_press_release
+  reference: Embassy of the United States in Jordan, "The United States and the Hashemite Kingdom of Jordan Sign
+    Memorandum of Understanding on Assistance," press release, September 23, 2008.
+  conclusion: source_found
+  file_terms:
+  - Memorandum of Understanding on Assistance
+  end_terms:
+  - deepening our long-standing partnership with Jordan
+- id: wits_database
+  reference: 'World Bank, World Integrated Trade Solution, database, undated. As of May 2, 2022: https://wits.worldbank.org'
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - World Integrated Trade Solution
+  end_terms:
+  - Trade Outcomes module
+  notes: >-
+    A database cited by its homepage: the homepage is accepted, and so is reporting that the database itself cannot
+    be downloaded.
+- id: dmdc_spreadsheet
+  reference: Defense Manpower Data Center, "Number of Military and DoD Appropriated Fund (APF) Civilian Personnel
+    Permanently Assigned," spreadsheet, last updated September 30, 2019.
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - Civilian Personnel Permanently Assigned
+  end_terms:
+  - Prepared by the Defense Manpower Data Center
+  notes: >-
+    The official download endpoint is flaky; an unobtainable workbook is accepted as not accessible.
+- id: rand_zero_days
+  reference: 'Ablon, Lillian, and Andy Bogart, Zero Days, Thousands of Nights: The Life and Times of Zero-Day Vulnerabilities
+    and Their Exploits, RAND Corporation, RR-1751-RC, 2017. As of February 15, 2024: https://www.rand.org/pubs/research_reports/RR1751.html'
+  conclusion: source_found
+  file_terms:
+  - Zero Days, Thousands of Nights
+  end_terms:
+  - baseline metrics regarding the average lifespan of zero-day vulnerabilities
+- id: bistline_science
+  reference: Bistline, John, Geoffrey Blanford, Maxwell Brown, Dallas Burtraw, Maya Domeshek, Jamil Farbes, Allen
+    Fawcett, Anne Hamilton, Jesse Jenkins, Ryan Jones, et al., "Emissions and Energy Impacts of the Inflation Reduction
+    Act," Science, Vol. 380, No. 6652, June 30, 2023.
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - Emissions and Energy Impacts of the Inflation Reduction Act
+  end_terms:
+  - Robust Decarbonization of the US Power Sector
+  notes: >-
+    A Science article: open copies exist, but the publisher's page may be paywalled.
+- id: nerc_ltra
+  reference: North American Electric Reliability Corporation, 2024 Long-Term Reliability Assessment, December 2024.
+  conclusion: source_found
+  file_terms:
+  - 2024 Long-Term Reliability Assessment
+  end_terms:
+  - DER Activities Reference Guide
+- id: statista_forecast
+  reference: 'Statista, "Number of Artificial Intelligence Tool Users Worldwide from 2020 to 2031," August 15, 2025.
+    As of December 18, 2024: https://www.statista.com/forecasts/1449844/ai-tool-users-worldwide'
+  conclusion: source_found_but_not_accessible
+  notes: >-
+    Statista forecasts are behind a paid subscription.
+- id: anthropic_rsp
+  reference: Anthropic, "Anthropic's Responsible Scaling Policy," company announcement, September 19, 2023
+  conclusion: source_found
+  file_terms:
+  - Responsible Scaling Policy
+  notes: >-
+    The citation is to the company's announcement of its policy; the announcement page and the policy PDF are both
+    accepted, so no end phrase is set.
+- id: secure_reliable_systems_book
+  reference: 'Adkins, Heather, Betsy Beyer, Paul Blankinship, Piotr Lewandowski, Ana Oprea, and Adam Stubblefield,
+    Building Secure and Reliable Systems: Best Practices for Designing, Implementing, and Maintaining Systems, O''Reilly,
+    2020'
+  conclusion:
+  - source_found
+  - source_found_but_not_accessible
+  file_terms:
+  - Building Secure and Reliable Systems
+  end_terms:
+  - The cover illustration is by Karen Montgomery
+  notes: >-
+    Google publishes the book free online; a publisher paywall is accepted too.
+- id: fabricated_widgets
+  reference: Doe, John. The Effects of Widgets on Gadgets. Journal of Widgetry, 2020.
+  conclusion: source_not_found
+  notes: >-
+    A fabricated reference, shared with the reference validation set: there is nothing to download, and a lookalike
+    paper must not be kept as the source.
+- id: fabricated_emnlp_paraphrase
+  reference: Asma Issa, George Mohler, and John Johnson. Paraphrase identification using deep contextualized representations.
+    In Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP), pp. 517-526,
+    2018.
+  conclusion: source_not_found
+  notes: >-
+    A fabricated paper in a real venue; EMNLP 2018 has real paraphrase papers a run could mistake for it.
+- id: fabricated_ieee_avatar
+  reference: 'John Smith and Jane Doe. Deep learning techniques for avatar-based interaction in virtual environments.
+    IEEE Transactions on Neural Networks and Learning Systems, 32(12):5600-5612, 2021. doi: 10.1109/ TNNLS.2021.3071234.
+    URL https://ieeexplore.ieee.org/document/3071234'
+  conclusion: source_not_found
+  notes: >-
+    A fabricated article with a fabricated DOI and IEEE URL.
+- id: nonexistent_microsoft_blog
+  reference: Microsoft Security Blog. (2024, April 1). Navigating the cyber threat landscape with AI. https://www.microsoft.com/en-us/security/blog/2024/04/01/navigating-cyber-threat-landscape-ai
+  conclusion: source_not_found
+  notes: >-
+    The post does not exist at this plausible-looking URL and cannot be found by its title; a different Microsoft
+    post on AI and threats must not be kept as the source.
