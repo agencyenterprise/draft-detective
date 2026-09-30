@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.6] - 2026-09-30
+
+### Added
+- Added a new API client method `get_project_files` (`GET /api/project/{id}/files`).
+
+### Changed
+- Migrated `reference_validation_v2` evals from a single final-result match and holistic rubric to per-field labels with deterministic checks and a judged reasoning criterion.
+- Migrated `reference_downloader` evals from a single conclusion match to accepted conclusions plus checks of the file the app actually kept, storing only verdicts so no downloaded text reaches the log.
+- Updated the `reference-validation` skill with three rules used by the new per-field labels.
+- Replaced `dataset.json` with `dataset.yaml` for both `reference_validation_v2` and `reference_downloader` eval datasets.
+- Updated eval score documentation and logs, including updating `docs/eval-scores.md` and refreshing `docs/evals/`.
+
+### Removed
+- Removed GitHub Actions workflows that deployed to Railway with `railway up` in favor of Railway auto-deploy from the repo.
+
+
 ## [v2.0.5] - 2026-09-30
 
 ### Added
