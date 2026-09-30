@@ -81,6 +81,17 @@ def test_the_final_result_must_follow_from_the_fields():
     assert mechanical_result(_result("x", publisher="missing", title="other")) == "incorrect_fields"
 
 
+def test_a_fabricated_identifier_must_not_pass_as_correct():
+    doi = ReferenceRecord(id="doi", reference="Smith, J. Avatars. IEEE TNNLS, 2021. doi: 10.1109/TNNLS.2021.3071234", not_found=True)
+    url = ReferenceRecord(id="url", reference="Blog. (2024). A post. https://example.org/post", not_found=True)
+    none = ReferenceRecord(id="none", reference="Doe, John. Widgets. 2020.", not_found=True)
+    assert "correct" not in doi.accepted("identifier")
+    assert url.accepted("identifier") == ["correct", "incorrect", "other"]
+    assert none.accepted("identifier") == ["correct", "other"]
+    values, note = validation_scores(_result("incorrect_fields", url="", author="incorrect", title="incorrect", publisher="incorrect", year="incorrect"), doi)
+    assert values["field_identifier"] == 0.0 and "identifier: reported correct" in note
+
+
 def test_a_fabricated_reference_gets_no_updated_reference_and_no_url_check():
     fabricated = ReferenceRecord(id="fake", reference="Doe, John. Widgets. 2020.", not_found=True)
     assert fabricated.result == ["incorrect_fields"] and fabricated.accepted("title") == ["incorrect", "other"]

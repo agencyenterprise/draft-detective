@@ -10,6 +10,7 @@ report of it.
 """
 
 import math
+import re
 from pathlib import Path
 from typing import Literal, Optional, Sequence
 
@@ -18,6 +19,7 @@ from inspect_ai.dataset import MemoryDataset, Sample
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from evals_inspectai.common.issue_inventory import normalize
+from evals_inspectai.common.issue_judge import issue_prompt_from
 
 Conclusion = Literal["source_found", "source_found_but_not_accessible", "source_not_found"]
 FOUND = "source_found"
@@ -65,12 +67,15 @@ class FetchResult(BaseModel):
 
 
 class ProjectFile(BaseModel):
-    """A file of the project as the app lists it, markdown trimmed by the solver."""
+    """A file of the project as the app lists it, its markdown trimmed by the solver to the
+    opening and the end, with the full length kept."""
 
     id: str
     role: str
     file_name: str = ""
     markdown: str = ""
+    markdown_tail: str = ""
+    markdown_chars: int = 0
 
 
 class DownloaderOutput(BaseModel):
@@ -95,6 +100,11 @@ def _loose(text: str) -> str:
     return " ".join(normalize(text).replace("-", " ").replace("‐", " ").split())
 
 
+def kept_file(item: FetchItem, files: Sequence[ProjectFile]) -> Optional[ProjectFile]:
+    """The supporting file the run names as the source, if the project keeps it."""
+    return next((f for f in files if item.file_id and f.id == item.file_id and f.role == KEPT_ROLE), None)
+
+
 def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: DownloadRecord) -> tuple[dict[str, float], str]:
     """Every key in ``KEYS`` for one reference.
 
@@ -107,8 +117,8 @@ def download_scores(item: FetchItem, files: Sequence[ProjectFile], record: Downl
     when the conclusion makes it moot."""
     found = item.final_conclusion == FOUND
     downloaded = [f for f in files if f.role == KEPT_ROLE]
-    kept = next((f for f in files if item.file_id and f.id == item.file_id and f.role == KEPT_ROLE), None)
-    text = _loose(kept.markdown) if kept else ""
+    kept = kept_file(item, files)
+    text = _loose(f"{kept.markdown} {kept.markdown_tail}") if kept else ""
     absent = [t for t in record.file_terms if _loose(t) not in text]
     values = {
         "conclusion_accepted": float(item.final_conclusion in record.conclusion),
@@ -150,3 +160,45 @@ def download_dataset(records: list[DownloadRecord], path: Path) -> MemoryDataset
         name=path.parent.name,
         location=str(path),
     )
+
+
+# Markdown image syntax, stripped from what the grader reads: a scraped page is full of
+# image links, and the grader must judge the text, not fetch pictures.
+_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+
+COMPLETENESS_CRITERION = (
+    "A downloader was asked for the full original content of a cited work and kept the file shown. A separate check "
+    "confirms it is the cited work, so do not judge which work it is: grade only whether the file holds the whole of "
+    "it. A saved web page normally carries site navigation, headers, footers, cookie notices and link lists around "
+    "the content; they are not a sign that anything is missing, and a homepage, database page or listing page is "
+    "complete when the cited page's own content is there. A PDF that ends with references, an appendix, a table or "
+    "a page number is complete. It is correct if the work's content is all there, or nothing shows otherwise. It is "
+    "partially correct only with clear evidence that a small part of the work is missing (a page or a closing "
+    "section lost in conversion). It is incorrect if the file is a preview or excerpt, however genuine the pages it "
+    "shows (the first pages of a longer work followed by prompts to subscribe, log in or download the rest, or far "
+    "fewer pages than the reference's page range), a one-page document that visibly breaks off, an abstract or summary "
+    "in place of the work, a table of contents, an error or blocked page, or holds almost no text."
+)
+
+
+def _clean(text: str) -> str:
+    return _IMAGE_RE.sub("[image]", text)
+
+
+def completeness_prompt(record: DownloadRecord, kept: ProjectFile) -> str:
+    """The grader reads all the text the solver kept: the file's opening (up to the solver's
+    cap), and its end when the file runs past the cap, so a preview's closing prompts and a
+    web page's article are both in view."""
+    length = kept.markdown_chars or len(kept.markdown)
+    blocks = [("Text of the file" if length <= len(kept.markdown) else "Opening of the file", _clean(kept.markdown) or "(empty)")]
+    if length > len(kept.markdown) and kept.markdown_tail:
+        blocks.append(("End of the file", _clean(kept.markdown_tail)))
+    return issue_prompt_from(
+        COMPLETENESS_CRITERION,
+        [("Reference", record.reference), ("Kept file", f"{kept.file_name} ({length} characters of text)"), *blocks],
+    )
+
+
+JUDGE_DESCRIPTIONS = {
+    "file_is_complete": "On source_found with a kept file, graded from the file's opening, end and length: the file is the complete work, not a preview, excerpt, abstract or landing page (C=1, P=0.5, I=0). NaN otherwise.",
+}

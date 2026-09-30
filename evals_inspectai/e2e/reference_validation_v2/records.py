@@ -23,8 +23,15 @@ Result = Literal["correct", "missing_fields", "incorrect_fields"]
 
 # What a fabricated reference's fields may be reported as: nothing can be verified.
 _UNVERIFIABLE: list[Problem] = ["incorrect", "other"]
-# A fabricated reference's identifier: absent (correct, the identifier is optional) or fabricated.
-_UNVERIFIABLE_IDENTIFIER: list[Problem] = ["correct", "incorrect", "other"]
+# A fabricated reference's identifier depends on what it cites. A DOI, arXiv ID, ISBN or ISSN
+# is fabricated too, so it must not pass as correct. A plain URL is not an identifier under
+# the skill, but a run may fairly report the dead link there. Nothing cited: the identifier is
+# optional, so it is correct, or unverifiable.
+_FABRICATED_IDENTIFIER: list[Problem] = ["incorrect", "other"]
+_FABRICATED_URL: list[Problem] = ["correct", "incorrect", "other"]
+_NO_IDENTIFIER: list[Problem] = ["correct", "other"]
+_IDENTIFIER_RE = re.compile(r"\b10\.\d{4,9}/|arxiv[:.]|\bISBN\b|\bISSN\b", re.I)
+_URL_RE = re.compile(r"https?://", re.I)
 _CORRECT: tuple[Result, ...] = ("correct",)
 
 
@@ -79,9 +86,16 @@ class ReferenceRecord(BaseModel):
 
     def accepted(self, field: str) -> list[Problem]:
         """The problem types a correct run may give ``field``."""
+        if self.not_found and field == "identifier":
+            return self._fabricated_identifier()
         if self.not_found:
-            return _UNVERIFIABLE_IDENTIFIER if field == "identifier" else _UNVERIFIABLE
+            return _UNVERIFIABLE
         return self.fields.get(field, ["correct"])
+
+    def _fabricated_identifier(self) -> list[Problem]:
+        if _IDENTIFIER_RE.search(self.reference):
+            return _FABRICATED_IDENTIFIER
+        return _FABRICATED_URL if _URL_RE.search(self.reference) else _NO_IDENTIFIER
 
 
 def load_records(path: Path) -> list[ReferenceRecord]:

@@ -18,9 +18,7 @@
     title: missing
     publisher: missing
     year: missing
-    identifier:
-    - correct
-    - missing
+    identifier: correct
   corrections:
     publisher: Britannica
   rationale: >-
@@ -34,9 +32,7 @@
     title: missing
     publisher: missing
     year: missing
-    identifier:
-    - correct
-    - missing
+    identifier: correct
   corrections:
     title: Tools of Public Policy Analysis
     publisher: YouTube
@@ -50,9 +46,7 @@
     title: missing
     publisher: missing
     year: missing
-    identifier:
-    - correct
-    - missing
+    identifier: correct
   corrections:
     title: AI Preparedness Landscape for Think Tanks
   rationale: >-
@@ -158,9 +152,7 @@
   result: incorrect_fields
   fields:
     publisher: incorrect
-    author:
-    - correct
-    - incorrect
+    author: correct
   corrections:
     publisher: arXiv
   rationale: >-
@@ -356,9 +348,7 @@
     identifier:
     - correct
     - incorrect
-    author:
-    - correct
-    - missing
+    author: correct
   corrections:
     title: Instruction
   rationale: >-
