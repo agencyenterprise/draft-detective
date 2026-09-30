@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.5] - 2026-09-30
+
+### Added
+- Added a way for users to annotate eval examples in the app, with an `/annotate` flow and an admin `/annotation-results` view.  
+- Added an admin export that downloads every annotation set’s results in one JSON file via an “Export all (JSON)” button.  
+- Added a full-length report task to the abbreviation checker eval, including a new report dataset and associated files/variants.  
+- Added shared source-citation scoring and issue-inventory support for the `literature_review_v2`, `live_reports_v2`, and `methodological_alignment` eval suites, and expanded those suites’ datasets.  
+- Added rebuilt and expanded issue-inventory-based eval suites for `inference_validation_v2`, `claim_reference_validation_v2`, and `reviewer_2`.  
+- Added support for running e2e evals on the model passed to `inspect eval --model`, including recording and validating the served model.  
+
+### Changed
+- Changed the abbreviation checker to stop cataloguing exempt occurrences and updated scope rules so benchmark acronyms are treated as abbreviations and country abbreviations (including UK) are exempt.  
+- Changed abbreviation checker eval labels/recording to match the updated exemption and benchmark/country rules, and re-recorded results in `docs/eval-scores.md`.  
+- Changed the abbreviation checker’s agents back to `gpt-5.6-terra` for the abbreviation eval update, and also includes a separate change that moved those agents to `gpt-5.6-luna` for lower cost.  
+- Changed issue-inventory evals to derive scoring policy from the dataset rather than hand-passed flags, with scores reported as unchanged.  
+- Changed the `deepagents` dependency version from 0.4.8 to 0.7.19, with adjustments to preserve line numbering and chat history behavior.  
+- Changed abbreviation-scan to skip the Abbreviations-section agent when no section can exist and tightened request limits when it does run.  
+- Changed eval suites by removing dead code in `evals_inspectai/` without changing how evals run or score.  
+- Changed the abbreviation extraction skill exemptions to avoid recording abbreviations inside URLs and updated examples for statistical notation and common shorthand.  
+
+### Fixed
+- Fixed deep agents and their subagents to restore the `write_todos` planning tool by adding `TodoListMiddleware` back.  
+
+### Removed
+- Removed dead code from the eval suites in `evals_inspectai/` (including unused imports/constants and test-only loaders) with no scoring or runtime behavior changes.
+
+
 ## [v2.0.4] - 2026-09-28
 
 ### Added
