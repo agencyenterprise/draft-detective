@@ -55,8 +55,11 @@ export interface PeerReviewFacts {
    */
   canUploadResponses: boolean;
   /**
-   * An active response memo arrived after the coverage report started, so the
-   * report on screen did not read it.
+   * An active response memo arrived after the coverage report finished, so
+   * the report on screen did not read it. Measured against completion, not
+   * creation: the run reads its file tree some time after it is queued, so a
+   * memo uploaded while it ran may or may not have been read, and the warning
+   * only fires when it certainly was not.
    */
   responsesNewerThanCoverage: boolean;
 
@@ -122,9 +125,10 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
 
   const coverageRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
   // Generated types say Date, but the wire value is an ISO string.
-  const coverageStartedAt = coverageRun ? new Date(coverageRun.run.created_at).getTime() : null;
+  const coverageCompletedAt = coverageRun?.run.completed_at ? new Date(coverageRun.run.completed_at).getTime() : null;
   const responsesNewerThanCoverage =
-    coverageStartedAt !== null && activeResponseMemos.some((f) => new Date(f.created_at).getTime() > coverageStartedAt);
+    coverageCompletedAt !== null &&
+    activeResponseMemos.some((f) => new Date(f.created_at).getTime() > coverageCompletedAt);
 
   const noMemos = reviewedRevision === null;
 

@@ -16,9 +16,15 @@ function file(role: FileRole, revision: number, createdAt = '2026-09-30T10:00:00
   return { id: `file-${nextId}`, role, revision, created_at: createdAt } as unknown as FileListItem;
 }
 
-function run(type: WorkflowRunType, createdAt: string): WorkflowRunDetail {
+function run(type: WorkflowRunType, createdAt: string, completedAt: string | null): WorkflowRunDetail {
   return {
-    run: { id: `run-${type}`, type, status: WorkflowRunStatus.Completed, created_at: createdAt },
+    run: {
+      id: `run-${type}`,
+      type,
+      status: completedAt ? WorkflowRunStatus.Completed : WorkflowRunStatus.Running,
+      created_at: createdAt,
+      completed_at: completedAt,
+    },
     state: null,
   } as unknown as WorkflowRunDetail;
 }
@@ -55,8 +61,8 @@ describe('derivePeerReviewFacts — response memos', () => {
     expect(afterRevision.canUploadResponses).toBe(true);
   });
 
-  it('flags response memos that arrived after the coverage report started', () => {
-    const coverage = run(WorkflowRunType.ReviewerCoverageReport, '2026-09-30T12:00:00Z');
+  it('flags response memos that arrived after the coverage report finished', () => {
+    const coverage = run(WorkflowRunType.ReviewerCoverageReport, '2026-09-30T12:00:00Z', '2026-09-30T12:10:00Z');
     const before = file(FileRole.ResponseMemo, 2, '2026-09-30T11:00:00Z');
     const after = file(FileRole.ResponseMemo, 2, '2026-09-30T13:00:00Z');
 
@@ -65,6 +71,20 @@ describe('derivePeerReviewFacts — response memos', () => {
 
     expect(upToDate.responsesNewerThanCoverage).toBe(false);
     expect(behind.responsesNewerThanCoverage).toBe(true);
+  });
+
+  it('does not claim a memo uploaded while the report ran went unread', () => {
+    // The run reads its file tree after it is queued, so a memo uploaded
+    // between queueing and completion may have been read.
+    const coverage = run(WorkflowRunType.ReviewerCoverageReport, '2026-09-30T12:00:00Z', '2026-09-30T12:10:00Z');
+    const during = file(FileRole.ResponseMemo, 2, '2026-09-30T12:05:00Z');
+    const running = run(WorkflowRunType.ReviewerCoverageReport, '2026-09-30T12:00:00Z', null);
+
+    const finished = derivePeerReviewFacts(project([...reviewedAndRevised(), during], 2, [coverage]));
+    const inFlight = derivePeerReviewFacts(project([...reviewedAndRevised(), during], 2, [running]));
+
+    expect(finished.responsesNewerThanCoverage).toBe(false);
+    expect(inFlight.responsesNewerThanCoverage).toBe(false);
   });
 
   it('never flags staleness without a coverage report', () => {
