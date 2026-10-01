@@ -55,7 +55,7 @@ def api_workflow_agent(
         item_label: How to name one item in the transcript (e.g. "chunk");
             defaults to `item_messages_key`.
         include_issues: Also fetch the issues the app persisted for this run,
-            from the same project endpoint the app reads, and add them to the
+            from the same issues endpoint the app reads, and add them to the
             state under ``PERSISTED_ISSUES_KEY``. For a workflow whose issues
             are built from its state after the agent finishes, so the eval
             scores what a user sees rather than only the intermediate state.
