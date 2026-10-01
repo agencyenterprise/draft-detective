@@ -11,6 +11,7 @@
  * Mirrored from:
  * - `get_latest_reviewer_memo_revision()` — lib/services/file_artifacts_service/file_artifacts_service.py
  * - `precheck()` in lib/workflows/{revision_planning_summary,reviewer_response_memos,reviewer_coverage_report}/manifest.py
+ * - the response-memo folder the coverage report reads — lib/workflows/reviewer_coverage_report/manifest.py
  */
 
 import {
@@ -43,6 +44,25 @@ export interface PeerReviewFacts {
   activeMemos: FileListItem[];
   /** Revisions holding memos the agent will ignore, newest first. */
   staleMemoRevisions: number[];
+
+  /** Every response memo the author uploaded, across all revisions. */
+  responseMemos: FileListItem[];
+  /** Response memos on the current revision — the ones the coverage report reads. */
+  activeResponseMemos: FileListItem[];
+  /**
+   * Uploading a response memo only makes sense against a revised draft: the
+   * upload always attaches to the current revision, and before a revised draft
+   * exists that is still the one the reviewers read.
+   */
+  canUploadResponses: boolean;
+  /**
+   * An active response memo arrived after the coverage report finished, so
+   * the report on screen did not read it. Measured against completion, not
+   * creation: the run reads its file tree some time after it is queued, so a
+   * memo uploaded while it ran may or may not have been read, and the warning
+   * only fires when it certainly was not.
+   */
+  responsesNewerThanCoverage: boolean;
 
   reviewedMain?: FileListItem;
   currentMain?: FileListItem;
@@ -98,6 +118,19 @@ export function derivePeerReviewFacts(overview: ProjectOverview): PeerReviewFact
   const documentProcessingReady =
     !!documentProcessing && getDisplayStatus(documentProcessing) === WorkflowRunStatus.Completed;
 
+  // Uploads always land on the current revision, and the coverage report
+  // reads only that revision's folder, so older ones are ignored.
+  const responseMemos = files.filter((f) => f.role === FileRole.ResponseMemo);
+  const activeResponseMemos = responseMemos.filter((f) => f.revision === currentRevision);
+  const canUploadResponses = hasRevisedDraft && !isViewingOldRevision;
+
+  const coverageRun = findRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
+  // Generated types say Date, but the wire value is an ISO string.
+  const coverageCompletedAt = coverageRun?.run.completed_at ? new Date(coverageRun.run.completed_at).getTime() : null;
+  const responsesNewerThanCoverage =
+    coverageCompletedAt !== null &&
+    activeResponseMemos.some((f) => new Date(f.created_at).getTime() > coverageCompletedAt);
+
   const noMemos = reviewedRevision === null;
 
   // Runs always execute at the current revision, but `workflow_runs` above is
@@ -143,6 +176,10 @@ export function derivePeerReviewFacts(overview: ProjectOverview): PeerReviewFact
     reviewedRevision,
     activeMemos,
     staleMemoRevisions,
+    responseMemos,
+    activeResponseMemos,
+    canUploadResponses,
+    responsesNewerThanCoverage,
     reviewedMain,
     currentMain,
     hasRevisedDraft,
@@ -153,7 +190,7 @@ export function derivePeerReviewFacts(overview: ProjectOverview): PeerReviewFact
     runs: {
       plan: findRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
       memos: findRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
-      coverage: findRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport),
+      coverage: coverageRun,
     },
   };
 }
@@ -170,6 +207,7 @@ export function peerReviewNeedsAttention(facts: PeerReviewFacts, readOnly: boole
   // would show an attention dot next to a summary that is right there.
   const planCouldExistElsewhere = facts.reviewedRevision !== facts.viewedRevision;
   const planActionable = facts.planBlockedReason === null && !plan && !planCouldExistElsewhere;
-  const respondActionable = facts.comparisonBlockedReason === null && (!memos || !coverage);
+  const hasResponses = !!memos || facts.activeResponseMemos.length > 0;
+  const respondActionable = facts.comparisonBlockedReason === null && (!hasResponses || !coverage);
   return failed || planActionable || respondActionable;
 }

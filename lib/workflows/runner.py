@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import uuid
+from typing import Any, Mapping
 
 from langfuse import propagate_attributes
+from langgraph.channels.base import BaseChannel
 from langgraph.graph import StateGraph
 
 from lib.services.workflow_orchestration import wait_for_dependencies
@@ -36,6 +38,7 @@ from lib.workflows.models import (
     WorkflowCancelledError,
 )
 from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
+from lib.workflows.state_updates import apply_node_update
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -216,14 +219,17 @@ async def run_workflow(
 
     try:
         async with asyncio.timeout(max_duration):
-            async for values in app.astream(  # type: ignore[call-overload]
+            async for mode, chunk in app.astream(  # type: ignore[call-overload]
                 updated_state,
-                stream_mode="values",
+                stream_mode=["values", "updates"],
                 context=context,
             ):
-                updated_state = updated_state.model_copy(update=values)
+                updated_state = _merge_stream_chunk(
+                    updated_state, mode, chunk, graph.channels
+                )
                 # state_json is the single source of truth: snapshot the
-                # accumulated state after every node yield.
+                # accumulated state after every superstep and every task
+                # completion, so fan-out workflows show partial results.
                 await persist_workflow_run_state(workflow_run_id, updated_state)
 
         # Persist issues after workflow completion. Per-node errors collected
@@ -294,6 +300,29 @@ async def run_workflow(
     )
 
     return updated_state
+
+
+def _merge_stream_chunk(
+    state: WorkflowState,
+    mode: str,
+    chunk: Any,
+    channels: Mapping[str, BaseChannel],
+) -> WorkflowState:
+    """Fold one ``astream`` chunk into the accumulated state.
+
+    ``"values"`` chunks are the full state at a superstep boundary and replace
+    it. ``"updates"`` chunks (``{node_name: node_return}``) arrive as each task
+    finishes — including each ``Send`` fan-out task mid-superstep — and are
+    folded in through the graph's state channels. The next ``"values"`` chunk then
+    supersedes them, so the reducer replay never double-counts.
+    """
+    if mode == "values":
+        return state.model_copy(update=chunk)
+    for node_update in chunk.values():
+        # Nodes may return None (no-op) and interrupts arrive as tuples.
+        if isinstance(node_update, dict):
+            state = apply_node_update(state, node_update, channels)
+    return state
 
 
 def create_context(

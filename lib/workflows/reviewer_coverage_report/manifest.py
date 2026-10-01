@@ -11,8 +11,11 @@ it compares two revisions of the main document from the mounted file tree:
   latest revision under `/revisions/` with reviewer memos), and
 - the **revised draft** = the current revision's main document at `/main.md`.
 
-Coverage is assessed independently from the draft diff (an objective read for
-the QAM); the author's response memos are not required.
+Coverage is assessed from the draft diff (an objective read for the QAM). When
+the author has uploaded their final response memos to the current revision, they
+are mounted under `/revisions/<current>/response-memos/` and read too, so each
+verdict can check what the author told the reviewer against the draft. They are
+optional: without them the report runs on the draft diff alone.
 """
 
 from typing import TYPE_CHECKING, Optional
@@ -42,9 +45,17 @@ The project's revisions are mounted under `/revisions/<n>/`. Find the \
 - The revised draft (the current version) is `/main.md`.
 - The reviewer memos are the files under \
 `/revisions/<reviewed>/reviewer-memos/`. Read every memo in full.
+- The author's response memos, if they uploaded any, are the files under \
+`/revisions/<current>/response-memos/`, where `<current>` is the \
+highest-numbered revision folder. Read every one in full. Ignore response \
+memos in any other revision: they describe a draft that has since been \
+replaced.
 
-Assess coverage independently by comparing the revised draft against the \
-original; you do not have the author's response memos.
+Assess coverage by comparing the revised draft against the original. When \
+response memos are present, use them as the skill describes for the coverage \
+report, but the revised draft remains the evidence: a response is a claim to \
+verify, not a verdict to copy. When there are none, assess from the draft \
+comparison alone and say so in the report's header.
 
 ## Task
 
@@ -77,7 +88,8 @@ class ReviewerCoverageReportManifest(HtmlReportDeepAgentManifest):
         "verdict per point (addressed, partially addressed, declined with "
         "rationale, or not addressed), a summary count table, and an overall "
         "responsiveness read. Requires reviewer memos and a revised draft "
-        "(replace the main document after uploading the memos)."
+        "(replace the main document after uploading the memos). Reads the "
+        "author's response memos too, when they are uploaded to the revised draft."
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     is_experimental = True

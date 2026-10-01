@@ -13,9 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
-import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HelpLink } from '@/components/help/help-link';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
 import { UploadProgressList } from '@/components/ui/upload-progress-list';
 import { useUpload } from '@/lib/hooks/upload';
@@ -33,13 +31,6 @@ export interface FileUploadDialogProps {
   /** Role assigned to the uploaded files. Defaults to supporting documents. */
   fileRole?: FileRole;
   /**
-   * Let the user choose the file role (supporting document vs reviewer memo)
-   * inside the dialog. When enabled, the chosen role drives both the upload
-   * role and whether reference matching runs afterwards, overriding `fileRole`.
-   * Not compatible with `referenceId`.
-   */
-  allowRoleSelection?: boolean;
-  /**
    * Revision reviewer memos are attached to. Defaults to the current revision.
    * Only meaningful for the reviewer-memo role.
    */
@@ -52,12 +43,39 @@ export interface FileUploadDialogProps {
    * the project has only one revision, since there is nothing to choose.
    */
   allowRevisionSelection?: boolean;
-  /** The project's current revision, used to build the revision options. */
+  /**
+   * The project's current revision: builds the reviewer-memo revision options,
+   * and is the revision author responses are sent against.
+   */
   currentRevision?: number;
   /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
   referenceId?: string;
   onCancel: () => void;
   onComplete?: () => void;
+}
+
+/** Roles that skip reference matching say so, rather than promise it. */
+const SUCCESS_MESSAGES: Partial<Record<FileRole, string>> = {
+  [FileRole.ReviewerMemo]: 'Reviewer memos uploaded.',
+  [FileRole.ResponseMemo]: 'Response memos uploaded.',
+};
+
+/**
+ * The revision sent with each file. Only memos carry one; for any other role
+ * it is a 400. Reviewer memos send the draft picked in the dialog (none means
+ * the current one). Author responses send the current revision as it stood
+ * when the upload started — the upload hook stamps it onto each file then — so
+ * if a new revision lands mid-upload the backend rejects the file instead of
+ * filing it against a draft it does not describe.
+ */
+function revisionForUpload(
+  fileRole: FileRole,
+  selectedRevision: number | undefined,
+  currentRevision: number | undefined,
+): number | undefined {
+  if (fileRole === FileRole.ReviewerMemo) return selectedRevision;
+  if (fileRole === FileRole.ResponseMemo) return currentRevision;
+  return undefined;
 }
 
 export function FileUploadDialog({
@@ -68,7 +86,6 @@ export function FileUploadDialog({
   submitLabel,
   projectId,
   fileRole = FileRole.Support,
-  allowRoleSelection = false,
   targetRevision,
   allowRevisionSelection = false,
   currentRevision,
@@ -77,24 +94,17 @@ export function FileUploadDialog({
   onComplete,
 }: FileUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [selectedRole, setSelectedRole] = useState<FileRole>(fileRole);
   const [selectedRevision, setSelectedRevision] = useState<number | undefined>(targetRevision);
   const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
   const resetRef = useRef<(() => void) | null>(null);
 
-  // When the user picks the role in-dialog, the selection drives the upload
-  // role; otherwise the caller's `fileRole` prop is used.
-  const activeRole = allowRoleSelection ? selectedRole : fileRole;
-  const isMemoUpload = activeRole === FileRole.ReviewerMemo;
+  const isMemoUpload = fileRole === FileRole.ReviewerMemo;
   // Reference matching only applies to supporting documents (that aren't
   // already tied to a specific reference); other roles skip it.
-  const activeSkipMatching = activeRole !== FileRole.Support;
-  const activeSuccessMessage = isMemoUpload
-    ? 'Reviewer memos uploaded.'
-    : 'Files uploaded. Matching them to your references.';
-  // Only memos carry a revision; sending one for any other role is a 400.
-  const activeRevision = isMemoUpload ? selectedRevision : undefined;
+  const skipMatching = fileRole !== FileRole.Support;
+  const successMessage = SUCCESS_MESSAGES[fileRole] ?? 'Files uploaded. Matching them to your references.';
+  const uploadRevision = revisionForUpload(fileRole, selectedRevision, currentRevision);
   // Shown even when there is only one revision: memos are always bound to a
   // specific draft, and seeing that up front is what stops people from
   // attaching a later batch to the wrong one.
@@ -110,9 +120,9 @@ export function FileUploadDialog({
       return;
     }
 
-    if (activeSkipMatching) {
+    if (skipMatching) {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success(activeSuccessMessage);
+      toast.success(successMessage);
       onComplete?.();
       return;
     }
@@ -126,20 +136,20 @@ export function FileUploadDialog({
         },
       });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      toast.success(activeSuccessMessage);
+      toast.success(successMessage);
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to match the files to your references'));
     } finally {
       setIsStartingWorkflow(false);
       onComplete?.();
     }
-  }, [referenceId, activeSkipMatching, activeSuccessMessage, projectId, queryClient, onComplete]);
+  }, [referenceId, skipMatching, successMessage, projectId, queryClient, onComplete]);
 
   const uploadHook = useUpload({
     projectId,
-    fileRole: activeRole,
+    fileRole,
     referenceId,
-    targetRevision: activeRevision,
+    targetRevision: uploadRevision,
     onAllComplete: handleAllComplete,
   });
 
@@ -150,12 +160,11 @@ export function FileUploadDialog({
   useEffect(() => {
     if (isOpen) {
       setSelectedFiles([]);
-      setSelectedRole(fileRole);
       setSelectedRevision(targetRevision);
       setIsStartingWorkflow(false);
       resetRef.current?.();
     }
-  }, [isOpen, fileRole, targetRevision]);
+  }, [isOpen, targetRevision]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
@@ -247,34 +256,6 @@ export function FileUploadDialog({
             </DialogHeader>
 
             <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
-              {allowRoleSelection && (
-                <div className="space-y-2">
-                  <Label>File type</Label>
-                  <RadioGroup
-                    value={selectedRole}
-                    onValueChange={(v) => setSelectedRole(v as FileRole)}
-                    className="grid grid-cols-2 gap-3"
-                  >
-                    <RadioGroupItemWithDescription
-                      id={FileRole.Support}
-                      value={selectedRole}
-                      label="Supporting document"
-                      description="Reference material cited by the document. Supporting files are matched against the document's references."
-                      disabled={isUploading}
-                      help={<HelpLink topic="source-files">What a source file is used for</HelpLink>}
-                    />
-                    <RadioGroupItemWithDescription
-                      id={FileRole.ReviewerMemo}
-                      value={selectedRole}
-                      label="Reviewer memo"
-                      description="Peer-review feedback on a specific draft. Used by the Peer Review assessments."
-                      disabled={isUploading}
-                      help={<HelpLink topic="peer-review">What peer review does with these</HelpLink>}
-                    />
-                  </RadioGroup>
-                </div>
-              )}
-
               {showRevisionPicker && (
                 <div className="space-y-2">
                   <Label htmlFor="memo-revision">Which draft did these reviewers read?</Label>
@@ -303,7 +284,10 @@ export function FileUploadDialog({
                 </div>
               )}
               <div className="space-y-2">
-                <Label>{multiple ? 'Select Source Files' : 'Select Source File'}</Label>
+                <Label>
+                  {fileRole === FileRole.Support ? 'Select Source ' : 'Select '}
+                  {multiple ? 'Files' : 'File'}
+                </Label>
                 <FileUpload
                   files={selectedFiles}
                   onFilesChange={handleFilesChange}
@@ -321,12 +305,7 @@ export function FileUploadDialog({
                   <Label>{multiple ? `Selected Files (${selectedFiles.length})` : 'Selected File'}</Label>
                   <div className="space-y-1">
                     {selectedFiles.map((file, index) => (
-                      <FileListItem
-                        key={index}
-                        file={file}
-                        type={activeRole}
-                        onRemove={() => handleRemoveFile(index)}
-                      />
+                      <FileListItem key={index} file={file} type={fileRole} onRemove={() => handleRemoveFile(index)} />
                     ))}
                   </div>
                 </div>

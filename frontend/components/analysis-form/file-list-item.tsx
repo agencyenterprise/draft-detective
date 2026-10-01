@@ -11,6 +11,7 @@ const ROLE_LABELS: Record<FileRole, string> = {
   [FileRole.Support]: 'Supporting',
   [FileRole.SupportingCandidate]: 'Supporting',
   [FileRole.ReviewerMemo]: 'Reviewer memo',
+  [FileRole.ResponseMemo]: 'Response memo',
   // Never uploaded through this form; present to keep the record exhaustive.
   [FileRole.ExtractedImage]: 'Extracted image',
 };

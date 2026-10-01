@@ -39,12 +39,14 @@ class MockFileArtifactsService(FileArtifactsServiceType):
         extracted_references: Optional[list[ExtractedReference]] = None,
         references: Optional[list[BibliographyItem]] = None,
         reviewer_memo_files: Optional[list[FileDocument]] = None,
+        response_memo_files: Optional[list[FileDocument]] = None,
     ):
         self._main_file = main_file
         self._supporting_files = supporting_files or []
         self._extracted_references = extracted_references or []
         self._references = references or []
         self._reviewer_memo_files = reviewer_memo_files or []
+        self._response_memo_files = response_memo_files or []
 
     async def get_file_document(self, file_id: str) -> FileDocument:
         # Check if file matches main_file or any supporting file
@@ -68,6 +70,8 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             documents.extend(self._supporting_files)
         if FileRole.REVIEWER_MEMO in roles:
             documents.extend(self._reviewer_memo_files)
+        if FileRole.RESPONSE_MEMO in roles:
+            documents.extend(self._response_memo_files)
         return documents
 
     async def get_latest_reviewer_memo_revision(self) -> int | None:
@@ -105,6 +109,10 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             files["/revisions/1/main.md"] = create_file_data(self._main_file.markdown)
         for f in self._reviewer_memo_files:
             files[f"/revisions/1/reviewer-memos/{f.file_id}.md"] = create_file_data(
+                f.markdown
+            )
+        for f in self._response_memo_files:
+            files[f"/revisions/1/response-memos/{f.file_id}.md"] = create_file_data(
                 f.markdown
             )
 

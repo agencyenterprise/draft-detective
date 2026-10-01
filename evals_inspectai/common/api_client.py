@@ -195,10 +195,11 @@ async def tus_upload_file(
         project_id: Project to attach the file to.
         file_name: Display name for the uploaded file.
         content: File content, either text or raw bytes (e.g. a PDF).
-        role: A `FileRole` value, e.g. "main", "support" or "reviewer_memo".
+        role: A `FileRole` value, e.g. "main", "support", "reviewer_memo" or
+            "response_memo".
         revision: Revision the file belongs to. Only meaningful for the
-            revision-scoped roles (main, reviewer_memo); omitting it attaches
-            the file to the project's current revision.
+            revision-scoped roles (main, reviewer_memo, response_memo);
+            omitting it attaches the file to the project's current revision.
 
     The upload is done as a create (POST) followed by a single write (PATCH).
     The creation-with-upload shortcut is deliberately not used: tuspyserver
