@@ -1,6 +1,6 @@
 'use client';
 
-import { TabLoading } from '@/components/results/tab-loading';
+import { TabError, TabLoading } from '@/components/results/tab-status';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
 import { AccessLevel, ProjectOverview, SimpleDeepAgentState, WorkflowRunSummary } from '@/lib/generated-api';
 import { useProjectIssues, useWorkflowRunDetail } from '@/lib/hooks/use-project-data';
@@ -22,9 +22,11 @@ export function PeerReviewRunResults({
   onNavigateToDocumentExplorer,
 }: PeerReviewRunResultsProps) {
   const projectId = overview.project.id;
-  const { data: detail } = useWorkflowRunDetail(projectId, run);
-  const { data: issues } = useProjectIssues(overview);
+  const { data: detail, error: detailError } = useWorkflowRunDetail(projectId, run);
+  const { data: issues, error: issuesError } = useProjectIssues(overview);
 
+  const error = detailError ?? issuesError;
+  if (error) return <TabError what="these results" error={error} />;
   if (!detail || !issues) return <TabLoading label="Loading results..." />;
 
   return (

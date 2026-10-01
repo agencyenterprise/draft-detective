@@ -9,7 +9,7 @@ import uuid
 
 from langchain_core.messages import HumanMessage
 
-from lib.services.project_content import _validate_items
+from lib.services.project_content import _text_or_none, _validate_items
 from lib.services.project_overview import current_run_errors
 from lib.services.workflow_runs import _without_messages
 from lib.workflows.document_processing.state import DocumentProcessingState
@@ -109,3 +109,14 @@ class TestWithoutMessages:
 
     def test_no_state_stays_no_state(self):
         assert _without_messages(None) is None
+
+
+class TestTextOrNone:
+    def test_keeps_text(self):
+        assert _text_or_none("The Draft") == "The Draft"
+
+    def test_anything_else_is_none(self):
+        """An older summary shape must not turn the whole document read into a 500."""
+        assert _text_or_none(["A. Author"]) is None
+        assert _text_or_none({"name": "A"}) is None
+        assert _text_or_none(None) is None

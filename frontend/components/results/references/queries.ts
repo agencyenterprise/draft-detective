@@ -9,7 +9,7 @@ import { ReferenceReviewItem } from './types';
 export function useReferenceReviewReferences(overview: ProjectOverview) {
   const files = useMemo(() => overview.files ?? [], [overview.files]);
   const hasExtraction = !!findRunByType(overview.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
-  const { data: referenceData, isLoading } = useProjectReferences(overview);
+  const { data: referenceData, isLoading, error } = useProjectReferences(overview);
 
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(
@@ -54,5 +54,5 @@ export function useReferenceReviewReferences(overview: ProjectOverview) {
     });
   }, [composedReferences, files, hasExtraction, referenceData?.fetched_references]);
 
-  return { references, isLoading: hasExtraction && isLoading };
+  return { references, isLoading: hasExtraction && isLoading, error: hasExtraction ? error : null };
 }

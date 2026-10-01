@@ -37,7 +37,7 @@ export function useWorkflowSelection({ overview, defaultWorkflowType = null }: U
 
   const mainRun = selectedWorkflowType ? findRunByType(overview.workflow_runs ?? [], selectedWorkflowType) : undefined;
 
-  const { data: historyData } = useWorkflowRunHistory(overview, selectedWorkflowType);
+  const { data: historyData, error: historyError } = useWorkflowRunHistory(overview, selectedWorkflowType);
 
   // An older run is found in the history, so until that loads there is nothing
   // to show for it; the latest run is in the overview already.
@@ -58,6 +58,7 @@ export function useWorkflowSelection({ overview, defaultWorkflowType = null }: U
     selectedWorkflowType,
     selectedWorkflowRun,
     isResolvingRun,
+    historyError,
     historyData,
     handleSelectWorkflowType,
     handleSelectRun,

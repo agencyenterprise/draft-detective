@@ -20,7 +20,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { FlaskConicalIcon } from 'lucide-react';
 import { StaleWorkflowStateNotice } from '@/components/results/components/stale-workflow-state-notice';
-import { TabLoading } from '@/components/results/tab-loading';
+import { TabError, TabLoading } from '@/components/results/tab-status';
 
 function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   return (
@@ -127,7 +127,10 @@ interface WorkflowResultsContentProps {
   summary: WorkflowRunSummary;
   /** The same run with its state, once loaded. */
   workflowRun: WorkflowRunDetail | undefined;
-  issues: Issue[];
+  /** The revision's issues, once loaded. Until then no view can tell an all-clear from a finding. */
+  issues: Issue[] | undefined;
+  /** Why the run or its issues could not be loaded, if either failed. */
+  loadError?: unknown;
   canEditIssues: boolean;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
 }
@@ -136,10 +139,11 @@ export function WorkflowResultsContent({
   summary,
   workflowRun,
   issues,
+  loadError,
   canEditIssues,
   onNavigateToDocumentExplorer,
 }: WorkflowResultsContentProps) {
-  // From the summary, so they show even for views fetched without their state.
+  // From the summary, so they show before the run's detail has loaded.
   const currentErrors = getCurrentRunErrors(summary);
   const { getWorkflowTypeName, isWorkflowTypeVisible } = useWorkflowTypes();
   const workflowName = getWorkflowTypeName(summary.run.type);
@@ -156,7 +160,9 @@ export function WorkflowResultsContent({
   return (
     <>
       {currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />}
-      {workflowRun ? (
+      {loadError ? (
+        <TabError what="these results" error={loadError} />
+      ) : workflowRun && issues ? (
         renderWorkflowResults({
           workflowRun,
           issues,

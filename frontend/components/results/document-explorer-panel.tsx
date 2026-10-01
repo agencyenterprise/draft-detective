@@ -3,7 +3,7 @@
 import { useProjectView } from '@/components/results/project-view-context';
 import { useProjectDocument, useProjectIssues } from '@/lib/hooks/use-project-data';
 import { DocumentExplorerTab } from './document-explorer/document-explorer-tab';
-import { TabLoading } from './tab-loading';
+import { TabError, TabLoading } from './tab-status';
 
 /**
  * The document explorer as a tab panel. Everything around it — title, tabs,
@@ -18,11 +18,7 @@ export function DocumentExplorerPanel() {
 
   const error = documentError ?? issuesError;
   if (error) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-destructive">Could not load the document: {error.message}</p>
-      </div>
-    );
+    return <TabError what="the document" error={error} />;
   }
 
   if (!document || !issues) {

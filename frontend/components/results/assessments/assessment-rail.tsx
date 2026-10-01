@@ -31,7 +31,8 @@ const STATUS_DOT: Record<string, string> = {
 
 interface AssessmentRailProps {
   workflowDetails: WorkflowRunSummary[];
-  issues: Issue[];
+  /** Undefined while loading, when no run's findings can be counted yet. */
+  issues: Issue[] | undefined;
   selectedWorkflowType: WorkflowRunType | null;
   onSelectWorkflowType: (type: WorkflowRunType) => void;
   onStartNewAssessment: () => void;
@@ -139,7 +140,7 @@ function AssessmentRow({
   onSelect,
 }: {
   detail: WorkflowRunSummary;
-  issues: Issue[];
+  issues: Issue[] | undefined;
   active: boolean;
   onSelect: () => void;
 }) {
@@ -154,7 +155,9 @@ function AssessmentRow({
   // the user, failed, or cancelled would read as "0 issues found", which is
   // not what happened.
   const summary =
-    detail.run.status === WorkflowRunStatus.Completed ? summarizeReportedIssues(issues, detail.run.type) : null;
+    detail.run.status === WorkflowRunStatus.Completed && issues
+      ? summarizeReportedIssues(issues, detail.run.type)
+      : null;
 
   const name = getWorkflowTypeName(detail.run.type);
   const flag = failed

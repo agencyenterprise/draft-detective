@@ -4,7 +4,7 @@ import { AwaitingApprovalNotice } from '@/components/results/assessments/awaitin
 import { useWorkflowSelection } from '@/components/results/assessments/use-workflow-selection';
 import { WorkflowDuration } from '@/components/results/assessments/workflow-duration';
 import { WorkflowResultsContent } from '@/components/results/assessments/workflow-results-renderer';
-import { TabLoading } from '@/components/results/tab-loading';
+import { TabError, TabLoading } from '@/components/results/tab-status';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
@@ -48,7 +48,8 @@ export function AssessmentsTab({
 }: AssessmentsTabProps) {
   const projectId = overview.project.id;
   const workflowDetails = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
-  const { data: issues = [] } = useProjectIssues(overview);
+  // Left undefined until loaded: an empty list would read as an all-clear.
+  const { data: issues, error: issuesError } = useProjectIssues(overview);
   const queryClient = useQueryClient();
   const { getWorkflowTypeName, getWorkflowTypeDescription, isWorkflowTypeVisible } = useWorkflowTypes();
 
@@ -67,13 +68,17 @@ export function AssessmentsTab({
     selectedWorkflowType,
     selectedWorkflowRun,
     isResolvingRun,
+    historyError,
     historyData,
     handleSelectWorkflowType,
     handleSelectRun,
   } = useWorkflowSelection({ overview, defaultWorkflowType: firstVisibleType });
 
   // The selected run's state and its cost.
-  const { data: selectedRunDetail } = useWorkflowRunDetail(projectId, selectedWorkflowRun ?? undefined);
+  const { data: selectedRunDetail, error: runDetailError } = useWorkflowRunDetail(
+    projectId,
+    selectedWorkflowRun ?? undefined,
+  );
 
   const { mutate: startWorkflows } = useMutation({
     mutationFn: (values: WorkflowConfigFormValues) =>
@@ -181,7 +186,9 @@ export function AssessmentsTab({
         {/* Keyed by run so a new selection reads from the top; the tab itself
             stays mounted across selections, so nothing else resets it. */}
         <div key={selectedWorkflowRun?.run.id} className="min-h-0 flex-1 overflow-y-auto">
-          {isResolvingRun ? (
+          {isResolvingRun && historyError ? (
+            <TabError what="this run" error={historyError} />
+          ) : isResolvingRun ? (
             <TabLoading label="Loading run..." />
           ) : selectedWorkflowRun ? (
             <div className="mx-auto max-w-5xl px-6 py-5">
@@ -215,6 +222,7 @@ export function AssessmentsTab({
                     summary={selectedWorkflowRun}
                     workflowRun={selectedRunDetail}
                     issues={issues}
+                    loadError={runDetailError ?? issuesError}
                     canEditIssues={overview.access_level === AccessLevel.Write}
                     onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
                   />

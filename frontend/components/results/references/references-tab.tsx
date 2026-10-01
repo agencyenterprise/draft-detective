@@ -27,7 +27,7 @@ import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, Search, U
 import { useMemo, useState } from 'react';
 import { FileUploadDialog } from '@/components/results/references/file-upload-dialog';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
-import { TabLoading } from '../tab-loading';
+import { TabError, TabLoading } from '../tab-status';
 import { ReferenceDetail } from './reference-detail';
 import { ReferenceRow } from './reference-row';
 
@@ -59,7 +59,7 @@ export function ReferencesTab({ overview, readOnly }: ReferencesTabProps) {
 
   useScrollToReference();
 
-  const { references, isLoading: isLoadingReferences } = useReferenceReviewReferences(overview);
+  const { references, isLoading: isLoadingReferences, error: referencesError } = useReferenceReviewReferences(overview);
   const approval = useReferenceApprovalFlow(overview);
   const fetchAll = useFetchAllFromWebMutation(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [FileRole.Support]);
@@ -112,6 +112,10 @@ export function ReferencesTab({ overview, readOnly }: ReferencesTabProps) {
 
   if (isLoadingReferences) {
     return <TabLoading label="Loading references..." />;
+  }
+
+  if (referencesError) {
+    return <TabError what="the references" error={referencesError} />;
   }
 
   const handleFetchAllConfirm = () => {

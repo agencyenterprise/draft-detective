@@ -16,7 +16,10 @@ export function useReferenceApprovalFlow(overview: ProjectOverview) {
   const workflowDetails = overview.workflow_runs ?? [];
   const [showUnmatchedWarning, setShowUnmatchedWarning] = useState(false);
 
-  const { references } = useReferenceReviewReferences(overview);
+  // Until the references are in, the unmatched count reads zero, and approving
+  // would skip the warning about sources that are missing.
+  const { references, isLoading: isLoadingReferences, error: referencesError } = useReferenceReviewReferences(overview);
+  const referencesUnavailable = isLoadingReferences || !!referencesError;
 
   const referenceExtraction = findRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const documentProcessing = findRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
@@ -31,7 +34,11 @@ export function useReferenceApprovalFlow(overview: ProjectOverview) {
 
   const unmatchedCount = references.filter((ref) => ref.status === 'unmatched').length;
   const isApproveDisabled =
-    approveMutation.isPending || approveMutation.isSuccess || isProcessingFiles || isExtractionProcessing;
+    approveMutation.isPending ||
+    approveMutation.isSuccess ||
+    isProcessingFiles ||
+    isExtractionProcessing ||
+    referencesUnavailable;
 
   /** Spinner only while the approve request is in flight — not while docs/refs are still processing. */
   const showApproveButtonSpinner = approveMutation.isPending;
@@ -41,9 +48,12 @@ export function useReferenceApprovalFlow(overview: ProjectOverview) {
     (approveMutation.isPending && 'Starting analysis...') ||
     (isProcessingFiles && 'Processing files...') ||
     (isExtractionProcessing && 'Extracting references...') ||
+    (isLoadingReferences && 'Loading references...') ||
+    (referencesError && "Couldn't load references") ||
     'Approve and Start Analysis';
 
   const handleApprove = () => {
+    if (referencesUnavailable) return;
     if (unmatchedCount > 0 && !isProcessingFiles) {
       setShowUnmatchedWarning(true);
     } else {

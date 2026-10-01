@@ -88,12 +88,17 @@ async def _main_document_summary(project_id: str, revision: int) -> dict[str, An
     return {}
 
 
+def _text_or_none(value: Any) -> Optional[str]:
+    """A persisted text field, or None when an older shape stored something else."""
+    return value if isinstance(value, str) else None
+
+
 async def get_project_document(project_id: str, revision: int) -> ProjectDocument:
     summary = await _main_document_summary(project_id, revision)
     return ProjectDocument(
         markdown=await get_main_document_markdown(project_id, revision),
-        title=summary.get("title"),
-        authors=summary.get("authors"),
+        title=_text_or_none(summary.get("title")),
+        authors=_text_or_none(summary.get("authors")),
     )
 
 
