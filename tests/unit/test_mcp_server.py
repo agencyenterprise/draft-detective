@@ -44,6 +44,8 @@ EXPECTED_TOOL_NAMES = {
     "create_project",
     "run_workflow",
     "get_project",
+    "get_project_references",
+    "get_workflow_run",
     "list_projects",
     "export_project_docx",
     "list_project_files",

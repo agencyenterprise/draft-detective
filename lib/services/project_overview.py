@@ -1,10 +1,10 @@
 """The project page's always-loaded payload: what the chrome needs, no states.
 
-`ProjectDetailed` hands back every run's full hydrated state, which reaches
-several MB on a fully analysed project and was re-sent on every 3s poll. The
-overview carries only what the tabs, badges and banners read, and pulls the
-few state fields it needs (each run's errors, the reference count, the main
-file's path) out of `state_json` in SQL, so no state is shipped or hydrated.
+Every run's full hydrated state reaches several MB on a fully analysed
+project, too much to re-send on every 3s poll. The overview carries only what
+the tabs, badges and banners read, and pulls the few state fields it needs
+(each run's errors, the reference count, the main file's path) out of
+`state_json` in SQL, so no state is shipped or hydrated.
 Everything heavier has its own endpoint, fetched when a tab needs it.
 """
 

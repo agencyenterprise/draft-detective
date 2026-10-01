@@ -11,8 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.file import File, FileListItem, FileRole
-from lib.models.issue import Issue
+from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import (
@@ -25,9 +24,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 from lib.services.files import (
     delete_project_files,
     get_files_by_project_id,
-    get_project_files_list_items,
 )
-from lib.services.issue_persistence import get_project_issues
 from lib.services.references import (
     remove_fetch_result_for_file,
     remove_file_from_references,
@@ -36,7 +33,6 @@ from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
     cancel_workflow_run,
-    get_project_workflow_runs,
 )
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowRunType
@@ -62,30 +58,12 @@ class ProjectListPage(BaseModel):
     offset: int = Field(description="Number of projects skipped before this page")
 
 
-class ProjectDetailed(BaseModel):
+class ProjectCreated(BaseModel):
+    """A project just created, with the creator's access to it."""
+
     project: Project
     access_level: AccessLevel = Field(
         description="The access level of the current user for this project",
-    )
-    workflow_runs: List[WorkflowRunDetail] = Field(
-        default_factory=list,
-        description="The workflow runs for the project",
-    )
-    issues: List[Issue] = Field(
-        default_factory=list,
-        description="The persisted issues for the project",
-    )
-    files: List[FileListItem] = Field(
-        default_factory=list,
-        description="The files associated with the project",
-    )
-    revision: int = Field(
-        default=1,
-        description="The revision being returned",
-    )
-    main_document_markdown: Optional[str] = Field(
-        default=None,
-        description="Full markdown of the main document for this revision, if available",
     )
 
 
@@ -208,10 +186,10 @@ async def _get_project_by_id(project_id: str) -> Project | None:
 def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None:
     """Blank the converted markdown in document-processing state, in place.
 
-    Project details are polled every few seconds and nothing in the browser
-    reads these documents' markdown, so sending it would only bloat every
-    poll. TODO: we should have a better way to do this. `markdown` is declared
-    `str` but we blank it here to shrink the serialized payload.
+    Each converted document can be as long as the main one, and the MCP
+    get_workflow_run tool hands the state to an agent's context, which has no
+    use for it. TODO: we should have a better way to do this. `markdown` is
+    declared `str` but we blank it here to shrink the serialized payload.
     """
     for run in workflow_runs:
         if isinstance(run.state, DocumentProcessingState) and run.state.file:
@@ -222,54 +200,6 @@ def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None
                 *(run.state.response_memo_files or []),
             ):
                 converted_file.markdown = None  # type: ignore[assignment]
-
-
-async def get_project_detailed_from_project(
-    project: Project,
-    access_level: AccessLevel,
-    include_internal: bool = False,
-    revision: int | None = None,
-) -> ProjectDetailed:
-    """
-    Get detailed project information with workflow runs.
-
-    The files list always includes every revision (each main-document revision
-    plus shared supporting files); the current main is the one whose revision
-    matches project.current_revision. Issues, workflow runs, and markdown stay
-    scoped to the resolved revision.
-
-    Args:
-        project: The project to get details for
-        access_level: The access level of the current user
-        include_internal: If True, include internal workflows in the response
-        revision: If provided, return data for this revision. Defaults to current_revision.
-    """
-    resolved_revision = revision if revision is not None else project.current_revision
-
-    workflow_runs = await get_project_workflow_runs(
-        str(project.id), revision=resolved_revision, include_internal=include_internal
-    )
-
-    strip_converted_markdown(workflow_runs)
-
-    # Query persisted issues from the database (faster than computing from state)
-    issues = await get_project_issues(
-        uuid.UUID(str(project.id)), revision=resolved_revision
-    )
-
-    main_document_markdown = await get_main_document_markdown(
-        str(project.id), resolved_revision
-    )
-
-    return ProjectDetailed(
-        project=project,
-        access_level=access_level,
-        workflow_runs=workflow_runs,
-        issues=list(issues),
-        files=await get_project_files_list_items(project.id),
-        revision=resolved_revision,
-        main_document_markdown=main_document_markdown,
-    )
 
 
 async def get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:

@@ -9,10 +9,10 @@ from mcp.types import ToolAnnotations
 from lib.api.mcp import helpers, serialization
 from lib.api.mcp.instance import mcp
 from lib.models.file import FileRole
-from lib.models.project import AccessLevel
 from lib.services.file_finalization import finalize_file
+from lib.services import project_content
 from lib.services.projects import create_project as create_project_record
-from lib.services.projects import get_user_projects
+from lib.services.projects import get_project_access, get_user_projects
 
 
 @mcp.tool(
@@ -86,21 +86,32 @@ async def create_project(
 async def get_project(
     project_id: str,
     revision: int | None = None,
+    include_document: bool = False,
     token: AccessToken = CurrentAccessToken(),
 ) -> str:
     """
-    Get full project details by project ID.
+    Get a project's status and detected issues by project ID.
 
-    Returns project metadata, workflow results, detected issues, and a
-    project_url link to view the project in the web UI.
+    Returns project metadata, the latest run of each workflow type (status and
+    the errors it recorded, without its full state), the detected issues,
+    reference_count, and a project_url link to view the project in the web UI.
+
+    For more than the summary:
+    - get_project_references: the extracted references (and their IDs), the
+      supporting files matched to them, and the web fetch outcomes.
+    - get_workflow_run: one run's full state, for results a workflow reports
+      outside of issues.
+    - list_project_files: the project's files.
 
     revision: optional revision number to fetch. Defaults to the latest revision.
     Use list_revisions to see all available revisions.
+    include_document: also return the main document's markdown, title and
+    authors under `document`. Off by default, since it can be long.
     """
 
     user = await helpers.resolve_user(token)
-    return await serialization.get_project_details_json(
-        project_id, AccessLevel.READ, user, revision=revision
+    return await serialization.get_project_summary_json(
+        project_id, user, revision=revision, include_document=include_document
     )
 
 
@@ -127,7 +138,7 @@ async def list_projects(
     search: optional text; only projects whose title contains every term are returned.
     limit: page size, at most 200. offset: number of projects to skip. When
     offset + len(items) < total there are more pages to fetch.
-    Use get_project with a project_id to fetch full details for a specific project.
+    Use get_project with a project_id to fetch a specific project's status and issues.
     """
     user = await helpers.resolve_user(token)
     page = await get_user_projects(user, search=search, limit=limit, offset=offset)
@@ -144,3 +155,40 @@ async def list_projects(
             ],
         }
     )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
+    )
+)
+async def get_project_references(
+    project_id: str,
+    revision: int | None = None,
+    token: AccessToken = CurrentAccessToken(),
+) -> str:
+    """
+    Get the references extracted from a project's main document.
+
+    Returns JSON with:
+    - extracted_references: each reference with its `id` and text. Pass the
+      `id` as reference_id to get_tus_upload_credentials to upload a
+      supporting file for that reference.
+    - matches: the supporting files matched to each reference.
+    - fetched_references: the outcome of fetching each reference from the web
+      (only after reference_downloader ran).
+
+    All three are empty until reference_extraction has run.
+
+    revision: optional revision number. Defaults to the latest revision.
+    """
+    user = await helpers.resolve_user(token)
+    project, _ = await get_project_access(project_id, user=user)
+    resolved_revision = revision if revision is not None else project.current_revision
+    references = await project_content.get_project_references(
+        str(project.id), resolved_revision
+    )
+    return references.model_dump_json()

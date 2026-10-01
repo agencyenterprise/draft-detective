@@ -1,7 +1,7 @@
-"""Converted markdown is blanked before project details go to the browser.
+"""Converted markdown is blanked before a run's state goes to an MCP agent.
 
-Project details are polled every few seconds; the document-processing state
-carries every converted document in full, and nothing client-side reads it.
+The document-processing state carries every converted document in full, and
+the agent reading a run through get_workflow_run has no use for any of it.
 """
 
 from lib.services.file import FileDocument

@@ -1,32 +1,42 @@
 import json
 
+import uuid
+
 from lib.api.mcp.helpers import build_project_url
 from lib.api.services.workflow_runner import WorkflowGateRequiredError
-from lib.models.project import AccessLevel
 from lib.models.user import User
-from lib.services.projects import (
-    get_project_access,
-    get_project_detailed_from_project,
-)
+from lib.services.issue_persistence import get_project_issues
+from lib.services.project_content import get_project_document
+from lib.services.project_overview import get_project_overview
+from lib.services.projects import get_project_access
+
+# The overview fields an agent has no use for: `files` has its own tool
+# (list_project_files), and the share link and issues_version only drive the
+# web page.
+_OVERVIEW_EXCLUDE = {"files", "share_status", "issues_version"}
 
 
-async def get_project_details_json(
+async def get_project_summary_json(
     project_id: str,
-    access_level: AccessLevel,
     user: User,
     revision: int | None = None,
+    include_document: bool = False,
 ) -> str:
-    """Fetch project details and return as JSON, excluding files and feedbacks."""
-    project, _ = await get_project_access(
-        project_id, user=user, required_level=access_level
+    """A revision's run statuses and errors, its issues and the project link.
+
+    Run states are left out; get_workflow_run and get_project_references
+    return the parts of them an agent asks for.
+    """
+    project, access_level = await get_project_access(project_id, user=user)
+    overview = await get_project_overview(project, access_level, revision=revision)
+    issues = await get_project_issues(
+        uuid.UUID(str(project.id)), revision=overview.revision
     )
-    project_detailed = await get_project_detailed_from_project(
-        project=project,
-        access_level=access_level,
-        include_internal=True,
-        revision=revision,
-    )
-    data = project_detailed.model_dump(mode="json", exclude={"files", "feedbacks"})
+    data = overview.model_dump(mode="json", exclude=_OVERVIEW_EXCLUDE)
+    data["issues"] = [issue.model_dump(mode="json") for issue in issues]
+    if include_document:
+        document = await get_project_document(str(project.id), overview.revision)
+        data["document"] = document.model_dump(mode="json")
     data["project_url"] = build_project_url(project_id)
     return json.dumps(data)
 
@@ -104,7 +114,7 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
             "UI) starts them. Share the project_url with the user "
             "so they can review references in the web UI, or offer to list "
             "the references and supporting-file mappings here (use "
-            "get_project to fetch them).\n\n"
+            "get_project_references to fetch them).\n\n"
             "Offer the user these options for filling in missing supporting "
             "files before approving:\n"
             "  1. Have Draft Detective auto-fetch them from the web — add "
@@ -112,7 +122,7 @@ def build_gate_required_payload(exc: WorkflowGateRequiredError) -> dict:
             "(this also requires approve_web_search=true).\n"
             "  2. Provide/upload the files yourself — call "
             "get_tus_upload_credentials with role='support' and the matching "
-            "reference_id (from get_project) for each file, then upload via "
+            "reference_id (from get_project_references) for each file, then upload via "
             "the returned TUS endpoint before retrying."
         )
     if pending_web_search:

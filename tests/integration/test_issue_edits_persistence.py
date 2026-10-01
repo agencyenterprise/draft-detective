@@ -5,7 +5,8 @@ is fully async, so a lazy load outside an `await` raises `MissingGreenlet` at
 serialization time rather than at query time. These tests exercise the three
 places an `Issue` is handed back after a commit -- the rows returned by
 `persist_workflow_issues`, a fresh read through `get_project_issues`, and the
-`ProjectDetailed` payload -- and serialize each one.
+JSON dump the issues endpoint and the MCP project summary make of it -- and
+serialize each one.
 """
 
 import uuid
@@ -19,7 +20,7 @@ from lib.api.routers.issues import IssueResponse
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue
 from lib.models.issue_edit import IssueEdit, IssueEditStatus
-from lib.models.project import AccessLevel, Project
+from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.issue_persistence import (
@@ -27,7 +28,6 @@ from lib.services.issue_persistence import (
     persist_workflow_issues,
     resolve_issue,
 )
-from lib.services.projects import ProjectDetailed
 from lib.workflows.models import (
     DocumentIssue,
     ProposedEdit,
@@ -184,18 +184,12 @@ async def test_issue_response_publishes_the_edits(persisted):
 
 
 @pytest.mark.asyncio
-async def test_project_detail_payload_serializes_the_edits(persisted):
-    """The selectin path has to survive a full JSON dump of the detail payload."""
-    issues = await get_project_issues(persisted["project"].id, revision=1)
+async def test_issue_json_dump_serializes_the_edits(persisted):
+    """The selectin path has to survive a full JSON dump of a fresh read."""
+    (issue,) = await get_project_issues(persisted["project"].id, revision=1)
 
-    payload = ProjectDetailed(
-        project=persisted["project"],
-        access_level=AccessLevel.WRITE,
-        issues=list(issues),
-        revision=1,
-    ).model_dump(mode="json")
+    serialized = issue.model_dump(mode="json")
 
-    (serialized,) = payload["issues"]
     assert [e["replacement_text"] for e in serialized["edits"]] == [
         "**Figure 2**",
         "",
