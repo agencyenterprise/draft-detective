@@ -5,12 +5,14 @@ from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 from deepagents.backends.utils import create_file_data
 
 from lib.models.file import File, FileRole
-from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.file import FileDocument
 from lib.services.files import (
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,
+    update_file_artifacts,
 )
+from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
@@ -172,18 +174,24 @@ class FileArtifactsService(FileArtifactsServiceType):
     async def _load_file_document_with_markdown(self, file: File) -> FileDocument:
         """Load a File row into a FileDocument, converting markdown on demand.
 
-        Uses cached markdown when present, otherwise converts from disk.
+        Uses cached markdown when present. Otherwise the file has not been
+        through document processing, which only converts the current
+        revision's files: a reviewer memo uploaded to an earlier draft, or a
+        response memo left on a revision that was replaced before anything ran.
+        It is then converted the way document processing would (legacy ``.doc``
+        included, with the converter its role calls for) and cached, so the
+        next run reads it from the DB.
         """
         if file.markdown is not None:
             return await load_file_document(file, use_cached_artifacts=True)
-        return await create_file_document_from_path(
-            file_path=file.file_path,
-            file_id=str(file.id),
-            file_type=file.file_type,
-            original_file_name=file.file_name,
-            original_file_path=file.original_file_path,
-            markdown_convert=True,
-        )
+
+        document = await load_file_document(file, use_cached_artifacts=False)
+        converted = await convert_file_document_to_markdown(document, role=file.role)
+        if converted.markdown:
+            await update_file_artifacts(
+                file_id=converted.file_id, markdown=converted.markdown
+            )
+        return converted
 
     async def get_main_file(self, revision: int | None = None) -> FileDocument:
         """Return the project's main file.
