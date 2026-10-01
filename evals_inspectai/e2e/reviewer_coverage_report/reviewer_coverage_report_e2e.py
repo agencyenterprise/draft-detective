@@ -25,6 +25,10 @@ Scoring is in three parts:
   accounts for every point exactly once, that the four-verdict scale is
   actually used, and that Part 1 states the sign-off decision. These check that
   the arithmetic holds, not that any individual verdict is right;
+- two checks on the author's response memos, which some samples supply: the
+  replies reproduced verbatim inside quotes and an unanswered point marked as
+  such, or, without them, a header saying none were supplied and no reply
+  invented (see `response_checks`);
 - four judged criteria, each graded in its own call, for the parts that are
   judgement: whether the verdicts match what the revised draft does, whether
   Part 1 is decision-grade, whether each verdict carries evidence and a
@@ -53,6 +57,7 @@ from inspect_ai.viewer import (
 from evals_inspectai.common.api_solver import surface_conversations
 from evals_inspectai.common.loaders import resolve_input
 from evals_inspectai.common.peer_review_fixture import (
+    ResponseMemo,
     ReviewerMemo,
     run_review_assistant_workflow,
     setup_peer_review_project,
@@ -64,6 +69,10 @@ from evals_inspectai.common.review_assistant_scorers import (
 )
 from evals_inspectai.common.scorers import checks_to_score, criteria_for, failed_score, grade_criteria
 from evals_inspectai.common.model_override import output_model_name
+from evals_inspectai.e2e.reviewer_coverage_report.response_checks import (
+    check_author_verbatim,
+    check_response_slots,
+)
 from evals_inspectai.e2e.reviewer_coverage_report.verdict_checks import (
     check_recommendation,
     check_verdict_table,
@@ -81,9 +90,19 @@ GRADER_MODEL = "openai/gpt-5.6-terra"
 _WORKFLOW_TIMEOUT_S = 2400
 
 # What this output specifies on top of the six shared rules.
-COVERAGE_CHECKS = ("verdict_table", "verdict_vocabulary", "recommendation")
+COVERAGE_CHECKS = (
+    "verdict_table",
+    "verdict_vocabulary",
+    "recommendation",
+    "author_verbatim",
+    "response_slots",
+)
 
 ALL_STRUCTURE_CHECKS = (*STRUCTURE_CHECKS, *COVERAGE_CHECKS)
+
+
+def _memo_file(ref: str) -> dict[str, str]:
+    return {"file_name": Path(ref.removeprefix("file://")).name, "content": resolve_input(ref)}
 
 
 def _record_to_sample(record: dict) -> Sample:
@@ -94,13 +113,10 @@ def _record_to_sample(record: dict) -> Sample:
     grader needs the revised draft to judge whether a verdict matches what the
     revision actually did (see `_grading_question`).
     """
-    memos = [
-        {
-            "file_name": Path(ref.removeprefix("file://")).name,
-            "content": resolve_input(ref),
-        }
-        for ref in record["memos"]
-    ]
+    memos = [_memo_file(ref) for ref in record["memos"]]
+    # Optional: the author's replies, uploaded to the revised draft. Samples
+    # without them exercise the draft-comparison-only path.
+    response_memos = [_memo_file(ref) for ref in record.get("response_memos", [])]
     return Sample(
         id=record["id"],
         input=resolve_input(record["draft"]),
@@ -108,6 +124,9 @@ def _record_to_sample(record: dict) -> Sample:
         metadata={
             "memos": memos,
             "revised_draft": resolve_input(record["revised"]),
+            "response_memos": response_memos,
+            "author_probes": record.get("author_probes", []),
+            "expects_unanswered_point": record.get("expects_unanswered_point", False),
             "expected_reviewers": record["expected_reviewers"],
             "point_count_bands": record["point_count_bands"],
             "verbatim_probes": record["verbatim_probes"],
@@ -150,6 +169,10 @@ def reviewer_coverage_report_solver(
                 for m in meta["memos"]
             ],
             revised_draft=meta["revised_draft"],
+            response_memos=[
+                ResponseMemo(file_name=m["file_name"], content=m["content"])
+                for m in meta["response_memos"]
+            ],
         )
 
         run_detail = await run_review_assistant_workflow(
@@ -174,9 +197,9 @@ def reviewer_coverage_report_solver(
 
 @scorer(metrics={name: [mean(), stderr()] for name in ALL_STRUCTURE_CHECKS})
 def coverage_structure() -> Scorer:
-    """The six shared rules plus this output's verdict bookkeeping.
+    """The six shared rules plus this output's verdict and reply bookkeeping.
 
-    One scorer rather than two because all nine checks share the HTML parse,
+    One scorer rather than two because all eleven checks share the HTML parse,
     which is the expensive part, and Inspect reports each key as its own metric
     either way.
     """
@@ -190,6 +213,8 @@ def coverage_structure() -> Scorer:
         checks["verdict_table"] = check_verdict_table(report)
         checks["verdict_vocabulary"] = check_verdict_vocabulary(report)
         checks["recommendation"] = check_recommendation(report)
+        checks["author_verbatim"] = check_author_verbatim(report, state.metadata or {})
+        checks["response_slots"] = check_response_slots(report, state.metadata or {})
         return checks_to_score(checks)
 
     return score
@@ -210,10 +235,12 @@ SHARED_CRITERIA: dict[str, str] = {
         "Each reviewer point carries a verdict that matches what the revised draft actually "
         "does, on this scale: addressed (the revision resolves the point), partially addressed "
         "(some of the point was handled), declined with rationale (deliberately not changed, "
-        "with a reason that is either stated in the revision or follows from what kind of "
-        "document it is), and not addressed (no change and no reason). Only 'not addressed' "
-        "should read as a gap. Recording a reasoned decline as a gap, or a silent omission as "
-        "a decline, both fail this."
+        "with a reason that is stated in the revision, given in the author's response memo "
+        "when one is supplied, or follows from what kind of document it is), and not addressed "
+        "(no change and no reason). Only 'not addressed' should read as a gap. Recording a "
+        "reasoned decline as a gap, or a silent omission as a decline, both fail this. When "
+        "response memos are supplied, a reply's claim that something changed is not evidence: "
+        "the verdict must follow what the revised draft shows."
     ),
     "part1_is_decision_grade": (
         "Part 1 answers the one question the QA manager has. It opens with the document type "
@@ -236,7 +263,7 @@ SHARED_CRITERIA: dict[str, str] = {
 
 
 def _grading_question(state: TaskState) -> str:
-    """Both drafts, labelled, as the question put to the grader.
+    """Both drafts, and any response memos, labelled, as the question put to the grader.
 
     Passing only the reviewed draft made `verdicts_correct` unjudgeable and
     actively wrong: the grader compared the report's claims about what changed
@@ -245,8 +272,9 @@ def _grading_question(state: TaskState) -> str:
     point was addressed, partly addressed, declined or ignored requires seeing
     what the revision actually did.
     """
-    revised = (state.metadata or {}).get("revised_draft", "")
-    return (
+    meta = state.metadata or {}
+    revised = meta.get("revised_draft", "")
+    question = (
         "There are two versions of the document. The reviewer memos were "
         "written against the first; the second is the author's revision "
         "answering them.\n\n"
@@ -255,6 +283,15 @@ def _grading_question(state: TaskState) -> str:
         "=== REVISED DRAFT (what the author changed it to) ===\n"
         f"{revised}\n"
     )
+    # The replies are claims the report is meant to check, so the grader needs
+    # them to tell a verified claim from one the report took on trust.
+    for memo in meta.get("response_memos", []):
+        question += (
+            f"\n=== AUTHOR RESPONSE MEMO: {memo['file_name']} "
+            "(the author's replies; claims, not evidence) ===\n"
+            f"{memo['content']}\n"
+        )
+    return question
 
 
 @scorer(metrics={name: [mean(), stderr()] for name in RUBRIC_CRITERIA})
@@ -333,6 +370,8 @@ def _viewer_config() -> ViewerConfig:
                 "verdict_table": "Table",
                 "verdict_vocabulary": "Scale",
                 "recommendation": "Rec.",
+                "author_verbatim": "Replies",
+                "response_slots": "Slots",
                 "verdicts_correct": "Verdicts",
                 "part1_is_decision_grade": "Part 1",
                 "evidence_and_location": "Evidence",

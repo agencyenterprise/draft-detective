@@ -5,12 +5,14 @@ from typing import TYPE_CHECKING, Optional, cast, Callable, Awaitable, Any
 from deepagents.backends.utils import create_file_data
 
 from lib.models.file import File, FileRole
-from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.file import FileDocument
 from lib.services.files import (
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,
+    update_file_artifacts,
 )
+from lib.services.markdown_conversion import convert_file_document_to_markdown
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
@@ -32,6 +34,12 @@ if TYPE_CHECKING:
     from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
+
+# Where each revision-scoped memo role is mounted under `/revisions/<n>/`.
+_MEMO_FOLDERS: dict[FileRole, str] = {
+    FileRole.REVIEWER_MEMO: "reviewer-memos",
+    FileRole.RESPONSE_MEMO: "response-memos",
+}
 
 
 class FileArtifactsService(FileArtifactsServiceType):
@@ -166,18 +174,24 @@ class FileArtifactsService(FileArtifactsServiceType):
     async def _load_file_document_with_markdown(self, file: File) -> FileDocument:
         """Load a File row into a FileDocument, converting markdown on demand.
 
-        Uses cached markdown when present, otherwise converts from disk.
+        Uses cached markdown when present. Otherwise the file has not been
+        through document processing, which only converts the current
+        revision's files: a reviewer memo uploaded to an earlier draft, or a
+        response memo left on a revision that was replaced before anything ran.
+        It is then converted the way document processing would (legacy ``.doc``
+        included, with the converter its role calls for) and cached, so the
+        next run reads it from the DB.
         """
         if file.markdown is not None:
             return await load_file_document(file, use_cached_artifacts=True)
-        return await create_file_document_from_path(
-            file_path=file.file_path,
-            file_id=str(file.id),
-            file_type=file.file_type,
-            original_file_name=file.file_name,
-            original_file_path=file.original_file_path,
-            markdown_convert=True,
-        )
+
+        document = await load_file_document(file, use_cached_artifacts=False)
+        converted = await convert_file_document_to_markdown(document, role=file.role)
+        if converted.markdown:
+            await update_file_artifacts(
+                file_id=converted.file_id, markdown=converted.markdown
+            )
+        return converted
 
     async def get_main_file(self, revision: int | None = None) -> FileDocument:
         """Return the project's main file.
@@ -410,9 +424,11 @@ class FileArtifactsService(FileArtifactsServiceType):
         - ``/revisions/<n>/main.md`` — the main document of every revision
         - ``/revisions/<n>/reviewer-memos/<id>.md`` — reviewer memos, always
           grouped under the revision they reviewed
+        - ``/revisions/<n>/response-memos/<id>.md`` — the author's response
+          memos, grouped under the revised draft they describe
 
-        Reviewer memos live only under ``/revisions/<n>/reviewer-memos/``. The
-        agent navigates this tree; workflows tell it which paths to read.
+        Memos live only under their revision's folder. The agent navigates
+        this tree; workflows tell it which paths to read.
         """
         main_file = await self.get_main_file()
         files: dict[str, Any] = {"/main.md": create_file_data(main_file.markdown)}
@@ -421,7 +437,12 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"all files for {self.project_id}",
             lambda: get_files_by_project_id(
                 self.project_id,
-                roles=[FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO],
+                roles=[
+                    FileRole.MAIN,
+                    FileRole.SUPPORT,
+                    FileRole.REVIEWER_MEMO,
+                    FileRole.RESPONSE_MEMO,
+                ],
             ),
         )
         for file in all_files or []:
@@ -433,11 +454,12 @@ class FileArtifactsService(FileArtifactsServiceType):
                 files[f"/revisions/{file.revision}/main.md"] = create_file_data(
                     doc.markdown
                 )
-            elif file.role == FileRole.REVIEWER_MEMO and file.revision is not None:
+            elif file.role in _MEMO_FOLDERS and file.revision is not None:
                 doc = await self._load_file_document_with_markdown(file)
-                files[
-                    f"/revisions/{file.revision}/reviewer-memos/{doc.file_id}.md"
-                ] = create_file_data(doc.markdown)
+                folder = _MEMO_FOLDERS[file.role]
+                files[f"/revisions/{file.revision}/{folder}/{doc.file_id}.md"] = (
+                    create_file_data(doc.markdown)
+                )
 
         if include_skills:
             project_root = Path(__file__).parents[3]

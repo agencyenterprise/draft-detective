@@ -28,7 +28,7 @@ export const STEPS: StepDefinition[] = [
     id: 'respond',
     title: 'Respond to the reviewers',
     subtitle:
-      'Writes one response memo per reviewer, answering each of their points with what changed and where, or why it did not.',
+      'Drafts one response memo per reviewer, answering each of their points with what changed and where, or why it did not. Upload the final memos once they have been edited.',
   },
   {
     id: 'coverage',
@@ -56,7 +56,8 @@ export function readStepStates(facts: PeerReviewFacts, planRun?: WorkflowRunDeta
     plan: { complete: isComplete(planRun), blockedReason: facts.planBlockedReason, run: planRun },
     revise: { complete: facts.hasRevisedDraft, blockedReason: facts.reviseBlockedReason },
     respond: {
-      complete: isComplete(facts.runs.memos),
+      // Authors who write their own replies never need the generated drafts.
+      complete: isComplete(facts.runs.memos) || facts.activeResponseMemos.length > 0,
       blockedReason: facts.comparisonBlockedReason,
       run: facts.runs.memos,
     },

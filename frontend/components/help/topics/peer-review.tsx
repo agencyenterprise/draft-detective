@@ -29,11 +29,11 @@ const STEPS: Step[] = [
   },
   {
     title: 'Respond to the reviewers',
-    body: 'Drafts one response memo per reviewer. Each of their points is echoed back word for word, with a reply on what changed and where — or why it did not.',
+    body: 'Drafts one response memo per reviewer. Each of their points is echoed back word for word, with a reply on what changed and where — or why it did not. Once they have been edited and sent, upload the final versions; if the author wrote their own, upload those instead.',
   },
   {
     title: 'QA coverage report',
-    body: 'Gives every point a verdict — addressed, partly addressed, declined with a rationale, or not addressed — plus a count table and an overall read for sign-off.',
+    body: 'Gives every point a verdict — addressed, partly addressed, declined with a rationale, or not addressed — plus a count table and an overall read for sign-off. When author response memos are uploaded, it also checks what the author told each reviewer against the revised draft.',
   },
 ];
 
@@ -59,12 +59,18 @@ export function PeerReviewTopic({ onOpenTopic }: HelpTopicBodyProps) {
         </p>
         <p className="text-foreground/80 mt-2 leading-relaxed">
           A <strong className="text-foreground font-medium">reviewer memo</strong> is one reviewer&apos;s document about
-          your draft. Add them like any other file, tagged as reviewer memos. They belong to the{' '}
+          your draft. Add them from the Peer Review tab, which is also where author response memos go. They belong to
+          the{' '}
           <TopicLink to="revisions" onOpenTopic={onOpenTopic}>
             revision
           </TopicLink>{' '}
           they were written about, so if you upload a newer draft first, memos left on the older one are the ones these
           steps read.
+        </p>
+        <p className="text-foreground/80 mt-2 leading-relaxed">
+          A <strong className="text-foreground font-medium">response memo</strong> is the author&apos;s reply to one
+          reviewer. It belongs to the revised draft it describes, so uploading another revision afterwards leaves it
+          behind: upload the replies again for the new draft.
         </p>
       </section>
 

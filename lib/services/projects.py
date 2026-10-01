@@ -222,6 +222,25 @@ async def _get_project_by_id(project_id: str) -> Project | None:
         return result.scalar_one_or_none()
 
 
+def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None:
+    """Blank the converted markdown in document-processing state, in place.
+
+    Project details are polled every few seconds and nothing in the browser
+    reads these documents' markdown, so sending it would only bloat every
+    poll. TODO: we should have a better way to do this. `markdown` is declared
+    `str` but we blank it here to shrink the serialized payload.
+    """
+    for run in workflow_runs:
+        if isinstance(run.state, DocumentProcessingState) and run.state.file:
+            run.state.file.markdown = None  # type: ignore[assignment]
+            for converted_file in (
+                *(run.state.supporting_files or []),
+                *(run.state.reviewer_memo_files or []),
+                *(run.state.response_memo_files or []),
+            ):
+                converted_file.markdown = None  # type: ignore[assignment]
+
+
 async def get_project_detailed_from_project(
     project: Project,
     access_level: AccessLevel,
@@ -252,14 +271,7 @@ async def get_project_detailed_from_project(
         str(project.id), revision=resolved_revision, include_internal=include_internal
     )
 
-    # Clear out some heavy data from the workflow runs to reduce payload size
-    # TODO: we should have a better way to do this. `markdown` is declared
-    # `str` but we blank it here to shrink the serialized payload.
-    for run in workflow_runs:
-        if isinstance(run.state, DocumentProcessingState) and run.state.file:
-            run.state.file.markdown = None  # type: ignore[assignment]
-            for supporting_file in run.state.supporting_files or []:
-                supporting_file.markdown = None  # type: ignore[assignment]
+    strip_converted_markdown(workflow_runs)
 
     # Query persisted issues from the database (faster than computing from state)
     issues = await get_project_issues(
@@ -417,7 +429,12 @@ async def get_project_files(project_id: str) -> List[File]:
             .where(
                 col(File.project_id) == project.id,
                 col(File.role).in_(
-                    [FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO]
+                    [
+                        FileRole.MAIN,
+                        FileRole.SUPPORT,
+                        FileRole.REVIEWER_MEMO,
+                        FileRole.RESPONSE_MEMO,
+                    ]
                 ),
             )
             .order_by(col(File.created_at).asc())
