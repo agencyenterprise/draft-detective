@@ -51,7 +51,12 @@ function keepWhileSame(key: QueryKey, prefixLength: number) {
   };
 }
 
-/** What a run's data is a function of: a new run, a new status or a new write to its state. */
+/**
+ * What a run's data is a function of: a new run, a new status or a new write to
+ * its state. `last_updated_at` moves on exactly those (heartbeats leave it
+ * alone), so a running fan-out run's partial results come through as each item
+ * finishes, without a refetch on every poll.
+ */
 function runVersion(run: WorkflowRunPublic | undefined): string {
   if (!run) return 'none';
   return `${run.id}:${run.status}:${run.last_updated_at}`;
@@ -59,17 +64,6 @@ function runVersion(run: WorkflowRunPublic | undefined): string {
 
 function runStatusVersion(summary: WorkflowRunSummary | undefined): string {
   return summary ? `${summary.run.id}:${summary.run.status}` : 'none';
-}
-
-/**
- * A run's detail while it works changes on every heartbeat, and the views show
- * a spinner rather than its state until it finishes, so only its status counts
- * then. Once it has finished, its last write is what counts.
- */
-function runDetailVersion(run: WorkflowRunPublic | undefined): string {
-  if (!run) return 'none';
-  const active = run.status === WorkflowRunStatus.Running || run.status === WorkflowRunStatus.Pending;
-  return active ? `${run.id}:${run.status}` : runVersion(run);
 }
 
 /**
@@ -182,7 +176,7 @@ export function useWorkflowRunDetail(projectId: string, summary: WorkflowRunSumm
   const { shareToken } = useShare();
   const runId = summary?.run.id;
 
-  const queryKey = ['project', projectId, 'run', runId, runDetailVersion(summary?.run)];
+  const queryKey = ['project', projectId, 'run', runId, runVersion(summary?.run)];
 
   return useQuery({
     enabled: !!runId,

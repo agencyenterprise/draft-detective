@@ -306,11 +306,19 @@ async def update_workflow_run_heartbeat(workflow_run_id: str) -> None:
     "node ticked" remain separable.
     """
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(col(WorkflowRun.id) == workflow_run_id)
-        run = (await session.execute(stmt)).scalar_one_or_none()
-        if run:
-            run.heartbeat_at = datetime.utcnow()
-            await session.commit()
+        # Writing last_updated_at to itself keeps its `onupdate` from firing:
+        # clients read last_updated_at as "the run's status or state changed"
+        # and refetch on it, which a heartbeat must not trigger.
+        stmt = (
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == workflow_run_id)
+            .values(
+                heartbeat_at=datetime.utcnow(),
+                last_updated_at=col(WorkflowRun.last_updated_at),
+            )
+        )
+        await session.execute(stmt)
+        await session.commit()
 
 
 async def get_workflow_run_status(workflow_run_id: str) -> WorkflowRunStatus | None:
