@@ -176,8 +176,13 @@ async def get_project_overview(
 ) -> ProjectOverview:
     """The overview of one revision; defaults to the project's current one."""
     resolved_revision = revision if revision is not None else project.current_revision
-    runs, files, issues_version, share_status = await asyncio.gather(
-        _overview_runs(str(project.id), resolved_revision),
+    # Runs first, issues after. A finishing run commits its issues before it
+    # marks itself completed, so reading in this order means a completed run
+    # always comes with an issues_version that includes its findings. Read in
+    # parallel, the version could predate them while the status did not, and
+    # the client, seeing nothing left to poll for, would keep the old issues.
+    runs = await _overview_runs(str(project.id), resolved_revision)
+    files, issues_version, share_status = await asyncio.gather(
         get_project_files_list_items(project.id),
         get_issues_version(project.id, resolved_revision),
         _owner_share_status(project, access_level),

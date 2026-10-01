@@ -80,7 +80,7 @@ export function AnalysisOptionsMenu({
 
   const hasDocx = overview.has_docx ?? false;
   // Usually already cached by the document explorer; fetched here only once the dialog asks.
-  const { data: issues = [] } = useProjectIssues(overview, { enabled: showShareWarning });
+  const { data: issues, isError: issuesFailed } = useProjectIssues(overview, { enabled: showShareWarning });
 
   const updateProjectMutation = useMutation({
     mutationFn: async (values: EditProjectFormValues) => {
@@ -255,7 +255,8 @@ export function AnalysisOptionsMenu({
         isEnablingShare={isEnablingForDownload || share.isEnabling}
         isDownloading={isDownloading}
         filters={{ severity: filter.severity, workflowType: filter.workflowType, showPassing: filter.showPassing }}
-        counts={exportCounts(issues, filter)}
+        counts={issues ? exportCounts(issues, filter) : null}
+        countsFailed={issuesFailed}
         linksAvailable={shareLinksAvailable(selectedRevision, project.current_revision ?? 1)}
         onDownload={(type, options) => {
           setShowShareWarning(false);
