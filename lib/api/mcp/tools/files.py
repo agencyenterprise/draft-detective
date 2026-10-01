@@ -107,8 +107,8 @@ async def list_project_files(
     previous versions. Reference associations are scoped to the `revision`
     argument (defaults to the latest revision).
 
-    Use get_project to retrieve available reference IDs from the workflow state
-    (look inside workflow_runs for type "reference_extraction" → state.extracted_references).
+    Use get_project_references to retrieve the available reference IDs
+    (extracted_references[].id).
     """
     user = await helpers.resolve_user(token)
     project, _ = await get_project_access(

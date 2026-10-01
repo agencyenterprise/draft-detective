@@ -24,7 +24,7 @@ from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.projects import (
     MAX_PROJECT_PAGE_SIZE,
-    ProjectDetailed,
+    ProjectCreated,
     ProjectListPage,
     UpdateProjectRequest,
     create_project,
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.post(
-    "/api/projects", response_model=ProjectDetailed, status_code=status.HTTP_201_CREATED
+    "/api/projects", response_model=ProjectCreated, status_code=status.HTTP_201_CREATED
 )
 async def create_project_endpoint(
     request: CreateProjectRequest,
@@ -60,9 +60,7 @@ async def create_project_endpoint(
     """
     try:
         project = await create_project(title=request.title, user=current_user)
-        return ProjectDetailed(
-            project=project, access_level=AccessLevel.WRITE, workflow_runs=[]
-        )
+        return ProjectCreated(project=project, access_level=AccessLevel.WRITE)
     except Exception as e:
         logger.error("Failed to create project: %s", e, exc_info=True)
         raise HTTPException(

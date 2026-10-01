@@ -271,29 +271,15 @@ export const listProjectsEndpointApiProjectsGetResponseTransformer = async (
   return data;
 };
 
-const fileListItemSchemaResponseTransformer = (data: any) => {
-  data.created_at = new Date(data.created_at);
-  return data;
-};
-
-const projectDetailedSchemaResponseTransformer = (data: any) => {
+const projectCreatedSchemaResponseTransformer = (data: any) => {
   data.project = projectSchemaResponseTransformer(data.project);
-  if (data.workflow_runs) {
-    data.workflow_runs = data.workflow_runs.map((item: any) => workflowRunDetailSchemaResponseTransformer(item));
-  }
-  if (data.issues) {
-    data.issues = data.issues.map((item: any) => issueSchemaResponseTransformer(item));
-  }
-  if (data.files) {
-    data.files = data.files.map((item: any) => fileListItemSchemaResponseTransformer(item));
-  }
   return data;
 };
 
 export const createProjectEndpointApiProjectsPostResponseTransformer = async (
   data: any,
 ): Promise<CreateProjectEndpointApiProjectsPostResponse> => {
-  data = projectDetailedSchemaResponseTransformer(data);
+  data = projectCreatedSchemaResponseTransformer(data);
   return data;
 };
 
@@ -351,6 +337,11 @@ export const listRevisionsEndpointApiProjectProjectIdRevisionsGetResponseTransfo
 
 const workflowRunSummarySchemaResponseTransformer = (data: any) => {
   data.run = workflowRunPublicSchemaResponseTransformer(data.run);
+  return data;
+};
+
+const fileListItemSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
   return data;
 };
 

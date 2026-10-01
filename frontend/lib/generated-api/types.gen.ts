@@ -2862,44 +2862,16 @@ export type Project = {
 };
 
 /**
- * ProjectDetailed
+ * ProjectCreated
+ *
+ * A project just created, with the creator's access to it.
  */
-export type ProjectDetailed = {
+export type ProjectCreated = {
   project: Project;
   /**
    * The access level of the current user for this project
    */
   access_level: AccessLevel;
-  /**
-   * Workflow Runs
-   *
-   * The workflow runs for the project
-   */
-  workflow_runs?: Array<WorkflowRunDetail>;
-  /**
-   * Issues
-   *
-   * The persisted issues for the project
-   */
-  issues?: Array<Issue>;
-  /**
-   * Files
-   *
-   * The files associated with the project
-   */
-  files?: Array<FileListItem>;
-  /**
-   * Revision
-   *
-   * The revision being returned
-   */
-  revision?: number;
-  /**
-   * Main Document Markdown
-   *
-   * Full markdown of the main document for this revision, if available
-   */
-  main_document_markdown?: string | null;
 };
 
 /**
@@ -5111,47 +5083,6 @@ export type IssueWritable = {
 };
 
 /**
- * ProjectDetailed
- */
-export type ProjectDetailedWritable = {
-  project: Project;
-  /**
-   * The access level of the current user for this project
-   */
-  access_level: AccessLevel;
-  /**
-   * Workflow Runs
-   *
-   * The workflow runs for the project
-   */
-  workflow_runs?: Array<WorkflowRunDetail>;
-  /**
-   * Issues
-   *
-   * The persisted issues for the project
-   */
-  issues?: Array<IssueWritable>;
-  /**
-   * Files
-   *
-   * The files associated with the project
-   */
-  files?: Array<FileListItem>;
-  /**
-   * Revision
-   *
-   * The revision being returned
-   */
-  revision?: number;
-  /**
-   * Main Document Markdown
-   *
-   * Full markdown of the main document for this revision, if available
-   */
-  main_document_markdown?: string | null;
-};
-
-/**
  * WorkflowProgressResponse
  *
  * Response model for workflow progress entries.
@@ -6004,7 +5935,7 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetData = {
     /**
      * Include Messages
      *
-     * Include the agent transcript in `state.messages`.
+     * Include the agent transcripts: `state.messages` and the `messages` each result item keeps.
      */
     include_messages?: boolean;
     /**
@@ -6740,7 +6671,7 @@ export type CreateProjectEndpointApiProjectsPostResponses = {
   /**
    * Successful Response
    */
-  201: ProjectDetailed;
+  201: ProjectCreated;
 };
 
 export type CreateProjectEndpointApiProjectsPostResponse =

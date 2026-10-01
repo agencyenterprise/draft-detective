@@ -113,7 +113,10 @@ async def get_workflow_state(
     ),
     include_messages: bool = Query(
         default=True,
-        description="Include the agent transcript in `state.messages`.",
+        description=(
+            "Include the agent transcripts: `state.messages` and the "
+            "`messages` each result item keeps."
+        ),
     ),
     share_token: Optional[str] = Query(
         default=None,

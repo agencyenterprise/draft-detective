@@ -18,9 +18,14 @@ from lib.api.services.workflow_runner import (
 )
 from lib.models.project import AccessLevel
 from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
-from lib.services.projects import get_project_access
-from lib.services.workflow_runs import get_project_run_summaries
+from lib.services.projects import get_project_access, strip_converted_markdown
+from lib.services.workflow_runs import (
+    build_workflow_run_detail,
+    get_project_run_summaries,
+)
+from lib.services.workflow_runs import get_workflow_run as get_workflow_run_record
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.registry import is_available_workflow_type
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +164,11 @@ async def run_workflow(
          requires approve_web_search=True).
       2. Provide/upload the files directly — use get_tus_upload_credentials
          with role="support" and the matching reference_id (look it up via
-         get_project) for each file, upload, then retry.
+         get_project_references) for each file, upload, then retry.
 
-    Returns full project details including all workflow results, detected issues,
-    and a project_url link to view the project in the web UI.
+    Returns the same summary as get_project: each workflow's latest run
+    (status and errors), the detected issues, and a project_url link to view
+    the project in the web UI. Use get_workflow_run for a run's full state.
 
     Tip: after fixing issues and uploading a new document via create_revision,
     call this again with the same workflow_types to re-analyze the updated document.
@@ -195,6 +201,39 @@ async def run_workflow(
     except WorkflowGateRequiredError as exc:
         return json.dumps(serialization.build_gate_required_payload(exc))
 
-    return await serialization.get_project_details_json(
-        project_id, AccessLevel.WRITE, user
+    return await serialization.get_project_summary_json(project_id, user)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        destructive_hint=False,
+        idempotent_hint=True,
+        read_only_hint=True,
+        open_world_hint=False,
     )
+)
+async def get_workflow_run(
+    workflow_run_id: str,
+    include_messages: bool = False,
+    token: AccessToken = CurrentAccessToken(),
+) -> str:
+    """
+    Get one workflow run with its full state and cost.
+
+    Use it for results a workflow reports outside of the issues get_project
+    returns. Run IDs are in get_project's workflow_runs[].run.id.
+
+    include_messages: also return the agent transcripts: state.messages and
+    the messages each result item keeps (e.g. a reference's validation). Off
+    by default: they are long and rarely needed beyond debugging a run.
+    """
+    user = await helpers.resolve_user(token)
+    run = await get_workflow_run_record(workflow_run_id)
+    await get_project_access(str(run.project_id), user=user)
+    if not is_available_workflow_type(run.type):
+        raise ValueError(f"Workflow type '{run.type}' is no longer available")
+    run = await get_workflow_run_record(workflow_run_id, include_state=True)
+    detail = await build_workflow_run_detail(run, include_messages=include_messages)
+    # The converted supporting documents can each be as long as the document.
+    strip_converted_markdown([detail])
+    return detail.model_dump_json()
