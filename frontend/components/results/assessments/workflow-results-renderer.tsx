@@ -9,9 +9,10 @@ import { ReferenceValidationV2Results } from '@/components/workflows/results/ref
 import { Reviewer2Results } from '@/components/workflows/results/reviewer-2-results';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
 import {
-  ProjectDetailed,
+  Issue,
   SimpleDeepAgentState,
   WorkflowRunDetail,
+  WorkflowRunSummary,
   WorkflowRunType,
   WorkflowStateStatus,
 } from '@/lib/generated-api';
@@ -19,6 +20,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { getCurrentRunErrors, WorkflowRunDetailTyped } from '@/lib/workflow-state';
 import { FlaskConicalIcon } from 'lucide-react';
 import { StaleWorkflowStateNotice } from '@/components/results/components/stale-workflow-state-notice';
+import { TabLoading } from '@/components/results/tab-loading';
 
 function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   return (
@@ -32,19 +34,22 @@ function InternalWorkflowResults({ workflowName }: { workflowName: string }) {
   );
 }
 
-interface WorkflowResultsContentProps {
-  projectDetail: ProjectDetailed;
+interface RenderWorkflowResultsArgs {
   workflowRun: WorkflowRunDetail;
+  /** Every issue of the revision; each view picks its run's own. */
+  issues: Issue[];
+  canEditIssues: boolean;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
-  onNavigateToReferences: () => void;
+  getWorkflowTypeName: (type: WorkflowRunType) => string;
 }
 
-export function renderWorkflowResults(
-  project: ProjectDetailed,
-  workflowRun: WorkflowRunDetail,
-  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void,
-  getWorkflowTypeName: (type: WorkflowRunType) => string,
-) {
+export function renderWorkflowResults({
+  workflowRun,
+  issues,
+  canEditIssues,
+  onNavigateToDocumentExplorer,
+  getWorkflowTypeName,
+}: RenderWorkflowResultsArgs) {
   const { type } = workflowRun.run;
   const { state } = workflowRun;
 
@@ -69,8 +74,9 @@ export function renderWorkflowResults(
     case WorkflowRunType.AbbreviationScanV2:
       return (
         <GenericWorkflowResults
-          project={project}
           workflowRun={workflowRun}
+          issues={issues}
+          canEditIssues={canEditIssues}
           workflowName={getWorkflowTypeName(type)}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
@@ -93,7 +99,8 @@ export function renderWorkflowResults(
     case WorkflowRunType.LiveReportsV2:
       return (
         <SimpleDeepAgentResults
-          project={project}
+          issues={issues}
+          canEditIssues={canEditIssues}
           workflowDetail={workflowRun as WorkflowRunDetailTyped<SimpleDeepAgentState>}
           workflowName={getWorkflowTypeName(type)}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
@@ -105,7 +112,8 @@ export function renderWorkflowResults(
       // (report plus issues) without a per-type entry here.
       return (
         <SimpleDeepAgentResults
-          project={project}
+          issues={issues}
+          canEditIssues={canEditIssues}
           workflowDetail={workflowRun as WorkflowRunDetailTyped<SimpleDeepAgentState>}
           workflowName={getWorkflowTypeName(type)}
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
@@ -114,16 +122,29 @@ export function renderWorkflowResults(
   }
 }
 
+interface WorkflowResultsContentProps {
+  /** The run as the overview lists it: status and its own errors. */
+  summary: WorkflowRunSummary;
+  /** The same run with its state, once loaded. */
+  workflowRun: WorkflowRunDetail | undefined;
+  issues: Issue[];
+  canEditIssues: boolean;
+  onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
+}
+
 export function WorkflowResultsContent({
-  projectDetail,
+  summary,
   workflowRun,
+  issues,
+  canEditIssues,
   onNavigateToDocumentExplorer,
 }: WorkflowResultsContentProps) {
-  const currentErrors = getCurrentRunErrors(workflowRun);
+  // From the summary, so they show even for views fetched without their state.
+  const currentErrors = getCurrentRunErrors(summary);
   const { getWorkflowTypeName, isWorkflowTypeVisible } = useWorkflowTypes();
-  const workflowName = getWorkflowTypeName(workflowRun.run.type);
+  const workflowName = getWorkflowTypeName(summary.run.type);
 
-  if (!isWorkflowTypeVisible(workflowRun.run.type)) {
+  if (!isWorkflowTypeVisible(summary.run.type)) {
     return (
       <>
         {currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />}
@@ -135,7 +156,17 @@ export function WorkflowResultsContent({
   return (
     <>
       {currentErrors.length > 0 && <ErrorsCard errors={currentErrors} />}
-      {renderWorkflowResults(projectDetail, workflowRun, onNavigateToDocumentExplorer, getWorkflowTypeName)}
+      {workflowRun ? (
+        renderWorkflowResults({
+          workflowRun,
+          issues,
+          canEditIssues,
+          onNavigateToDocumentExplorer,
+          getWorkflowTypeName,
+        })
+      ) : (
+        <TabLoading label="Loading results..." />
+      )}
     </>
   );
 }

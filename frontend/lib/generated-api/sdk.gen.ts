@@ -118,15 +118,24 @@ import type {
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData,
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors,
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses,
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetData,
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors,
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses,
   GetProjectEndpointApiProjectProjectIdGetData,
   GetProjectEndpointApiProjectProjectIdGetErrors,
   GetProjectEndpointApiProjectProjectIdGetResponses,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetData,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses,
-  GetProjectShareStatusApiProjectsProjectIdShareGetData,
-  GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
-  GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetData,
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors,
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetData,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses,
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetData,
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors,
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetData,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetErrors,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses,
@@ -931,7 +940,7 @@ export const startMultipleWorkflowsApiWorkflowsStartMultiplePost = <ThrowOnError
 /**
  * Get Workflow State
  *
- * Get the state of a workflow
+ * Get one run with its state and cost.
  */
 export const getWorkflowStateApiWorkflowsWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
   options: Options<GetWorkflowStateApiWorkflowsWorkflowRunIdGetData, ThrowOnError>,
@@ -1747,36 +1756,6 @@ export const getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgre
   });
 
 /**
- * Get Project Workflow Runs By Type Endpoint
- *
- * Get all workflow runs of a specific type for a project.
- *
- * Returns workflow run details (including state with errors) ordered by creation date descending.
- * Used for displaying workflow run history in the UI with correct error status.
- */
-export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet = <
-  ThrowOnError extends boolean = true,
->(
-  options: Options<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData, ThrowOnError>,
-): RequestResult<
-  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
-  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).get<
-    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
-    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}/workflow-runs',
-    ...options,
-  });
-
-/**
  * List Revisions Endpoint
  *
  * List all revisions for a project with their main file info.
@@ -1831,27 +1810,132 @@ export const createRevisionEndpointApiProjectProjectIdRevisionsPost = <ThrowOnEr
   });
 
 /**
- * Get Project Share Status
+ * Get Project Overview Endpoint
  *
- * Get the sharing status for a project.
+ * The project with each run's status and errors, its files and counts. No run states.
  */
-export const getProjectShareStatusApiProjectsProjectIdShareGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetProjectShareStatusApiProjectsProjectIdShareGetData, ThrowOnError>,
+export const getProjectOverviewEndpointApiProjectProjectIdOverviewGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectOverviewEndpointApiProjectProjectIdOverviewGetData, ThrowOnError>,
 ): RequestResult<
-  GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
-  GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses,
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors,
   ThrowOnError,
   'data'
 > =>
   (options.client ?? client).get<
-    GetProjectShareStatusApiProjectsProjectIdShareGetResponses,
-    GetProjectShareStatusApiProjectsProjectIdShareGetErrors,
+    GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses,
+    GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors,
     ThrowOnError,
     'data'
   >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/projects/{project_id}/share',
+    url: '/api/project/{project_id}/overview',
+    ...options,
+  });
+
+/**
+ * Get Project Document Endpoint
+ *
+ * The main document's markdown, title and authors for a revision.
+ */
+export const getProjectDocumentEndpointApiProjectProjectIdDocumentGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectDocumentEndpointApiProjectProjectIdDocumentGetData, ThrowOnError>,
+): RequestResult<
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses,
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses,
+    GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/document',
+    ...options,
+  });
+
+/**
+ * Get Project Issues Endpoint
+ *
+ * The persisted issues of a project revision, archived ones excluded.
+ */
+export const getProjectIssuesEndpointApiProjectProjectIdIssuesGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectIssuesEndpointApiProjectProjectIdIssuesGetData, ThrowOnError>,
+): RequestResult<
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses,
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses,
+    GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/issues',
+    ...options,
+  });
+
+/**
+ * Get Project References Endpoint
+ *
+ * Extracted references, their file matches and web fetch outcomes.
+ */
+export const getProjectReferencesEndpointApiProjectProjectIdReferencesGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetProjectReferencesEndpointApiProjectProjectIdReferencesGetData, ThrowOnError>,
+): RequestResult<
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses,
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses,
+    GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/references',
+    ...options,
+  });
+
+/**
+ * Get Project Workflow Runs By Type Endpoint
+ *
+ * Get all workflow runs of a specific type for a project revision, newest first.
+ *
+ * Summaries only (status and the run's own errors), for the run history; a
+ * run's state comes from `GET /api/workflows/{workflow_run_id}`.
+ */
+export const getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData, ThrowOnError>,
+): RequestResult<
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses,
+    GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/project/{project_id}/workflow-runs',
     ...options,
   });
 
@@ -1911,7 +1995,9 @@ export const disableProjectSharingApiProjectsProjectIdShareDisablePost = <ThrowO
  * Access a shared resource by token.
  *
  * This endpoint does not require authentication - the token IS the auth.
- * Returns project info and workflow state in a single call.
+ * The share page knows only the token, so this resolves it to its project
+ * and returns the same overview as `/api/project/{id}/overview?share_token=`.
+ * The heavier parts come from the project routes with `share_token`.
  */
 export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boolean = true>(
   options: Options<GetSharedResourceApiPublicShareTokenGetData, ThrowOnError>,

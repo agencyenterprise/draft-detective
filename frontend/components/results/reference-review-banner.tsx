@@ -3,12 +3,12 @@
 import { UnmatchedReferencesApproveDialog } from '@/components/results/references/unmatched-references-approve-dialog';
 import { useReferenceApprovalFlow } from '@/components/results/references/use-reference-approval-flow';
 import { Button } from '@/components/ui/button';
-import { ProjectDetailed } from '@/lib/generated-api';
+import { ProjectOverview } from '@/lib/generated-api';
 import { BookOpen, Loader2 } from 'lucide-react';
 import { HelpLink } from '@/components/help/help-link';
 
 interface ReferenceReviewBannerProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   onReviewReferences: () => void;
 }
 
@@ -18,8 +18,8 @@ interface ReferenceReviewBannerProps {
  * because the reason a project stalls here is not obvious from the tabs: every
  * other assessment reads the document alone and keeps producing results.
  */
-export function ReferenceReviewBanner({ projectDetail, onReviewReferences }: ReferenceReviewBannerProps) {
-  const approval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
+export function ReferenceReviewBanner({ overview, onReviewReferences }: ReferenceReviewBannerProps) {
+  const approval = useReferenceApprovalFlow(overview);
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b bg-amber-50 px-3 py-2 dark:bg-amber-950/30">

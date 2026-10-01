@@ -5,7 +5,7 @@ import { ReferencesTab } from './references/references-tab';
 
 /** The references tab as a tab panel, taking its project from the shell. */
 export function ReferencesPanel() {
-  const { projectDetail, readOnly } = useProjectView();
+  const { overview, readOnly } = useProjectView();
 
-  return <ReferencesTab projectDetail={projectDetail} readOnly={readOnly} />;
+  return <ReferencesTab overview={overview} readOnly={readOnly} />;
 }

@@ -51,7 +51,7 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
   return (
     <ShareProvider token={token}>
       <ProjectShell
-        projectDetail={data}
+        overview={data}
         basePath={basePath}
         readOnly
         activeTab={activeTab}

@@ -20,8 +20,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   const { activeTab, onTabChange } = useTabRouting(basePath);
 
   const {
-    project,
-    workflowDetails,
+    overview,
     isLoading,
     error,
     effectiveRevision,
@@ -74,7 +73,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!project) {
+  if (!overview) {
     return (
       <ShellStatusScreen>
         <p className="text-muted-foreground">Nothing to show.</p>
@@ -84,7 +83,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
 
   return (
     <ProjectShell
-      projectDetail={project}
+      overview={overview}
       basePath={basePath}
       activeTab={activeTab}
       onTabChange={onTabChange}
@@ -92,7 +91,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
       onTitleSave={isReadOnly ? undefined : handleTitleSave}
       isTitleSaving={isReadOnly ? undefined : isTitleSaving}
       needsReferenceReview={
-        !isReadOnly && !isViewingOldRevision && needsReferenceReview(workflowDetails, workflowTypes)
+        !isReadOnly && !isViewingOldRevision && needsReferenceReview(overview.workflow_runs ?? [], workflowTypes)
       }
       selectedRevision={effectiveRevision}
       onRevisionChange={handleRevisionChange}

@@ -12,16 +12,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
-import {
-  Project,
-  updateProjectEndpointApiProjectProjectIdPatch,
-  WorkflowRunDetail,
-  WorkflowRunType,
-  Issue,
-} from '@/lib/generated-api';
+import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
+import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
 import { useDocumentExplorerStore } from '@/lib/stores/document-explorer-store';
 import { cn } from '@/lib/utils';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
@@ -32,15 +26,9 @@ import { exportCounts, shareLinksAvailable } from '@/lib/export-scope';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 import { RevisionSwitcher } from './revision-switcher';
 
-type ProjectWithDetails = Project & {
-  publication_date?: Date | null;
-};
-
 export interface AnalysisOptionsMenuProps {
-  project: ProjectWithDetails;
-  results: WorkflowRunDetail[];
-  /** The project's issues, for the export dialog's counts. */
-  issues: Issue[];
+  /** The revision on screen; its issues are loaded for the export dialog's counts when it opens. */
+  overview: ProjectOverview;
   readOnly: boolean;
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
@@ -57,9 +45,7 @@ export interface AnalysisOptionsMenuProps {
 }
 
 export function AnalysisOptionsMenu({
-  project,
-  results,
-  issues,
+  overview,
   readOnly,
   selectedRevision,
   onRevisionChange,
@@ -69,8 +55,9 @@ export function AnalysisOptionsMenu({
   compact = false,
 }: AnalysisOptionsMenuProps) {
   const { filter } = useDocumentExplorerStore();
+  const { project } = overview;
   const projectId = project.id;
-  const share = useShareStatus(projectId, !readOnly);
+  const share = useShareStatus(overview);
   const shareContext = useShare();
   const queryClient = useQueryClient();
 
@@ -91,9 +78,9 @@ export function AnalysisOptionsMenu({
     revision: selectedRevision,
   });
 
-  const documentProcessing = getWorkflowRunByType(results, WorkflowRunType.DocumentProcessing);
-  const mainFilePath = documentProcessing?.state?.file?.file_path.toLowerCase() ?? '';
-  const hasDocx = mainFilePath.endsWith('.docx') || mainFilePath.endsWith('.doc');
+  const hasDocx = overview.has_docx ?? false;
+  // Usually already cached by the document explorer; fetched here only once the dialog asks.
+  const { data: issues = [] } = useProjectIssues(overview, { enabled: showShareWarning });
 
   const updateProjectMutation = useMutation({
     mutationFn: async (values: EditProjectFormValues) => {
@@ -107,7 +94,8 @@ export function AnalysisOptionsMenu({
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      // Only the project's own fields changed, which the overview carries.
+      queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
       setIsEditDialogOpen(false);
       toast.success('Project details updated successfully');
     },

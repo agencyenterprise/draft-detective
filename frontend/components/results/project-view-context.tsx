@@ -1,11 +1,12 @@
 'use client';
 
-import { ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectOverview, WorkflowRunType } from '@/lib/generated-api';
 import { createContext, useContext } from 'react';
 import { TabType } from './constants';
 
 export interface ProjectViewContextValue {
-  projectDetail: ProjectDetailed;
+  /** The project, its runs' statuses and its files; tabs fetch anything heavier themselves. */
+  overview: ProjectOverview;
   /** When true, hides edit/action controls (for shared view) */
   readOnly: boolean;
   /** Currently displayed revision */

@@ -1901,41 +1901,6 @@ export type FeedbackResponse = {
 };
 
 /**
- * FeedbackSummary
- *
- * Lightweight feedback representation for project detail responses.
- */
-export type FeedbackSummary = {
-  /**
-   * Id
-   */
-  id: string;
-  /**
-   * Workflow Run Id
-   */
-  workflow_run_id: string;
-  /**
-   * Entity Path
-   */
-  entity_path: {
-    [key: string]: unknown;
-  };
-  feedback_type: FeedbackType;
-  /**
-   * Feedback Text
-   */
-  feedback_text?: string | null;
-  /**
-   * Created At
-   */
-  created_at: string;
-  /**
-   * Updated At
-   */
-  updated_at: string;
-};
-
-/**
  * FeedbackType
  *
  * Type of feedback provided by users
@@ -2919,12 +2884,6 @@ export type ProjectDetailed = {
    */
   files?: Array<FileListItem>;
   /**
-   * Feedbacks
-   *
-   * All user feedback for this project's workflow runs
-   */
-  feedbacks?: Array<FeedbackSummary>;
-  /**
    * Revision
    *
    * The revision being returned
@@ -2936,6 +2895,30 @@ export type ProjectDetailed = {
    * Full markdown of the main document for this revision, if available
    */
   main_document_markdown?: string | null;
+};
+
+/**
+ * ProjectDocument
+ */
+export type ProjectDocument = {
+  /**
+   * Markdown
+   *
+   * Full markdown of the main document, or null before processing completes
+   */
+  markdown?: string | null;
+  /**
+   * Title
+   *
+   * The main document's title, from its summary
+   */
+  title?: string | null;
+  /**
+   * Authors
+   *
+   * The main document's authors, from its summary
+   */
+  authors?: string | null;
 };
 
 /**
@@ -2982,6 +2965,77 @@ export type ProjectListPage = {
    * Number of projects skipped before this page
    */
   offset: number;
+};
+
+/**
+ * ProjectOverview
+ */
+export type ProjectOverview = {
+  project: Project;
+  /**
+   * The access level of the current user for this project
+   */
+  access_level: AccessLevel;
+  /**
+   * Revision
+   *
+   * The revision being returned
+   */
+  revision: number;
+  /**
+   * Workflow Runs
+   *
+   * The most relevant run per workflow type for the revision
+   */
+  workflow_runs?: Array<WorkflowRunSummary>;
+  /**
+   * Files
+   *
+   * The project's files across every revision
+   */
+  files?: Array<FileListItem>;
+  /**
+   * Reference Count
+   *
+   * How many references reference extraction found in the main document
+   */
+  reference_count?: number;
+  /**
+   * Has Docx
+   *
+   * Whether the processed main document is a Word file
+   */
+  has_docx?: boolean;
+  /**
+   * Issues Version
+   *
+   * Changes whenever the revision's issues do. Clients key their issues fetch on it so they only refetch when there is something new.
+   */
+  issues_version: string;
+  /**
+   * Whether the project has a public link, and the link. Only for the owner (WRITE access); null for share-link viewers and admins.
+   */
+  share_status?: ShareStatusResponse | null;
+};
+
+/**
+ * ProjectReferences
+ */
+export type ProjectReferences = {
+  /**
+   * Extracted References
+   */
+  extracted_references?: Array<ExtractedReference>;
+  /**
+   * Matches
+   */
+  matches?: Array<ReferenceFileMatch>;
+  /**
+   * Fetched References
+   *
+   * Web fetch outcomes, without the fetching agent's transcript
+   */
+  fetched_references?: Array<ReferenceFetchResult>;
 };
 
 /**
@@ -4643,6 +4697,21 @@ export const WorkflowRunStatus = {
 export type WorkflowRunStatus = (typeof WorkflowRunStatus)[keyof typeof WorkflowRunStatus];
 
 /**
+ * WorkflowRunSummary
+ *
+ * A run without its state: enough to show its status anywhere on the page.
+ */
+export type WorkflowRunSummary = {
+  run: WorkflowRunPublic;
+  /**
+   * Errors
+   *
+   * Errors recorded by this run itself (earlier runs' errors excluded)
+   */
+  errors?: Array<WorkflowError>;
+};
+
+/**
  * WorkflowRunType
  */
 export const WorkflowRunType = {
@@ -5063,12 +5132,6 @@ export type ProjectDetailedWritable = {
    * The files associated with the project
    */
   files?: Array<FileListItem>;
-  /**
-   * Feedbacks
-   *
-   * All user feedback for this project's workflow runs
-   */
-  feedbacks?: Array<FeedbackSummary>;
   /**
    * Revision
    *
@@ -5926,7 +5989,26 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetData = {
      */
     workflow_run_id: string;
   };
-  query?: never;
+  query?: {
+    /**
+     * Include State
+     *
+     * Include `state`. Views that render a run from its issues need only its cost and state status, and some states reach several MB.
+     */
+    include_state?: boolean;
+    /**
+     * Include Messages
+     *
+     * Include the agent transcript in `state.messages`.
+     */
+    include_messages?: boolean;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
   url: '/api/workflows/{workflow_run_id}';
 };
 
@@ -7040,51 +7122,6 @@ export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgres
 export type GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse =
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses[keyof GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponses];
 
-export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData = {
-  body?: never;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query: {
-    /**
-     * The workflow type to filter runs by
-     */
-    workflow_type: WorkflowRunType;
-    /**
-     * Share Token
-     *
-     * Share token for shared projects.
-     */
-    share_token?: string | null;
-  };
-  url: '/api/project/{project_id}/workflow-runs';
-};
-
-export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetError =
-  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors];
-
-export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses = {
-  /**
-   * Response Get Project Workflow Runs By Type Endpoint Api Project  Project Id  Workflow Runs Get
-   *
-   * Successful Response
-   */
-  200: Array<WorkflowRunDetail>;
-};
-
-export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
-  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
-
 export type ListRevisionsEndpointApiProjectProjectIdRevisionsGetData = {
   body?: never;
   path: {
@@ -7158,7 +7195,7 @@ export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses = {
 export type CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponse =
   CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses[keyof CreateRevisionEndpointApiProjectProjectIdRevisionsPostResponses];
 
-export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
+export type GetProjectOverviewEndpointApiProjectProjectIdOverviewGetData = {
   body?: never;
   path: {
     /**
@@ -7166,29 +7203,230 @@ export type GetProjectShareStatusApiProjectsProjectIdShareGetData = {
      */
     project_id: string;
   };
-  query?: never;
-  url: '/api/projects/{project_id}/share';
+  query?: {
+    /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/overview';
 };
 
-export type GetProjectShareStatusApiProjectsProjectIdShareGetErrors = {
+export type GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetProjectShareStatusApiProjectsProjectIdShareGetError =
-  GetProjectShareStatusApiProjectsProjectIdShareGetErrors[keyof GetProjectShareStatusApiProjectsProjectIdShareGetErrors];
+export type GetProjectOverviewEndpointApiProjectProjectIdOverviewGetError =
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors[keyof GetProjectOverviewEndpointApiProjectProjectIdOverviewGetErrors];
 
-export type GetProjectShareStatusApiProjectsProjectIdShareGetResponses = {
+export type GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses = {
   /**
    * Successful Response
    */
-  200: ShareStatusResponse;
+  200: ProjectOverview;
 };
 
-export type GetProjectShareStatusApiProjectsProjectIdShareGetResponse =
-  GetProjectShareStatusApiProjectsProjectIdShareGetResponses[keyof GetProjectShareStatusApiProjectsProjectIdShareGetResponses];
+export type GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponse =
+  GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses[keyof GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponses];
+
+export type GetProjectDocumentEndpointApiProjectProjectIdDocumentGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/document';
+};
+
+export type GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectDocumentEndpointApiProjectProjectIdDocumentGetError =
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors[keyof GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors];
+
+export type GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectDocument;
+};
+
+export type GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponse =
+  GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses[keyof GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses];
+
+export type GetProjectIssuesEndpointApiProjectProjectIdIssuesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/issues';
+};
+
+export type GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectIssuesEndpointApiProjectProjectIdIssuesGetError =
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors[keyof GetProjectIssuesEndpointApiProjectProjectIdIssuesGetErrors];
+
+export type GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses = {
+  /**
+   * Response Get Project Issues Endpoint Api Project  Project Id  Issues Get
+   *
+   * Successful Response
+   */
+  200: Array<Issue>;
+};
+
+export type GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponse =
+  GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses[keyof GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponses];
+
+export type GetProjectReferencesEndpointApiProjectProjectIdReferencesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query?: {
+    /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/references';
+};
+
+export type GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectReferencesEndpointApiProjectProjectIdReferencesGetError =
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors[keyof GetProjectReferencesEndpointApiProjectProjectIdReferencesGetErrors];
+
+export type GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ProjectReferences;
+};
+
+export type GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponse =
+  GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses[keyof GetProjectReferencesEndpointApiProjectProjectIdReferencesGetResponses];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query: {
+    /**
+     * The workflow type to filter runs by
+     */
+    workflow_type: WorkflowRunType;
+    /**
+     * Revision
+     *
+     * Revision number. Defaults to the project's current revision.
+     */
+    revision?: number | null;
+    /**
+     * Share Token
+     *
+     * Share token, for viewers reading the project through a share link.
+     */
+    share_token?: string | null;
+  };
+  url: '/api/project/{project_id}/workflow-runs';
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetError =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetErrors];
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses = {
+  /**
+   * Response Get Project Workflow Runs By Type Endpoint Api Project  Project Id  Workflow Runs Get
+   *
+   * Successful Response
+   */
+  200: Array<WorkflowRunSummary>;
+};
+
+export type GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse =
+  GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses[keyof GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponses];
 
 export type EnableProjectSharingApiProjectsProjectIdShareEnablePostData = {
   body?: never;
@@ -7280,7 +7518,7 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
   /**
    * Successful Response
    */
-  200: ProjectDetailed;
+  200: ProjectOverview;
 };
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =

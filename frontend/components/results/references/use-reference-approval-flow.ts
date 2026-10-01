@@ -2,24 +2,25 @@
 
 import { useApproveGate } from '@/components/workflows/use-approve-gate';
 import { needsReferenceReview } from '@/components/workflows/utils';
-import { ProjectDetailed, WorkflowGate, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectOverview, WorkflowGate, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { findRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useState } from 'react';
 import { useReferenceReviewReferences } from './queries';
 
 /**
  * Shared approve / unmatched-warning logic for the References tab and the project header callout.
  */
-export function useReferenceApprovalFlow(projectDetail: ProjectDetailed | undefined, projectId: string) {
-  const workflowDetails = projectDetail?.workflow_runs ?? [];
+export function useReferenceApprovalFlow(overview: ProjectOverview) {
+  const projectId = overview.project.id;
+  const workflowDetails = overview.workflow_runs ?? [];
   const [showUnmatchedWarning, setShowUnmatchedWarning] = useState(false);
 
-  const references = useReferenceReviewReferences(projectDetail);
+  const { references } = useReferenceReviewReferences(overview);
 
-  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
-  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
-  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const referenceExtraction = findRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const documentProcessing = findRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceFileMatching = findRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
   const isExtractionProcessing = isWorkflowProcessing(referenceExtraction);
 
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);

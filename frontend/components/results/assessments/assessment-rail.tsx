@@ -4,7 +4,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { IssueCountBadge } from '@/components/results/components/issue-count-badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Issue, WorkflowRunDetail, WorkflowRunStatus, WorkflowRunType } from '@/lib/generated-api';
+import { Issue, WorkflowRunStatus, WorkflowRunSummary, WorkflowRunType } from '@/lib/generated-api';
 import { summarizeReportedIssues } from '@/lib/health-status';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
@@ -30,7 +30,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 interface AssessmentRailProps {
-  workflowDetails: WorkflowRunDetail[];
+  workflowDetails: WorkflowRunSummary[];
   issues: Issue[];
   selectedWorkflowType: WorkflowRunType | null;
   onSelectWorkflowType: (type: WorkflowRunType) => void;
@@ -138,7 +138,7 @@ function AssessmentRow({
   active,
   onSelect,
 }: {
-  detail: WorkflowRunDetail;
+  detail: WorkflowRunSummary;
   issues: Issue[];
   active: boolean;
   onSelect: () => void;

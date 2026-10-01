@@ -1,15 +1,12 @@
 import { parseWorkflowRunType } from '@/components/results/constants';
 import { useProjectView } from '@/components/results/project-view-context';
-import { getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet } from '@/lib/generated-api';
-import type { WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
-import { useQuery } from '@tanstack/react-query';
+import type { ProjectOverview, WorkflowRunSummary, WorkflowRunType } from '@/lib/generated-api';
+import { useWorkflowRunHistory } from '@/lib/hooks/use-project-data';
+import { findRunByType } from '@/lib/workflow-state';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
 
 interface UseWorkflowSelectionParams {
-  projectId: string;
-  workflowDetails: WorkflowRunDetail[];
-  shareToken?: string | null;
+  overview: ProjectOverview;
   /**
    * Shown until the reader picks one. Views that put the assessment list in a
    * rail pass the first entry, so the pane opens on something rather than on a
@@ -23,13 +20,11 @@ interface UseWorkflowSelectionParams {
  * the assessment and `?run=<id>` one run of it. Being in the URL is what lets
  * an issue in the document explorer link to the report it came from, and what
  * makes a selection survive a reload or a shared link.
+ *
+ * Without a `?run=`, the run shown is the one the rail lists, so the pane and
+ * the rail always agree about which run they mean.
  */
-export function useWorkflowSelection({
-  projectId,
-  workflowDetails,
-  shareToken,
-  defaultWorkflowType = null,
-}: UseWorkflowSelectionParams) {
+export function useWorkflowSelection({ overview, defaultWorkflowType = null }: UseWorkflowSelectionParams) {
   const params = useParams<{ workflowType?: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -40,53 +35,29 @@ export function useWorkflowSelection({
   // The run only means something for the assessment it belongs to.
   const selectedRunId = routedWorkflowType ? searchParams.get('run') : null;
 
-  const mainRequestWorkflow = selectedWorkflowType
-    ? workflowDetails.find((w) => w.run.type === selectedWorkflowType)
-    : null;
+  const mainRun = selectedWorkflowType ? findRunByType(overview.workflow_runs ?? [], selectedWorkflowType) : undefined;
 
-  // Query key includes main run info to auto-refetch when status/id changes
-  const { data: historyData } = useQuery({
-    queryKey: [
-      'workflow-runs-history',
-      projectId,
-      selectedWorkflowType,
-      mainRequestWorkflow?.run.id,
-      mainRequestWorkflow?.run.status,
-    ],
-    queryFn: () =>
-      getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet({
-        path: { project_id: projectId },
-        query: { workflow_type: selectedWorkflowType!, share_token: shareToken },
-      }),
-    enabled: !!selectedWorkflowType,
-    staleTime: 0,
-  });
+  const { data: historyData } = useWorkflowRunHistory(overview, selectedWorkflowType);
 
-  const selectedWorkflowRun = useMemo(() => {
-    if (!selectedWorkflowType) return null;
-
-    if (historyData && historyData.length > 0) {
-      if (selectedRunId) {
-        const fromHistory = historyData.find((h) => h.run.id === selectedRunId);
-        if (fromHistory) return fromHistory;
-      }
-      return historyData[0];
-    }
-
-    return mainRequestWorkflow ?? null;
-  }, [selectedWorkflowType, selectedRunId, historyData, mainRequestWorkflow]);
+  // An older run is found in the history, so until that loads there is nothing
+  // to show for it; the latest run is in the overview already.
+  const wantsOlderRun = !!selectedRunId && selectedRunId !== mainRun?.run.id;
+  const isResolvingRun = wantsOlderRun && !historyData;
+  const routedRun = wantsOlderRun ? historyData?.find((h) => h.run.id === selectedRunId) : undefined;
+  const selectedWorkflowRun: WorkflowRunSummary | null = isResolvingRun ? null : (routedRun ?? mainRun ?? null);
 
   const handleSelectWorkflowType = (workflowType: WorkflowRunType) => {
     router.push(assessmentHref(workflowType));
   };
 
-  const handleSelectRun = (run: WorkflowRunDetail) => {
+  const handleSelectRun = (run: WorkflowRunSummary) => {
     router.push(assessmentHref(run.run.type, run.run.id));
   };
 
   return {
     selectedWorkflowType,
     selectedWorkflowRun,
+    isResolvingRun,
     historyData,
     handleSelectWorkflowType,
     handleSelectRun,
