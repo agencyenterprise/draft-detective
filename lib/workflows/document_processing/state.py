@@ -27,3 +27,4 @@ class DocumentProcessingState(BaseWorkflowState):
     file: FileDocument
     supporting_files: Optional[List[FileDocument]] = None
     reviewer_memo_files: Optional[List[FileDocument]] = None
+    response_memo_files: Optional[List[FileDocument]] = None

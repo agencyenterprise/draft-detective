@@ -221,6 +221,7 @@ async def test_cache_skips_write_when_conversion_yields_empty_markdown():
     [
         ("/uploads/a.pdf", FileRole.MAIN, "markitdown"),
         ("/uploads/a.pdf", FileRole.REVIEWER_MEMO, "markitdown"),
+        ("/uploads/a.pdf", FileRole.RESPONSE_MEMO, "markitdown"),
         ("/uploads/a.pdf", FileRole.SUPPORT, "pypdfium"),
         ("/uploads/a.docx", FileRole.SUPPORT, "markitdown"),
     ],

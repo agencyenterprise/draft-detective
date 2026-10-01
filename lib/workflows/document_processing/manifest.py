@@ -52,7 +52,12 @@ class DocumentProcessingManifest(
 
         project_files = await get_files_by_project_id(
             config.project_id,
-            roles=[FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO],
+            roles=[
+                FileRole.MAIN,
+                FileRole.SUPPORT,
+                FileRole.REVIEWER_MEMO,
+                FileRole.RESPONSE_MEMO,
+            ],
             revision=revision,
         )
         main_file = next(
@@ -65,17 +70,22 @@ class DocumentProcessingManifest(
         reviewer_memo_files = [
             file for file in project_files if file.role == FileRole.REVIEWER_MEMO
         ]
+        response_memo_files = [
+            file for file in project_files if file.role == FileRole.RESPONSE_MEMO
+        ]
         assert main_file is not None, "No main file found for project"
         main_file_document = await load_file_document(main_file)
         assert main_file_document is not None, "Failed to load main file"
 
-        # Supporting docs and reviewer memos are loaded tolerantly: a file that
+        # Supporting docs and memos are loaded tolerantly: a file that
         # fails to load is skipped and logged rather than aborting the workflow.
         supporting_file_documents: list[FileDocument] = []
         reviewer_memo_documents: list[FileDocument] = []
+        response_memo_documents: list[FileDocument] = []
         for files, label, target in (
             (supporting_files, "supporting file", supporting_file_documents),
             (reviewer_memo_files, "reviewer memo", reviewer_memo_documents),
+            (response_memo_files, "response memo", response_memo_documents),
         ):
             for file in files:
                 try:
@@ -94,6 +104,7 @@ class DocumentProcessingManifest(
             file=main_file_document,
             supporting_files=supporting_file_documents,
             reviewer_memo_files=reviewer_memo_documents,
+            response_memo_files=response_memo_documents,
             config=config,
         )
 

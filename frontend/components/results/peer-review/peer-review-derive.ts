@@ -11,6 +11,7 @@
  * Mirrored from:
  * - `get_latest_reviewer_memo_revision()` — lib/services/file_artifacts_service/file_artifacts_service.py
  * - `precheck()` in lib/workflows/{revision_planning_summary,reviewer_response_memos,reviewer_coverage_report}/manifest.py
+ * - the response-memo folder the coverage report reads — lib/workflows/reviewer_coverage_report/manifest.py
  */
 
 import {
@@ -42,6 +43,22 @@ export interface PeerReviewFacts {
   activeMemos: FileListItem[];
   /** Revisions holding memos the agent will ignore, newest first. */
   staleMemoRevisions: number[];
+
+  /** Every response memo the author uploaded, across all revisions. */
+  responseMemos: FileListItem[];
+  /** Response memos on the current revision — the ones the coverage report reads. */
+  activeResponseMemos: FileListItem[];
+  /**
+   * Uploading a response memo only makes sense against a revised draft: the
+   * upload always attaches to the current revision, and before a revised draft
+   * exists that is still the one the reviewers read.
+   */
+  canUploadResponses: boolean;
+  /**
+   * An active response memo arrived after the coverage report started, so the
+   * report on screen did not read it.
+   */
+  responsesNewerThanCoverage: boolean;
 
   reviewedMain?: FileListItem;
   currentMain?: FileListItem;
@@ -97,6 +114,18 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
   const documentProcessingReady =
     !!documentProcessing && getDisplayStatus(documentProcessing) === WorkflowRunStatus.Completed;
 
+  // Uploads always land on the current revision, and the coverage report
+  // reads only that revision's folder, so older ones are ignored.
+  const responseMemos = files.filter((f) => f.role === FileRole.ResponseMemo);
+  const activeResponseMemos = responseMemos.filter((f) => f.revision === currentRevision);
+  const canUploadResponses = hasRevisedDraft && !isViewingOldRevision;
+
+  const coverageRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
+  // Generated types say Date, but the wire value is an ISO string.
+  const coverageStartedAt = coverageRun ? new Date(coverageRun.run.created_at).getTime() : null;
+  const responsesNewerThanCoverage =
+    coverageStartedAt !== null && activeResponseMemos.some((f) => new Date(f.created_at).getTime() > coverageStartedAt);
+
   const noMemos = reviewedRevision === null;
 
   // Runs always execute at the current revision, but `workflow_runs` above is
@@ -142,6 +171,10 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
     reviewedRevision,
     activeMemos,
     staleMemoRevisions,
+    responseMemos,
+    activeResponseMemos,
+    canUploadResponses,
+    responsesNewerThanCoverage,
     reviewedMain,
     currentMain,
     hasRevisedDraft,
@@ -152,7 +185,7 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
     runs: {
       plan: getWorkflowRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
       memos: getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
-      coverage: getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport),
+      coverage: coverageRun,
     },
   };
 }
@@ -169,6 +202,7 @@ export function peerReviewNeedsAttention(facts: PeerReviewFacts, readOnly: boole
   // would show an attention dot next to a summary that is right there.
   const planCouldExistElsewhere = facts.reviewedRevision !== facts.viewedRevision;
   const planActionable = facts.planBlockedReason === null && !plan && !planCouldExistElsewhere;
-  const respondActionable = facts.comparisonBlockedReason === null && (!memos || !coverage);
+  const hasResponses = !!memos || facts.activeResponseMemos.length > 0;
+  const respondActionable = facts.comparisonBlockedReason === null && (!hasResponses || !coverage);
   return failed || planActionable || respondActionable;
 }

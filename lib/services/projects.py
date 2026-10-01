@@ -417,7 +417,12 @@ async def get_project_files(project_id: str) -> List[File]:
             .where(
                 col(File.project_id) == project.id,
                 col(File.role).in_(
-                    [FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO]
+                    [
+                        FileRole.MAIN,
+                        FileRole.SUPPORT,
+                        FileRole.REVIEWER_MEMO,
+                        FileRole.RESPONSE_MEMO,
+                    ]
                 ),
             )
             .order_by(col(File.created_at).asc())

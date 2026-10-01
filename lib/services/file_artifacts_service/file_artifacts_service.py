@@ -33,6 +33,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Where each revision-scoped memo role is mounted under `/revisions/<n>/`.
+_MEMO_FOLDERS: dict[FileRole, str] = {
+    FileRole.REVIEWER_MEMO: "reviewer-memos",
+    FileRole.RESPONSE_MEMO: "response-memos",
+}
+
 
 class FileArtifactsService(FileArtifactsServiceType):
     """Accesses file artifacts produced by workflow runs for a given project.
@@ -410,9 +416,11 @@ class FileArtifactsService(FileArtifactsServiceType):
         - ``/revisions/<n>/main.md`` — the main document of every revision
         - ``/revisions/<n>/reviewer-memos/<id>.md`` — reviewer memos, always
           grouped under the revision they reviewed
+        - ``/revisions/<n>/response-memos/<id>.md`` — the author's response
+          memos, grouped under the revised draft they describe
 
-        Reviewer memos live only under ``/revisions/<n>/reviewer-memos/``. The
-        agent navigates this tree; workflows tell it which paths to read.
+        Memos live only under their revision's folder. The agent navigates
+        this tree; workflows tell it which paths to read.
         """
         main_file = await self.get_main_file()
         files: dict[str, Any] = {"/main.md": create_file_data(main_file.markdown)}
@@ -421,7 +429,12 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"all files for {self.project_id}",
             lambda: get_files_by_project_id(
                 self.project_id,
-                roles=[FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO],
+                roles=[
+                    FileRole.MAIN,
+                    FileRole.SUPPORT,
+                    FileRole.REVIEWER_MEMO,
+                    FileRole.RESPONSE_MEMO,
+                ],
             ),
         )
         for file in all_files or []:
@@ -433,11 +446,12 @@ class FileArtifactsService(FileArtifactsServiceType):
                 files[f"/revisions/{file.revision}/main.md"] = create_file_data(
                     doc.markdown
                 )
-            elif file.role == FileRole.REVIEWER_MEMO and file.revision is not None:
+            elif file.role in _MEMO_FOLDERS and file.revision is not None:
                 doc = await self._load_file_document_with_markdown(file)
-                files[
-                    f"/revisions/{file.revision}/reviewer-memos/{doc.file_id}.md"
-                ] = create_file_data(doc.markdown)
+                folder = _MEMO_FOLDERS[file.role]
+                files[f"/revisions/{file.revision}/{folder}/{doc.file_id}.md"] = (
+                    create_file_data(doc.markdown)
+                )
 
         if include_skills:
             project_root = Path(__file__).parents[3]

@@ -13,6 +13,7 @@ import { ClipboardCheck, History, ListChecks, Lock, MessagesSquare, Upload } fro
 import { ReactNode, useState } from 'react';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { MemosPane } from './memos-pane';
+import { CoverageInputsNote, ResponsesCallout } from './response-memo-notes';
 import { StepRail } from './step-rail';
 import { STEPS, StepId, readStepStates } from './steps';
 
@@ -45,6 +46,7 @@ export function PeerReviewTab({
   const isWideEnoughForMemos = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
   const [memosOpen, setMemosOpen] = useState(false);
   const [memoUploadOpen, setMemoUploadOpen] = useState(false);
+  const [responseUploadOpen, setResponseUploadOpen] = useState(false);
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
 
   // The plan for the reviewed draft stays relevant once a newer revision
@@ -84,128 +86,161 @@ export function PeerReviewTab({
     />
   );
 
+  // Always the current revision: a response memo describes the draft it
+  // replies from, and the backend rejects any other target.
+  const responseDialog = (
+    <FileUploadDialog
+      isOpen={responseUploadOpen}
+      projectId={projectId}
+      title="Upload author response memos"
+      description={`Add the final replies the author sent to the reviewers. They attach to revision ${currentRevision}, the revised draft, and the QA coverage report checks what they say against it.`}
+      multiple
+      fileRole={FileRole.ResponseMemo}
+      onCancel={() => setResponseUploadOpen(false)}
+      onComplete={() => setResponseUploadOpen(false)}
+    />
+  );
+
+  // Both layouts render the dialogs first, in the same slot, so React keeps
+  // the same instances when the first memo upload flips the tab out of its
+  // empty state. The upload hook refetches the project as each file lands,
+  // before the dialog's own completion handler runs; with a dialog per
+  // layout, that refetch unmounted the uploading dialog mid-batch and mounted
+  // a fresh one that opened straight away.
+  const dialogs = (
+    <>
+      {memoDialog}
+      {responseDialog}
+    </>
+  );
+
   if (reviewedRevision === null) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <div className="max-w-md space-y-3 text-center">
-          <MessagesSquare className="mx-auto size-7 text-muted-foreground" />
-          <p className="text-sm font-medium">No reviewer memos yet</p>
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            Once your draft comes back from peer review, upload the reviewers&apos; memos here. Draft Detective turns
-            their points into a revision plan, then — after you upload your revised draft — drafts a response memo per
-            reviewer and a coverage report for a QA manager.
-          </p>
-          {!readOnly && (
-            <Button size="sm" className="mt-1" onClick={() => setMemoUploadOpen(true)}>
-              <Upload className="size-3.5" />
-              Upload reviewer memos
-            </Button>
-          )}
+      <>
+        {dialogs}
+        <div className="flex h-full items-center justify-center p-8">
+          <div className="max-w-md space-y-3 text-center">
+            <MessagesSquare className="mx-auto size-7 text-muted-foreground" />
+            <p className="text-sm font-medium">No reviewer memos yet</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Once your draft comes back from peer review, upload the reviewers&apos; memos here. Draft Detective turns
+              their points into a revision plan, then — after you upload your revised draft — drafts a response memo per
+              reviewer and a coverage report for a QA manager.
+            </p>
+            {!readOnly && (
+              <Button size="sm" className="mt-1" onClick={() => setMemoUploadOpen(true)}>
+                <Upload className="size-3.5" />
+                Upload reviewer memos
+              </Button>
+            )}
+          </div>
         </div>
-        {memoDialog}
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      {memoDialog}
-      <ReplaceMainDocumentDialog
-        isOpen={revisionDialogOpen}
-        projectId={projectId}
-        onClose={() => setRevisionDialogOpen(false)}
-        onRevisionCreated={onRevisionCreated}
-        hideRerunOption
-      />
-
-      <Rail state={rail} label="Steps">
-        <StepRail
-          states={states}
-          activeStep={activeStep}
-          onSelectStep={(step) => {
-            setActiveStep(step);
-            rail.close();
-          }}
+    <>
+      {dialogs}
+      <div className="flex h-full min-h-0">
+        <ReplaceMainDocumentDialog
+          isOpen={revisionDialogOpen}
+          projectId={projectId}
+          onClose={() => setRevisionDialogOpen(false)}
+          onRevisionCreated={onRevisionCreated}
+          hideRerunOption
         />
-      </Rail>
 
-      <main className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
-          <RailToggle state={rail} label="Steps" />
+        <Rail state={rail} label="Steps">
+          <StepRail
+            states={states}
+            activeStep={activeStep}
+            onSelectStep={(step) => {
+              setActiveStep(step);
+              rail.close();
+            }}
+          />
+        </Rail>
 
-          <span className="min-w-0 truncate text-xs text-muted-foreground">
-            Step {stepIndex + 1} of {STEPS.length}
-          </span>
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2">
+            <RailToggle state={rail} label="Steps" />
 
-          <span className="ml-auto flex shrink-0 items-center gap-1.5">
-            {isViewingOldRevision && onRevisionChange && (
-              <>
-                <span className="text-xs text-muted-foreground">
-                  Viewing revision {facts.viewedRevision}; the steps run on revision {currentRevision}
-                </span>
-                <Button size="xs" variant="outline" onClick={() => onRevisionChange(currentRevision)}>
-                  <History className="size-3" />
-                  View current
-                </Button>
-              </>
-            )}
-            {!readOnly && !state.blockedReason && <ToolbarAction />}
+            <span className="min-w-0 truncate text-xs text-muted-foreground">
+              Step {stepIndex + 1} of {STEPS.length}
+            </span>
 
-            {!isWideEnoughForMemos && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="xs" variant="outline" onClick={() => setMemosOpen(true)}>
-                    <MessagesSquare className="size-3" />
-                    Memos
-                    <span className="font-mono tabular-nums">{facts.activeMemos.length}</span>
+            <span className="ml-auto flex shrink-0 items-center gap-1.5">
+              {isViewingOldRevision && onRevisionChange && (
+                <>
+                  <span className="text-xs text-muted-foreground">
+                    Viewing revision {facts.viewedRevision}; the steps run on revision {currentRevision}
+                  </span>
+                  <Button size="xs" variant="outline" onClick={() => onRevisionChange(currentRevision)}>
+                    <History className="size-3" />
+                    View current
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>The reviewer memos every step reads from</TooltipContent>
-              </Tooltip>
-            )}
-          </span>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-4xl px-6 py-5">
-            <header className="border-b pb-4">
-              <h1 className="text-base font-semibold tracking-tight">{step.title}</h1>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{step.subtitle}</p>
-            </header>
-
-            <div className="pt-4">
-              {state.blockedReason ? (
-                <Blocked reason={state.blockedReason} />
-              ) : activeStep === 'plan' ? (
-                <PlanStep />
-              ) : activeStep === 'revise' ? (
-                <ReviseStep />
-              ) : activeStep === 'respond' ? (
-                <RespondStep />
-              ) : (
-                <CoverageStep />
+                </>
               )}
+              {!readOnly && !state.blockedReason && <ToolbarAction />}
+
+              {!isWideEnoughForMemos && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="xs" variant="outline" onClick={() => setMemosOpen(true)}>
+                      <MessagesSquare className="size-3" />
+                      Memos
+                      <span className="font-mono tabular-nums">{facts.activeMemos.length}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>The reviewer memos and author responses the steps read from</TooltipContent>
+                </Tooltip>
+              )}
+            </span>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-4xl px-6 py-5">
+              <header className="border-b pb-4">
+                <h1 className="text-base font-semibold tracking-tight">{step.title}</h1>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{step.subtitle}</p>
+              </header>
+
+              <div className="pt-4">
+                {state.blockedReason ? (
+                  <Blocked reason={state.blockedReason} />
+                ) : activeStep === 'plan' ? (
+                  <PlanStep />
+                ) : activeStep === 'revise' ? (
+                  <ReviseStep />
+                ) : activeStep === 'respond' ? (
+                  <RespondStep />
+                ) : (
+                  <CoverageStep />
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* Always a column where there is room; a sheet the reader opens where
+        {/* Always a column where there is room; a sheet the reader opens where
           there is not, since the memos are context rather than a selection. */}
-      <SidePane
-        open={isWideEnoughForMemos || memosOpen}
-        onClose={() => setMemosOpen(false)}
-        label="Reviewer memos"
-        className="w-[22rem] xl:w-[24rem]"
-      >
-        <MemosPane
-          facts={facts}
-          projectId={projectId}
-          readOnly={readOnly}
-          onUploadMemos={() => setMemoUploadOpen(true)}
-        />
-      </SidePane>
-    </div>
+        <SidePane
+          open={isWideEnoughForMemos || memosOpen}
+          onClose={() => setMemosOpen(false)}
+          label="Memos"
+          className="w-[22rem] xl:w-[24rem]"
+        >
+          <MemosPane
+            facts={facts}
+            projectId={projectId}
+            readOnly={readOnly}
+            onUploadMemos={() => setMemoUploadOpen(true)}
+            onUploadResponses={() => setResponseUploadOpen(true)}
+          />
+        </SidePane>
+      </div>
+    </>
   );
 
   /**
@@ -334,21 +369,32 @@ export function PeerReviewTab({
 
   function RespondStep() {
     if (!runs.memos) {
+      const uploadedCount = facts.activeResponseMemos.length;
       return (
         <StepCta
           icon={MessagesSquare}
-          title="Draft a reply to every reviewer point"
-          description={`One response memo per reviewer. Compares revision ${currentRevision} against revision ${reviewedRevision} to state, for every point, what changed and where, or why it was not changed.`}
+          title={uploadedCount > 0 ? 'Author response memos are in' : 'Draft a reply to every reviewer point'}
+          description={
+            uploadedCount > 0
+              ? `${uploadedCount} author response memo${uploadedCount === 1 ? ' is' : 's are'} on revision ${currentRevision}, and the QA coverage report will check them against it. You can still generate drafts to compare.`
+              : `One response memo per reviewer. Compares revision ${currentRevision} against revision ${reviewedRevision} to state, for every point, what changed and where, or why it was not changed. Already have the author's replies? Upload them instead.`
+          }
           action={
             !readOnly && (
-              <PeerReviewStageAction
-                label="Generate response memos"
-                disabled={false}
-                isStarting={isStarting}
-                size="default"
-                onStart={() => startStage([WorkflowRunType.ReviewerResponseMemos])}
-                onCancel={cancelRun}
-              />
+              <div className="flex flex-wrap justify-center gap-2">
+                <PeerReviewStageAction
+                  label="Generate response memos"
+                  disabled={false}
+                  isStarting={isStarting}
+                  size="default"
+                  onStart={() => startStage([WorkflowRunType.ReviewerResponseMemos])}
+                  onCancel={cancelRun}
+                />
+                <Button variant="outline" onClick={() => setResponseUploadOpen(true)}>
+                  <Upload className="size-4" />
+                  {uploadedCount > 0 ? 'Upload more' : 'Upload author responses'}
+                </Button>
+              </div>
             )
           }
         />
@@ -357,6 +403,7 @@ export function PeerReviewTab({
 
     return (
       <div className="space-y-3">
+        <ResponsesCallout facts={facts} readOnly={readOnly} onUpload={() => setResponseUploadOpen(true)} />
         <SimpleDeepAgentResults
           project={projectDetail}
           workflowDetail={runs.memos}
@@ -370,28 +417,32 @@ export function PeerReviewTab({
   function CoverageStep() {
     if (!runs.coverage) {
       return (
-        <StepCta
-          icon={ClipboardCheck}
-          title="Sign off on how responsive the revision was"
-          description="A single view for a QA manager: every reviewer point with a verdict (addressed, partially addressed, declined with rationale, or not addressed), a summary count table, and an overall responsiveness read."
-          action={
-            !readOnly && (
-              <PeerReviewStageAction
-                label="Generate coverage report"
-                disabled={false}
-                isStarting={isStarting}
-                size="default"
-                onStart={() => startStage([WorkflowRunType.ReviewerCoverageReport])}
-                onCancel={cancelRun}
-              />
-            )
-          }
-        />
+        <div className="space-y-3">
+          <CoverageInputsNote facts={facts} hasReport={false} />
+          <StepCta
+            icon={ClipboardCheck}
+            title="Sign off on how responsive the revision was"
+            description="A single view for a QA manager: every reviewer point with a verdict (addressed, partially addressed, declined with rationale, or not addressed), a summary count table, and an overall responsiveness read."
+            action={
+              !readOnly && (
+                <PeerReviewStageAction
+                  label="Generate coverage report"
+                  disabled={false}
+                  isStarting={isStarting}
+                  size="default"
+                  onStart={() => startStage([WorkflowRunType.ReviewerCoverageReport])}
+                  onCancel={cancelRun}
+                />
+              )
+            }
+          />
+        </div>
       );
     }
 
     return (
       <div className="space-y-3">
+        <CoverageInputsNote facts={facts} hasReport />
         <SimpleDeepAgentResults
           project={projectDetail}
           workflowDetail={runs.coverage}
