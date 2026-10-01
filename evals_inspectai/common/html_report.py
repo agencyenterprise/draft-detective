@@ -203,6 +203,19 @@ class HtmlReport:
         )
 
     @property
+    def part1(self) -> str:
+        """Normalised text before the first page break: the summary a QAM reads.
+
+        The whole document when nothing forces a break, for the same reason as
+        `part2`.
+        """
+        return (
+            normalize(self._raw[: min(self.break_offsets)])
+            if self.break_offsets
+            else self.text
+        )
+
+    @property
     def part2_raw(self) -> str:
         """`part2`, whitespace-collapsed but not character-folded.
 
