@@ -378,17 +378,21 @@ Use a verdict scale that reflects how real responses look, not a binary:
 - **not addressed**: no change and no reason. This is the only verdict that
   should read as a gap.
 
-When you have the author's response memos, read each point's reply alongside
-the draft comparison. The reply supplies the author's stated reason for a
-decline and says where they made a change, but the revised draft is the
-evidence. Check every claimed change against the draft. If the reply says a
-point was handled and the draft does not show it, the verdict follows the draft,
-and your note says what the reply claimed and what the draft shows. The QAM
-most needs to see these discrepancies, so a consequential one also belongs in
-"What needs another pass". A point that no reply answers is judged on the draft
-alone. When you have no response memos, say so in the header, since every
-"declined with rationale" verdict then rests on reasons you inferred from the
-draft rather than on reasons the author gave.
+When you have the author's response memos, read each point's reply alongside the
+draft comparison. The reply supplies the author's stated reason for a decline
+and says where they made a change, but the revised draft is the evidence. Check
+every claimed change against the draft. A claimed change counts only when your
+evidence shows it in the revised draft: quote the passage that was added or
+changed, or, for a claimed removal, name where the text was and confirm it is no
+longer there. Removals need the most care, because a nearby passage that did
+change can make "we dropped it" sound true when the text is still there. If the
+reply says a point was handled and the draft does not show it, the verdict
+follows the draft, and your note says what the reply claimed and what the draft
+shows. The QAM most needs to see these discrepancies, so a consequential one
+also belongs in "What needs another pass". A point that no reply answers is
+judged on the draft alone. When you have no response memos, say so in the
+header, since every "declined with rationale" verdict then rests on reasons you
+inferred from the draft rather than on reasons the author gave.
 
 Be document-type aware, because it changes what "responsive" means. A short
 perspective, commentary, or expert-opinion piece is shorter and more
