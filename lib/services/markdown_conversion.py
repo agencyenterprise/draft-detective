@@ -99,9 +99,15 @@ async def convert_file_document_to_markdown(
         )
         return file_document
 
-    file_path = file_document.file_path.lower()
+    # Uploads keep their extension's case (`<hash>.DOCX`), so the path itself
+    # is used as stored for every file operation; only the extension checks
+    # are case-insensitive. Lowercasing the whole path fails to open the file
+    # on a case-sensitive filesystem.
+    file_path = file_document.file_path
+    stem, extension = os.path.splitext(file_path)
+    extension = extension.lower()
     is_legacy_doc_mime = file_document.file_type == "application/msword"
-    is_legacy_doc_extension = file_path.endswith(".doc")
+    is_legacy_doc_extension = extension == ".doc"
 
     # Keep embedded images as full data URIs only where they get extracted
     # below — everywhere else the truncated stub keeps the markdown small.
@@ -114,12 +120,12 @@ async def convert_file_document_to_markdown(
         markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
     elif is_legacy_doc_extension:
-        docx_file_path = file_path.replace(".doc", ".docx")
+        docx_file_path = f"{stem}.docx"
         shutil.copy(file_path, docx_file_path)
         logger.info(f"Copied {file_path} to {docx_file_path}")
         markdown, display_sizes = await _convert_docx(docx_file_path, keep_data_uris)
         os.remove(docx_file_path)
-    elif file_path.endswith(".docx"):
+    elif extension == ".docx":
         markdown, display_sizes = await _convert_docx(file_path, keep_data_uris)
     else:
         markdown = await convert_to_markdown_fn(

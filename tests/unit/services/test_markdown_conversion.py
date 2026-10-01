@@ -280,3 +280,49 @@ async def test_rasterized_temp_docx_is_used_and_removed(tmp_path):
     )
     sizes_mock.assert_called_once_with(rasterized_path)
     assert not os.path.exists(rasterized_path)
+
+
+# --- path casing ---
+
+
+@pytest.mark.asyncio
+async def test_uppercase_extension_path_is_opened_as_stored():
+    # Uploads keep their extension's case, and production's filesystem is
+    # case-sensitive, so a lowercased path would not open.
+    doc = _file_document(file_path="/uploads/ABC.MD", file_type="text/markdown")
+    with patch(
+        f"{MODULE}.convert_to_markdown_fn", new=AsyncMock(return_value="# Reply")
+    ) as convert_mock:
+        await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
+
+    assert convert_mock.await_args is not None
+    assert convert_mock.await_args.args[0] == "/uploads/ABC.MD"
+
+
+@pytest.mark.asyncio
+async def test_uppercase_docx_extension_takes_the_docx_path_as_stored():
+    doc = _file_document(file_path="/uploads/ABC.DOCX")
+    with patch(
+        f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))
+    ) as docx_mock:
+        await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
+
+    assert docx_mock.await_args is not None
+    assert docx_mock.await_args.args[0] == "/uploads/ABC.DOCX"
+
+
+@pytest.mark.asyncio
+async def test_uppercase_doc_extension_is_copied_beside_itself_as_docx():
+    # With the stored case, `.replace(".doc", ".docx")` would not match `.DOC`
+    # and the copy would target the file itself.
+    doc = _file_document(file_path="/uploads/ABC.DOC", file_type="application/zip")
+    with (
+        patch(f"{MODULE}.shutil.copy") as copy_mock,
+        patch(f"{MODULE}.os.remove"),
+        patch(
+            f"{MODULE}._convert_docx", new=AsyncMock(return_value=("# Reply", None))
+        ),
+    ):
+        await convert_file_document_to_markdown(doc, role=FileRole.REVIEWER_MEMO)
+
+    copy_mock.assert_called_once_with("/uploads/ABC.DOC", "/uploads/ABC.docx")
