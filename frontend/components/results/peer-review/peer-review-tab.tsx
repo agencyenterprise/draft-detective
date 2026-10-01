@@ -192,7 +192,9 @@ export function PeerReviewTab({
                     <Button size="xs" variant="outline" onClick={() => setMemosOpen(true)}>
                       <MessagesSquare className="size-3" />
                       Memos
-                      <span className="font-mono tabular-nums">{facts.activeMemos.length}</span>
+                      <span className="font-mono tabular-nums">
+                        {facts.activeMemos.length + facts.activeResponseMemos.length}
+                      </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>The reviewer memos and author responses the steps read from</TooltipContent>

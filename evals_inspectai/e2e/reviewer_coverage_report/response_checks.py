@@ -41,7 +41,8 @@ _NONE_SUPPLIED = re.compile(
 
 
 def _has_responses(meta: dict[str, Any]) -> bool:
-    return bool(meta.get("author_probes"))
+    """Whether the sample uploaded response memos, read from the inputs."""
+    return bool(meta.get("response_memos"))
 
 
 def _under_author_label(report: HtmlReport, snippet: str) -> bool:
@@ -63,10 +64,6 @@ def _under_author_label(report: HtmlReport, snippet: str) -> bool:
     return "verbatim" not in between and "verdict" not in between
 
 
-def _marked_as_reply(report: HtmlReport, snippet: str) -> bool:
-    return report.quotes(snippet) or _under_author_label(report, snippet)
-
-
 def _invented_replies(report: HtmlReport) -> list[str]:
     """Reply labels followed by anything other than the placeholder."""
     invented = []
@@ -83,8 +80,9 @@ def check_author_verbatim(
     """Replies reproduced verbatim inside quotes, or none invented.
 
     With response memos, the probes are distinctive sentences drawn from every
-    reply, and each must be marked as the author's: inside a quote, or in the
-    block under a reply label. Without them, the report
+    reply, and each must sit in the block an author-response label introduces.
+    Quote membership alone is not enough: reviewer text is quoted too, so an
+    unlabelled reply in a blockquote reads as the reviewer's. Without them, the report
     must not label any text as the author's reply, though a slot holding only
     the placeholder is allowed.
     """
@@ -97,15 +95,17 @@ def check_author_verbatim(
             else f"{len(invented)} reply slot(s) carry text without response memos; first: {invented[0]!r}",
         )
 
-    probes: list[str] = meta["author_probes"]
+    probes: list[str] = meta.get("author_probes") or []
     missing = [p for p in probes if not report.contains(p)]
-    unmarked = [p for p in probes if report.contains(p) and not _marked_as_reply(report, p)]
+    unmarked = [
+        p for p in probes if report.contains(p) and not _under_author_label(report, p)
+    ]
     problems = []
     if missing:
         problems.append(f"first missing: {missing[0][:60]!r}")
     if unmarked:
         problems.append(
-            f"{len(unmarked)} reply probe(s) neither quoted nor under a reply label"
+            f"{len(unmarked)} reply probe(s) not under an author-response label"
         )
     return (
         not problems,
