@@ -9,6 +9,7 @@ import {
 } from '@/lib/generated-api';
 import { flush, renderInto, testQueryClient, withQueryClient } from '@/lib/test-render';
 import { act } from 'react';
+import { focusManager, QueryClient } from '@tanstack/react-query';
 import { useReferenceApprovalFlow } from './use-reference-approval-flow';
 
 vi.mock('@/lib/generated-api', async (original) => ({
@@ -118,5 +119,24 @@ describe('useReferenceApprovalFlow', () => {
     await act(async () => seen.current?.handleApprove());
     expect(approve).not.toHaveBeenCalled();
     await view.unmount();
+  });
+
+  it('keeps approval closed while a failed fetch waits to retry', async () => {
+    // A retry waits for the window to regain focus; meanwhile the query is
+    // neither loading nor failed, and has no data.
+    focusManager.setFocused(false);
+    fetchReferences.mockRejectedValue(new Error('Server error'));
+    const seen: { current?: Flow } = {};
+    const client = new QueryClient({ defaultOptions: { queries: { retry: 1, retryDelay: 0 } } });
+    const view = await renderInto(withQueryClient(client, <Probe of={overview} seen={seen} />));
+    await flush();
+    await flush();
+
+    expect(seen.current?.isApproveDisabled).toBe(true);
+    expect(seen.current?.unmatchedCount).toBe(0);
+    await act(async () => seen.current?.handleApprove());
+    expect(approve).not.toHaveBeenCalled();
+    await view.unmount();
+    focusManager.setFocused(undefined);
   });
 });

@@ -9,7 +9,9 @@ import { ReferenceReviewItem } from './types';
 export function useReferenceReviewReferences(overview: ProjectOverview) {
   const files = useMemo(() => overview.files ?? [], [overview.files]);
   const hasExtraction = !!findRunByType(overview.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
-  const { data: referenceData, isLoading, isPlaceholderData, error } = useProjectReferences(overview);
+  // isPending rather than isLoading: a failed fetch whose retry is paused (the
+  // window lost focus, or went offline) is not loading, yet has no data either.
+  const { data: referenceData, isPending, isPlaceholderData, error } = useProjectReferences(overview);
 
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(
@@ -56,7 +58,7 @@ export function useReferenceReviewReferences(overview: ProjectOverview) {
 
   return {
     references,
-    isLoading: hasExtraction && isLoading,
+    isLoading: hasExtraction && isPending,
     // The previous version's references, shown while a newer one loads; fine
     // to display, but not to decide on.
     isStale: hasExtraction && isPlaceholderData,
