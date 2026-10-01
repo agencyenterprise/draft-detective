@@ -139,6 +139,7 @@ export function AssessmentsTab({
                 currentRunId={selectedWorkflowRun.run.id}
                 onSelectRun={handleSelectRun}
                 historyData={historyData}
+                historyError={historyError}
                 size="xs"
                 tooltip="Every time this assessment has run. Pick one to read its results."
               />

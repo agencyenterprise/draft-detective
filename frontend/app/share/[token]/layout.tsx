@@ -6,6 +6,7 @@ import { useTabRouting } from '@/components/results/use-tab-routing';
 import { OwnerSharedBanner } from '@/components/share/owner-shared-banner';
 import { ShareProvider } from '@/context/share-context';
 import { getSharedResourceApiPublicShareTokenGet } from '@/lib/generated-api';
+import { overviewRefetchInterval } from '@/lib/hooks/use-project-data';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useQuery } from '@tanstack/react-query';
 import { Link2Off } from 'lucide-react';
@@ -24,6 +25,8 @@ export default function SharedProjectLayout({ children }: { children: ReactNode 
     queryKey: ['sharedProject', token],
     queryFn: () => getSharedResourceApiPublicShareTokenGet({ path: { token } }),
     retry: false,
+    // A link opened mid-run follows it to completion, as the project page does.
+    refetchInterval: overviewRefetchInterval,
   });
 
   // Whether the signed-in visitor is the owner of the project behind this link.

@@ -42,15 +42,26 @@ const references = {
 
 type Flow = ReturnType<typeof useReferenceApprovalFlow>;
 
+function Probe({ of, seen }: { of: ProjectOverview; seen: { current?: Flow } }) {
+  seen.current = useReferenceApprovalFlow(of);
+  return null;
+}
+
 async function mountFlow() {
   const seen: { current?: Flow } = {};
-  function Probe() {
-    seen.current = useReferenceApprovalFlow(overview);
-    return null;
-  }
-  const view = await renderInto(withQueryClient(testQueryClient(), <Probe />));
-  return { seen, view };
+  const client = testQueryClient();
+  const view = await renderInto(withQueryClient(client, <Probe of={overview} seen={seen} />));
+  const rerender = (next: ProjectOverview) => view.rerender(withQueryClient(client, <Probe of={next} seen={seen} />));
+  return { seen, view, rerender };
 }
+
+/** The same project after extraction wrote again: a new references version. */
+const rewritten = {
+  ...overview,
+  workflow_runs: [
+    { ...overview.workflow_runs![0], run: { ...overview.workflow_runs![0].run, last_updated_at: 'later' } },
+  ],
+} as unknown as ProjectOverview;
 
 afterEach(() => vi.clearAllMocks());
 
@@ -87,6 +98,24 @@ describe('useReferenceApprovalFlow', () => {
     expect(seen.current?.unmatchedCount).toBe(1);
     await act(async () => seen.current?.handleApprove());
     expect(seen.current?.showUnmatchedWarning).toBe(true);
+    expect(approve).not.toHaveBeenCalled();
+    await view.unmount();
+  });
+
+  it('keeps approval closed while a newer version of the references loads', async () => {
+    // The first version had nothing unmatched, so it would let approval through.
+    fetchReferences.mockResolvedValueOnce({ extracted_references: [], matches: [], fetched_references: [] } as never);
+    const { seen, view, rerender } = await mountFlow();
+    await flush();
+    expect(seen.current?.isApproveDisabled).toBe(false);
+
+    fetchReferences.mockReturnValueOnce(new Promise(() => {}) as never);
+    await rerender(rewritten);
+    await flush();
+
+    // The old version is still on screen, but approval waits for the new one.
+    expect(seen.current?.isApproveDisabled).toBe(true);
+    await act(async () => seen.current?.handleApprove());
     expect(approve).not.toHaveBeenCalled();
     await view.unmount();
   });

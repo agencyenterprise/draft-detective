@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowRunStatus, WorkflowRunSummary } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { cn } from '@/lib/utils';
 import { getDisplayStatus } from '@/lib/workflow-state';
 
@@ -16,6 +17,8 @@ interface WorkflowRunHistoryProps {
   onSelectRun: (run: WorkflowRunSummary) => void;
   /** Every run of the assessment, newest first; undefined while it loads. */
   historyData?: WorkflowRunSummary[];
+  /** Why the history could not be loaded, if it failed. */
+  historyError?: unknown;
   /** Match the button to the toolbar it sits in. */
   size?: 'sm' | 'xs';
   /** Shown on hover. */
@@ -26,12 +29,13 @@ export function WorkflowRunHistory({
   currentRunId,
   onSelectRun,
   historyData,
+  historyError,
   size = 'sm',
   tooltip,
 }: WorkflowRunHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const isLoading = !historyData;
+  const isLoading = !historyData && !historyError;
 
   const handleSelectRun = (run: WorkflowRunSummary) => {
     onSelectRun(run);
@@ -67,7 +71,11 @@ export function WorkflowRunHistory({
           <p className="text-xs text-muted-foreground mt-0.5">Select a previous run to view its results</p>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {isLoading ? (
+          {historyError ? (
+            <div className="px-3 py-6 text-center text-sm text-destructive">
+              Could not load the run history: {getErrorMessage(historyError, 'unknown error')}
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>

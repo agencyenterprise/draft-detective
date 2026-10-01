@@ -72,6 +72,22 @@ function runDetailVersion(run: WorkflowRunPublic | undefined): string {
   return active ? `${run.id}:${run.status}` : runVersion(run);
 }
 
+/**
+ * How often to poll an overview: briskly while a run is working, slowly while
+ * one waits on approval, not at all otherwise. Shared by the project page and
+ * the share page, which fetch their overview from different endpoints.
+ */
+export function overviewRefetchInterval(query: { state: { data?: ProjectOverview } }): number | false {
+  const runs = query.state.data?.workflow_runs ?? [];
+  if (runs.some((w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending)) {
+    return REFETCH_INTERVAL_MS;
+  }
+  if (runs.some((w) => w.run.status === WorkflowRunStatus.AwaitingApproval)) {
+    return AWAITING_APPROVAL_REFETCH_INTERVAL_MS;
+  }
+  return false;
+}
+
 /** The project's overview for one revision (null follows the latest), polled while runs are active. */
 export function useProjectOverview(projectId: string | null, revision?: number | null) {
   const { shareToken } = useShare();
@@ -85,16 +101,7 @@ export function useProjectOverview(projectId: string | null, revision?: number |
         path: { project_id: projectId! },
         query: { share_token: shareToken, revision: revision ?? undefined },
       }),
-    refetchInterval: (query) => {
-      const runs = query.state.data?.workflow_runs ?? [];
-      if (runs.some((w) => w.run.status === WorkflowRunStatus.Running || w.run.status === WorkflowRunStatus.Pending)) {
-        return REFETCH_INTERVAL_MS;
-      }
-      if (runs.some((w) => w.run.status === WorkflowRunStatus.AwaitingApproval)) {
-        return AWAITING_APPROVAL_REFETCH_INTERVAL_MS;
-      }
-      return false;
-    },
+    refetchInterval: overviewRefetchInterval,
   });
 }
 

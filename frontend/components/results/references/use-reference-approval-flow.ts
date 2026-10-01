@@ -16,10 +16,16 @@ export function useReferenceApprovalFlow(overview: ProjectOverview) {
   const workflowDetails = overview.workflow_runs ?? [];
   const [showUnmatchedWarning, setShowUnmatchedWarning] = useState(false);
 
-  // Until the references are in, the unmatched count reads zero, and approving
-  // would skip the warning about sources that are missing.
-  const { references, isLoading: isLoadingReferences, error: referencesError } = useReferenceReviewReferences(overview);
-  const referencesUnavailable = isLoadingReferences || !!referencesError;
+  // Until the current references are in, the unmatched count can read zero (or
+  // reflect an older version), and approving would skip the warning about
+  // sources that are missing.
+  const {
+    references,
+    isLoading: isLoadingReferences,
+    isStale: referencesStale,
+    error: referencesError,
+  } = useReferenceReviewReferences(overview);
+  const referencesUnavailable = isLoadingReferences || referencesStale || !!referencesError;
 
   const referenceExtraction = findRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
   const documentProcessing = findRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
@@ -48,7 +54,7 @@ export function useReferenceApprovalFlow(overview: ProjectOverview) {
     (approveMutation.isPending && 'Starting analysis...') ||
     (isProcessingFiles && 'Processing files...') ||
     (isExtractionProcessing && 'Extracting references...') ||
-    (isLoadingReferences && 'Loading references...') ||
+    ((isLoadingReferences || referencesStale) && 'Loading references...') ||
     (referencesError && "Couldn't load references") ||
     'Approve and Start Analysis';
 
