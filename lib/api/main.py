@@ -33,6 +33,7 @@ from lib.api.routers import (
     project_views,
     projects,
     public,
+    review_assistant,
     share,
     users,
     workflow_types,
@@ -127,6 +128,7 @@ app.include_router(projects.router)
 app.include_router(project_views.router)
 app.include_router(share.router)
 app.include_router(public.router)
+app.include_router(review_assistant.router)
 app.include_router(tus_router)
 app.include_router(users.router)
 app.include_router(microsoft_routes.router)

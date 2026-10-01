@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import uuid
-from typing import List
+from typing import Any, List
 
 from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
@@ -225,6 +225,7 @@ async def _prepare_workflow_items(
     approve_human_steps: bool = False,
     approve_web_search: bool = False,
     raise_on_pending_gates: bool = False,
+    config_updates: dict[WorkflowRunType, dict[str, Any]] | None = None,
 ) -> tuple[
     Project,
     int,
@@ -247,6 +248,10 @@ async def _prepare_workflow_items(
       (only populated when raise_on_pending_gates=True)
     - pending_web_search: workflows blocked by missing web-search consent
       (only populated when raise_on_pending_gates=True)
+
+    ``config_updates`` sets extra config fields on the named workflows' runs
+    (e.g. the explicit inputs of a review-assistant run). Callers validate
+    them; dependencies pulled in alongside are left untouched.
     """
     project, _ = await get_project_access(
         request.project_id, user=user, required_level=AccessLevel.WRITE
@@ -379,6 +384,10 @@ async def _prepare_workflow_items(
             request.openai_api_key,
             awaiting_run.model if awaiting_run is not None else request.model,
         )
+        if config_updates and workflow_type in config_updates:
+            workflow_config = workflow_config.model_copy(
+                update=config_updates[workflow_type]
+            )
 
         if awaiting_run is not None:
             # Its gate was approved while it waited: release this row
@@ -493,6 +502,7 @@ async def start_multiple_workflow_runs(
     request: StartMultipleWorkflowsRequest,
     user: User,
     background_tasks: BackgroundTasks,
+    config_updates: dict[WorkflowRunType, dict[str, Any]] | None = None,
 ) -> List[str]:
     """
     Start multiple workflows immediately as PENDING.
@@ -505,6 +515,7 @@ async def start_multiple_workflow_runs(
         request: Request containing project_id and optional openai_api_key
         user: User running the workflows
         background_tasks: FastAPI background tasks
+        config_updates: Extra config fields per requested workflow type
 
     Raises:
         HTTPException: If project_id is missing or project doesn't exist
@@ -516,7 +527,9 @@ async def start_multiple_workflow_runs(
         auto_run_items,
         _,
         _,
-    ) = await _prepare_workflow_items(workflow_types, request, user)
+    ) = await _prepare_workflow_items(
+        workflow_types, request, user, config_updates=config_updates
+    )
 
     if auto_run_items:
         logger.info(

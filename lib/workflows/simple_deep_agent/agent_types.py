@@ -85,6 +85,12 @@ MAIN_DOCUMENT_PATH = "/main.md"
 REPORT_PATH = "/report.html"
 MARKDOWN_REPORT_PATH = "/report.md"
 
+
+def input_file_path(slot: str, file_id: str) -> str:
+    """Where a file picked for a run's input slot is mounted (see
+    ``SimpleDeepAgentConfig.input_files``)."""
+    return f"/inputs/{slot}/{file_id}.md"
+
 # LangGraph super-step budget for one deep-agent run. Two steps per model turn
 # (model node + tools node), so this is roughly 250 turns.
 #

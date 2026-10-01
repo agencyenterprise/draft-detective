@@ -3628,6 +3628,53 @@ export type ReferenceValidationV2WorkflowConfig = {
 };
 
 /**
+ * ReviewAssistantInputs
+ *
+ * The files picked for each input, by ID.
+ */
+export type ReviewAssistantInputs = {
+  /**
+   * Reviewed Draft
+   *
+   * The draft the reviewers read
+   */
+  reviewed_draft?: string | null;
+  /**
+   * Revised Draft
+   *
+   * The draft that addresses the reviewers' points
+   */
+  revised_draft?: string | null;
+  /**
+   * Reviewer Memos
+   */
+  reviewer_memos?: Array<string>;
+  /**
+   * Response Memos
+   */
+  response_memos?: Array<string>;
+};
+
+/**
+ * ReviewAssistantRun
+ *
+ * A review-assistant run with the inputs it was handed and its report.
+ */
+export type ReviewAssistantRun = {
+  run: WorkflowRunPublic;
+  /**
+   * Input Files
+   */
+  input_files: {
+    [key: string]: Array<string>;
+  };
+  /**
+   * Report Html
+   */
+  report_html?: string | null;
+};
+
+/**
  * Reviewer2Config
  *
  * Configuration for the Reviewer 2 workflow.
@@ -3900,6 +3947,14 @@ export type SimpleDeepAgentConfig = {
    * The workflow type, set per-manifest at runtime
    */
   type: WorkflowRunType;
+  /**
+   * Input Files
+   *
+   * Files picked for this run, as input slot name -> file IDs. When set, the agent reads exactly these files, mounted at /inputs/<slot>/<file_id>.md, instead of finding its inputs in the project's file tree. Only workflows with an explicit-inputs prompt accept it.
+   */
+  input_files?: {
+    [key: string]: Array<string>;
+  } | null;
 };
 
 /**
@@ -3985,6 +4040,27 @@ export type StartMultipleWorkflowsResponse = {
    * Message
    */
   message: string;
+};
+
+/**
+ * StartReviewAssistantRunRequest
+ *
+ * One review-assistant output, run on the files picked for its inputs.
+ */
+export type StartReviewAssistantRunRequest = {
+  /**
+   * Project Id
+   */
+  project_id: string;
+  /**
+   * revision_planning_summary, reviewer_response_memos or reviewer_coverage_report
+   */
+  output: WorkflowRunType;
+  inputs: ReviewAssistantInputs;
+  /**
+   * Model
+   */
+  model?: string | null;
 };
 
 /**
@@ -7410,6 +7486,72 @@ export type GetSharedResourceApiPublicShareTokenGetResponses = {
 
 export type GetSharedResourceApiPublicShareTokenGetResponse =
   GetSharedResourceApiPublicShareTokenGetResponses[keyof GetSharedResourceApiPublicShareTokenGetResponses];
+
+export type StartReviewAssistantRunApiReviewAssistantRunsPostData = {
+  body: StartReviewAssistantRunRequest;
+  path?: never;
+  query?: never;
+  url: '/api/review-assistant/runs';
+};
+
+export type StartReviewAssistantRunApiReviewAssistantRunsPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type StartReviewAssistantRunApiReviewAssistantRunsPostError =
+  StartReviewAssistantRunApiReviewAssistantRunsPostErrors[keyof StartReviewAssistantRunApiReviewAssistantRunsPostErrors];
+
+export type StartReviewAssistantRunApiReviewAssistantRunsPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: StartWorkflowResponse;
+};
+
+export type StartReviewAssistantRunApiReviewAssistantRunsPostResponse =
+  StartReviewAssistantRunApiReviewAssistantRunsPostResponses[keyof StartReviewAssistantRunApiReviewAssistantRunsPostResponses];
+
+export type ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetData = {
+  body?: never;
+  path: {
+    /**
+     * Project Id
+     */
+    project_id: string;
+  };
+  query: {
+    /**
+     * The review-assistant output
+     */
+    output: WorkflowRunType;
+  };
+  url: '/api/review-assistant/projects/{project_id}/runs';
+};
+
+export type ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetError =
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors[keyof ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors];
+
+export type ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses = {
+  /**
+   * Response List Review Assistant Runs Endpoint Api Review Assistant Projects  Project Id  Runs Get
+   *
+   * Successful Response
+   */
+  200: Array<ReviewAssistantRun>;
+};
+
+export type ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponse =
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses[keyof ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses];
 
 export type ExtensionTerminationRouteTusUuidDeleteData = {
   body?: never;

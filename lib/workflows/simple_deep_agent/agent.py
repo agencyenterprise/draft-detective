@@ -77,6 +77,9 @@ class SimpleDeepAgent(LangChainAgent):
     the system prompt, whichever prompt is in use. It is opt-in: a bound tool
     is an invitation, and a language or structure check would spend turns
     looking at logos. Workflows whose judgment can hinge on a figure ask for it.
+
+    `input_files` replaces the project file tree with just the files picked for
+    the run, mounted under `/inputs/` (see `SimpleDeepAgentConfig.input_files`).
     """
 
     name = "Simple Deep Agent"
@@ -95,6 +98,7 @@ class SimpleDeepAgent(LangChainAgent):
         reasoning_effort: Optional[Literal["low", "medium", "high"]] = None,
         timeout: Optional[int] = None,
         view_images: bool = False,
+        input_files: Optional[dict[str, list[str]]] = None,
     ):
         super().__init__(context)
         self._system_prompt = system_prompt or _SYSTEM_PROMPT
@@ -105,6 +109,7 @@ class SimpleDeepAgent(LangChainAgent):
         self._propose_edits = propose_edits
         self._tools = tools
         self._view_images = view_images
+        self._input_files = input_files
         # Shadows the class-level `reasoning` for this instance only, so one
         # workflow can ask for more reasoning without affecting the others that
         # share this agent.
@@ -123,8 +128,11 @@ class SimpleDeepAgent(LangChainAgent):
         # Fetched before the agent is built: the collector needs the document's
         # text to check any proposed edit against real lines, and the same file
         # tree is what the agent runs on.
-        files = await self.context.file_artifacts_service.get_deepagent_backend_files(
-            include_skills=True,
+        service = self.context.file_artifacts_service
+        files = (
+            await service.get_input_backend_files(self._input_files)
+            if self._input_files
+            else await service.get_deepagent_backend_files(include_skills=True)
         )
         issue_reporter = (
             IssueReporter(
