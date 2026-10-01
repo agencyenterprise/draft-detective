@@ -223,8 +223,9 @@ async def get_workflow_run(
     Use it for results a workflow reports outside of the issues get_project
     returns. Run IDs are in get_project's workflow_runs[].run.id.
 
-    include_messages: also return the agent transcript in state.messages. Off
-    by default: it is long and rarely needed beyond debugging a run.
+    include_messages: also return the agent transcripts: state.messages and
+    the messages each result item keeps (e.g. a reference's validation). Off
+    by default: they are long and rarely needed beyond debugging a run.
     """
     user = await helpers.resolve_user(token)
     run = await get_workflow_run_record(workflow_run_id)

@@ -5935,7 +5935,7 @@ export type GetWorkflowStateApiWorkflowsWorkflowRunIdGetData = {
     /**
      * Include Messages
      *
-     * Include the agent transcript in `state.messages`.
+     * Include the agent transcripts: `state.messages` and the `messages` each result item keeps.
      */
     include_messages?: boolean;
     /**

@@ -2,7 +2,7 @@ import asyncio
 import logging
 from enum import StrEnum
 from datetime import datetime
-from typing import List, Optional, Type, cast
+from typing import Any, List, Optional, Type, TypeVar, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
@@ -33,6 +33,8 @@ from lib.workflows.registry import get_workflow_manifest, is_available_workflow_
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
 class WorkflowStateStatus(StrEnum):
@@ -163,11 +165,37 @@ def hydrate_workflow_run_state_with_status(
         return None, WorkflowStateStatus.SCHEMA_MISMATCH
 
 
-def _without_messages(state: WorkflowState | None) -> WorkflowState | None:
-    """The state with its agent transcript emptied, when it has one."""
-    if state is None or "messages" not in type(state).model_fields:
-        return state
-    return state.model_copy(update={"messages": []})
+def _without_messages(value: _T) -> _T:
+    """`value` with every agent transcript in it emptied.
+
+    Besides the state's own `messages`, result items keep the conversation
+    that produced them (a reference's validation or fetch, a section's
+    verification, a chunk's scan), so the whole state is walked. Untouched
+    parts are returned as they are, never copied.
+    """
+    if isinstance(value, BaseModel):
+        updates: dict[str, Any] = {}
+        for name in type(value).model_fields:
+            if name not in value.__dict__:  # unset on a model_construct()ed model
+                continue
+            field = value.__dict__[name]
+            if name == "messages" and isinstance(field, list):
+                if field:
+                    updates[name] = []
+                continue
+            stripped = _without_messages(field)
+            if stripped is not field:
+                updates[name] = stripped
+        return value.model_copy(update=updates) if updates else value
+    if isinstance(value, list):
+        items = [_without_messages(item) for item in value]
+        changed = any(new is not old for new, old in zip(items, value))
+        return cast(_T, items) if changed else value
+    if isinstance(value, dict):
+        entries = {key: _without_messages(item) for key, item in value.items()}
+        changed = any(entries[key] is not item for key, item in value.items())
+        return cast(_T, entries) if changed else value
+    return value
 
 
 async def build_workflow_run_detail(

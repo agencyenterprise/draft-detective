@@ -12,10 +12,16 @@ from langchain_core.messages import HumanMessage
 from lib.services.project_content import _text_or_none, _validate_items
 from lib.services.project_overview import current_run_errors
 from lib.services.workflow_runs import _without_messages
+from lib.workflows.about_this_ger.state import AgentConversation
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowErrorSeverity, WorkflowRunType
 from lib.workflows.reference_downloader.state import ReferenceFetchResult
 from lib.workflows.reference_extraction.state import ExtractedReference
+from lib.workflows.reference_validation_v2.state import (
+    ReferenceValidationV2Item,
+    ReferenceValidationV2State,
+    ReferenceValidationV2WorkflowConfig,
+)
 from lib.workflows.simple_deep_agent.state import (
     SimpleDeepAgentConfig,
     SimpleDeepAgentState,
@@ -109,6 +115,33 @@ class TestWithoutMessages:
 
     def test_no_state_stays_no_state(self):
         assert _without_messages(None) is None
+
+    def test_empties_the_transcript_each_result_item_keeps(self):
+        state = ReferenceValidationV2State(
+            type=WorkflowRunType.REFERENCE_VALIDATION_V2,
+            config=ReferenceValidationV2WorkflowConfig(
+                type=WorkflowRunType.REFERENCE_VALIDATION_V2, project_id="p"
+            ),
+            reference_validations=[
+                ReferenceValidationV2Item(
+                    reference_id="r1",
+                    input_reference="Smith 2020",
+                    messages=[HumanMessage(content="Check Smith.")],
+                )
+            ],
+        )
+
+        stripped = _without_messages(state)
+
+        (item,) = stripped.reference_validations
+        assert item.messages == []
+        assert item.input_reference == "Smith 2020"
+        assert len(state.reference_validations[0].messages) == 1
+
+    def test_parts_without_a_transcript_are_not_copied(self):
+        conversations = {"a": [AgentConversation(name="preface")]}
+
+        assert _without_messages(conversations) is conversations
 
 
 class TestTextOrNone:

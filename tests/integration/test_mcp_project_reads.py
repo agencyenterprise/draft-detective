@@ -114,6 +114,33 @@ async def test_get_workflow_run_leaves_the_transcript_out_unless_asked(page):
     assert "cost" in default
 
 
+async def _run_id_of(page: dict[str, Any], workflow_type: WorkflowRunType | str) -> str:
+    async with get_async_db_session() as session:
+        run_id = (
+            await session.execute(
+                select(col(WorkflowRun.id)).where(
+                    col(WorkflowRun.project_id) == uuid.UUID(page["project_id"]),
+                    col(WorkflowRun.type) == workflow_type,
+                )
+            )
+        ).scalar_one()
+    return str(run_id)
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_run_empties_the_transcripts_items_keep(page):
+    run_id = await _run_id_of(page, WorkflowRunType.REFERENCE_DOWNLOADER)
+
+    default = await _get_run(page, run_id)
+    with_messages = await _get_run(page, run_id, include_messages=True)
+
+    (fetched,) = default["state"]["fetched_references"]
+    assert fetched["status"] == "completed"
+    assert fetched["messages"] == []
+    (kept,) = with_messages["state"]["fetched_references"]
+    assert len(kept["messages"]) == 1
+
+
 @pytest.mark.asyncio
 async def test_get_workflow_run_rejects_strangers(page):
     with pytest.raises(HTTPException) as exc:
@@ -123,18 +150,10 @@ async def test_get_workflow_run_rejects_strangers(page):
 
 @pytest.mark.asyncio
 async def test_get_workflow_run_refuses_a_retired_workflow(page):
-    async with get_async_db_session() as session:
-        retired_id = (
-            await session.execute(
-                select(col(WorkflowRun.id)).where(
-                    col(WorkflowRun.project_id) == uuid.UUID(page["project_id"]),
-                    col(WorkflowRun.type) == RETIRED_TYPE,
-                )
-            )
-        ).scalar_one()
+    retired_id = await _run_id_of(page, RETIRED_TYPE)
 
     with pytest.raises(ValueError, match="no longer available"):
-        await _get_run(page, str(retired_id))
+        await _get_run(page, retired_id)
 
 
 def _converted(file_id: str) -> FileDocument:
