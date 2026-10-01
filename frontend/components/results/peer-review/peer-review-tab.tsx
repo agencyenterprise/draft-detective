@@ -87,7 +87,8 @@ export function PeerReviewTab({
   );
 
   // Always the current revision: a response memo describes the draft it
-  // replies from, and the backend rejects any other target.
+  // replies from, and the backend rejects any other target. Passing it pins
+  // the upload to the revision on screen when it starts.
   const responseDialog = (
     <FileUploadDialog
       isOpen={responseUploadOpen}
@@ -96,6 +97,7 @@ export function PeerReviewTab({
       description={`Add the final replies the author sent to the reviewers. They attach to revision ${currentRevision}, the revised draft, and the QA coverage report checks what they say against it.`}
       multiple
       fileRole={FileRole.ResponseMemo}
+      currentRevision={currentRevision}
       onCancel={() => setResponseUploadOpen(false)}
       onComplete={() => setResponseUploadOpen(false)}
     />

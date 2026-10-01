@@ -43,7 +43,10 @@ export interface FileUploadDialogProps {
    * the project has only one revision, since there is nothing to choose.
    */
   allowRevisionSelection?: boolean;
-  /** The project's current revision, used to build the revision options. */
+  /**
+   * The project's current revision: builds the reviewer-memo revision options,
+   * and is the revision author responses are sent against.
+   */
   currentRevision?: number;
   /** When set, force-matches the uploaded file to this reference instead of triggering the matching workflow. */
   referenceId?: string;
@@ -56,6 +59,24 @@ const SUCCESS_MESSAGES: Partial<Record<FileRole, string>> = {
   [FileRole.ReviewerMemo]: 'Reviewer memos uploaded.',
   [FileRole.ResponseMemo]: 'Response memos uploaded.',
 };
+
+/**
+ * The revision sent with each file. Only memos carry one; for any other role
+ * it is a 400. Reviewer memos send the draft picked in the dialog (none means
+ * the current one). Author responses send the current revision as it stood
+ * when the upload started — the upload hook stamps it onto each file then — so
+ * if a new revision lands mid-upload the backend rejects the file instead of
+ * filing it against a draft it does not describe.
+ */
+function revisionForUpload(
+  fileRole: FileRole,
+  selectedRevision: number | undefined,
+  currentRevision: number | undefined,
+): number | undefined {
+  if (fileRole === FileRole.ReviewerMemo) return selectedRevision;
+  if (fileRole === FileRole.ResponseMemo) return currentRevision;
+  return undefined;
+}
 
 export function FileUploadDialog({
   isOpen,
@@ -83,8 +104,7 @@ export function FileUploadDialog({
   // already tied to a specific reference); other roles skip it.
   const skipMatching = fileRole !== FileRole.Support;
   const successMessage = SUCCESS_MESSAGES[fileRole] ?? 'Files uploaded. Matching them to your references.';
-  // Only memos carry a revision; sending one for any other role is a 400.
-  const uploadRevision = isMemoUpload ? selectedRevision : undefined;
+  const uploadRevision = revisionForUpload(fileRole, selectedRevision, currentRevision);
   // Shown even when there is only one revision: memos are always bound to a
   // specific draft, and seeing that up front is what stops people from
   // attaching a later batch to the wrong one.

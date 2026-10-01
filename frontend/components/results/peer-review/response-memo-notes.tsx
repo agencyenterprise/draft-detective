@@ -52,8 +52,6 @@ export function ResponsesCallout({
 
 /** Above the coverage report: which inputs it reads, and whether it is behind them. */
 export function CoverageInputsNote({ facts, hasReport }: { facts: PeerReviewFacts; hasReport: boolean }) {
-  const count = facts.activeResponseMemos.length;
-
   if (hasReport && facts.responsesNewerThanCoverage) {
     return (
       <p className="flex items-start gap-2 text-xs leading-relaxed text-amber-700 dark:text-amber-400">
@@ -66,9 +64,30 @@ export function CoverageInputsNote({ facts, hasReport }: { facts: PeerReviewFact
 
   return (
     <p className="text-xs leading-relaxed text-muted-foreground">
-      {count > 0
-        ? `Checks ${plural(count, 'author response memo')} against revision ${facts.currentRevision}.`
-        : "No author response memos uploaded, so every verdict comes from comparing the two drafts. Upload the author's final replies in step 3 to have them checked too."}
+      {hasReport ? describeExistingReportInputs(facts) : describeNextRunInputs(facts)}
     </p>
   );
+}
+
+/** What the next run will read. */
+function describeNextRunInputs(facts: PeerReviewFacts): string {
+  const count = facts.activeResponseMemos.length;
+  return count > 0
+    ? `Will check ${plural(count, 'author response memo')} against revision ${facts.currentRevision}.`
+    : "No author response memos uploaded, so every verdict will come from comparing the two drafts. Upload the author's final replies in step 3 to have them checked too.";
+}
+
+/**
+ * What is uploaded now, without claiming what the report on screen read. A
+ * memo removed after the report leaves no trace in the file list, so the
+ * report may still quote replies that are gone; its own header says which
+ * inputs it had.
+ */
+function describeExistingReportInputs(facts: PeerReviewFacts): string {
+  const count = facts.activeResponseMemos.length;
+  const uploaded =
+    count > 0
+      ? `${plural(count, 'author response memo')} on revision ${facts.currentRevision}.`
+      : 'No author response memos are uploaded.';
+  return `${uploaded} The report's header says whether it read any. Generate it again after adding or removing them.`;
 }
