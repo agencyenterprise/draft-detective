@@ -32,14 +32,17 @@ const REPORT_CONTAINMENT_CSS = `
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: auto !important; height: auto !important; min-height: 0 !important; }
 /* The frame is sized to its content, so the report never needs to scroll
-   itself. Undo a report that asks for its own scrollbar (\`overflow-y: scroll\`
-   forces the track to render even with nothing to scroll), then hide the root
-   scrollbar chrome outright. Hiding the chrome rather than setting
-   \`overflow: hidden\` keeps the content scrollable by wheel or keyboard, so a
-   measurement that ever came up short cannot make anything unreachable. */
+   itself, and on screen it must not be able to: a frame that can scroll even
+   one pixel captures the wheel, and the browser keeps the whole gesture latched
+   to it, so the page stops scrolling under the cursor until a new gesture
+   starts. \`overflow: hidden\` on the root makes the frame a non-scroller, and
+   the wheel then goes straight to the page. Screen only, so printing is never
+   clipped to what the root shows; the frame's own sizing (see the border note
+   on the iframe) is what keeps the content from being cut off on screen. */
 html, body { overflow: visible !important; }
-html { scrollbar-width: none; }
-html::-webkit-scrollbar { width: 0; height: 0; }
+@media screen {
+  html, body { overflow: hidden !important; }
+}
 body { overflow-wrap: break-word; }
 body * { max-width: 100%; }
 img, svg, video, canvas { height: auto; }
@@ -172,6 +175,11 @@ export function HtmlReportFrame({ html, title = 'Report', className, ref }: Html
       sandbox="allow-same-origin allow-modals"
       srcDoc={srcDoc}
       className={className ?? 'block w-full rounded-lg border bg-white'}
+      // The resizer writes the content height to style.height. Under the app's
+      // border-box default the frame's border came out of that height, leaving
+      // the report a couple of pixels short of its own content; content-box
+      // puts the border outside it.
+      style={{ boxSizing: 'content-box' }}
     />
   );
 }
