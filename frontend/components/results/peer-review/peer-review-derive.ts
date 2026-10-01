@@ -1,5 +1,5 @@
 /**
- * Derives everything the Peer Review tab needs from `projectDetail`.
+ * Derives everything the Peer Review tab needs from the project overview.
  *
  * Deliberately pure and React-free: these predicates mirror server-side
  * prechecks, and the point of keeping them in one file is that they can be read
@@ -17,17 +17,18 @@
 import {
   FileListItem,
   FileRole,
-  ProjectDetailed,
-  SimpleDeepAgentState,
+  ProjectOverview,
   WorkflowRunStatus,
+  WorkflowRunSummary,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getDisplayStatus, getWorkflowRunByType, WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { findRunByType, getDisplayStatus } from '@/lib/workflow-state';
 
+/** The step runs as the overview lists them; a step fetches its run's state when shown. */
 export interface PeerReviewRuns {
-  plan?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
-  memos?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
-  coverage?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
+  plan?: WorkflowRunSummary;
+  memos?: WorkflowRunSummary;
+  coverage?: WorkflowRunSummary;
 }
 
 export interface PeerReviewFacts {
@@ -81,18 +82,18 @@ export interface PeerReviewFacts {
   runs: PeerReviewRuns;
 }
 
-export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerReviewFacts {
-  const files = projectDetail.files ?? [];
-  const workflowRuns = projectDetail.workflow_runs ?? [];
+export function derivePeerReviewFacts(overview: ProjectOverview): PeerReviewFacts {
+  const files = overview.files ?? [];
+  const workflowRuns = overview.workflow_runs ?? [];
 
-  const currentRevision = projectDetail.project.current_revision ?? 1;
-  // `projectDetail.revision` is the revision the API actually returned, which is
+  const currentRevision = overview.project.current_revision ?? 1;
+  // `overview.revision` is the revision the API actually returned, which is
   // more reliable than the selectedRevision prop (the share page never sends one).
-  const viewedRevision = projectDetail.revision ?? currentRevision;
+  const viewedRevision = overview.revision ?? currentRevision;
   const isViewingOldRevision = viewedRevision < currentRevision;
 
   // Mirrors get_latest_reviewer_memo_revision(): every memo, drop null revisions,
-  // take the max. `projectDetail.files` spans all revisions.
+  // take the max. `overview.files` spans all revisions.
   const memos = files.filter((f) => f.role === FileRole.ReviewerMemo);
   const memoRevisions = memos.map((f) => f.revision).filter((r): r is number => r != null);
   const reviewedRevision = memoRevisions.length > 0 ? Math.max(...memoRevisions) : null;
@@ -113,7 +114,7 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
   // All three declare required_dependencies = [DOCUMENT_PROCESSING], and starting
   // a run whose dependency has not completed errors out. There is a real window
   // right after a new revision where the main file exists but processing is not done.
-  const documentProcessing = getWorkflowRunByType(workflowRuns, WorkflowRunType.DocumentProcessing);
+  const documentProcessing = findRunByType(workflowRuns, WorkflowRunType.DocumentProcessing);
   const documentProcessingReady =
     !!documentProcessing && getDisplayStatus(documentProcessing) === WorkflowRunStatus.Completed;
 
@@ -123,7 +124,7 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
   const activeResponseMemos = responseMemos.filter((f) => f.revision === currentRevision);
   const canUploadResponses = hasRevisedDraft && !isViewingOldRevision;
 
-  const coverageRun = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
+  const coverageRun = findRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
   // Generated types say Date, but the wire value is an ISO string.
   const coverageCompletedAt = coverageRun?.run.completed_at ? new Date(coverageRun.run.completed_at).getTime() : null;
   const responsesNewerThanCoverage =
@@ -187,8 +188,8 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
     reviseBlockedReason,
     comparisonBlockedReason,
     runs: {
-      plan: getWorkflowRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
-      memos: getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
+      plan: findRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
+      memos: findRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
       coverage: coverageRun,
     },
   };

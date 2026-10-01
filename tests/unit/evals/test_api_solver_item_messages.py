@@ -164,16 +164,14 @@ async def test_cache_reads_and_writes_both_reach_the_model_event():
 
 
 def test_persisted_issues_keep_only_this_runs_issues_in_the_checked_shape():
-    project = {
-        "issues": [
-            {"workflow_run_id": "run-1", "title": "Ambiguous abbreviation", "description": "d", "severity": "medium",
-             "start_line": 4, "end_line": 4, "suggested_action": None, "long_description": None, "issue_hash": "h"},
-            {"workflow_run_id": "run-1", "title": "No Abbreviations section found", "description": "d",
-             "severity": "medium", "start_line": None, "end_line": None},
-            {"workflow_run_id": "run-2", "title": "Other workflow", "description": "d", "severity": "low"},
-        ]
-    }
-    issues = persisted_issues(project, "run-1")
+    project_issues = [
+        {"workflow_run_id": "run-1", "title": "Ambiguous abbreviation", "description": "d", "severity": "medium",
+         "start_line": 4, "end_line": 4, "suggested_action": None, "long_description": None, "issue_hash": "h"},
+        {"workflow_run_id": "run-1", "title": "No Abbreviations section found", "description": "d",
+         "severity": "medium", "start_line": None, "end_line": None},
+        {"workflow_run_id": "run-2", "title": "Other workflow", "description": "d", "severity": "low"},
+    ]
+    issues = persisted_issues(project_issues, "run-1")
     assert [i["title"] for i in issues] == ["Ambiguous abbreviation", "No Abbreviations section found"]
     assert issues[1]["start_line"] == 0 and issues[1]["end_line"] == 0, "a missing line reads as 0"
     assert "issue_hash" not in issues[0] and "workflow_run_id" not in issues[0]

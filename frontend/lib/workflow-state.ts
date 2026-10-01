@@ -9,8 +9,8 @@ import {
   SimpleDeepAgentState,
   WorkflowError,
   WorkflowErrorSeverity,
-  WorkflowRun,
   WorkflowRunDetail,
+  WorkflowRunPublic,
   WorkflowRunStatus,
   WorkflowRunType,
 } from './generated-api';
@@ -51,8 +51,26 @@ type WorkflowTypeToDetail = BespokeWorkflowStates & {
 };
 
 export interface WorkflowRunDetailTyped<T> {
-  run: WorkflowRun;
+  run: WorkflowRunPublic;
   state: T;
+}
+
+/**
+ * What the status helpers read from a run: the run itself and its errors.
+ * A `WorkflowRunSummary` carries the run's own errors in `errors`; a full
+ * `WorkflowRunDetail` carries every error of its thread in `state.errors`.
+ */
+export interface RunWithErrors {
+  run: WorkflowRunPublic;
+  errors?: WorkflowError[];
+  state?: { errors?: WorkflowError[] | null } | null;
+}
+
+type RunLike = { run: WorkflowRunPublic };
+
+/** The run of one type among the overview's runs or any other run list. */
+export function findRunByType<T extends RunLike>(runs: T[], type: WorkflowRunType): T | undefined {
+  return runs.find((workflowRun) => workflowRun.run.type === type);
 }
 
 /**
@@ -93,7 +111,7 @@ export function isBlockingError(error: WorkflowError): boolean {
  * Check if a workflow run has errors from the current run only, of any severity.
  * Used to decide whether to surface error messages at all.
  */
-export function hasCurrentRunErrors(workflowRun: WorkflowRunDetail): boolean {
+export function hasCurrentRunErrors(workflowRun: RunWithErrors): boolean {
   return getCurrentRunErrors(workflowRun).length > 0;
 }
 
@@ -101,7 +119,7 @@ export function hasCurrentRunErrors(workflowRun: WorkflowRunDetail): boolean {
  * Check if a workflow run has errors that cost it output.
  * Used to determine if a run should be displayed as "failed".
  */
-export function hasBlockingErrors(workflowRun: WorkflowRunDetail): boolean {
+export function hasBlockingErrors(workflowRun: RunWithErrors): boolean {
   return getCurrentRunErrors(workflowRun).some(isBlockingError);
 }
 
@@ -109,8 +127,8 @@ export function hasBlockingErrors(workflowRun: WorkflowRunDetail): boolean {
  * Get errors filtered to only include those from the current workflow run.
  * Used for displaying errors in the UI.
  */
-export function getCurrentRunErrors(workflowRun: WorkflowRunDetail): WorkflowError[] {
-  const errors = workflowRun.state?.errors ?? [];
+export function getCurrentRunErrors(workflowRun: RunWithErrors): WorkflowError[] {
+  const errors = workflowRun.errors ?? workflowRun.state?.errors ?? [];
   return filterErrorsToCurrentRun(errors, workflowRun.run.id);
 }
 
@@ -126,19 +144,16 @@ export type DisplayStatus = WorkflowRunStatus;
  * status. Warnings — failures the workflow recovered from — leave the run
  * completed; they are surfaced as messages rather than as a failed run.
  */
-export function getDisplayStatus(workflowRun: WorkflowRunDetail): DisplayStatus {
+export function getDisplayStatus(workflowRun: RunWithErrors): DisplayStatus {
   if (workflowRun.run.status === WorkflowRunStatus.Completed && hasBlockingErrors(workflowRun)) {
     return WorkflowRunStatus.Failed;
   }
   return workflowRun.run.status;
 }
 
-export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
+export function getWorkflowErrors(workflowRuns: RunWithErrors[]): WorkflowError[] {
   return workflowRuns
-    .flatMap((result) => {
-      const errors = result?.state?.errors ?? [];
-      return filterErrorsToCurrentRun(errors, result.run.id);
-    })
+    .flatMap(getCurrentRunErrors)
     .filter((error) => error.chunk_index === null || error.chunk_index === undefined);
 }
 
@@ -146,11 +161,11 @@ export function getWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowEr
  * Workflow-level errors that cost the run output. Use for banners that tell the
  * user something went wrong, so recovered failures do not trigger them.
  */
-export function getBlockingWorkflowErrors(workflowRuns: WorkflowRunDetail[]): WorkflowError[] {
+export function getBlockingWorkflowErrors(workflowRuns: RunWithErrors[]): WorkflowError[] {
   return getWorkflowErrors(workflowRuns).filter(isBlockingError);
 }
 
-export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined): boolean {
+export function isWorkflowProcessing(workflowRun: RunLike | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Running || workflowRun.run.status === WorkflowRunStatus.Pending;
 }
@@ -159,22 +174,22 @@ export function isWorkflowProcessing(workflowRun: WorkflowRunDetail | undefined)
  * Whether a run is awaiting approval of a consent gate. Nothing happens to it
  * until the user approves, so it is neither processing nor finished.
  */
-export function isWorkflowAwaitingApproval(workflowRun: WorkflowRunDetail | undefined): boolean {
+export function isWorkflowAwaitingApproval(workflowRun: RunLike | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.AwaitingApproval;
 }
 
-export function isWorkflowCancelled(workflowRun: WorkflowRunDetail | undefined): boolean {
+export function isWorkflowCancelled(workflowRun: RunLike | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Cancelled;
 }
 
-export function isWorkflowFailed(workflowRun: WorkflowRunDetail | undefined): boolean {
+export function isWorkflowFailed(workflowRun: RunLike | undefined): boolean {
   if (!workflowRun) return false;
   return workflowRun.run.status === WorkflowRunStatus.Failed;
 }
 
-export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): boolean {
+export function isAnyWorkflowProcessing(workflowRuns: RunLike[]): boolean {
   return workflowRuns.some((workflowRun) => isWorkflowProcessing(workflowRun));
 }
 
@@ -185,7 +200,7 @@ export function isAnyWorkflowProcessing(workflowRuns: WorkflowRunDetail[]): bool
  * the reference review specifically, see `needsReferenceReview` in
  * `components/workflows/utils`.
  */
-export function needsApproval(workflowRuns: WorkflowRunDetail[]): boolean {
+export function needsApproval(workflowRuns: RunLike[]): boolean {
   return workflowRuns.some(isWorkflowAwaitingApproval);
 }
 
@@ -196,6 +211,6 @@ export function needsApproval(workflowRuns: WorkflowRunDetail[]): boolean {
  * `isAnyWorkflowProcessing`; it stays as a named entry point for the places
  * that ask "is the pipeline busy" rather than "is this run busy".
  */
-export function isAnyWorkflowActive(workflowRuns: WorkflowRunDetail[]): boolean {
+export function isAnyWorkflowActive(workflowRuns: RunLike[]): boolean {
   return isAnyWorkflowProcessing(workflowRuns);
 }

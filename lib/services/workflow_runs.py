@@ -163,6 +163,35 @@ def hydrate_workflow_run_state_with_status(
         return None, WorkflowStateStatus.SCHEMA_MISMATCH
 
 
+def _without_messages(state: WorkflowState | None) -> WorkflowState | None:
+    """The state with its agent transcript emptied, when it has one."""
+    if state is None or "messages" not in type(state).model_fields:
+        return state
+    return state.model_copy(update={"messages": []})
+
+
+async def build_workflow_run_detail(
+    run: WorkflowRun, include_state: bool = True, include_messages: bool = True
+) -> WorkflowRunDetail:
+    """One run with its hydrated state and cost.
+
+    `run` must be loaded with `state_json`. Cost is priced from the state's
+    usage records, so it is computed before anything is left out.
+    """
+    state, status = hydrate_workflow_run_state_with_status(run)
+    [cost] = await _compute_costs_for_states([state])
+    if not include_state:
+        state = None
+    elif not include_messages:
+        state = _without_messages(state)
+    return WorkflowRunDetail(
+        run=WorkflowRunPublic.model_validate(run),
+        state=state,
+        cost=cost,
+        state_status=status,
+    )
+
+
 async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
     """Single read path for a run's workflow state, hydrated from `state_json`.
 
@@ -277,11 +306,19 @@ async def update_workflow_run_heartbeat(workflow_run_id: str) -> None:
     "node ticked" remain separable.
     """
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(col(WorkflowRun.id) == workflow_run_id)
-        run = (await session.execute(stmt)).scalar_one_or_none()
-        if run:
-            run.heartbeat_at = datetime.utcnow()
-            await session.commit()
+        # Writing last_updated_at to itself keeps its `onupdate` from firing:
+        # clients read last_updated_at as "the run's status or state changed"
+        # and refetch on it, which a heartbeat must not trigger.
+        stmt = (
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == workflow_run_id)
+            .values(
+                heartbeat_at=datetime.utcnow(),
+                last_updated_at=col(WorkflowRun.last_updated_at),
+            )
+        )
+        await session.execute(stmt)
+        await session.commit()
 
 
 async def get_workflow_run_status(workflow_run_id: str) -> WorkflowRunStatus | None:
@@ -484,38 +521,7 @@ async def get_project_workflow_runs_by_type(
         return list((await session.execute(stmt)).scalars().all())
 
 
-async def get_project_workflow_runs_by_type_with_details(
-    project_id: str,
-    workflow_type: WorkflowRunType,
-    revision: int,
-) -> List[WorkflowRunDetail]:
-    """
-    Get all workflow runs of a specific type for a project, including full state.
-
-    Returns all runs ordered by created_at descending (newest first).
-    Used for displaying workflow run history in the UI with error status.
-    """
-    runs = await get_project_workflow_runs_by_type(
-        project_id, workflow_type, revision=revision, include_state=True
-    )
-
-    # Each run carries its own state_json, so state (and cost) are read per run
-    # directly — no checkpointer fan-out, and no thread-sharing band-aid needed.
-    hydrated = [hydrate_workflow_run_state_with_status(run) for run in runs]
-    states = [state for state, _ in hydrated]
-    costs = await _compute_costs_for_states(states)
-    return [
-        WorkflowRunDetail(
-            run=WorkflowRunPublic.model_validate(run),
-            state=state,
-            cost=cost,
-            state_status=status,
-        )
-        for run, (state, status), cost in zip(runs, hydrated, costs)
-    ]
-
-
-def _latest_run_per_type_stmt(
+def latest_run_per_type_stmt(
     project_id: str, revision: int
 ) -> Select[tuple[WorkflowRun]]:
     """One row per workflow type for a project revision, ranked
@@ -552,7 +558,7 @@ async def get_project_run_summaries(
     """
     async with get_async_db_session() as session:
         runs = (
-            (await session.execute(_latest_run_per_type_stmt(project_id, revision)))
+            (await session.execute(latest_run_per_type_stmt(project_id, revision)))
             .scalars()
             .all()
         )
@@ -570,7 +576,7 @@ async def get_project_workflow_runs(
     Returns only 1 row per workflow type, using priority:
     RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     """
-    stmt = _latest_run_per_type_stmt(project_id, revision).options(
+    stmt = latest_run_per_type_stmt(project_id, revision).options(
         # Load state_json in-session so read_workflow_run_state can hydrate it.
         undefer(col(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
     )

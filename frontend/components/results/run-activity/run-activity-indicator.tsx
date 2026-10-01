@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { WorkflowRunDetail } from '@/lib/generated-api';
+import { WorkflowRunSummary } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { isAnyWorkflowActive } from '@/lib/workflow-state';
 import { Loader2 } from 'lucide-react';
@@ -11,7 +11,7 @@ import { RunActivityItem, useRunActivity } from './use-run-activity';
 
 interface RunActivityIndicatorProps {
   projectId: string;
-  workflowDetails: WorkflowRunDetail[];
+  workflowDetails: WorkflowRunSummary[];
 }
 
 /**

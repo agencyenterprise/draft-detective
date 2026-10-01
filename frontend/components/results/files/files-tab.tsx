@@ -10,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
-import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { FileListItem, FileRole, ProjectOverview } from '@/lib/generated-api';
+import { useProjectReferences } from '@/lib/hooks/use-project-data';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, Loader2, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
@@ -23,7 +23,7 @@ import { FileGroup, GROUP, fileGroup, revisionLabel, sortFiles } from './role';
 type Lens = 'all' | FileGroup;
 
 interface FilesTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   readOnly: boolean;
   onRevisionCreated?: () => void;
 }
@@ -33,17 +33,16 @@ interface FilesTabProps {
  * a toolbar that acts on all of them, a table, and a detail pane for the one
  * you have selected.
  */
-export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTabProps) {
-  const projectId = projectDetail.project.id;
-  const currentRevision = projectDetail.project.current_revision ?? 1;
-  const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProps) {
+  const projectId = overview.project.id;
+  const currentRevision = overview.project.current_revision ?? 1;
+  const allFiles = useMemo(() => overview.files ?? [], [overview.files]);
   // Supporting candidates are a staging role the reference downloader uses
   // while it works, not files the project holds. The API already leaves them
-  // out of projectDetail.files — get_project_files_list_items filters the role
+  // out of overview.files — get_project_files_list_items filters the role
   // in SQL — so this is belt and braces, and the tab's counts match the badge
   // in the header because both read this same list.
   const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
-  const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
   const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
@@ -62,19 +61,15 @@ export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTa
     FileRole.ResponseMemo,
   ]);
 
-  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
-  const referenceFileMatching = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceFileMatching);
+  // Only labels each file with the reference it backs, so the table does not wait on it.
+  const { data: referenceData } = useProjectReferences(overview);
 
   const referenceByFileId = useMemo(
     () =>
       buildReferenceByFileIdMap(
-        composeReferences(
-          referenceExtraction?.state?.extracted_references,
-          referenceFileMatching?.state?.matches,
-          allFiles,
-        ),
+        composeReferences(referenceData?.extracted_references, referenceData?.matches, allFiles),
       ),
-    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, allFiles],
+    [referenceData?.extracted_references, referenceData?.matches, allFiles],
   );
 
   const sorted = useMemo(() => sortFiles(files), [files]);

@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AccessLevel, ProjectDetailed, SimpleDeepAgentState } from '@/lib/generated-api';
+import { Issue, SimpleDeepAgentState } from '@/lib/generated-api';
 import {
   isWorkflowCancelled,
   isWorkflowFailed,
@@ -23,7 +23,9 @@ import { Ban, ClipboardList, Download, Loader2, MessageSquare, XCircle } from 'l
 import { useMemo, useRef, useState } from 'react';
 
 interface SimpleDeepAgentResultsProps {
-  project: ProjectDetailed;
+  /** Every issue of the run's revision; the view picks the run's own. */
+  issues: Issue[];
+  canEditIssues: boolean;
   workflowDetail: WorkflowRunDetailTyped<SimpleDeepAgentState>;
   workflowName: string;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
@@ -44,7 +46,8 @@ function ReportCard({ reportMarkdown }: { reportMarkdown: string }) {
 }
 
 export function SimpleDeepAgentResults({
-  project,
+  issues: allIssues,
+  canEditIssues,
   workflowDetail,
   workflowName,
   onNavigateToDocumentExplorer,
@@ -54,8 +57,8 @@ export function SimpleDeepAgentResults({
 
   const workflowRunId = workflowDetail.run.id;
   const issues = useMemo(
-    () => (project.issues ?? []).filter((i) => i.workflow_run_id === workflowRunId),
-    [project.issues, workflowRunId],
+    () => allIssues.filter((i) => i.workflow_run_id === workflowRunId),
+    [allIssues, workflowRunId],
   );
 
   const runtime = useExternalStoreRuntime({
@@ -166,7 +169,7 @@ export function SimpleDeepAgentResults({
             {result.report_markdown && <ReportCard reportMarkdown={result.report_markdown} />}
             <WorkflowIssuesList
               issues={issues}
-              readOnly={project.access_level !== AccessLevel.Write}
+              readOnly={!canEditIssues}
               onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
             />
           </>

@@ -10,10 +10,10 @@ import { EditableTitle } from '@/components/ui/editable-title';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useShare } from '@/context/share-context';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { AccessLevel, ProjectDetailed, UserRole, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, ProjectOverview, UserRole, WorkflowRunType } from '@/lib/generated-api';
 import { useUserMe } from '@/lib/hooks/use-user-me';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getWorkflowRunByType, isAnyWorkflowActive } from '@/lib/workflow-state';
+import { isAnyWorkflowActive } from '@/lib/workflow-state';
 import { ReactNode, useMemo } from 'react';
 import { AppBar } from './app-bar';
 import { NewAssessmentButton } from './new-assessment-button';
@@ -24,7 +24,7 @@ import { RunActivityIndicator } from './run-activity/run-activity-indicator';
 import { RunActivityLine } from './run-activity/run-activity-line';
 
 interface ProjectShellProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   /** The route holding the shell, e.g. `/projects/abc` or `/share/xyz`; tabs live under it. */
   basePath: string;
   activeTab: TabType;
@@ -52,7 +52,7 @@ interface ProjectShellProps {
  * The authors line is deliberately absent — it is in the document itself.
  */
 export function ProjectShell({
-  projectDetail,
+  overview,
   basePath,
   activeTab,
   onTabChange,
@@ -66,15 +66,14 @@ export function ProjectShell({
   notice,
   children,
 }: ProjectShellProps) {
-  const results = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+  const results = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
   const { isWorkflowTypeVisible } = useWorkflowTypes();
 
-  const currentRevision = projectDetail.project.current_revision ?? 1;
+  const currentRevision = overview.project.current_revision ?? 1;
   const runsActive = isAnyWorkflowActive(results);
-  const referenceExtraction = getWorkflowRunByType(results, WorkflowRunType.ReferenceExtraction);
 
   const { showExperimentalFeatures } = useExperimentalFeatures();
-  const peerReviewFacts = derivePeerReviewFacts(projectDetail);
+  const peerReviewFacts = derivePeerReviewFacts(overview);
   const peerReviewAttention = peerReviewNeedsAttention(peerReviewFacts, readOnly);
 
   const tabs: ProjectTab[] = [
@@ -82,10 +81,10 @@ export function ProjectShell({
     {
       id: 'references',
       label: 'References',
-      count: referenceExtraction?.state?.extracted_references?.length || 0,
+      count: overview.reference_count ?? 0,
       attention: needsReferenceReview,
     },
-    { id: 'files', label: 'Files', count: projectDetail.files?.length ?? 0 },
+    { id: 'files', label: 'Files', count: overview.files?.length ?? 0 },
     { id: 'analyses', label: 'Assessments', count: results.filter((r) => isWorkflowTypeVisible(r.run.type)).length },
     // Peer Review is still alpha, so it only exists for users who opted in.
     ...(showExperimentalFeatures
@@ -103,14 +102,14 @@ export function ProjectShell({
   const titleNode =
     !readOnly && onTitleSave ? (
       <EditableTitle
-        title={projectDetail.project.title}
+        title={overview.project.title}
         titleClassName="text-sm font-semibold truncate min-w-0"
         className="min-w-0"
         onSave={onTitleSave}
         isLoading={isTitleSaving}
       />
     ) : (
-      <h1 className="truncate text-sm font-semibold">{projectDetail.project.title}</h1>
+      <h1 className="truncate text-sm font-semibold">{overview.project.title}</h1>
     );
 
   // Feedback loads whenever the project is the user's to write to, older revisions
@@ -124,7 +123,7 @@ export function ProjectShell({
   // make an owner or admin previewing their own link see feedback nobody else does.
   const { shareToken } = useShare();
   const { data: userMe } = useUserMe();
-  const isOwner = projectDetail.access_level === AccessLevel.Write;
+  const isOwner = overview.access_level === AccessLevel.Write;
   const canAccessFeedback = shareToken === null && (isOwner || userMe?.role === UserRole.Admin);
 
   const navigateToTab = (tab: TabType, hash?: string) => onTabChange(tab, hash);
@@ -133,15 +132,15 @@ export function ProjectShell({
 
   return (
     <ProjectFeedbackProvider
-      projectId={canAccessFeedback ? projectDetail.project.id : undefined}
-      feedbackVisibility={isOwner ? (projectDetail.project.feedback_visibility ?? null) : null}
+      projectId={canAccessFeedback ? overview.project.id : undefined}
+      feedbackVisibility={isOwner ? (overview.project.feedback_visibility ?? null) : null}
       readOnly={!isOwner}
     >
-      <PageTitle title={projectDetail.project.title} />
+      <PageTitle title={overview.project.title} />
 
       <ProjectViewProvider
         value={{
-          projectDetail,
+          overview,
           readOnly,
           selectedRevision,
           onRevisionChange,
@@ -167,12 +166,10 @@ export function ProjectShell({
               )}
               {/* What is running sits next to what starts a run, so the answer to
                   "did that go?" is where the question was asked. */}
-              <RunActivityIndicator projectId={projectDetail.project.id} workflowDetails={results} />
-              {!readOnly && <NewAssessmentButton projectId={projectDetail.project.id} />}
+              <RunActivityIndicator projectId={overview.project.id} workflowDetails={results} />
+              {!readOnly && <NewAssessmentButton projectId={overview.project.id} />}
               <AnalysisOptionsMenu
-                project={projectDetail.project}
-                results={results}
-                issues={projectDetail.issues ?? []}
+                overview={overview}
                 readOnly={readOnly}
                 selectedRevision={selectedRevision}
                 onRevisionChange={onRevisionChange}
@@ -189,7 +186,7 @@ export function ProjectShell({
           {notice}
 
           {needsReferenceReview && (
-            <ReferenceReviewBanner projectDetail={projectDetail} onReviewReferences={() => onTabChange('references')} />
+            <ReferenceReviewBanner overview={overview} onReviewReferences={() => onTabChange('references')} />
           )}
 
           {/* An older revision governs every tab, not just the document, so the

@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.feedback import FeedbackType
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
@@ -33,7 +32,7 @@ from lib.services.references import (
     remove_fetch_result_for_file,
     remove_file_from_references,
 )
-from lib.services.share_links import get_resource_by_token, is_project_shared
+from lib.services.share_links import get_resource_by_token
 from lib.services.workflow_runs import (
     WorkflowRunDetail,
     cancel_workflow_run,
@@ -63,18 +62,6 @@ class ProjectListPage(BaseModel):
     offset: int = Field(description="Number of projects skipped before this page")
 
 
-class FeedbackSummary(BaseModel):
-    """Lightweight feedback representation for project detail responses."""
-
-    id: str
-    workflow_run_id: str
-    entity_path: dict
-    feedback_type: FeedbackType
-    feedback_text: Optional[str] = None
-    created_at: str
-    updated_at: str
-
-
 class ProjectDetailed(BaseModel):
     project: Project
     access_level: AccessLevel = Field(
@@ -91,10 +78,6 @@ class ProjectDetailed(BaseModel):
     files: List[FileListItem] = Field(
         default_factory=list,
         description="The files associated with the project",
-    )
-    feedbacks: List[FeedbackSummary] = Field(
-        default_factory=list,
-        description="All user feedback for this project's workflow runs",
     )
     revision: int = Field(
         default=1,
@@ -245,7 +228,6 @@ async def get_project_detailed_from_project(
     project: Project,
     access_level: AccessLevel,
     include_internal: bool = False,
-    user: Optional[User] = None,
     revision: int | None = None,
 ) -> ProjectDetailed:
     """
@@ -260,11 +242,8 @@ async def get_project_detailed_from_project(
         project: The project to get details for
         access_level: The access level of the current user
         include_internal: If True, include internal workflows in the response
-        user: If provided, load all feedback for this user on the project
         revision: If provided, return data for this revision. Defaults to current_revision.
     """
-    from lib.services import feedback_service
-
     resolved_revision = revision if revision is not None else project.current_revision
 
     workflow_runs = await get_project_workflow_runs(
@@ -278,29 +257,7 @@ async def get_project_detailed_from_project(
         uuid.UUID(str(project.id)), revision=resolved_revision
     )
 
-    feedbacks: list[FeedbackSummary] = []
-    if user is not None:
-        async with get_async_db_session() as session:
-            feedback_models = await feedback_service.get_project_feedbacks(
-                session=session,
-                project_id=project.id,
-                user=user,
-                revision=resolved_revision,
-            )
-            feedbacks = [
-                FeedbackSummary(
-                    id=str(f.id),
-                    workflow_run_id=str(f.workflow_run_id),
-                    entity_path=f.entity_path,
-                    feedback_type=f.feedback_type,
-                    feedback_text=f.feedback_text,
-                    created_at=f.created_at.isoformat(),
-                    updated_at=f.updated_at.isoformat(),
-                )
-                for f in feedback_models
-            ]
-
-    main_document_markdown = await _get_main_document_markdown(
+    main_document_markdown = await get_main_document_markdown(
         str(project.id), resolved_revision
     )
 
@@ -310,13 +267,12 @@ async def get_project_detailed_from_project(
         workflow_runs=workflow_runs,
         issues=list(issues),
         files=await get_project_files_list_items(project.id),
-        feedbacks=feedbacks,
         revision=resolved_revision,
         main_document_markdown=main_document_markdown,
     )
 
 
-async def _get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:
+async def get_main_document_markdown(project_id: str, revision: int) -> Optional[str]:
     """Load the full markdown of the main document for a revision, or None if
     it isn't available yet (e.g. before document processing completes)."""
     main_files = await get_files_by_project_id(
@@ -330,31 +286,6 @@ async def _get_main_document_markdown(project_id: str, revision: int) -> Optiona
     except ValueError:
         return None
     return file_document.markdown
-
-
-async def get_shared_project(project_id: str) -> Project:
-    """
-    Get a project for a shared project.
-
-    Args:
-        project_id: The ID of the project
-
-    Returns:
-        The project
-
-    Raises:
-        HTTPException: 404 if project not found, 403 if project is not shared
-    """
-
-    project = await _get_project_by_id(project_id)
-
-    if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    if not await is_project_shared(project_id):
-        raise HTTPException(status_code=403, detail="Project is not shared")
-
-    return project
 
 
 async def get_project_access(

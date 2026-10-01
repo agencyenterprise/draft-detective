@@ -29,8 +29,13 @@ interface ShareWarningDialogProps {
   isDownloading: boolean;
   /** The document explorer's filters, which scope the export. */
   filters: ActiveFilters;
-  /** What that scope amounts to: issues that become comments, and their proposed edits. */
-  counts: ExportCounts;
+  /**
+   * What that scope amounts to: issues that become comments, and their proposed
+   * edits. Null while the issues are still loading.
+   */
+  counts: ExportCounts | null;
+  /** The issues could not be loaded, so the scope is stated without counts. */
+  countsFailed?: boolean;
   /**
    * Whether the export can carry links back to Draft Detective at all. False
    * for a historical revision, where the backend leaves them out, so the option
@@ -53,10 +58,14 @@ export function ShareWarningDialog({
   isDownloading,
   filters,
   counts,
+  countsFailed = false,
   linksAvailable,
   onDownload,
 }: ShareWarningDialogProps) {
   const isProcessing = isEnablingShare || isDownloading;
+  // Hold the download until the reader can see what it contains; a failed count
+  // does not hold it, since the export does not depend on the count.
+  const isCounting = counts === null && !countsFailed;
   const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('comments');
   const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
   const [includeEdits, setIncludeEdits] = useState(true);
@@ -101,7 +110,12 @@ export function ShareWarningDialog({
         <div className="space-y-5">
           <section className="space-y-2">
             <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Included</h3>
-            <ExportScope filters={filters} counts={counts} includeEdits={shouldShowEditsCheckbox && includeEdits} />
+            <ExportScope
+              filters={filters}
+              counts={counts}
+              countsFailed={countsFailed}
+              includeEdits={shouldShowEditsCheckbox && includeEdits}
+            />
           </section>
 
           <section className="space-y-2">
@@ -177,7 +191,7 @@ export function ShareWarningDialog({
           <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={isProcessing}>
             Cancel
           </Button>
-          <Button onClick={handleDownload} disabled={isProcessing} className="gap-2">
+          <Button onClick={handleDownload} disabled={isProcessing || isCounting} className="gap-2">
             {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {isProcessing ? 'Preparing...' : 'Download'}
           </Button>

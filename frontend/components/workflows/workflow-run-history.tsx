@@ -1,29 +1,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { History, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import {
-  WorkflowRunDetail,
-  WorkflowRunType,
-  WorkflowRunStatus,
-  getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet,
-} from '@/lib/generated-api';
+import { WorkflowRunStatus, WorkflowRunSummary } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { cn } from '@/lib/utils';
 import { getDisplayStatus } from '@/lib/workflow-state';
 
 interface WorkflowRunHistoryProps {
-  projectId: string;
-  workflowType: WorkflowRunType;
   currentRunId: string;
-  onSelectRun: (run: WorkflowRunDetail) => void;
-  /** Pre-loaded history data to avoid fetching on popover open */
-  historyData?: WorkflowRunDetail[];
+  onSelectRun: (run: WorkflowRunSummary) => void;
+  /** Every run of the assessment, newest first; undefined while it loads. */
+  historyData?: WorkflowRunSummary[];
+  /** Why the history could not be loaded, if it failed. */
+  historyError?: unknown;
   /** Match the button to the toolbar it sits in. */
   size?: 'sm' | 'xs';
   /** Shown on hover. */
@@ -31,35 +26,24 @@ interface WorkflowRunHistoryProps {
 }
 
 export function WorkflowRunHistory({
-  projectId,
-  workflowType,
   currentRunId,
   onSelectRun,
   historyData,
+  historyError,
   size = 'sm',
   tooltip,
 }: WorkflowRunHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: fetchedData, isLoading } = useQuery({
-    queryKey: ['workflow-runs-history', projectId, workflowType],
-    queryFn: () =>
-      getProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGet({
-        path: { project_id: projectId },
-        query: { workflow_type: workflowType },
-      }),
-    enabled: isOpen && !historyData,
-  });
+  const isLoading = !historyData && !historyError;
 
-  const runDetails = historyData ?? fetchedData;
-
-  const handleSelectRun = (run: WorkflowRunDetail) => {
+  const handleSelectRun = (run: WorkflowRunSummary) => {
     onSelectRun(run);
     setIsOpen(false);
   };
 
   // Don't show history button if there's only one run or less
-  const runCount = runDetails?.length ?? 0;
+  const runCount = historyData?.length ?? 0;
 
   const trigger = (
     <PopoverTrigger asChild>
@@ -87,13 +71,17 @@ export function WorkflowRunHistory({
           <p className="text-xs text-muted-foreground mt-0.5">Select a previous run to view its results</p>
         </div>
         <div className="max-h-64 overflow-y-auto">
-          {isLoading ? (
+          {historyError ? (
+            <div className="px-3 py-6 text-center text-sm text-destructive">
+              Could not load the run history: {getErrorMessage(historyError, 'unknown error')}
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          ) : runDetails && runDetails.length > 0 ? (
+          ) : historyData && historyData.length > 0 ? (
             <div className="py-1">
-              {runDetails.map((detail, index) => (
+              {historyData.map((detail, index) => (
                 <RunHistoryItem
                   key={detail.run.id}
                   detail={detail}
@@ -113,7 +101,7 @@ export function WorkflowRunHistory({
 }
 
 interface RunHistoryItemProps {
-  detail: WorkflowRunDetail;
+  detail: WorkflowRunSummary;
   isLatest: boolean;
   isSelected: boolean;
   onSelect: () => void;

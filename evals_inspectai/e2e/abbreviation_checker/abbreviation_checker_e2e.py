@@ -11,7 +11,7 @@ persists one issue per failure: "No Abbreviations section found",
 "Abbreviation not defined at first use", "Abbreviation missing from
 Abbreviations section", "Inline definition does not match Abbreviations
 section" and "Ambiguous abbreviation", all medium. The solver fetches those
-persisted issues from the app's project endpoint (``include_issues``), so the
+persisted issues from the app's issues endpoint (``include_issues``), so the
 issues are scored as the user sees them rather than only the intermediate
 state.
 

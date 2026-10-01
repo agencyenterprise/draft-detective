@@ -1,8 +1,8 @@
 'use client';
 
 import { getErrorMessage } from '@/lib/api-error';
-import { AccessLevel, ProjectDetailed, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
+import { AccessLevel, ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
+import { projectQueryKeys, useProjectOverview } from '@/lib/hooks/use-project-data';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -17,9 +17,9 @@ export function useProjectShellState(projectId: string) {
   // null means "follow the latest revision"
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
 
-  const { project, workflowDetails, isLoading, error } = useProjectDetails(projectId, selectedRevision);
+  const { data: overview, isLoading, error } = useProjectOverview(projectId, selectedRevision);
 
-  const currentRevision = project?.project?.current_revision ?? 1;
+  const currentRevision = overview?.project?.current_revision ?? 1;
   const effectiveRevision = selectedRevision ?? currentRevision;
 
   const handleRevisionChange = useCallback((rev: number) => {
@@ -40,10 +40,11 @@ export function useProjectShellState(projectId: string) {
       });
     },
     onSuccess: (updatedProject) => {
-      // The details query is keyed per revision (['project', id, revision]), so patch every
-      // cached revision instead of an exact key that would never match.
-      queryClient.setQueriesData({ queryKey: ['project', projectId] }, (curr: ProjectDetailed | undefined) =>
-        curr ? { ...curr, project: updatedProject } : curr,
+      // The overview is keyed per revision, so patch every cached revision of it.
+      // Only the overviews: the other queries under ['project', id] are not shaped like one.
+      queryClient.setQueriesData(
+        { queryKey: projectQueryKeys.overviews(projectId) },
+        (curr: ProjectOverview | undefined) => (curr ? { ...curr, project: updatedProject } : curr),
       );
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Title updated successfully');
@@ -60,12 +61,11 @@ export function useProjectShellState(projectId: string) {
     [updateTitleMutation],
   );
 
-  const isReadOnly = project ? project.access_level !== AccessLevel.Write : false;
+  const isReadOnly = overview ? overview.access_level !== AccessLevel.Write : false;
   const isViewingOldRevision = effectiveRevision < currentRevision;
 
   return {
-    project,
-    workflowDetails,
+    overview,
     isLoading,
     error,
     effectiveRevision,

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   FileListItem,
   FileRole,
-  ProjectDetailed,
-  WorkflowRunDetail,
+  ProjectOverview,
   WorkflowRunStatus,
+  WorkflowRunSummary,
   WorkflowRunType,
 } from '@/lib/generated-api';
 import { derivePeerReviewFacts } from './peer-review-derive';
@@ -16,7 +16,7 @@ function file(role: FileRole, revision: number, createdAt = '2026-09-30T10:00:00
   return { id: `file-${nextId}`, role, revision, created_at: createdAt } as unknown as FileListItem;
 }
 
-function run(type: WorkflowRunType, createdAt: string, completedAt: string | null): WorkflowRunDetail {
+function run(type: WorkflowRunType, createdAt: string, completedAt: string | null): WorkflowRunSummary {
   return {
     run: {
       id: `run-${type}`,
@@ -25,17 +25,17 @@ function run(type: WorkflowRunType, createdAt: string, completedAt: string | nul
       created_at: createdAt,
       completed_at: completedAt,
     },
-    state: null,
-  } as unknown as WorkflowRunDetail;
+    errors: [],
+  } as unknown as WorkflowRunSummary;
 }
 
-function project(files: FileListItem[], currentRevision: number, workflowRuns: WorkflowRunDetail[] = []) {
+function project(files: FileListItem[], currentRevision: number, workflowRuns: WorkflowRunSummary[] = []) {
   return {
     project: { id: 'project', current_revision: currentRevision },
     revision: currentRevision,
     files,
     workflow_runs: workflowRuns,
-  } as unknown as ProjectDetailed;
+  } as unknown as ProjectOverview;
 }
 
 /** A reviewed draft on revision 1, its memo, and a revised draft on revision 2. */

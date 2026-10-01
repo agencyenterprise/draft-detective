@@ -32,16 +32,11 @@ from lib.services.projects import (
     delete_project,
     delete_project_file_with_cleanup,
     get_project_access,
-    get_project_detailed_from_project,
     get_project_files,
     get_user_projects,
     update_user_project,
 )
 from lib.services.workflow_progress import get_project_workflow_progress
-from lib.services.workflow_runs import (
-    WorkflowRunDetail,
-    get_project_workflow_runs_by_type_with_details,
-)
 from lib.models.workflow_run import WorkflowRunType
 from lib.workflows.models import SeverityEnum
 from lib.api.models import CreateProjectRequest
@@ -97,35 +92,6 @@ async def list_projects_endpoint(
     return await get_user_projects(
         user=current_user, search=search, limit=limit, offset=offset
     )
-
-
-@router.get("/api/project/{project_id}", response_model=ProjectDetailed)
-async def get_project_endpoint(
-    project_id: str,
-    include_internal: bool = False,
-    revision: Optional[int] = Query(
-        default=None,
-        description="Revision number to return. Defaults to the project's current revision.",
-    ),
-    share_token: Optional[str] = Query(
-        default=None,
-        description="Share token to get project details",
-    ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-):
-    """Get a project by ID. Set include_internal=true to see internal workflows."""
-
-    project, access_level = await get_project_access(
-        project_id, current_user, share_token
-    )
-    project_detailed = await get_project_detailed_from_project(
-        project,
-        access_level=access_level,
-        include_internal=include_internal,
-        user=current_user,
-        revision=revision,
-    )
-    return project_detailed
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)
@@ -392,35 +358,6 @@ async def get_project_workflow_progress_endpoint(
         project.id, revision=resolved_revision
     )
     return [WorkflowProgressResponse.model_validate(p) for p in progress_list]
-
-
-@router.get(
-    "/api/project/{project_id}/workflow-runs",
-    response_model=List[WorkflowRunDetail],
-)
-async def get_project_workflow_runs_by_type_endpoint(
-    project_id: str,
-    workflow_type: WorkflowRunType = Query(
-        ...,
-        description="The workflow type to filter runs by",
-    ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-    share_token: Optional[str] = Query(
-        default=None,
-        description="Share token for shared projects.",
-    ),
-):
-    """
-    Get all workflow runs of a specific type for a project.
-
-    Returns workflow run details (including state with errors) ordered by creation date descending.
-    Used for displaying workflow run history in the UI with correct error status.
-    """
-
-    project, _ = await get_project_access(project_id, current_user, share_token)
-    return await get_project_workflow_runs_by_type_with_details(
-        project_id, workflow_type, revision=project.current_revision
-    )
 
 
 @router.post(

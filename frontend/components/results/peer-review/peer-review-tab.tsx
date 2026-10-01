@@ -6,19 +6,19 @@ import { usePeerReviewState } from '@/components/results/peer-review/use-peer-re
 import { FileUploadDialog } from '@/components/results/references/file-upload-dialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
-import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { FileRole, ProjectOverview, WorkflowRunType } from '@/lib/generated-api';
 import { WIDE_ENOUGH_FOR_PANE, useMediaQuery } from '@/lib/use-media-query';
 import { ClipboardCheck, History, ListChecks, Lock, MessagesSquare, Upload } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { MemosPane } from './memos-pane';
+import { PeerReviewRunResults } from './peer-review-run-results';
 import { CoverageInputsNote, ResponsesCallout } from './response-memo-notes';
 import { StepRail } from './step-rail';
 import { STEPS, StepId, readStepStates } from './steps';
 
 interface PeerReviewTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   readOnly: boolean;
   onRevisionChange?: (revision: number) => void;
   onRevisionCreated?: () => void;
@@ -32,14 +32,14 @@ interface PeerReviewTabProps {
  * work, as the card above the steps used to.
  */
 export function PeerReviewTab({
-  projectDetail,
+  overview,
   readOnly,
   onRevisionChange,
   onRevisionCreated,
   onNavigateToDocumentExplorer,
 }: PeerReviewTabProps) {
-  const projectId = projectDetail.project.id;
-  const { facts, planFallback, startStage, cancelRun, isStarting } = usePeerReviewState({ projectDetail });
+  const projectId = overview.project.id;
+  const { facts, planFallback, startStage, cancelRun, isStarting } = usePeerReviewState({ overview });
   const { runs, currentRevision, reviewedRevision, hasRevisedDraft, isViewingOldRevision } = facts;
 
   const rail = useRailState();
@@ -54,7 +54,7 @@ export function PeerReviewTab({
   // empty first step.
   const planRun = runs.plan ?? planFallback?.run;
   const planRunRevision = runs.plan ? facts.viewedRevision : planFallback?.revision;
-  const planRunProject = runs.plan ? projectDetail : (planFallback?.projectDetail ?? projectDetail);
+  const planRunOverview = runs.plan ? overview : (planFallback?.overview ?? overview);
   const states = readStepStates(facts, planRun);
 
   // Land on the furthest step with something to show. Held in state rather than
@@ -334,9 +334,9 @@ export function PeerReviewTab({
           {facts.activeMemos.length === 1 ? '' : 's'} attached to it.
           {planFallback && ' It still applies: those memos have not changed.'}
         </p>
-        <SimpleDeepAgentResults
-          project={planRunProject}
-          workflowDetail={planRun}
+        <PeerReviewRunResults
+          overview={planRunOverview}
+          run={planRun}
           workflowName="Revision-Planning Summary"
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
@@ -408,9 +408,9 @@ export function PeerReviewTab({
     return (
       <div className="space-y-3">
         <ResponsesCallout facts={facts} readOnly={readOnly} onUpload={() => setResponseUploadOpen(true)} />
-        <SimpleDeepAgentResults
-          project={projectDetail}
-          workflowDetail={runs.memos}
+        <PeerReviewRunResults
+          overview={overview}
+          run={runs.memos}
           workflowName="Reviewer Response Memos"
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />
@@ -447,9 +447,9 @@ export function PeerReviewTab({
     return (
       <div className="space-y-3">
         <CoverageInputsNote facts={facts} hasReport />
-        <SimpleDeepAgentResults
-          project={projectDetail}
-          workflowDetail={runs.coverage}
+        <PeerReviewRunResults
+          overview={overview}
+          run={runs.coverage}
           workflowName="Reviewer Coverage Report"
           onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
         />

@@ -252,26 +252,6 @@ async def get_workflow_feedback(
     return list(result.scalars().all())
 
 
-async def get_project_feedbacks(
-    session: AsyncSession,
-    project_id: uuid.UUID,
-    user: User,
-    revision: int,
-) -> list[Feedback]:
-    """
-    Get all feedback for a project by querying across workflow runs of a specific revision.
-    """
-    stmt = (
-        select(Feedback)
-        .join(WorkflowRun, col(Feedback.workflow_run_id) == col(WorkflowRun.id))
-        .where(col(WorkflowRun.project_id) == project_id)
-        .where(col(Feedback.user_id) == user.id)
-        .where(col(WorkflowRun.revision) == revision)
-    )
-    result = await session.execute(stmt)
-    return list(result.scalars().all())
-
-
 async def get_project_issue_feedback(
     session: AsyncSession, project_id: uuid.UUID, user: User
 ) -> list[Feedback]:
