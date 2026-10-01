@@ -6,7 +6,7 @@ because deserialization always goes through the manifest's get_state_type(),
 not Pydantic union dispatch.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from langchain_core.messages import BaseMessage
 from pydantic import Field, field_serializer
@@ -20,6 +20,16 @@ class SimpleDeepAgentConfig(BaseWorkflowConfig):
 
     type: WorkflowRunType = Field(
         description="The workflow type, set per-manifest at runtime"
+    )
+    input_files: Optional[Dict[str, List[str]]] = Field(
+        default=None,
+        description=(
+            "Files picked for this run, as input slot name -> file IDs. When set, "
+            "the agent reads exactly these files, mounted at "
+            "/inputs/<slot>/<file_id>.md, instead of finding its inputs in the "
+            "project's file tree. Only workflows with an explicit-inputs prompt "
+            "accept it."
+        ),
     )
 
 

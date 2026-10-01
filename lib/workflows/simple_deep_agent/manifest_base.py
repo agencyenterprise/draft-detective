@@ -62,10 +62,12 @@ class _BaseDeepAgentManifest(
     ``convert_state_to_issues``. State, graph, prompt resolution, and the
     LLM-output → ``DeepAgentResult`` mapping are shared.
 
-    The agent's backend always exposes the full project file tree (current main,
+    The agent's backend exposes the full project file tree (current main,
     supporting docs, and a /revisions/<n>/ tree with each revision's main and
-    reviewer memos); workflows point the agent at the paths they need via the
-    system prompt rather than by selecting files here.
+    memos); workflows point the agent at the paths they need via the system
+    prompt rather than by selecting files here. The exception is a run handed
+    its inputs (``config.input_files``): it sees only those files, under
+    /inputs/, and gets the workflow's ``explicit_inputs_system_prompt``.
 
     A manifest that declares ``needs_web_search`` gets the web search tool: that
     flag is what gates the user's consent, and the tool is the only way a
@@ -75,6 +77,10 @@ class _BaseDeepAgentManifest(
     skill: ClassVar[Optional[str]] = None
     user_prompt: ClassVar[Optional[str]] = None
     system_prompt: ClassVar[Optional[str]] = None
+    # The system prompt for a run handed its inputs (config.input_files), which
+    # points the agent at `/inputs/<slot>/` instead of the project tree. A
+    # workflow without one does not accept explicit inputs.
+    explicit_inputs_system_prompt: ClassVar[Optional[str]] = None
 
     report_issues: ClassVar[bool] = True
     # Opt-in: when set, the issue tool also accepts proposed edits (verbatim
@@ -108,6 +114,15 @@ class _BaseDeepAgentManifest(
         raise ValueError(
             f"{type(self).__name__} must define either `skill` or `user_prompt`"
         )
+
+    def resolve_system_prompt(self, config: SimpleDeepAgentConfig) -> Optional[str]:
+        """The system prompt for this run: the explicit-inputs one when the run
+        was handed its inputs, otherwise the workflow's own (None = default)."""
+        if not config.input_files:
+            return self.system_prompt
+        if self.explicit_inputs_system_prompt is None:
+            raise ValueError(f"{type(self).__name__} does not accept explicit inputs")
+        return self.explicit_inputs_system_prompt
 
     async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:
         """Optional guard run before the agent.
@@ -148,14 +163,17 @@ class _BaseDeepAgentManifest(
             state: SimpleDeepAgentState, runtime: Runtime[ContextSchema]
         ) -> dict:
             service = runtime.context.file_artifacts_service
+            input_files = state.config.input_files
 
-            guard_message = await manifest.precheck(service)
+            # The precheck guards the project layout a run finds its inputs in;
+            # explicit inputs were validated when the run was started.
+            guard_message = None if input_files else await manifest.precheck(service)
             if guard_message is not None:
                 return {"result": manifest._guard_result(guard_message), "messages": []}
 
             agent = SimpleDeepAgent(
                 context=runtime.context,
-                system_prompt=manifest.system_prompt,
+                system_prompt=manifest.resolve_system_prompt(state.config),
                 user_prompt=manifest.resolve_user_prompt(),
                 report_issues=manifest.report_issues,
                 propose_edits=manifest.propose_edits,
@@ -165,6 +183,7 @@ class _BaseDeepAgentManifest(
                 reasoning_effort=manifest.reasoning_effort,
                 timeout=manifest.llm_timeout,
                 view_images=manifest.view_images,
+                input_files=input_files,
             )
             run = await agent.ainvoke({})
             return {

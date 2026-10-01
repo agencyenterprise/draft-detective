@@ -182,6 +182,9 @@ import type {
   ListProjectsEndpointApiProjectsGetData,
   ListProjectsEndpointApiProjectsGetErrors,
   ListProjectsEndpointApiProjectsGetResponses,
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetData,
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors,
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetData,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
@@ -211,6 +214,9 @@ import type {
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostData,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostErrors,
   StartMultipleWorkflowsApiWorkflowsStartMultiplePostResponses,
+  StartReviewAssistantRunApiReviewAssistantRunsPostData,
+  StartReviewAssistantRunApiReviewAssistantRunsPostErrors,
+  StartReviewAssistantRunApiReviewAssistantRunsPostResponses,
   StartWorkflowApiWorkflowsStartPostData,
   StartWorkflowApiWorkflowsStartPostErrors,
   StartWorkflowApiWorkflowsStartPostResponses,
@@ -1987,6 +1993,62 @@ export const getSharedResourceApiPublicShareTokenGet = <ThrowOnError extends boo
   >({
     responseStyle: 'data',
     url: '/api/public/share/{token}',
+    ...options,
+  });
+
+/**
+ * Start Review Assistant Run
+ *
+ * Start a review-assistant output on explicitly picked inputs.
+ */
+export const startReviewAssistantRunApiReviewAssistantRunsPost = <ThrowOnError extends boolean = true>(
+  options: Options<StartReviewAssistantRunApiReviewAssistantRunsPostData, ThrowOnError>,
+): RequestResult<
+  StartReviewAssistantRunApiReviewAssistantRunsPostResponses,
+  StartReviewAssistantRunApiReviewAssistantRunsPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    StartReviewAssistantRunApiReviewAssistantRunsPostResponses,
+    StartReviewAssistantRunApiReviewAssistantRunsPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/review-assistant/runs',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List Review Assistant Runs Endpoint
+ *
+ * Runs of an output that were started on picked inputs, newest first.
+ */
+export const listReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGet = <
+  ThrowOnError extends boolean = true,
+>(
+  options: Options<ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetData, ThrowOnError>,
+): RequestResult<
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses,
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponses,
+    ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/review-assistant/projects/{project_id}/runs',
     ...options,
   });
 

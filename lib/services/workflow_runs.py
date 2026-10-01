@@ -524,11 +524,12 @@ async def get_latest_workflow_run_state_by_type(
 async def get_project_workflow_runs_by_type(
     project_id: str,
     workflow_type: WorkflowRunType,
-    revision: int,
+    revision: int | None,
     include_state: bool = False,
 ) -> List[WorkflowRun]:
     """
-    Get all workflow runs of a specific type for a project and revision.
+    Get all workflow runs of a specific type for a project and revision, or
+    across every revision when ``revision`` is None.
 
     Returns all runs ordered by created_at descending (newest first).
     """
@@ -539,11 +540,12 @@ async def get_project_workflow_runs_by_type(
                 and_(
                     col(WorkflowRun.project_id) == project_id,
                     col(WorkflowRun.type) == workflow_type,
-                    col(WorkflowRun.revision) == revision,
                 )
             )
             .order_by(col(WorkflowRun.created_at).desc())
         )
+        if revision is not None:
+            stmt = stmt.where(col(WorkflowRun.revision) == revision)
         if include_state:
             stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         return list((await session.execute(stmt)).scalars().all())

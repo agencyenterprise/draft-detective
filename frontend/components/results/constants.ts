@@ -1,6 +1,15 @@
 import { WorkflowRunType } from '@/lib/generated-api';
 
-export const TABS = ['document-explorer', 'references', 'files', 'analyses', 'peer-review'] as const;
+// `review-assistant` has a route but no tab: it is reached by URL while the
+// output-first flow is tried out next to Peer Review.
+export const TABS = [
+  'document-explorer',
+  'references',
+  'files',
+  'analyses',
+  'peer-review',
+  'review-assistant',
+] as const;
 
 export type TabType = (typeof TABS)[number];
 

@@ -40,3 +40,9 @@ class FileArtifactsServiceType(ABC):
         include_skills: bool = True,
     ) -> dict[str, Any]: ...
 
+    @abstractmethod
+    async def get_input_backend_files(
+        self,
+        input_files: dict[str, list[str]],
+        include_skills: bool = True,
+    ) -> dict[str, Any]: ...
