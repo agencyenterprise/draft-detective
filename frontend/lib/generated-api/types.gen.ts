@@ -6770,55 +6770,6 @@ export type DeleteProjectEndpointApiProjectProjectIdDeleteResponses = {
   200: unknown;
 };
 
-export type GetProjectEndpointApiProjectProjectIdGetData = {
-  body?: never;
-  path: {
-    /**
-     * Project Id
-     */
-    project_id: string;
-  };
-  query?: {
-    /**
-     * Include Internal
-     */
-    include_internal?: boolean;
-    /**
-     * Revision
-     *
-     * Revision number to return. Defaults to the project's current revision.
-     */
-    revision?: number | null;
-    /**
-     * Share Token
-     *
-     * Share token to get project details
-     */
-    share_token?: string | null;
-  };
-  url: '/api/project/{project_id}';
-};
-
-export type GetProjectEndpointApiProjectProjectIdGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetProjectEndpointApiProjectProjectIdGetError =
-  GetProjectEndpointApiProjectProjectIdGetErrors[keyof GetProjectEndpointApiProjectProjectIdGetErrors];
-
-export type GetProjectEndpointApiProjectProjectIdGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: ProjectDetailed;
-};
-
-export type GetProjectEndpointApiProjectProjectIdGetResponse =
-  GetProjectEndpointApiProjectProjectIdGetResponses[keyof GetProjectEndpointApiProjectProjectIdGetResponses];
-
 export type UpdateProjectEndpointApiProjectProjectIdPatchData = {
   body: UpdateProjectRequest;
   path: {

@@ -121,9 +121,6 @@ import type {
   GetProjectDocumentEndpointApiProjectProjectIdDocumentGetData,
   GetProjectDocumentEndpointApiProjectProjectIdDocumentGetErrors,
   GetProjectDocumentEndpointApiProjectProjectIdDocumentGetResponses,
-  GetProjectEndpointApiProjectProjectIdGetData,
-  GetProjectEndpointApiProjectProjectIdGetErrors,
-  GetProjectEndpointApiProjectProjectIdGetResponses,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetData,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetErrors,
   GetProjectFeedbackApiFeedbackProjectProjectIdGetResponses,
@@ -1526,31 +1523,6 @@ export const deleteProjectEndpointApiProjectProjectIdDelete = <ThrowOnError exte
   (options.client ?? client).delete<
     DeleteProjectEndpointApiProjectProjectIdDeleteResponses,
     DeleteProjectEndpointApiProjectProjectIdDeleteErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/project/{project_id}',
-    ...options,
-  });
-
-/**
- * Get Project Endpoint
- *
- * Get a project by ID. Set include_internal=true to see internal workflows.
- */
-export const getProjectEndpointApiProjectProjectIdGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetProjectEndpointApiProjectProjectIdGetData, ThrowOnError>,
-): RequestResult<
-  GetProjectEndpointApiProjectProjectIdGetResponses,
-  GetProjectEndpointApiProjectProjectIdGetErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).get<
-    GetProjectEndpointApiProjectProjectIdGetResponses,
-    GetProjectEndpointApiProjectProjectIdGetErrors,
     ThrowOnError,
     'data'
   >({

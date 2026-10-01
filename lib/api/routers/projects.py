@@ -32,7 +32,6 @@ from lib.services.projects import (
     delete_project,
     delete_project_file_with_cleanup,
     get_project_access,
-    get_project_detailed_from_project,
     get_project_files,
     get_user_projects,
     update_user_project,
@@ -93,34 +92,6 @@ async def list_projects_endpoint(
     return await get_user_projects(
         user=current_user, search=search, limit=limit, offset=offset
     )
-
-
-@router.get("/api/project/{project_id}", response_model=ProjectDetailed)
-async def get_project_endpoint(
-    project_id: str,
-    include_internal: bool = False,
-    revision: Optional[int] = Query(
-        default=None,
-        description="Revision number to return. Defaults to the project's current revision.",
-    ),
-    share_token: Optional[str] = Query(
-        default=None,
-        description="Share token to get project details",
-    ),
-    current_user: Optional[User] = Depends(get_current_user_optional),
-):
-    """Get a project by ID. Set include_internal=true to see internal workflows."""
-
-    project, access_level = await get_project_access(
-        project_id, current_user, share_token
-    )
-    project_detailed = await get_project_detailed_from_project(
-        project,
-        access_level=access_level,
-        include_internal=include_internal,
-        revision=revision,
-    )
-    return project_detailed
 
 
 @router.patch("/api/project/{project_id}", response_model=Project)

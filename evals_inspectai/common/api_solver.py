@@ -10,7 +10,7 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from evals_inspectai.common.api_client import (
     create_project_and_start_workflows,
-    get_project_detail,
+    get_project_issues,
     poll_until_complete,
 )
 from evals_inspectai.common.transcript_replay import (
@@ -133,23 +133,23 @@ async def run_workflow(
 
     workflow_state = run_detail.get("state") or {}
     if include_issues:
-        project = await get_project_detail(project_id)
+        issues = await get_project_issues(project_id)
         workflow_state[PERSISTED_ISSUES_KEY] = {
-            "issues": persisted_issues(project, run_detail.get("run", {}).get("id"))
+            "issues": persisted_issues(issues, run_detail.get("run", {}).get("id"))
         }
     return workflow_state, output_model_name(run_detail)
 
 
-def persisted_issues(project: dict[str, Any], workflow_run_id: Optional[str]) -> list[dict[str, Any]]:
-    """The project's persisted issues for one workflow run, reduced to the fields the
-    issue checks read; a missing line becomes 0, as in an agent-reported issue."""
+def persisted_issues(issues: list[dict[str, Any]], workflow_run_id: Optional[str]) -> list[dict[str, Any]]:
+    """The persisted issues of one workflow run, reduced to the fields the issue
+    checks read; a missing line becomes 0, as in an agent-reported issue."""
     return [
         {
             **{field: issue.get(field) for field in _ISSUE_FIELDS},
             "start_line": issue.get("start_line") or 0,
             "end_line": issue.get("end_line") or 0,
         }
-        for issue in project.get("issues", [])
+        for issue in issues
         if str(issue.get("workflow_run_id")) == str(workflow_run_id)
     ]
 

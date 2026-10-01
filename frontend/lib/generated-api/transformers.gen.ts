@@ -8,7 +8,6 @@ import type {
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
   GetIssueEndpointApiIssuesIssueIdGetResponse,
-  GetProjectEndpointApiProjectProjectIdGetResponse,
   GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponse,
   GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -294,13 +293,6 @@ const projectDetailedSchemaResponseTransformer = (data: any) => {
 export const createProjectEndpointApiProjectsPostResponseTransformer = async (
   data: any,
 ): Promise<CreateProjectEndpointApiProjectsPostResponse> => {
-  data = projectDetailedSchemaResponseTransformer(data);
-  return data;
-};
-
-export const getProjectEndpointApiProjectProjectIdGetResponseTransformer = async (
-  data: any,
-): Promise<GetProjectEndpointApiProjectProjectIdGetResponse> => {
   data = projectDetailedSchemaResponseTransformer(data);
   return data;
 };
