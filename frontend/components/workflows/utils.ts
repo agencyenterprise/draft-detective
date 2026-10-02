@@ -1,4 +1,4 @@
-import { WorkflowGate, WorkflowRunDetail, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
+import { WorkflowGate, WorkflowRunPublic, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { isWorkflowAwaitingApproval } from '@/lib/workflow-state';
 
 /**
@@ -84,7 +84,7 @@ export function hasReferenceReviewRequirement(
  * `needsApproval` in `lib/workflow-state`, not here.
  */
 export function needsReferenceReview(
-  workflowRuns: WorkflowRunDetail[],
+  workflowRuns: { run: WorkflowRunPublic }[],
   workflowTypes?: WorkflowTypeDescription[],
 ): boolean {
   return workflowRuns.some(

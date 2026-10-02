@@ -32,14 +32,17 @@ const REPORT_CONTAINMENT_CSS = `
 *, *::before, *::after { box-sizing: border-box; }
 html, body { width: auto !important; height: auto !important; min-height: 0 !important; }
 /* The frame is sized to its content, so the report never needs to scroll
-   itself. Undo a report that asks for its own scrollbar (\`overflow-y: scroll\`
-   forces the track to render even with nothing to scroll), then hide the root
-   scrollbar chrome outright. Hiding the chrome rather than setting
-   \`overflow: hidden\` keeps the content scrollable by wheel or keyboard, so a
-   measurement that ever came up short cannot make anything unreachable. */
+   itself, and on screen it must not be able to: a frame that can scroll even
+   one pixel captures the wheel, and the browser keeps the whole gesture latched
+   to it, so the page stops scrolling under the cursor until a new gesture
+   starts. \`overflow: hidden\` on the root makes the frame a non-scroller, and
+   the wheel then goes straight to the page. Screen only, so printing is never
+   clipped to what the root shows; the frame's own sizing (see offsetSize in
+   the resizer below) is what keeps the content from being cut off on screen. */
 html, body { overflow: visible !important; }
-html { scrollbar-width: none; }
-html::-webkit-scrollbar { width: 0; height: 0; }
+@media screen {
+  html, body { overflow: hidden !important; }
+}
 body { overflow-wrap: break-word; }
 body * { max-width: 100%; }
 img, svg, video, canvas { height: auto; }
@@ -122,12 +125,18 @@ export function HtmlReportFrame({ html, title = 'Report', className, ref }: Html
       });
     };
 
-    // offsetSize adds a pixel of slack to the measured height. Content heights
-    // are fractional (a report measuring 286.88px is normal), and if the frame
-    // lands even a rounding error short, the report gets a scrollbar with
-    // almost no travel — a scrollbar that appears to do nothing. One extra pixel
-    // is invisible and removes the whole class of problem.
-    initialize({ offsetSize: 1 }, el).then((results) => {
+    // offsetSize is added to the measured content height. It carries the
+    // frame's vertical borders, because the resizer writes style.height and
+    // under the app's border-box default those borders come out of it, leaving
+    // the report short of its own content. Measured rather than assumed so a
+    // caller's className can change the border. Plus one pixel of slack:
+    // content heights are fractional (286.88px is normal), and a frame even a
+    // rounding error short would leave the report a scrollbar with almost no
+    // travel. Width keeps border-box sizing, so the frame never overflows its
+    // container sideways.
+    const frameStyle = getComputedStyle(el);
+    const verticalBorders = parseFloat(frameStyle.borderTopWidth) + parseFloat(frameStyle.borderBottomWidth);
+    initialize({ offsetSize: verticalBorders + 1 }, el).then((results) => {
       if (disposed) return results.forEach((r) => r.unsubscribe());
       handles = results;
       remeasure();

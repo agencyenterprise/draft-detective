@@ -19,21 +19,22 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
-import { FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { FileRole, ProjectOverview, WorkflowRunType } from '@/lib/generated-api';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { findRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { Copy, Download, FileText, GlobeIcon, Loader2, MoreHorizontal, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { FileUploadDialog } from '@/components/results/references/file-upload-dialog';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
+import { TabError, TabLoading } from '../tab-status';
 import { ReferenceDetail } from './reference-detail';
 import { ReferenceRow } from './reference-row';
 
 type Lens = 'all' | ReferenceReviewStatus;
 
 interface ReferencesTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   readOnly: boolean;
 }
 
@@ -44,9 +45,9 @@ interface ReferencesTabProps {
  * findings as issues in the document explorer, so a second place to read them
  * would only be a second place to keep in sync.
  */
-export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
-  const projectId = projectDetail.project.id;
-  const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
+export function ReferencesTab({ overview, readOnly }: ReferencesTabProps) {
+  const projectId = overview.project.id;
+  const workflowRuns = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
 
   const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
@@ -58,13 +59,13 @@ export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
 
   useScrollToReference();
 
-  const references = useReferenceReviewReferences(projectDetail);
-  const approval = useReferenceApprovalFlow(projectDetail, projectId);
+  const { references, isLoading: isLoadingReferences, error: referencesError } = useReferenceReviewReferences(overview);
+  const approval = useReferenceApprovalFlow(overview);
   const fetchAll = useFetchAllFromWebMutation(projectId);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [FileRole.Support]);
 
-  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
-  const referenceDownloader = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceDownloader);
+  const referenceExtraction = findRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
+  const referenceDownloader = findRunByType(workflowRuns, WorkflowRunType.ReferenceDownloader);
   const isExtracting = isWorkflowProcessing(referenceExtraction);
   const isFetchingAll = fetchAll.isPending || isWorkflowProcessing(referenceDownloader);
   const isProcessingFiles = approval.isProcessingFiles;
@@ -84,8 +85,8 @@ export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
   // a different number: a source can sit in the project without any reference
   // claiming it, and the download asks the API for the role, not for the matches.
   const sourceFileCount = useMemo(
-    () => (projectDetail.files ?? []).filter((file) => file.role === FileRole.Support).length,
-    [projectDetail.files],
+    () => (overview.files ?? []).filter((file) => file.role === FileRole.Support).length,
+    [overview.files],
   );
 
   const shown = useMemo(() => {
@@ -107,6 +108,14 @@ export function ReferencesTab({ projectDetail, readOnly }: ReferencesTabProps) {
 
   if (isExtracting) {
     return <ExtractingState />;
+  }
+
+  if (isLoadingReferences) {
+    return <TabLoading label="Loading references..." />;
+  }
+
+  if (referencesError) {
+    return <TabError what="the references" error={referencesError} />;
   }
 
   const handleFetchAllConfirm = () => {

@@ -94,7 +94,7 @@ async def list_revisions(
 
     Returns a JSON array with each revision's number, main file name, file ID,
     and creation timestamp. Use get_project with a specific revision number to
-    fetch detailed results for any revision.
+    fetch the results for any revision.
     """
     user = await helpers.resolve_user(token)
     project, _ = await get_project_access(

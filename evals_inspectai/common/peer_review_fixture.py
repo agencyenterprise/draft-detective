@@ -17,7 +17,10 @@ The sequence is:
 4. optionally, for the workflows that compare two drafts, create revision 2,
    upload the revised draft as its main document, and run `document_processing`
    again;
-5. start the target workflow and wait for it.
+5. optionally, upload the author's response memos with `role=response_memo`
+   against revision 2, the revised draft they describe, as the Peer Review tab
+   does;
+6. start the target workflow and wait for it.
 
 The order of 3 and 4 is not interchangeable. Creating a revision cancels any
 workflow still running against the outgoing one, so the memos have to be in
@@ -44,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 _DOCUMENT_PROCESSING = "document_processing"
 _REVIEWER_MEMO_ROLE = "reviewer_memo"
+_RESPONSE_MEMO_ROLE = "response_memo"
 _MAIN_ROLE = "main"
 
 # The reviewed revision. The memos always describe the first draft, so they
@@ -60,10 +64,18 @@ class ReviewerMemo(NamedTuple):
     content: str
 
 
+class ResponseMemo(NamedTuple):
+    """One author response memo to attach to the revised draft."""
+
+    file_name: str
+    content: str
+
+
 async def setup_peer_review_project(
     draft: str,
     memos: list[ReviewerMemo],
     revised_draft: str | None = None,
+    response_memos: list[ResponseMemo] | None = None,
     draft_file_name: str = "eval-draft.md",
     revised_draft_file_name: str = "eval-draft-revised.md",
     document_processing_timeout_s: float = DOCUMENT_PROCESSING_TIMEOUT_S,
@@ -80,6 +92,8 @@ async def setup_peer_review_project(
             `draft`: identical content is deduplicated to the same file, which
             leaves those workflows with nothing to compare and short-circuits
             their precheck.
+        response_memos: The author's replies to the reviewers. Uploaded to
+            the revised draft's revision, so they need `revised_draft`.
         draft_file_name: Display name for the reviewed main document.
         revised_draft_file_name: Display name for the revised main document.
         document_processing_timeout_s: How long to wait for each
@@ -90,6 +104,10 @@ async def setup_peer_review_project(
     """
     if not memos:
         raise ValueError("A peer-review project needs at least one reviewer memo")
+    if response_memos and revised_draft is None:
+        raise ValueError(
+            "response_memos describe a revised draft; pass revised_draft as well"
+        )
     if revised_draft is not None and revised_draft == draft:
         raise ValueError(
             "revised_draft is identical to draft; it would be deduplicated to "
@@ -118,18 +136,29 @@ async def setup_peer_review_project(
         )
 
     if revised_draft is not None:
-        await _add_revised_draft(
+        revised_revision = await _add_revised_draft(
             project_id=project_id,
             revised_draft=revised_draft,
             file_name=revised_draft_file_name,
             document_processing_timeout_s=document_processing_timeout_s,
         )
+        # Sent with an explicit revision, as the app does, so the upload is
+        # rejected rather than misfiled if the revision moved underneath it.
+        for response in response_memos or []:
+            await tus_upload_file(
+                project_id=project_id,
+                file_name=response.file_name,
+                content=response.content,
+                role=_RESPONSE_MEMO_ROLE,
+                revision=revised_revision,
+            )
 
     logger.info(
-        "Peer-review project %s ready with %d reviewer memo(s)%s",
+        "Peer-review project %s ready with %d reviewer memo(s)%s%s",
         project_id,
         len(memos),
         " and a revised draft" if revised_draft is not None else "",
+        f" and {len(response_memos)} response memo(s)" if response_memos else "",
     )
     return project_id
 
@@ -139,8 +168,8 @@ async def _add_revised_draft(
     revised_draft: str,
     file_name: str,
     document_processing_timeout_s: float,
-) -> None:
-    """Put the revised draft in a second revision and process it.
+) -> int:
+    """Put the revised draft in a second revision, process it, and return it.
 
     The main document is uploaded without an explicit revision: a main document
     defines the revision it lands in, and the upload endpoint rejects an attempt
@@ -165,6 +194,7 @@ async def _add_revised_draft(
         timeout_s=document_processing_timeout_s,
     )
     logger.info("Revised draft in place as revision %s", revision)
+    return revision
 
 
 async def run_review_assistant_workflow(

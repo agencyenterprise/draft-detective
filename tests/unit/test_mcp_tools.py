@@ -373,7 +373,7 @@ async def test_run_workflow_delegates_to_blocking_runner():
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=project_json),
         ),
     ):
@@ -403,7 +403,7 @@ async def test_run_workflow_passes_approve_human_steps_to_runner():
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=project_json),
         ),
     ):
@@ -442,7 +442,7 @@ async def test_run_workflow_returns_human_approval_required_payload():
             new=AsyncMock(side_effect=err),
         ),
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(),
         ) as mock_details,
     ):
@@ -485,7 +485,7 @@ async def test_run_workflow_passes_approve_web_search_to_runner():
             "lib.api.mcp.tools.workflows.run_multiple_workflows_blocking", new=AsyncMock()
         ) as mock_run,
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=project_json),
         ),
     ):
@@ -524,7 +524,7 @@ async def test_run_workflow_returns_web_search_required_payload():
             new=AsyncMock(side_effect=err),
         ),
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(),
         ) as mock_details,
     ):
@@ -706,7 +706,7 @@ async def test_run_workflow_reports_progress_while_the_batch_runs():
             ),
         ),
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=json.dumps({"id": "p1"})),
         ),
     ):
@@ -863,15 +863,15 @@ async def test_get_project_returns_details():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=expected),
         ) as mock_details,
     ):
         result = await get_project(project_id="p1", token=_make_token())
 
-    from lib.models.project import AccessLevel
-
-    mock_details.assert_awaited_once_with("p1", AccessLevel.READ, user, revision=None)
+    mock_details.assert_awaited_once_with(
+        "p1", user, revision=None, include_document=False
+    )
     assert json.loads(result)["title"] == "Test"
 
 
@@ -1272,12 +1272,12 @@ async def test_get_project_with_revision_passes_revision():
     with (
         patch("lib.api.mcp.helpers.resolve_user", new=AsyncMock(return_value=user)),
         patch(
-            "lib.api.mcp.serialization.get_project_details_json",
+            "lib.api.mcp.serialization.get_project_summary_json",
             new=AsyncMock(return_value=expected),
         ) as mock_details,
     ):
         await get_project(project_id="p1", revision=1, token=_make_token())
 
-    from lib.models.project import AccessLevel
-
-    mock_details.assert_awaited_once_with("p1", AccessLevel.READ, user, revision=1)
+    mock_details.assert_awaited_once_with(
+        "p1", user, revision=1, include_document=False
+    )

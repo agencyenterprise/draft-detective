@@ -4,14 +4,15 @@ import { AwaitingApprovalNotice } from '@/components/results/assessments/awaitin
 import { useWorkflowSelection } from '@/components/results/assessments/use-workflow-selection';
 import { WorkflowDuration } from '@/components/results/assessments/workflow-duration';
 import { WorkflowResultsContent } from '@/components/results/assessments/workflow-results-renderer';
+import { TabError, TabLoading } from '@/components/results/tab-status';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunCost } from '@/components/workflows/workflow-run-cost';
-import { useShare } from '@/context/share-context';
 import { getErrorMessage } from '@/lib/api-error';
-import { ProjectDetailed, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
+import { AccessLevel, ProjectOverview, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
+import { useProjectIssues, useWorkflowRunDetail } from '@/lib/hooks/use-project-data';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isPeerReviewWorkflowType } from '@/lib/peer-review';
 import { getDisplayStatus, isWorkflowAwaitingApproval } from '@/lib/workflow-state';
@@ -25,7 +26,7 @@ import { Rail, RailToggle, useRailState } from '../panes';
 import { AssessmentRail } from './assessment-rail';
 
 interface AssessmentsTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   readOnly: boolean;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
   onNavigateToReferences: () => void;
@@ -39,15 +40,16 @@ interface AssessmentsTabProps {
  * the only place to see whether findings are falling as the draft is revised.
  */
 export function AssessmentsTab({
-  projectDetail,
+  overview,
   readOnly,
   onNavigateToDocumentExplorer,
   onNavigateToReferences,
   onNavigateToPeerReview,
 }: AssessmentsTabProps) {
-  const projectId = projectDetail.project.id;
-  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
-  const { shareToken } = useShare();
+  const projectId = overview.project.id;
+  const workflowDetails = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
+  // Left undefined until loaded: an empty list would read as an all-clear.
+  const { data: issues, error: issuesError } = useProjectIssues(overview);
   const queryClient = useQueryClient();
   const { getWorkflowTypeName, getWorkflowTypeDescription, isWorkflowTypeVisible } = useWorkflowTypes();
 
@@ -62,8 +64,21 @@ export function AssessmentsTab({
   const visibleCount = visibleWorkflows.length;
   const firstVisibleType = visibleWorkflows[0]?.run.type ?? null;
 
-  const { selectedWorkflowType, selectedWorkflowRun, historyData, handleSelectWorkflowType, handleSelectRun } =
-    useWorkflowSelection({ projectId, workflowDetails, shareToken, defaultWorkflowType: firstVisibleType });
+  const {
+    selectedWorkflowType,
+    selectedWorkflowRun,
+    isResolvingRun,
+    historyError,
+    historyData,
+    handleSelectWorkflowType,
+    handleSelectRun,
+  } = useWorkflowSelection({ overview, defaultWorkflowType: firstVisibleType });
+
+  // The selected run's state and its cost.
+  const { data: selectedRunDetail, error: runDetailError } = useWorkflowRunDetail(
+    projectId,
+    selectedWorkflowRun ?? undefined,
+  );
 
   const { mutate: startWorkflows } = useMutation({
     mutationFn: (values: WorkflowConfigFormValues) =>
@@ -97,7 +112,7 @@ export function AssessmentsTab({
       <Rail state={rail} label="Assessments">
         <AssessmentRail
           workflowDetails={workflowDetails}
-          issues={projectDetail.issues ?? []}
+          issues={issues}
           selectedWorkflowType={selectedWorkflowType}
           onSelectWorkflowType={(type) => {
             handleSelectWorkflowType(type);
@@ -121,11 +136,10 @@ export function AssessmentsTab({
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {selectedWorkflowRun && (
               <WorkflowRunHistory
-                projectId={projectId}
-                workflowType={selectedWorkflowRun.run.type}
                 currentRunId={selectedWorkflowRun.run.id}
                 onSelectRun={handleSelectRun}
                 historyData={historyData}
+                historyError={historyError}
                 size="xs"
                 tooltip="Every time this assessment has run. Pick one to read its results."
               />
@@ -173,7 +187,11 @@ export function AssessmentsTab({
         {/* Keyed by run so a new selection reads from the top; the tab itself
             stays mounted across selections, so nothing else resets it. */}
         <div key={selectedWorkflowRun?.run.id} className="min-h-0 flex-1 overflow-y-auto">
-          {selectedWorkflowRun ? (
+          {isResolvingRun && historyError ? (
+            <TabError what="this run" error={historyError} />
+          ) : isResolvingRun ? (
+            <TabLoading label="Loading run..." />
+          ) : selectedWorkflowRun ? (
             <div className="mx-auto max-w-5xl px-6 py-5">
               <header className="border-b pb-4">
                 <h1 className="text-base font-semibold tracking-tight">
@@ -186,8 +204,8 @@ export function AssessmentsTab({
                     Last updated {formatDistanceToNow(selectedWorkflowRun.run.last_updated_at, { addSuffix: true })}
                   </span>
                   <WorkflowDuration run={selectedWorkflowRun.run} />
-                  {selectedWorkflowRun.cost && (
-                    <WorkflowRunCost key={selectedWorkflowRun.run.id} cost={selectedWorkflowRun.cost} />
+                  {selectedRunDetail?.cost && (
+                    <WorkflowRunCost key={selectedWorkflowRun.run.id} cost={selectedRunDetail.cost} />
                   )}
                 </div>
               </header>
@@ -195,17 +213,19 @@ export function AssessmentsTab({
               <div className="space-y-4 pt-4">
                 {awaitingApproval ? (
                   <AwaitingApprovalNotice
-                    projectDetail={projectDetail}
+                    overview={overview}
                     workflowRun={selectedWorkflowRun}
                     readOnly={readOnly}
                     onNavigateToReferences={onNavigateToReferences}
                   />
                 ) : (
                   <WorkflowResultsContent
-                    projectDetail={projectDetail}
-                    workflowRun={selectedWorkflowRun}
+                    summary={selectedWorkflowRun}
+                    workflowRun={selectedRunDetail}
+                    issues={issues}
+                    loadError={runDetailError ?? issuesError}
+                    canEditIssues={overview.access_level === AccessLevel.Write}
                     onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
-                    onNavigateToReferences={onNavigateToReferences}
                   />
                 )}
               </div>

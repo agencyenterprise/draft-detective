@@ -2,24 +2,34 @@
 
 import { useApproveGate } from '@/components/workflows/use-approve-gate';
 import { needsReferenceReview } from '@/components/workflows/utils';
-import { ProjectDetailed, WorkflowGate, WorkflowRunType } from '@/lib/generated-api';
+import { ProjectOverview, WorkflowGate, WorkflowRunType } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { getWorkflowRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
+import { findRunByType, isWorkflowProcessing } from '@/lib/workflow-state';
 import { useState } from 'react';
 import { useReferenceReviewReferences } from './queries';
 
 /**
  * Shared approve / unmatched-warning logic for the References tab and the project header callout.
  */
-export function useReferenceApprovalFlow(projectDetail: ProjectDetailed | undefined, projectId: string) {
-  const workflowDetails = projectDetail?.workflow_runs ?? [];
+export function useReferenceApprovalFlow(overview: ProjectOverview) {
+  const projectId = overview.project.id;
+  const workflowDetails = overview.workflow_runs ?? [];
   const [showUnmatchedWarning, setShowUnmatchedWarning] = useState(false);
 
-  const references = useReferenceReviewReferences(projectDetail);
+  // Until the current references are in, the unmatched count can read zero (or
+  // reflect an older version), and approving would skip the warning about
+  // sources that are missing.
+  const {
+    references,
+    isLoading: isLoadingReferences,
+    isStale: referencesStale,
+    error: referencesError,
+  } = useReferenceReviewReferences(overview);
+  const referencesUnavailable = isLoadingReferences || referencesStale || !!referencesError;
 
-  const referenceExtraction = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
-  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
-  const referenceFileMatching = getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
+  const referenceExtraction = findRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction);
+  const documentProcessing = findRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const referenceFileMatching = findRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching);
   const isExtractionProcessing = isWorkflowProcessing(referenceExtraction);
 
   const isProcessingFiles = isWorkflowProcessing(documentProcessing) || isWorkflowProcessing(referenceFileMatching);
@@ -30,7 +40,11 @@ export function useReferenceApprovalFlow(projectDetail: ProjectDetailed | undefi
 
   const unmatchedCount = references.filter((ref) => ref.status === 'unmatched').length;
   const isApproveDisabled =
-    approveMutation.isPending || approveMutation.isSuccess || isProcessingFiles || isExtractionProcessing;
+    approveMutation.isPending ||
+    approveMutation.isSuccess ||
+    isProcessingFiles ||
+    isExtractionProcessing ||
+    referencesUnavailable;
 
   /** Spinner only while the approve request is in flight — not while docs/refs are still processing. */
   const showApproveButtonSpinner = approveMutation.isPending;
@@ -40,9 +54,12 @@ export function useReferenceApprovalFlow(projectDetail: ProjectDetailed | undefi
     (approveMutation.isPending && 'Starting analysis...') ||
     (isProcessingFiles && 'Processing files...') ||
     (isExtractionProcessing && 'Extracting references...') ||
+    ((isLoadingReferences || referencesStale) && 'Loading references...') ||
+    (referencesError && "Couldn't load references") ||
     'Approve and Start Analysis';
 
   const handleApprove = () => {
+    if (referencesUnavailable) return;
     if (unmatchedCount > 0 && !isProcessingFiles) {
       setShowUnmatchedWarning(true);
     } else {

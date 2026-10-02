@@ -4,7 +4,7 @@ import { useShare } from '@/context/share-context';
 import {
   getProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGet,
   WorkflowProgressResponse,
-  WorkflowRunDetail,
+  WorkflowRunSummary,
   WorkflowRunStatus,
 } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -41,7 +41,11 @@ const EMPTY: RunActivity = { running: [], queued: [] };
  * Rows are keyed back to their run so twelve concurrent assessments read as
  * twelve lines instead of however many nodes they happen to have open.
  */
-export function useRunActivity(projectId: string, workflowDetails: WorkflowRunDetail[], enabled: boolean): RunActivity {
+export function useRunActivity(
+  projectId: string,
+  workflowDetails: WorkflowRunSummary[],
+  enabled: boolean,
+): RunActivity {
   const { shareToken } = useShare();
   const { getWorkflowTypeName } = useWorkflowTypes();
 

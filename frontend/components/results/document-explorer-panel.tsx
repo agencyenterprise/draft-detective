@@ -1,18 +1,35 @@
 'use client';
 
 import { useProjectView } from '@/components/results/project-view-context';
+import { useProjectDocument, useProjectIssues } from '@/lib/hooks/use-project-data';
 import { DocumentExplorerTab } from './document-explorer/document-explorer-tab';
+import { TabError, TabLoading } from './tab-status';
 
 /**
  * The document explorer as a tab panel. Everything around it — title, tabs,
- * revision switcher, the banners — comes from ProjectShell.
+ * revision switcher, the banners — comes from ProjectShell. The document and
+ * its issues are fetched here, so the tab mounts with both in hand and its
+ * line-hash navigation has something to land on.
  */
 export function DocumentExplorerPanel() {
-  const { projectDetail, readOnly, navigateToTab } = useProjectView();
+  const { overview, readOnly, navigateToTab } = useProjectView();
+  const { data: document, error: documentError } = useProjectDocument(overview);
+  const { data: issues, error: issuesError } = useProjectIssues(overview);
+
+  const error = documentError ?? issuesError;
+  if (error) {
+    return <TabError what="the document" error={error} />;
+  }
+
+  if (!document || !issues) {
+    return <TabLoading label="Loading document..." />;
+  }
 
   return (
     <DocumentExplorerTab
-      projectDetail={projectDetail}
+      overview={overview}
+      document={document}
+      issues={issues}
       // The shell's read-only covers older revisions as well as projects that
       // aren't the reader's, which is what starting a run has to answer to:
       // the start API targets the project's current revision, not the one on

@@ -1,5 +1,5 @@
 import { PeerReviewFacts } from '@/components/results/peer-review/peer-review-derive';
-import { WorkflowRunDetail, WorkflowRunStatus } from '@/lib/generated-api';
+import { WorkflowRunSummary, WorkflowRunStatus } from '@/lib/generated-api';
 import { getDisplayStatus } from '@/lib/workflow-state';
 
 export type StepId = 'plan' | 'revise' | 'respond' | 'coverage';
@@ -28,7 +28,7 @@ export const STEPS: StepDefinition[] = [
     id: 'respond',
     title: 'Respond to the reviewers',
     subtitle:
-      'Writes one response memo per reviewer, answering each of their points with what changed and where, or why it did not.',
+      'Drafts one response memo per reviewer, answering each of their points with what changed and where, or why it did not. Upload the final memos once they have been edited.',
   },
   {
     id: 'coverage',
@@ -38,25 +38,26 @@ export const STEPS: StepDefinition[] = [
   },
 ];
 
-const isComplete = (run?: WorkflowRunDetail) => !!run && getDisplayStatus(run) === WorkflowRunStatus.Completed;
+const isComplete = (run?: WorkflowRunSummary) => !!run && getDisplayStatus(run) === WorkflowRunStatus.Completed;
 
 export interface StepState {
   complete: boolean;
   blockedReason: string | null;
   /** The run behind this step, absent for the one the author does by hand. */
-  run?: WorkflowRunDetail;
+  run?: WorkflowRunSummary;
 }
 
 /**
  * What each step's marker and status line report. Kept in one function so the
  * rail and the panel cannot disagree about whether a step is done.
  */
-export function readStepStates(facts: PeerReviewFacts, planRun?: WorkflowRunDetail): Record<StepId, StepState> {
+export function readStepStates(facts: PeerReviewFacts, planRun?: WorkflowRunSummary): Record<StepId, StepState> {
   return {
     plan: { complete: isComplete(planRun), blockedReason: facts.planBlockedReason, run: planRun },
     revise: { complete: facts.hasRevisedDraft, blockedReason: facts.reviseBlockedReason },
     respond: {
-      complete: isComplete(facts.runs.memos),
+      // Authors who write their own replies never need the generated drafts.
+      complete: isComplete(facts.runs.memos) || facts.activeResponseMemos.length > 0,
       blockedReason: facts.comparisonBlockedReason,
       run: facts.runs.memos,
     },

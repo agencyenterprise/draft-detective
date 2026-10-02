@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
-import { WorkflowRunDetail } from '@/lib/generated-api';
+import { WorkflowRunSummary } from '@/lib/generated-api';
 import { cn } from '@/lib/utils';
 import { isAnyWorkflowActive } from '@/lib/workflow-state';
 import { Loader2 } from 'lucide-react';
@@ -11,7 +11,7 @@ import { RunActivityItem, useRunActivity } from './use-run-activity';
 
 interface RunActivityIndicatorProps {
   projectId: string;
-  workflowDetails: WorkflowRunDetail[];
+  workflowDetails: WorkflowRunSummary[];
 }
 
 /**
@@ -37,6 +37,14 @@ export function RunActivityIndicator({ projectId, workflowDetails }: RunActivity
   // fitting, and the count is what the header can usefully say.
   const summary =
     running.length === 0 ? 'Starting…' : running.length === 1 ? running[0].label : `${running.length} running`;
+  // With one assessment in view, its own progress is the most useful thing the
+  // button can add. Past one, a single figure would have to blend runs that
+  // move at very different speeds, so the count stands alone.
+  const singlePercent = running.length === 1 ? progressPercent(running[0]) : null;
+  const ariaLabel =
+    singlePercent !== null
+      ? `${running[0].label} ${singlePercent}% done. Show details`
+      : `${running.length} assessment${running.length === 1 ? '' : 's'} running. Show details`;
 
   return (
     <Popover>
@@ -49,10 +57,12 @@ export function RunActivityIndicator({ projectId, workflowDetails }: RunActivity
           variant="ghost"
           size="xs"
           className="gap-1.5 px-1.5 text-muted-foreground hover:text-foreground"
-          aria-label={`${running.length} assessment${running.length === 1 ? '' : 's'} running. Show details`}
+          aria-label={ariaLabel}
         >
           <Loader2 className="text-primary size-3.5 animate-spin" />
           <span className="hidden max-w-52 truncate sm:inline">{summary}</span>
+          {/* Outside the truncating label, so a long name never clips it. */}
+          {singlePercent !== null && <span className="font-mono tabular-nums">{singlePercent}%</span>}
           {running.length > 1 && <span className="font-mono tabular-nums sm:hidden">{running.length}</span>}
         </Button>
       </PopoverTrigger>
@@ -111,11 +121,19 @@ function ActivitySection({
   );
 }
 
+/**
+ * How far along a run is, or null when it has no steps worth counting. A
+ * single-step node has nothing to report but that it is going, and a bar pinned
+ * at 0% or 100% would say something untrue about it.
+ */
+function progressPercent(item: RunActivityItem): number | null {
+  if (item.totalSteps <= 1) return null;
+  return Math.min(100, Math.round((item.currentStep / item.totalSteps) * 100));
+}
+
 function ActivityRow({ item, queued = false }: { item: RunActivityItem; queued?: boolean }) {
-  // A single-step node has nothing to report but that it is going, and a bar
-  // pinned at 0% or 100% would say something untrue about it.
-  const showSteps = item.totalSteps > 1;
-  const percent = showSteps ? Math.min(100, Math.round((item.currentStep / item.totalSteps) * 100)) : 0;
+  const percent = progressPercent(item);
+  const showSteps = percent !== null;
 
   return (
     <div className="flex items-start gap-2 rounded-md px-2 py-1.5">

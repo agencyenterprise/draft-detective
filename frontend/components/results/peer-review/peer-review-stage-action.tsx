@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { WorkflowRunDetail } from '@/lib/generated-api';
+import { WorkflowRunSummary } from '@/lib/generated-api';
 import { isWorkflowProcessing } from '@/lib/workflow-state';
 import { Loader2, X } from 'lucide-react';
 
@@ -9,7 +9,7 @@ interface StageActionProps {
   label: string;
   /** Overrides the "Re-run" text when a result already exists. */
   reRunLabel?: string;
-  run?: WorkflowRunDetail;
+  run?: WorkflowRunSummary;
   disabled: boolean;
   isStarting: boolean;
   variant?: 'default' | 'outline';

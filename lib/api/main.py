@@ -30,6 +30,7 @@ from lib.api.routers import (
     health,
     issues,
     logs,
+    project_views,
     projects,
     public,
     share,
@@ -123,6 +124,7 @@ app.include_router(feedback.router)
 app.include_router(logs.router)
 app.include_router(issues.router)
 app.include_router(projects.router)
+app.include_router(project_views.router)
 app.include_router(share.router)
 app.include_router(public.router)
 app.include_router(tus_router)

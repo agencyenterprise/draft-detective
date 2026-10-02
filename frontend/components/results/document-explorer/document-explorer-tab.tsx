@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { AccessLevel, Issue, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { AccessLevel, Issue, ProjectDocument, ProjectOverview, WorkflowRunType } from '@/lib/generated-api';
 import { useLineHashNavigation } from '@/lib/line-hash';
 import {
   getHighlightIssues,
@@ -13,8 +13,8 @@ import {
   useDocumentExplorerStore,
 } from '@/lib/stores/document-explorer-store';
 import {
+  findRunByType,
   getBlockingWorkflowErrors,
-  getWorkflowRunByType,
   isAnyWorkflowActive,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
@@ -42,7 +42,10 @@ const MODES = [
 ];
 
 interface DocumentExplorerTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
+  /** The revision's main document, loaded by the panel before the tab mounts. */
+  document: ProjectDocument;
+  issues: Issue[];
   /** False on a shared or older revision, where the header hides its run button too. */
   canRunAssessments: boolean;
   onNavigateToAnalyses: () => void;
@@ -57,7 +60,9 @@ function getIssueLineRange(issue: Issue): [number, number] | null {
 }
 
 export function DocumentExplorerTab({
-  projectDetail,
+  overview,
+  document,
+  issues,
   canRunAssessments,
   onNavigateToAnalyses,
 }: DocumentExplorerTabProps) {
@@ -67,7 +72,7 @@ export function DocumentExplorerTab({
   // Resolving an issue and rating it are judgements about the analysis, not edits to the
   // document, so they stay open on older revisions. `readOnly` covers both here, and only
   // the half about not owning the project should reach the issue notes.
-  const canEditIssues = projectDetail.access_level === AccessLevel.Write;
+  const canEditIssues = overview.access_level === AccessLevel.Write;
 
   const rail = useRailState();
   const isWideEnoughForColumn = useMediaQuery(WIDE_ENOUGH_FOR_PANE);
@@ -81,23 +86,19 @@ export function DocumentExplorerTab({
   // that should expand.
   const [openIssueId, setOpenIssueId] = useState<string | null>(null);
 
-  const mainDocumentMarkdown = projectDetail.main_document_markdown ?? '';
+  const mainDocumentMarkdown = document.markdown ?? '';
 
-  const workflowDetails = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
-  const issues = useMemo(() => projectDetail.issues ?? [], [projectDetail.issues]);
+  const workflowDetails = useMemo(() => overview.workflow_runs ?? [], [overview.workflow_runs]);
 
-  const documentSummarization = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentSummarization);
   // What the summarizer read off the document itself, which is what the reader
   // wants at the top of the page — not the project's name, which is editable
   // and often just the uploaded file name.
   const documentHeader = useMemo<DocumentHeader | undefined>(() => {
-    const state = documentSummarization?.state;
-    const summary = state?.summaries?.find((item) => item.file_id === state.main_file_id);
-    if (!summary) return undefined;
-    return { title: summary.title, authors: summary.authors };
-  }, [documentSummarization]);
+    if (document.title == null) return undefined;
+    return { title: document.title, authors: document.authors };
+  }, [document.title, document.authors]);
 
-  const documentProcessing = getWorkflowRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
+  const documentProcessing = findRunByType(workflowDetails, WorkflowRunType.DocumentProcessing);
   const isDocumentProcessing = isWorkflowProcessing(documentProcessing);
   const isAnyProcessing = isAnyWorkflowActive(workflowDetails);
 
@@ -427,7 +428,7 @@ export function DocumentExplorerTab({
         >
           <IssuesColumn
             ref={issuesRef}
-            projectId={projectDetail.project.id}
+            projectId={overview.project.id}
             visibleIssues={visibleIssues}
             issues={highlightIssues}
             totalIssueCount={issues.length}

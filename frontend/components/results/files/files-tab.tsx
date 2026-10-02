@@ -8,13 +8,12 @@ import { FileTypeIcon } from '@/components/shared/file-type-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { useDownloadAllProjectFiles } from '@/hooks/use-download-all-project-files';
 import { buildReferenceByFileIdMap, composeReferences } from '@/lib/composed-references';
-import { FileListItem, FileRole, ProjectDetailed, WorkflowRunType } from '@/lib/generated-api';
+import { FileListItem, FileRole, ProjectOverview } from '@/lib/generated-api';
+import { useProjectReferences } from '@/lib/hooks/use-project-data';
 import { RAIL_ITEM_ACTIVE, RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { cn } from '@/lib/utils';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
 import { Download, FileText, Loader2, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
@@ -24,7 +23,7 @@ import { FileGroup, GROUP, fileGroup, revisionLabel, sortFiles } from './role';
 type Lens = 'all' | FileGroup;
 
 interface FilesTabProps {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   readOnly: boolean;
   onRevisionCreated?: () => void;
 }
@@ -34,21 +33,17 @@ interface FilesTabProps {
  * a toolbar that acts on all of them, a table, and a detail pane for the one
  * you have selected.
  */
-export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTabProps) {
-  const projectId = projectDetail.project.id;
-  const currentRevision = projectDetail.project.current_revision ?? 1;
-  const allFiles = useMemo(() => projectDetail.files ?? [], [projectDetail.files]);
+export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProps) {
+  const projectId = overview.project.id;
+  const currentRevision = overview.project.current_revision ?? 1;
+  const allFiles = useMemo(() => overview.files ?? [], [overview.files]);
   // Supporting candidates are a staging role the reference downloader uses
   // while it works, not files the project holds. The API already leaves them
-  // out of projectDetail.files — get_project_files_list_items filters the role
+  // out of overview.files — get_project_files_list_items filters the role
   // in SQL — so this is belt and braces, and the tab's counts match the badge
   // in the header because both read this same list.
   const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
-  const workflowRuns = useMemo(() => projectDetail.workflow_runs ?? [], [projectDetail.workflow_runs]);
 
-  // Reviewer memos only feed the alpha Peer Review tab, so the role picker is
-  // offered to the same users who can see that tab.
-  const { showExperimentalFeatures } = useExperimentalFeatures();
   const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
   const [search, setSearch] = useState('');
@@ -57,27 +52,24 @@ export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTa
   const [replaceOpen, setReplaceOpen] = useState(false);
 
   // Every role this table lists, not the hook's default of main and support:
-  // reviewer memos are rows here too, and "Download all" would otherwise hand
-  // back a zip quietly missing them.
+  // memos are rows here too, and "Download all" would otherwise hand back a zip
+  // quietly missing them.
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [
     FileRole.Main,
     FileRole.Support,
     FileRole.ReviewerMemo,
+    FileRole.ResponseMemo,
   ]);
 
-  const referenceExtraction = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceExtraction);
-  const referenceFileMatching = getWorkflowRunByType(workflowRuns, WorkflowRunType.ReferenceFileMatching);
+  // Only labels each file with the reference it backs, so the table does not wait on it.
+  const { data: referenceData } = useProjectReferences(overview);
 
   const referenceByFileId = useMemo(
     () =>
       buildReferenceByFileIdMap(
-        composeReferences(
-          referenceExtraction?.state?.extracted_references,
-          referenceFileMatching?.state?.matches,
-          allFiles,
-        ),
+        composeReferences(referenceData?.extracted_references, referenceData?.matches, allFiles),
       ),
-    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, allFiles],
+    [referenceData?.extracted_references, referenceData?.matches, allFiles],
   );
 
   const sorted = useMemo(() => sortFiles(files), [files]);
@@ -88,6 +80,7 @@ export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTa
       main: files.filter((file) => fileGroup(file.role) === 'main').length,
       source: files.filter((file) => fileGroup(file.role) === 'source').length,
       memo: files.filter((file) => fileGroup(file.role) === 'memo').length,
+      response: files.filter((file) => fileGroup(file.role) === 'response').length,
     }),
     [files],
   );
@@ -121,15 +114,10 @@ export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTa
         isOpen={uploadOpen}
         projectId={projectId}
         title="Add files"
-        description={
-          showExperimentalFeatures
-            ? 'Add source documents or reviewer memos to this project.'
-            : 'Add source documents to this project.'
-        }
+        // Memos are added from the Peer Review tab, which explains the draft
+        // each kind is tied to; this dialog adds source documents only.
+        description="Add source documents to this project."
         multiple
-        allowRoleSelection={showExperimentalFeatures}
-        allowRevisionSelection
-        currentRevision={currentRevision}
         onCancel={() => setUploadOpen(false)}
         onComplete={() => setUploadOpen(false)}
       />
@@ -173,7 +161,7 @@ export function FilesTab({ projectDetail, readOnly, onRevisionCreated }: FilesTa
                     Add files
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Add source documents or reviewer memos to this project</TooltipContent>
+                <TooltipContent>Add source documents to this project</TooltipContent>
               </Tooltip>
             )}
             {counts.all > 0 && (
@@ -335,6 +323,7 @@ const LENSES: { id: Lens; label: string }[] = [
   { id: 'main', label: GROUP.main.plural },
   { id: 'source', label: GROUP.source.plural },
   { id: 'memo', label: GROUP.memo.plural },
+  { id: 'response', label: GROUP.response.plural },
 ];
 
 function KindRail({

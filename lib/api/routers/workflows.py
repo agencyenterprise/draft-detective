@@ -19,10 +19,10 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.projects import get_project_access
-from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic, WorkflowRunStatus
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import (
-    hydrate_workflow_run_state_with_status,
     WorkflowRunDetail,
+    build_workflow_run_detail,
     cancel_workflow_run,
     get_workflow_run,
 )
@@ -97,21 +97,42 @@ async def start_multiple_workflows(
         project_id=request.project_id,
         types=request.workflow_types,
         workflow_run_ids=workflow_run_ids,
-        message="Workflows started. Track progress by polling the project endpoint `/api/project/{project_id}`.",
+        message="Workflows started. Track progress by polling `/api/project/{project_id}/overview`.",
     )
 
 
 @router.get("/api/workflows/{workflow_run_id}", response_model=WorkflowRunDetail)
 async def get_workflow_state(
-    workflow_run_id: str, user: User = Depends(get_current_user)
+    workflow_run_id: str,
+    include_state: bool = Query(
+        default=True,
+        description=(
+            "Include `state`. Views that render a run from its issues need only "
+            "its cost and state status, and some states reach several MB."
+        ),
+    ),
+    include_messages: bool = Query(
+        default=True,
+        description=(
+            "Include the agent transcripts: `state.messages` and the "
+            "`messages` each result item keeps."
+        ),
+    ),
+    share_token: Optional[str] = Query(
+        default=None,
+        description="Share token, for viewers reading the project through a share link.",
+    ),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Get the state of a workflow"""
+    """Get one run with its state and cost."""
 
-    run = await get_workflow_run(workflow_run_id, user=user, include_state=True)
+    # Authorize on the light row before paying for the deferred state_json.
+    run = await get_workflow_run(workflow_run_id)
+    await get_project_access(str(run.project_id), current_user, share_token)
     _assert_workflow_type_still_exists(run)
-    state, status = hydrate_workflow_run_state_with_status(run)
-    return WorkflowRunDetail(
-        run=WorkflowRunPublic.model_validate(run), state=state, state_status=status
+    run = await get_workflow_run(workflow_run_id, include_state=True)
+    return await build_workflow_run_detail(
+        run, include_state=include_state, include_messages=include_messages
     )
 
 

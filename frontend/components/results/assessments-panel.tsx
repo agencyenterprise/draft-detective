@@ -14,14 +14,14 @@ function lineRangeHash(lineRange?: [number, number]): string | undefined {
 
 /** The assessments tab as a tab panel, taking its project from the shell. */
 export function AssessmentsPanel() {
-  const { projectDetail, readOnly, navigateToTab } = useProjectView();
+  const { overview, readOnly, navigateToTab } = useProjectView();
   const setFilter = useDocumentExplorerStore((s) => s.setFilter);
   // Nothing should point at Peer Review while it is hidden.
   const { showExperimentalFeatures } = useExperimentalFeatures();
 
   return (
     <AssessmentsTab
-      projectDetail={projectDetail}
+      overview={overview}
       readOnly={readOnly}
       onNavigateToDocumentExplorer={(lineRange) => {
         setFilter({ workflowType: [] });

@@ -8,6 +8,10 @@ from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.workflows.simple_deep_agent.state import (
+    SimpleDeepAgentConfig,
+    SimpleDeepAgentState,
+)
 from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunFailureReason,
@@ -15,6 +19,7 @@ from lib.models.workflow_run import (
     WorkflowRunType,
 )
 from lib.services.workflow_runs import (
+    persist_workflow_run_state,
     create_workflow_run,
     update_workflow_run_heartbeat,
     update_workflow_run_status,
@@ -357,3 +362,30 @@ async def test_create_workflow_run_with_pending_status_leaves_timestamps_none():
             if row:
                 await session.delete(row)
                 await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_leaves_last_updated_at_alone(pending_run_id):
+    """Clients refetch a run's detail when last_updated_at moves, so a heartbeat,
+    which changes neither its status nor its state, must not move it."""
+    before = (await _fetch_run(pending_run_id)).last_updated_at
+
+    await update_workflow_run_heartbeat(pending_run_id)
+
+    assert (await _fetch_run(pending_run_id)).last_updated_at == before
+
+
+@pytest.mark.asyncio
+async def test_persisting_state_advances_last_updated_at(pending_run_id):
+    """A state write is what makes partial results visible, so it does move it."""
+    before = (await _fetch_run(pending_run_id)).last_updated_at
+    state = SimpleDeepAgentState(
+        type=WorkflowRunType.RECOMMENDATION_CHECK,
+        config=SimpleDeepAgentConfig(
+            type=WorkflowRunType.RECOMMENDATION_CHECK, project_id="p"
+        ),
+    )
+
+    await persist_workflow_run_state(pending_run_id, state)
+
+    assert (await _fetch_run(pending_run_id)).last_updated_at > before

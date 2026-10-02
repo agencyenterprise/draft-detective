@@ -195,10 +195,11 @@ async def tus_upload_file(
         project_id: Project to attach the file to.
         file_name: Display name for the uploaded file.
         content: File content, either text or raw bytes (e.g. a PDF).
-        role: A `FileRole` value, e.g. "main", "support" or "reviewer_memo".
+        role: A `FileRole` value, e.g. "main", "support", "reviewer_memo" or
+            "response_memo".
         revision: Revision the file belongs to. Only meaningful for the
-            revision-scoped roles (main, reviewer_memo); omitting it attaches
-            the file to the project's current revision.
+            revision-scoped roles (main, reviewer_memo, response_memo);
+            omitting it attaches the file to the project's current revision.
 
     The upload is done as a create (POST) followed by a single write (PATCH).
     The creation-with-upload shortcut is deliberately not used: tuspyserver
@@ -277,16 +278,24 @@ async def approve_project_gate(project_id: str, gate: str = "reference_review") 
         logger.info("Approved gate=%s for project %s", gate, project_id)
 
 
+def _run_summary_by_type(
+    overview: dict[str, Any], workflow_type: str
+) -> dict[str, Any] | None:
+    """The overview's run of one workflow type, as the project page reads it."""
+    for summary in overview.get("workflow_runs", []):
+        if summary.get("run", {}).get("type") == workflow_type:
+            return summary
+    return None
+
+
 async def find_workflow_run_by_type(
     project_id: str, workflow_type: str
 ) -> dict[str, Any] | None:
-    """Return the most recent run-detail dict for the given workflow type, or None."""
-    project = await get_project_detail(project_id)
-    for run_detail in project.get("workflow_runs", []):
-        run = run_detail.get("run", {})
-        if run.get("type") == workflow_type:
-            return run_detail
-    return None
+    """Return the run summary (``run`` and its ``errors``, no state) for the
+    given workflow type, or None."""
+    async with _build_client() as client:
+        overview = await _fetch_overview(client, project_id)
+    return _run_summary_by_type(overview, workflow_type)
 
 
 async def poll_until_status(
@@ -296,7 +305,8 @@ async def poll_until_status(
     timeout_s: float = DEFAULT_TIMEOUT_S,
     interval_s: float = DEFAULT_POLL_INTERVAL_S,
 ) -> dict[str, Any]:
-    """Poll the project until a run of the given type reaches one of the target statuses."""
+    """Poll the project until a run of the given type reaches one of the target
+    statuses, and return that run's summary (no state)."""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
         detail = await find_workflow_run_by_type(project_id, workflow_type)
@@ -316,20 +326,28 @@ async def poll_until_status(
     )
 
 
-async def _fetch_project_detail(
-    client: httpx.AsyncClient, project_id: str
-) -> dict[str, Any]:
-    resp = await client.get(
-        f"/api/project/{project_id}", params={"include_internal": True}
-    )
+async def _fetch_overview(client: httpx.AsyncClient, project_id: str) -> dict[str, Any]:
+    """The project page's polled read: every run's status and errors, no states."""
+    resp = await client.get(f"/api/project/{project_id}/overview")
     resp.raise_for_status()
     return resp.json()
 
 
-async def get_project_detail(project_id: str) -> dict[str, Any]:
-    """Fetch full project details including workflow runs, issues, and files."""
+async def _fetch_run_detail(
+    client: httpx.AsyncClient, workflow_run_id: str
+) -> dict[str, Any]:
+    """One run with its full state (messages included) and cost."""
+    resp = await client.get(f"/api/workflows/{workflow_run_id}")
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def get_project_issues(project_id: str) -> list[dict[str, Any]]:
+    """The persisted issues of the project's current revision, as the app lists them."""
     async with _build_client() as client:
-        return await _fetch_project_detail(client, project_id)
+        resp = await client.get(f"/api/project/{project_id}/issues")
+        resp.raise_for_status()
+        return resp.json()
 
 
 async def get_project_files(project_id: str) -> list[dict[str, Any]]:
@@ -506,7 +524,11 @@ async def poll_until_complete(
     timeout_s: float = DEFAULT_TIMEOUT_S,
     interval_s: float = DEFAULT_POLL_INTERVAL_S,
 ) -> dict[str, Any]:
-    """Poll the project endpoint until the target workflow is completed.
+    """Poll the project overview until the target workflow is completed.
+
+    The overview is what the app polls: run statuses without states. Once the
+    run has finished, its full detail is fetched the way the Assessments tab
+    does, from the run's own endpoint.
 
     Returns the WorkflowRunDetail dict for the completed workflow.
     Raises TimeoutError if the workflow does not complete within timeout_s.
@@ -516,7 +538,7 @@ async def poll_until_complete(
     async with _build_client() as client:
         while time.monotonic() < deadline:
             try:
-                project = await _fetch_project_detail(client, project_id)
+                overview = await _fetch_overview(client, project_id)
             except (httpx.TimeoutException, httpx.TransportError) as e:
                 # The workflow is still running server-side; only this poll
                 # failed. Losing the whole eval sample over it would report a
@@ -529,10 +551,9 @@ async def poll_until_complete(
                 )
                 await asyncio.sleep(interval_s)
                 continue
-            for run_detail in project.get("workflow_runs", []):
-                run = run_detail.get("run", {})
-                if run.get("type") != workflow_type:
-                    continue
+            summary = _run_summary_by_type(overview, workflow_type)
+            if summary is not None:
+                run = summary.get("run", {})
                 status = run.get("status")
                 if status == "completed":
                     logger.info(
@@ -540,6 +561,7 @@ async def poll_until_complete(
                         workflow_type,
                         run.get("id"),
                     )
+                    run_detail = await _fetch_run_detail(client, run["id"])
                     check_workflow_errors(run_detail.get("state") or {})
                     note_served_models(run_detail)
                     check_model_used(run_detail)
@@ -548,6 +570,7 @@ async def poll_until_complete(
                     # A failed or cancelled run will never reach "completed",
                     # so polling on would only burn the timeout and report the
                     # wrong cause.
+                    run_detail = await _fetch_run_detail(client, run["id"])
                     check_workflow_errors(run_detail.get("state") or {})
                     raise WorkflowCompletionError(
                         f"Workflow '{workflow_type}' ended with status "

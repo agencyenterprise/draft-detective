@@ -77,6 +77,27 @@ class TestReviewerMemoRevision:
         assert "between 1 and 3" in exc.value.detail
 
 
+class TestResponseMemoRevision:
+    def test_absent_revision_uses_current(self):
+        assert _resolve_file_revision({}, FileRole.RESPONSE_MEMO, _project(3)) == 3
+
+    def test_tolerates_a_revision_matching_the_current_one(self):
+        revision = _resolve_file_revision(
+            {"revision": "3"}, FileRole.RESPONSE_MEMO, _project(3)
+        )
+        assert revision == 3
+
+    def test_rejects_a_back_dated_revision(self):
+        # A response memo describes the current draft; attaching it to an older
+        # one would have the coverage report read it against the wrong draft.
+        with pytest.raises(HTTPException) as exc:
+            _resolve_file_revision(
+                {"revision": "2"}, FileRole.RESPONSE_MEMO, _project(3)
+            )
+        assert exc.value.status_code == 400
+        assert "response memos" in exc.value.detail
+
+
 class TestOtherRoles:
     def test_supporting_documents_are_shared_across_revisions(self):
         assert (
@@ -85,8 +106,8 @@ class TestOtherRoles:
         )
 
     def test_supporting_candidates_are_shared_across_revisions(self):
-        # The reference downloader's temporary role. Only MAIN and REVIEWER_MEMO
-        # are revision-scoped; anything else must stay NULL.
+        # The reference downloader's temporary role. Only MAIN and the memo
+        # roles are revision-scoped; anything else must stay NULL.
         assert (
             _resolve_file_revision({}, FileRole.SUPPORTING_CANDIDATE, _project(3))
             is None
