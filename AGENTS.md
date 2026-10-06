@@ -44,9 +44,9 @@ python -m pytest
 pip install package-name
 ```
 
-### Do NOT create `__init__.py` files
+### Don't create `__init__.py` files unless a package needs one
 
-This codebase uses Python 3.3+ implicit namespace packages. Do not create `__init__.py` files in new directories - they are not used anywhere in `lib/` or `api/`.
+This codebase uses Python 3.3+ implicit namespace packages, so a new directory doesn't need an `__init__.py`. Add one only when it has a real job, such as re-exporting a package's members into its namespace (`lib/models/__init__.py` does this for the database models). An empty or marker `__init__.py` is never needed.
 
 ```bash
 # ✅ Correct - just create the module files
@@ -57,7 +57,7 @@ lib/workflows/new_workflow/
 └── nodes/
     └── process.py
 
-# ❌ Incorrect - don't add __init__.py
+# ❌ Incorrect - empty __init__.py files that do nothing
 lib/workflows/new_workflow/
 ├── __init__.py          # Don't create this
 ├── state.py
@@ -230,9 +230,8 @@ lib/
 ├── workflows/       # LangGraph workflow definitions
 ├── services/        # Business logic services
 ├── models/          # Database models
-└── config/          # Configuration modules
-
-api/                 # FastAPI application
+├── config/          # Configuration modules
+└── api/             # FastAPI application
 ```
 
 ---
@@ -352,7 +351,7 @@ export function useWizard() {
 
 ### File Organization & Size
 
-- **Target file size: ~100-200 lines** (current codebase averages 83-104 lines)
+- **Target file size: ~100-200 lines**
 - **Maximum file size: 300 lines** (exceptions for configuration, migrations, complex workflows)
 - **Principle over rules**: Prioritize logical cohesion and single responsibility over strict line counts
 - Keep functions focused and testable (max 20 lines preferred)
@@ -459,7 +458,7 @@ uv run inspect view
 - Avoid large functions (>20 lines)
 - Don't use mutable default arguments
 - Don't use `@dataclass` - always use Pydantic `BaseModel` instead
-- Don't create `__init__.py` files - use implicit namespace packages
+- Don't create `__init__.py` files unless one has a real job (e.g. re-exporting members) - use implicit namespace packages
 
 ### Frontend
 
