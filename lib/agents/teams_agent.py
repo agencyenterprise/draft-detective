@@ -17,8 +17,8 @@ rather than to a regex. A link is still the only way in: there is no lookup by n
 question naming a document that this thread has not yet opened gets a request for the link.
 
 ``graph_token`` is whose reading this run does. Both tools are built from it per run, so
-the agent inherits the asker's own access rather than the service's: a document they
-cannot open is refused by Graph and the agent says so.
+the agent reads with the asker's own access: a document they cannot open is refused by
+Graph and the agent says so.
 
 One Teams thread is one LangGraph thread, so a follow-up arrives with the earlier turns
 *and the documents opened in them* still in view. Two things follow, and the agent is

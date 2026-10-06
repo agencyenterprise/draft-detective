@@ -50,10 +50,6 @@ delegated token for them, obtained through the OAuth connection named by
 in once, from wherever they first ask — the bot replies with a sign-in card that works in
 channels too. One click, once, and never again.
 
-`GRAPH_ALLOWED_HOSTS` and `GRAPH_ALLOWED_SITE_PATHS` narrow it further and fail closed:
-unset means nothing is readable. They decide which sites the bot may be pointed at at
-all, on top of what each user can open.
-
 Worth knowing that gating the read does not gate the audience: the answer goes into the
 channel the question came from, visible to everyone there regardless of who can open
 the document.

@@ -10,13 +10,6 @@ person's bearer token -- obtained when they sign in to the Teams bot, see
 and a document they cannot open comes back 403 or 404. The bot is never a more
 privileged reader than the person asking.
 
-Which documents may be read is narrowed further by ``GRAPH_ALLOWED_HOSTS`` and
-``GRAPH_ALLOWED_SITE_PATHS``, and the order the two are applied in matters: see
-``resolve``. A sharing link has no path to check, only an opaque identifier, so the
-site is checked against what Graph resolves rather than against what was pasted. This
-is the deployment's own boundary on top of the user's: it decides where the bot may be
-pointed at all, whoever is asking.
-
 Two things were established by probing a real tenant rather than from documentation:
 
 - A delegated token minted *by the server* is refused when Conditional Access
@@ -39,7 +32,6 @@ from urllib.parse import quote, unquote, urlparse
 
 import httpx
 
-from lib.config.env import config
 
 logger = logging.getLogger(__name__)
 
@@ -58,35 +50,16 @@ class GraphError(Exception):
     """Raised when Graph will not give us what we asked for."""
 
 
-class DocumentNotAllowed(GraphError):
-    """Raised when a document is outside the sites this service may read.
-
-    Narrower than the asker's own access on purpose: the deployment decides which
-    sites the bot may be pointed at at all, whoever is asking.
-    """
-
-
-def _allowed_hosts() -> list[str]:
-    raw = config.GRAPH_ALLOWED_HOSTS or ""
-    return [host.strip().lower() for host in raw.split(",") if host.strip()]
-
-
-def _allowed_site_paths() -> list[str]:
-    raw = config.GRAPH_ALLOWED_SITE_PATHS or ""
-    return [path.strip().lower() for path in raw.split(",") if path.strip()]
-
-
 def _site_relative_path(url: str) -> str:
     """A URL's path with any sharing prefix stripped.
 
     "Copy link" in Word and Teams produces ``/:w:/r/sites/X/...`` rather than the
     plain ``/sites/X/...``. Same site, same document; only the prefix differs, and
-    comparing without removing it would refuse the very link someone pasted from
-    Word itself.
+    walking the path without removing it would fail on the very link someone pasted
+    from Word itself.
 
-    Case is preserved, because this is also used to address Graph and a document
-    library's name is not case-insensitive there. Callers comparing against the
-    allowlist lower it themselves.
+    Case is preserved, because this is used to address Graph and a document library's
+    name is not case-insensitive there.
     """
 
     return _SHARING_PREFIX.sub("/", urlparse(url).path)
@@ -155,52 +128,6 @@ def _is_addressable(segment: str) -> bool:
     return not any(ord(character) < 0x20 for character in segment)
 
 
-def check_host(url: str) -> None:
-    """Refuse a host this service may not read from at all.
-
-    The tenant boundary, and the one check cheap enough to make before anything is
-    resolved. Fails closed: an unset allowlist reads nothing rather than everything, so
-    a deployment has to say where the bot may read before it reads anything.
-    """
-
-    hosts = _allowed_hosts()
-    if not hosts:
-        raise DocumentNotAllowed(
-            "GRAPH_ALLOWED_HOSTS is not set, so no document may be read. Set it to "
-            "the SharePoint hosts this service is allowed to load from."
-        )
-
-    netloc = urlparse(url).netloc.lower()
-    if netloc not in hosts:
-        raise DocumentNotAllowed(f"{netloc} is not an allowed SharePoint host")
-
-
-def check_site(url: str) -> None:
-    """Refuse a document outside the configured sites.
-
-    Belongs on a document's *canonical* ``webUrl``, not on whatever was pasted. A
-    sharing link is deliberately opaque -- "Copy link" produces ``/:w:/s/X/EWabc...``,
-    in which the site does not appear at all -- so checking the pasted string either
-    refuses a legitimate link or, worse, invites pattern-matching an identifier that
-    was never meant to be read.
-
-    There is deliberately no helper that runs this together with ``check_host``. The
-    two are separated *because* they belong at different points, and a convenience
-    wrapper taking one URL is exactly the thing that would put the site check back on
-    the pasted link. ``resolve`` is the only caller and owns the ordering.
-    """
-
-    paths = _allowed_site_paths()
-    if not paths:
-        return
-
-    path = _site_relative_path(url).lower()
-    if not any(path.startswith(p) for p in paths):
-        raise DocumentNotAllowed(
-            f"{urlparse(url).path} is outside the site paths this service may read"
-        )
-
-
 def _share_id(url: str) -> str:
     """Graph's encoding for "the item at this URL"."""
 
@@ -215,21 +142,11 @@ async def resolve(url: str, *, token: str) -> dict[str, Any]:
     Graph refuses a document that person cannot open, which is the real permission
     check.
 
-    ``/shares`` is the documented shortcut; walking site then path is the fallback, because a URL that has been through a chat message
-    does not always decode back to the exact stored name.
-
-    The two allowlist checks straddle the resolve, deliberately. The host is checked
-    first, before any call. The *site* is checked afterwards, against the item's own
-    ``webUrl``: a sharing link carries an opaque identifier instead of a path, so the
-    pasted string cannot answer which site the document is in -- only Graph can. This
-    is the stricter order as well as the working one, since it authorises the document
-    that was actually found rather than the string someone typed.
-
-    What the resolve itself can reveal before that check is a name and a path, to a
-    caller who already held a working link to the document. No content is read.
+    ``/shares`` is the documented shortcut; walking site then path is the fallback,
+    because a URL that has been through a chat message does not always decode back to
+    the exact stored name.
     """
 
-    check_host(url)
     headers = {"Authorization": f"Bearer {token}"}
 
     async with httpx.AsyncClient(timeout=60, headers=headers) as client:
@@ -237,8 +154,6 @@ async def resolve(url: str, *, token: str) -> dict[str, Any]:
 
     canonical = str(item.get("webUrl") or url)
     logger.info("resolved %s to %s", redacted(url), redacted(canonical))
-    check_host(canonical)
-    check_site(canonical)
     return item
 
 

@@ -28,11 +28,11 @@ flow to post answers and could only reply in a separate message. A transport-neu
 """
 
 import asyncio
-import json
 import logging
 from typing import Any, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
 from lib.agents.teams_agent import answer_question
 from lib.services.microsoft.graph.client import redacted
@@ -73,30 +73,16 @@ def _finished(task: "asyncio.Task[None]") -> None:
 
 
 def _invoke_response(invoked: Any) -> Response:
-    """An invoke's reply, as the channel expects to read it.
+    """An invoke's reply, with the status and body the turn produced.
 
-    ``InvokeResponse.body`` is typed ``object``, so it is serialised defensively: the
-    SDK hands back a plain dict today, having round-tripped its own model through
-    ``model_dump``, but a model or anything else must not become a 500 on a path whose
-    whole job is to report a status accurately.
-
-    ``by_alias`` is what makes that branch protocol-correct rather than merely
-    non-crashing. The SDK's models carry a camelCase alias generator and do not
-    serialise by alias, so a plain dump would emit ``connection_name`` where the wire
-    format says ``connectionName``.
+    The body is what Teams acts on -- for the sign-in card, the ``loginRequest`` that
+    opens the sign-in window, or the card that replaces it -- so it is passed through
+    rather than flattened into a blanket 200. The bodies are dicts this bot built.
     """
 
     if invoked.body is None:
         return Response(status_code=invoked.status)
-
-    body = invoked.body
-    if hasattr(body, "model_dump"):
-        body = body.model_dump(exclude_unset=True, by_alias=True)
-    return Response(
-        content=json.dumps(body, default=str),
-        status_code=invoked.status,
-        media_type="application/json",
-    )
+    return JSONResponse(invoked.body, status_code=invoked.status)
 
 
 def _start_answering(
@@ -257,11 +243,10 @@ async def _on_question(context: Any, state: Any) -> None:
 async def _on_sign_in_action(context: Any, state: Any) -> None:
     """The sign-in card's action: sign the asker in, then answer what they asked.
 
-    Arrives once on its own when the asker's client shows them the card, and again
-    each time anyone presses its button. Without a token the reply is a login request,
-    which is what puts the Sign-In button on the card. With one -- which after a
-    sign-in means redeeming the ``state`` Teams sends back -- the parked question is
-    taken and answered.
+    Arrives each time anyone presses the card's button, and once more after a sign-in.
+    Without a token the reply is a login request, which is what makes Teams open the
+    sign-in window. With one -- which after a sign-in means redeeming the ``state``
+    Teams sends back -- the parked question is taken and answered.
 
     Only the asker can release their question. Anyone in the channel can press the
     button, and answering with the presser's token would read the document with the
@@ -287,8 +272,8 @@ async def _on_sign_in_action(context: Any, state: Any) -> None:
         await sign_in.request_sign_in(context)
         return
 
-    # Taken rather than read: Teams can deliver this action twice, and the question
-    # must be answered once.
+    # Taken rather than read: the button can be pressed twice, and the question must be
+    # answered once.
     pending = await sign_in.take(pending_id) if pending_id else None
     await sign_in.show_signed_in(context, answering=pending is not None)
     if pending is None:
@@ -345,12 +330,9 @@ async def bot_messages(
         raise HTTPException(status_code=500, detail="Could not process") from error
 
     if invoked is not None:
-        # An invoke -- a `signin/*` among them -- is answered with the status and body
-        # the SDK produced, not with a blanket 200. That reply is part of the protocol:
-        # a token exchange that needs consent comes back as 412 carrying a
-        # TokenExchangeInvokeResponse, which Teams reads as "fall back to the sign-in
-        # card". Swallowing it would tell Teams the exchange succeeded, and sign-in
-        # would stall with nothing to show for it.
+        # An invoke -- the sign-in card's action -- is answered with the reply the turn
+        # built. Teams reads that reply to decide whether to open the sign-in window or
+        # replace the card; an empty 200 would do neither.
         return _invoke_response(invoked)
 
     # For everything else the Connector wants an empty 200; a body it would treat as

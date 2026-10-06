@@ -57,26 +57,6 @@ class Config(BaseModel):
         description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
     )
 
-    # Which SharePoint documents the Teams bot may read, on top of the asking user's
-    # own permissions.
-    GRAPH_ALLOWED_HOSTS: Optional[str] = Field(
-        default=None,
-        description=(
-            "Comma-separated SharePoint hosts this service may read from. Required "
-            "before any document can be loaded: unset, every document is refused."
-        ),
-    )
-    GRAPH_ALLOWED_SITE_PATHS: Optional[str] = Field(
-        default=None,
-        description=(
-            "Comma-separated URL path prefixes to narrow further, e.g. "
-            "'/sites/Reviews'. Checked against the path Graph resolves a document "
-            "to, not against the pasted link, because a sharing link carries an "
-            "opaque identifier instead of a path. Empty allows any path on an "
-            "allowed host."
-        ),
-    )
-
     # The Teams bot. Its own app registration, separate from the Graph one: a
     # different purpose, a different secret to rotate, and a different blast radius
     # if either leaks.
@@ -199,8 +179,6 @@ config = Config(
     ).lower()
     == "true",
     JINA_API_KEY=os.getenv("JINA_API_KEY") or None,
-    GRAPH_ALLOWED_HOSTS=os.getenv("GRAPH_ALLOWED_HOSTS"),
-    GRAPH_ALLOWED_SITE_PATHS=os.getenv("GRAPH_ALLOWED_SITE_PATHS"),
     TEAMS_BOT_APP_ID=os.getenv("TEAMS_BOT_APP_ID"),
     TEAMS_BOT_APP_PASSWORD=os.getenv("TEAMS_BOT_APP_PASSWORD"),
     TEAMS_BOT_TENANT_ID=os.getenv("TEAMS_BOT_TENANT_ID"),

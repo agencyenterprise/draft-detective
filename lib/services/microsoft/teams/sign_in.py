@@ -6,17 +6,14 @@ the app does not exist or has been uninstalled", so everyone had to find the bot
 personal chat and sign in there before a channel mention could work.
 
 An Adaptive Card ``Action.Execute`` is the one route Teams documents for signing in
-inside the conversation itself. The bot posts a card; when the card's action reaches the
-bot and there is no token, the bot answers the invoke with a ``loginRequest`` instead of
-a card, and Teams puts a Sign-In button in the card's footer. Once the person signs in,
+inside the conversation itself. The bot posts a card with a Sign in button; when its
+action reaches the bot and there is no token, the bot answers the invoke with a
+``loginRequest`` instead of a card, and Teams opens the sign-in window. Once the person
+signs in,
 Teams sends the same action again carrying a ``state`` code, which the Bot Framework
 token service redeems for their token. It is the same OAuth connection as before
 (``TEAMS_USER_AUTH_CONNECTION``) and the same token service holding the refresh token;
 only the card that starts it differs.
-
-The card names the asker in ``refresh.userIds``, so their Teams client sends the action
-on its own as soon as it shows them the card. They see the Sign-In button without a
-first click, and everyone else in the channel sees the card without it.
 
 The question waits in the sign-in table while this happens. It is keyed by an id the
 card carries, not by who clicked, and only the person who asked can release it: anyone
@@ -173,7 +170,7 @@ async def _sign_in_link(context: TurnContext) -> str:
     return str(resource.sign_in_link)
 
 
-def _card(pending_id: str, asker_id: str, question: str) -> dict[str, Any]:
+def _card(pending_id: str, question: str) -> dict[str, Any]:
     action = {
         "type": "Action.Execute",
         "verb": VERB,
@@ -184,7 +181,6 @@ def _card(pending_id: str, asker_id: str, question: str) -> dict[str, Any]:
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
         "version": "1.4",
-        "refresh": {"action": action, "userIds": [asker_id]},
         "body": [
             {
                 "type": "TextBlock",
@@ -224,7 +220,7 @@ async def ask_to_sign_in(
             attachments=[
                 Attachment(
                     content_type=_CARD,
-                    content=_card(pending_id, pending.asker_id, pending.question),
+                    content=_card(pending_id, pending.question),
                 )
             ],
         )

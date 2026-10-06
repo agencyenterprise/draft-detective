@@ -27,7 +27,7 @@ may have been edited since, and may have been loaded for somebody else in the th
 
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from deepagents.backends.utils import create_file_data
 from deepagents.middleware.filesystem import FilesystemState
@@ -36,11 +36,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from lib.services.microsoft.graph import client, documents
-from lib.services.microsoft.graph.client import (
-    DocumentNotAllowed,
-    GraphError,
-    redacted,
-)
+from lib.services.microsoft.graph.client import GraphError, redacted
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +124,6 @@ def open_document_for(token: str) -> BaseTool:
 
         try:
             document = await documents.load(url, token=token)
-        except DocumentNotAllowed as error:
-            return f"I am not allowed to read that document: {error}"
         except GraphError as error:
             logger.error("could not open %s: %s", redacted(url), error)
             return f"I could not open that document: {error}"
@@ -183,8 +177,6 @@ def check_document_for(token: str) -> BaseTool:
 
         try:
             item = await client.resolve(url, token=token)
-        except DocumentNotAllowed as error:
-            return f"I am not allowed to read that document: {error}"
         except GraphError as error:
             logger.info("could not check %s: %s", redacted(url), error)
             return f"I could not check that document: {error}"

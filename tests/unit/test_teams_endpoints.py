@@ -151,79 +151,37 @@ class TestRetiringADetachedTask:
 
 
 class TestAnsweringAnInvoke:
-    """A `signin/*` invoke's reply is protocol, not a formality.
+    """The sign-in card's invoke reply is protocol, not a formality.
 
-    The endpoint used to return an empty 200 for every activity. For an ordinary
-    message that is right. For an invoke it discards what the SDK produced -- and a
-    token exchange that needs consent comes back as 412 with a
-    TokenExchangeInvokeResponse, which is how Teams learns to fall back to the sign-in
-    card. Reporting 200 instead tells Teams the exchange worked, and sign-in stalls.
+    Teams reads the body to decide whether to open the sign-in window or replace the
+    card, so the endpoint passes the turn's reply through rather than an empty 200.
     """
+
+    LOGIN_REQUEST = {
+        "statusCode": 401,
+        "type": "application/vnd.microsoft.activity.loginRequest",
+        "value": {"connectionName": "graph-user", "buttons": []},
+    }
 
     def response_for(self, status: int, body: Any) -> Any:
         from microsoft_agents.activity.invoke_response import InvokeResponse
 
         return InvokeResponse(status=status, body=body)
 
-    def test_a_consent_required_exchange_keeps_its_412_and_body(self) -> None:
-        body = {
-            "id": "x",
-            "connectionName": "graph-user",
-            "failureDetail": "Proceed with regular login.",
-        }
-        response = teams._invoke_response(self.response_for(412, body))
-
-        assert response.status_code == 412
-        assert b"Proceed with regular login." in response.body
-        assert response.media_type == "application/json"
-
-    def test_a_successful_exchange_keeps_its_status_and_needs_no_body(self) -> None:
-        response = teams._invoke_response(self.response_for(200, None))
+    def test_the_body_reaches_teams_unchanged(self) -> None:
+        response = teams._invoke_response(self.response_for(200, self.LOGIN_REQUEST))
 
         assert response.status_code == 200
+        assert response.media_type == "application/json"
+        assert json.loads(response.body) == self.LOGIN_REQUEST
+
+    def test_no_body_keeps_its_status(self) -> None:
+        """An invoke no route handled comes back 501 with nothing to send."""
+
+        response = teams._invoke_response(self.response_for(501, None))
+
+        assert response.status_code == 501
         assert not response.body
-
-    def test_a_model_body_is_serialised_rather_than_crashing(self) -> None:
-        """``body`` is typed ``object``; a 500 here would hide the status it carries."""
-
-        from microsoft_agents.activity import TokenExchangeInvokeResponse
-
-        response = teams._invoke_response(
-            self.response_for(
-                412,
-                TokenExchangeInvokeResponse(
-                    id="x", connection_name="graph-user", failure_detail="nope"
-                ),
-            )
-        )
-
-        assert response.status_code == 412
-        assert b"nope" in response.body
-
-    def test_a_model_body_is_serialised_under_the_names_the_protocol_uses(self) -> None:
-        """Field names are not wire names, and asserting the value would not notice.
-
-        The SDK's models carry a camelCase alias generator and do not serialise by
-        alias, so a plain ``model_dump`` emits ``connection_name`` -- which carries the
-        right value under a key the channel does not read.
-        """
-
-        from microsoft_agents.activity import TokenExchangeInvokeResponse
-
-        response = teams._invoke_response(
-            self.response_for(
-                412,
-                TokenExchangeInvokeResponse(
-                    id="x", connection_name="graph-user", failure_detail="nope"
-                ),
-            )
-        )
-
-        assert json.loads(response.body) == {
-            "id": "x",
-            "connectionName": "graph-user",
-            "failureDetail": "nope",
-        }
 
     def client(self) -> Any:
         """Just this router, not the whole application.
@@ -253,20 +211,21 @@ class TestAnsweringAnInvoke:
         assert result.content == b""
 
     def test_an_invoke_reply_reaches_the_channel_over_http(self) -> None:
-        """End to end through the route, since the discarded value was the bug."""
+        """End to end through the route, since the reply is the whole point."""
 
-        from microsoft_agents.activity.invoke_response import InvokeResponse
-
-        refused = InvokeResponse(status=412, body={"failureDetail": "needs consent"})
-        with patch.object(teams.bot, "handle", AsyncMock(return_value=refused)):
+        with patch.object(
+            teams.bot,
+            "handle",
+            AsyncMock(return_value=self.response_for(200, self.LOGIN_REQUEST)),
+        ):
             result = self.client().post(
                 "/api/microsoft/teams/messages",
-                json={"type": "invoke", "name": "signin/tokenExchange"},
+                json={"type": "invoke", "name": "adaptiveCard/action"},
                 headers={"Authorization": "Bearer ok"},
             )
 
-        assert result.status_code == 412
-        assert result.json()["failureDetail"] == "needs consent"
+        assert result.status_code == 200
+        assert result.json() == self.LOGIN_REQUEST
 
 
 class TestSigningInFromTheCard:

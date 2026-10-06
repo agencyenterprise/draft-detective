@@ -78,16 +78,8 @@ class TestRecognisingTheAction:
 
 
 class TestTheCard:
-    def test_only_the_asker_gets_the_automatic_refresh(self) -> None:
-        """Everyone else in the channel sees the card without a sign-in prompt."""
-
-        card = sign_in._card("p1", "29:asker", "what does it claim?")
-
-        assert card["refresh"]["userIds"] == ["29:asker"]
-        assert card["refresh"]["action"]["verb"] == sign_in.VERB
-
     def test_the_button_carries_the_pending_question(self) -> None:
-        card = sign_in._card("p1", "29:asker", "q")
+        card = sign_in._card("p1", "q")
         (action,) = card["actions"]
 
         assert action["type"] == "Action.Execute"
@@ -95,7 +87,7 @@ class TestTheCard:
         assert action["data"] == {"pending": "p1"}
 
     def test_a_long_question_is_cut_short_on_the_card(self) -> None:
-        card = sign_in._card("p1", "29:asker", "x" * 1000)
+        card = sign_in._card("p1", "x" * 1000)
         assert "x" * 201 not in card["body"][1]["text"]
 
 
@@ -199,7 +191,7 @@ class TestReplyingToTheAction:
 
         assert body["statusCode"] == 200
         assert body["type"] == "application/vnd.microsoft.card.adaptive"
-        assert "refresh" not in body["value"]
+        assert "actions" not in body["value"]
 
     @pytest.mark.asyncio
     async def test_a_notice_goes_to_the_presser_only(self) -> None:

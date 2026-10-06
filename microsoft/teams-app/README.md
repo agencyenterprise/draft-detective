@@ -156,12 +156,6 @@ TEAMS_BOT_TENANT_ID=<tenant id, single-tenant bots only>
 
 # Required. The OAuth connection users sign in with (section 2).
 TEAMS_USER_AUTH_CONNECTION=graph-user
-
-# Required. Unset means no document may be read at all.
-GRAPH_ALLOWED_HOSTS=yourtenant.sharepoint.com
-# Optional, narrows further. Checked against the document Graph resolves, not
-# against the pasted link, because a sharing link has no path in it.
-GRAPH_ALLOWED_SITE_PATHS=/sites/YourSite
 ```
 
 ## 4. Build and install the app package
