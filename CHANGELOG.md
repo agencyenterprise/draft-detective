@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.0.7] - 2026-10-06
+
+### Added
+- Fan-out workflows (reference downloader, reference validation, claim reference validation, abbreviation scan) now show each item’s result as soon as it finishes.
+- The project header run activity indicator now shows a percentage when exactly one run with per-item progress is active.
+- Authors can now upload final response memos in the Peer Review tab, and the QA coverage report reads and quotes them under each reviewer point.
+- MCP adds `get_project_references` and `get_workflow_run` tools to return reference IDs and workflow run state details.
+
+### Changed
+- The project page now polls a light project overview endpoint and fetches tab data on demand instead of loading and re-sending a single full project payload.
+- MCP `get_project` and `run_workflow` now return a compact summary instead of full project details, with optional document inclusion.
+- `POST /api/projects` now returns `ProjectCreated` instead of `ProjectDetailed`.
+- DOMPurify was bumped from 3.4.13 to 3.4.16 in the frontend.
+- PyJWT was bumped from 2.13.0 to 2.15.0.
+- urllib3 was bumped from 2.7.0 to 2.8.0.
+- Agent instructions were renamed from `CLAUDE.md` to `AGENTS.md` with unchanged content.
+- `AGENTS.md` was updated to correct stale facts and generalize the `__init__.py` rule.
+
+### Fixed
+- Fan-out workflow state persistence now updates as each task finishes by streaming and applying per-task updates, restoring partial results behavior.
+
+### Security
+- urllib3 was bumped to 2.8.0, which includes fixes for multiple security issues.
+- PyJWT was bumped to 2.15.0, which includes a security-related change for deeply nested JWT payloads.
+
+### Removed
+- The legacy project page share endpoint `GET /api/projects/{id}/share` was removed.
+- `GET /api/project/{id}` was removed.
+- MCP `ProjectDetailed` and `get_project_detailed_from_project` were deleted.
+- Railway deploy workflows were dropped in favor of Railway auto-deploy.
+
+
 ## [v2.0.6] - 2026-09-30
 
 ### Added
