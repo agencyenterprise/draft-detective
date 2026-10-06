@@ -4,31 +4,25 @@ Draft Detective is asked about documents from places that have no Word session t
 borrow -- a Teams channel, most of all -- so the backend has to load them itself:
 resolving a SharePoint URL to a drive item, and downloading its bytes.
 
-**Whose identity does the reading is the caller's decision, and it is not optional.**
-``resolve`` and ``download`` take a bearer token rather than reaching for one, so a
-call site cannot fall back to the service's own identity by forgetting to say. Two
-tokens are possible and they are not equivalent:
+**Every read is done as the person who asked.** ``resolve`` and ``download`` take that
+person's bearer token -- obtained when they sign in to the Teams bot, see
+``lib/services/microsoft/teams/sign_in.py`` -- so Graph applies their own permissions,
+and a document they cannot open comes back 403 or 404. The bot is never a more
+privileged reader than the person asking.
 
-- A **user** token, obtained through Teams SSO. Graph then applies that person's own
-  permissions, so a document they cannot open comes back 403 or 404. This is the only
-  arrangement in which the bot is not a more privileged reader than the person asking.
-- The **app-only** token from ``access_token()``. Tenant-wide unless narrowed to
-  ``Sites.Selected``, so it can read documents the asker could not, which is why the
-  allowlist below exists at all.
-
-Which documents may be read is decided by ``GRAPH_ALLOWED_HOSTS`` and
+Which documents may be read is narrowed further by ``GRAPH_ALLOWED_HOSTS`` and
 ``GRAPH_ALLOWED_SITE_PATHS``, and the order the two are applied in matters: see
 ``resolve``. A sharing link has no path to check, only an opaque identifier, so the
-site is checked against what Graph resolves rather than against what was pasted.
-These stay in force under a user token too -- narrower than the user's own access,
-and defence in depth rather than the only boundary.
+site is checked against what Graph resolves rather than against what was pasted. This
+is the deployment's own boundary on top of the user's: it decides where the bot may be
+pointed at all, whoever is asking.
 
 Two things were established by probing a real tenant rather than from documentation:
 
-- A delegated token acquired *from the server* is refused when Conditional Access
+- A delegated token minted *by the server* is refused when Conditional Access
   requires a compliant device (AADSTS530035), because a server has no device
-  identity. A token acquired through Teams SSO comes from the user's own client, so
-  it is not the same case -- see ``lib/services/microsoft/teams/bot.py``.
+  identity. The user's token comes from a sign-in in their own browser instead,
+  which is why the bot asks them to sign in.
 - Graph serves whatever SharePoint last persisted. Under AutoSave that trails a
   live edit by about half a second, but with nobody editing it is simply current.
 
@@ -40,8 +34,7 @@ see ``lib/services/microsoft/word/word_package.py`` and the add-in.
 import base64
 import logging
 import re
-import time
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
@@ -51,7 +44,6 @@ from lib.config.env import config
 logger = logging.getLogger(__name__)
 
 GRAPH = "https://graph.microsoft.com/v1.0"
-_TOKEN_MARGIN_SECONDS = 120
 
 # The ``/:w:/r/`` that "Copy link" puts in front of an otherwise ordinary path. The
 # second letter is the *form*, and it decides whether what follows is a path at all.
@@ -62,9 +54,6 @@ _SHARING_PREFIX = re.compile(r"^/:[a-z]:/(?P<form>[a-z])/", re.I)
 # unrecognised is treated as opaque as well, so a form added later fails safe.
 _PATH_BEARING_FORM = "r"
 
-_cached_token: Optional[tuple[str, float]] = None
-
-
 class GraphError(Exception):
     """Raised when Graph will not give us what we asked for."""
 
@@ -72,9 +61,8 @@ class GraphError(Exception):
 class DocumentNotAllowed(GraphError):
     """Raised when a document is outside the sites this service may read.
 
-    The app-only grant is tenant-wide unless narrowed to ``Sites.Selected``, so
-    without this the service would happily read any file in the organisation --
-    including ones the person asking cannot open themselves.
+    Narrower than the asker's own access on purpose: the deployment decides which
+    sites the bot may be pointed at at all, whoever is asking.
     """
 
 
@@ -171,8 +159,8 @@ def check_host(url: str) -> None:
     """Refuse a host this service may not read from at all.
 
     The tenant boundary, and the one check cheap enough to make before anything is
-    resolved. Fails closed: an unset allowlist reads nothing rather than everything,
-    because the app-only grant is tenant-wide.
+    resolved. Fails closed: an unset allowlist reads nothing rather than everything, so
+    a deployment has to say where the bot may read before it reads anything.
     """
 
     hosts = _allowed_hosts()
@@ -213,43 +201,6 @@ def check_site(url: str) -> None:
         )
 
 
-async def access_token() -> str:
-    """An app-only Graph token, cached until shortly before it expires."""
-
-    global _cached_token
-    if _cached_token and _cached_token[1] > time.time() + _TOKEN_MARGIN_SECONDS:
-        return _cached_token[0]
-
-    missing = [
-        name
-        for name in ("AZURE_CLIENT_ID", "AZURE_TENANT_ID", "AZURE_CLIENT_SECRET")
-        if not getattr(config, name, None)
-    ]
-    if missing:
-        raise GraphError(f"Graph is not configured: {', '.join(missing)} unset")
-
-    async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
-            f"https://login.microsoftonline.com/{config.AZURE_TENANT_ID}"
-            "/oauth2/v2.0/token",
-            data={
-                "grant_type": "client_credentials",
-                "client_id": config.AZURE_CLIENT_ID,
-                "client_secret": config.AZURE_CLIENT_SECRET,
-                "scope": "https://graph.microsoft.com/.default",
-            },
-        )
-    body = response.json()
-    token = body.get("access_token")
-    if not token:
-        raise GraphError(
-            f"could not get a Graph token: {body.get('error')} "
-            f"{str(body.get('error_description'))[:200]}"
-        )
-    _cached_token = (str(token), time.time() + float(body.get("expires_in", 3600)))
-    return str(token)
-
-
 def _share_id(url: str) -> str:
     """Graph's encoding for "the item at this URL"."""
 
@@ -261,12 +212,10 @@ async def resolve(url: str, *, token: str) -> dict[str, Any]:
     """The drive item for a SharePoint URL, if this identity may read it.
 
     ``token`` is whose reading this is, and it is required rather than defaulted:
-    under a user token Graph refuses a document that person cannot open, which is the
-    real permission check, and a call site that could silently fall back to app-only
-    would lose it.
+    Graph refuses a document that person cannot open, which is the real permission
+    check.
 
-    ``/shares`` is the documented shortcut and works with either identity; walking
-    site then path is the fallback, because a URL that has been through a chat message
+    ``/shares`` is the documented shortcut; walking site then path is the fallback, because a URL that has been through a chat message
     does not always decode back to the exact stored name.
 
     The two allowlist checks straddle the resolve, deliberately. The host is checked

@@ -1,8 +1,7 @@
 """Tests for the allowlist that decides which documents the service will read.
 
-This is the whole of the boundary. The app-only Graph grant is tenant-wide, so
-without these checks the service would read any file in the organisation --
-including ones the person asking cannot open themselves. Both directions matter: a
+This is the deployment's own boundary, on top of the asking user's permissions: it
+decides which SharePoint sites the bot may be pointed at at all. Both directions matter: a
 document outside the sites must be refused, and a link someone legitimately pasted
 from Word must not be.
 
@@ -134,9 +133,7 @@ class TestResolvingASharingLink:
         graph = self.graph(
             "https://contoso.sharepoint.com/sites/Reviews/Drafts/a.docx"
         )
-        with patch.object(client, "access_token", AsyncMock(return_value="t")), patch(
-            "httpx.AsyncClient", return_value=graph
-        ):
+        with patch("httpx.AsyncClient", return_value=graph):
             item = await client.resolve(self.SHARING_LINK, token="t")
 
         assert item["name"] == "a.docx"
@@ -150,9 +147,7 @@ class TestResolvingASharingLink:
         graph = self.graph(
             "https://contoso.sharepoint.com/sites/Finance/Payroll/salaries.docx"
         )
-        with patch.object(client, "access_token", AsyncMock(return_value="t")), patch(
-            "httpx.AsyncClient", return_value=graph
-        ):
+        with patch("httpx.AsyncClient", return_value=graph):
             with pytest.raises(DocumentNotAllowed, match="outside the site paths"):
                 await client.resolve(self.SHARING_LINK, token="t")
 
@@ -161,9 +156,7 @@ class TestResolvingASharingLink:
         """The host check is before the call, so a stranger's host costs nothing."""
 
         graph = self.graph("https://elsewhere.sharepoint.com/sites/X/a.docx")
-        with patch.object(client, "access_token", AsyncMock(return_value="t")), patch(
-            "httpx.AsyncClient", return_value=graph
-        ):
+        with patch("httpx.AsyncClient", return_value=graph):
             with pytest.raises(DocumentNotAllowed, match="not an allowed"):
                 await client.resolve("https://elsewhere.sharepoint.com/:w:/s/X/EW1", token="t")
 
@@ -176,9 +169,7 @@ class TestResolvingASharingLink:
         """A redirect off the allowed host must not survive by having resolved."""
 
         graph = self.graph("https://elsewhere.sharepoint.com/sites/Reviews/a.docx")
-        with patch.object(client, "access_token", AsyncMock(return_value="t")), patch(
-            "httpx.AsyncClient", return_value=graph
-        ):
+        with patch("httpx.AsyncClient", return_value=graph):
             with pytest.raises(DocumentNotAllowed, match="not an allowed"):
                 await client.resolve(self.SHARING_LINK, token="t")
 
@@ -223,7 +214,6 @@ class TestWhoseIdentityReads:
             seen.update(kwargs)
             return transport
 
-        # No access_token patch: reaching for one would be the bug this catches.
         with patch("httpx.AsyncClient", side_effect=record):
             await client.resolve(
                 "https://contoso.sharepoint.com/sites/Reviews/a.docx",

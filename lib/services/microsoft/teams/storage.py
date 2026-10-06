@@ -33,7 +33,7 @@ from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import col
 
-from lib.config.database import AsyncSessionLocal
+from lib.config.database import get_async_db_session
 from lib.models.microsoft_teams_signin_state import MicrosoftTeamsSignInState
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class PostgresSignInStorage(AsyncStorageBase):
     async def _read_item(
         self, key: str, *, target_cls: type[Any], **kwargs: Any
     ) -> tuple[str | None, Any | None]:
-        async with AsyncSessionLocal() as session:
+        async with get_async_db_session() as session:
             row = (
                 await session.execute(
                     select(MicrosoftTeamsSignInState).where(
@@ -80,7 +80,7 @@ class PostgresSignInStorage(AsyncStorageBase):
                 set_={"value": payload, "updated_at": now},
             )
         )
-        async with AsyncSessionLocal() as session:
+        async with get_async_db_session() as session:
             await session.execute(statement)
             # Same transaction as the write, so a sweep cannot be the thing that fails
             # on its own and leaves the caller thinking nothing happened.
@@ -103,13 +103,33 @@ class PostgresSignInStorage(AsyncStorageBase):
             )
 
     async def _delete_item(self, key: str) -> None:
-        async with AsyncSessionLocal() as session:
+        async with get_async_db_session() as session:
             await session.execute(
                 delete(MicrosoftTeamsSignInState).where(
                     col(MicrosoftTeamsSignInState.key) == key
                 )
             )
             await session.commit()
+
+    async def take(self, key: str) -> dict[str, Any] | None:
+        """Remove an item and return what it held, in one statement.
+
+        A read followed by a delete would let two requests both see the item. Taking a
+        parked question has to be exclusive -- Teams can send the same card action
+        twice, once on its own and once because someone clicked -- or the question is
+        answered twice.
+        """
+
+        async with get_async_db_session() as session:
+            value = (
+                await session.execute(
+                    delete(MicrosoftTeamsSignInState)
+                    .where(col(MicrosoftTeamsSignInState.key) == key)
+                    .returning(col(MicrosoftTeamsSignInState.value))
+                )
+            ).scalar_one_or_none()
+            await session.commit()
+        return value
 
 
 def sign_in_storage() -> Storage:

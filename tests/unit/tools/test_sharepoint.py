@@ -371,10 +371,8 @@ class TestALinkIsTheOnlyWayIn:
 class TestWhoseAccessIsUsed:
     """The token a tool was built with is what limits what a run can read.
 
-    Under Teams SSO it is the asker's, so Graph refuses a document they cannot open. If
-    it were dropped anywhere between the tool and Graph, every read would silently become
-    the service's -- which is the privilege this whole arrangement removes, and it would
-    fail open rather than closed.
+    It is the asker's, so Graph refuses a document they cannot open. It must reach Graph
+    unchanged from the tool, or a read would no longer be limited to what they can open.
     """
 
     @pytest.mark.asyncio

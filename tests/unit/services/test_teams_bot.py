@@ -28,6 +28,7 @@ def configured(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555")
     monkeypatch.setattr(config, "TEAMS_BOT_APP_PASSWORD", "a-secret")
     monkeypatch.setattr(config, "TEAMS_BOT_TENANT_ID", "66666666-7777-8888-9999-000000000000")
+    monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
     monkeypatch.setattr(bot, "bot", bot._Bot())
 
 
@@ -72,70 +73,20 @@ class TestRefusingRequests:
             await bot.bot.claims_for("Bearer something")
 
 
-class TestWhoseAccessTheBotUses:
-    """Configuration decides, and the decision is a security property.
+class TestRequiringTheSignInConnection:
+    """The bot reads only as the person who asked, so it needs a way to sign them in."""
 
-    With a user-auth connection the bot can read nothing the asker could not. Without
-    one it reads app-only -- tenant-wide, bounded only by the Graph allowlist -- so
-    anyone able to mention it could have it open a document they have no access to.
-    """
-
-    def test_a_configured_connection_means_reading_as_the_asker(
-        self, monkeypatch: pytest.MonkeyPatch
+    @pytest.mark.asyncio
+    async def test_no_connection_means_the_bot_is_not_configured(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-        assert bot.reads_as_the_user() is True
-
-    def test_no_connection_falls_back_to_the_service_identity(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Explicit so the weaker mode is a visible choice rather than a surprise."""
-
         from lib.config.env import config
 
         monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", None)
-        assert bot.reads_as_the_user() is False
+        monkeypatch.setattr(bot, "bot", bot._Bot())
 
-    def test_the_scopes_asked_for_are_read_only(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """This path never writes, so a write scope would be privilege it cannot use."""
-
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-        handler = bot._user_auth_handler()
-
-        assert handler.scopes
-        assert not any("Write" in scope for scope in handler.scopes)
-
-    def test_scopes_are_split_and_trimmed(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        from lib.config.env import config
-
-        monkeypatch.setattr(
-            config, "TEAMS_USER_AUTH_SCOPES", "Files.Read.All , Sites.Read.All"
-        )
-        assert bot._user_auth_handler().scopes == ["Files.Read.All", "Sites.Read.All"]
-
-    @pytest.mark.asyncio
-    async def test_a_missing_user_token_raises_rather_than_reading_as_the_service(
-        self, configured: None, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """The failure mode that would matter: falling back would undo the feature."""
-
-        from lib.config.env import config
-
-        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
-
-        empty = MagicMock()
-        empty.get_token = AsyncMock(return_value=None)
-        bot.bot._build()
-        monkeypatch.setattr(bot.bot, "_authorization", empty)
-
-        with pytest.raises(bot.NotSignedIn):
-            await bot.user_token(MagicMock())
+        with pytest.raises(bot.NotConfigured, match="TEAMS_USER_AUTH_CONNECTION"):
+            await bot.bot.claims_for("Bearer something")
 
 
 class TestBuildingTheAdapter:

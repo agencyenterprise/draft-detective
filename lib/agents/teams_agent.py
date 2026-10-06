@@ -14,7 +14,7 @@ the message are handed over as candidates and the agent opens what it needs, via
 tools in ``lib/agents/tools/sharepoint.py``. Which link is meant is a question about the
 conversation -- "compare these two", "the second one" -- so it belongs to the agent
 rather than to a regex. A link is still the only way in: there is no lookup by name, so a
-question naming a document without linking to it gets a request for the link.
+question naming a document that this thread has not yet opened gets a request for the link.
 
 ``graph_token`` is whose reading this run does. Both tools are built from it per run, so
 the agent inherits the asker's own access rather than the service's: a document they
@@ -241,9 +241,8 @@ async def answer_question(
 ) -> QuestionAnswer:
     """Answer a question about a document the agent opens for itself.
 
-    ``graph_token`` is the identity documents are read with -- the asker's own, under
-    Teams SSO. Required rather than optional: the alternative would be reading as the
-    service, which is exactly the privilege this path is meant not to have.
+    ``graph_token`` is the identity documents are read with: the asker's own, from
+    their sign-in to the bot. Required -- there is no other identity to read with.
 
     ``thread_id`` keys both the checkpoint and the Langfuse session, deliberately under
     one name so a conversation is findable in the trace view under what it is stored as.

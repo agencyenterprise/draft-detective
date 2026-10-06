@@ -10,8 +10,7 @@ person asking may be allowed to read. A link is something they already had.
 
 Both tools are built per run, bound to one identity, by the factories below. That is
 deliberate: the token belongs to the person who asked, so a run cannot read anything they
-could not, and there is no module-level tool that would read as the service instead. The
-model never sees the token -- it is closed over, not a parameter.
+could not. The model never sees the token -- it is closed over, not a parameter.
 
 ``open_document`` mounts the document rather than returning its text, because a tool
 result over roughly 80,000 characters is evicted by the filesystem middleware to

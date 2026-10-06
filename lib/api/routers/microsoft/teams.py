@@ -16,9 +16,11 @@ thread about a minute later.
 
 Which document to read is not decided here. Every link in the message is passed along as
 a candidate and the agent opens what it needs, because which one is meant depends on what
-was asked. A link is the only way in: naming a document without linking to it gets a
-request for the link, because searching on someone's behalf could reach documents they
-cannot open.
+was asked. A link is the only way in: there is no lookup by name, because searching on
+someone's behalf could reach documents they cannot open. A follow-up in the same thread
+needs no link, since the agent remembers what it already opened there and re-checks it
+as the person asking now. Only a document the thread has not seen gets a request for the
+link.
 
 Two other transports were tried and removed. An outgoing webhook needed a Workflows
 flow to post answers and could only reply in a separate message. A transport-neutral
@@ -33,9 +35,8 @@ from typing import Any, Optional
 from fastapi import APIRouter, Header, HTTPException, Request, Response
 
 from lib.agents.teams_agent import answer_question
-from lib.services.microsoft.graph import client as graph
 from lib.services.microsoft.graph.client import redacted
-from lib.services.microsoft.teams import bot
+from lib.services.microsoft.teams import bot, sign_in
 
 logger = logging.getLogger(__name__)
 
@@ -98,19 +99,28 @@ def _invoke_response(invoked: Any) -> Response:
     )
 
 
-async def _graph_token(context: Any) -> str:
-    """The identity this turn's document reading is done with.
+def _start_answering(
+    reference: Any,
+    question: str,
+    author: str,
+    conversation: str,
+    document_urls: list[str],
+    graph_token: str,
+) -> None:
+    """Answer in the background; the answer is posted into the thread when ready.
 
-    The one place the choice is made, so it can be read in one go. Under a configured
-    user-auth connection the token is the asker's, obtained by the SDK before the
-    handler ran; otherwise it is the service's own, which is wider than any one user.
-    There is deliberately no fallback from the first to the second: a missing user
-    token is an error, not a reason to read as the service.
+    Detached rather than a FastAPI background task: the answer is posted proactively,
+    so it does not belong to this request's lifecycle, and the handler must not depend
+    on anything the request owns.
     """
 
-    if bot.reads_as_the_user():
-        return await bot.user_token(context)
-    return await graph.access_token()
+    task = asyncio.create_task(
+        _answer_into_thread(
+            reference, question, author, conversation, document_urls, graph_token
+        )
+    )
+    _running.add(task)
+    task.add_done_callback(_finished)
 
 
 async def _answer_into_thread(
@@ -171,9 +181,9 @@ async def _on_question(context: Any, state: Any) -> None:
     """Acknowledge a question and hand the answering off.
 
     Registered on the bot's application at import rather than per request, so it must
-    close over nothing belonging to one request. By the time this runs the SDK has
-    already obtained a user token if one is required, which is why asking for it here
-    cannot block.
+    close over nothing belonging to one request. When the asker has not signed in yet,
+    the question is parked and they are shown a sign-in card instead; it is answered
+    from ``_on_sign_in_action`` once they have.
     """
 
     question = bot.question_from(context)
@@ -192,19 +202,15 @@ async def _on_question(context: Any, state: Any) -> None:
         )
         return
 
-    await bot.send_typing(context)
-    await context.send_activity("Looking at that now — I will follow up here shortly.")
-
     # From the activity, not the question: Teams shows a pasted link as a
     # hyperlink and keeps the href out of the text entirely. All of them, because
     # choosing between them is the agent's job.
     document_urls = bot.document_urls_in(context.activity)
     logger.info(
-        "Teams bot question from %s: %r (links: %s, reading as %s)",
+        "Teams bot question from %s: %r (links: %s)",
         author,
         question[:120],
         ", ".join(redacted(url) for url in document_urls) or "none found",
-        "the asker" if bot.reads_as_the_user() else "the service",
     )
     if not document_urls and ".doc" in question.lower():
         # Someone named a document but no href was found anywhere in the activity.
@@ -221,34 +227,82 @@ async def _on_question(context: Any, state: Any) -> None:
             ],
         )
 
-    # Fetched inside the turn, while the context that carries the signed-in user is
-    # still available, and handed to the detached task rather than looked up there.
-    try:
-        graph_token = await _graph_token(context)
-    except bot.NotSignedIn as error:
-        logger.error("no user token for %s: %s", author, error)
-        await context.send_activity(
-            "I could not confirm your access to SharePoint, so I have not read "
-            "anything. Try signing in again, or ask an admin to check the bot's "
-            "sign-in connection."
+    # The asker's own token: every document is read with their access. Fetched inside
+    # the turn, while the context that carries the sender is still available, and
+    # handed to the detached task rather than looked up there. None means they have
+    # not signed in yet.
+    graph_token = await sign_in.user_token(context)
+    if graph_token is None:
+        pending = sign_in.pending_from(
+            context.activity, question, author, document_urls
+        )
+        pending_id = await sign_in.park(pending)
+        await sign_in.ask_to_sign_in(context, pending_id, pending)
+        logger.info("asked %s to sign in before answering (%s)", author, pending_id)
+        return
+
+    await bot.send_typing(context)
+    await context.send_activity("Looking at that now — I will follow up here shortly.")
+    _start_answering(
+        bot.reference_for(context.activity),
+        question,
+        author,
+        conversation,
+        document_urls,
+        graph_token,
+    )
+
+
+@bot.on_sign_in_action
+async def _on_sign_in_action(context: Any, state: Any) -> None:
+    """The sign-in card's action: sign the asker in, then answer what they asked.
+
+    Arrives once on its own when the asker's client shows them the card, and again
+    each time anyone presses its button. Without a token the reply is a login request,
+    which is what puts the Sign-In button on the card. With one -- which after a
+    sign-in means redeeming the ``state`` Teams sends back -- the parked question is
+    taken and answered.
+
+    Only the asker can release their question. Anyone in the channel can press the
+    button, and answering with the presser's token would read the document with the
+    wrong person's access.
+    """
+
+    activity = context.activity
+    pending_id = sign_in.pending_id_of(activity)
+    pending = await sign_in.peek(pending_id) if pending_id else None
+    presser = activity.from_property.id if activity.from_property else ""
+    if pending is not None and pending.asker_id != presser:
+        await sign_in.tell(
+            context,
+            f"This sign-in is for {pending.author}. Mention me with your own "
+            "question and I will ask you to sign in.",
         )
         return
 
-    # Detached rather than a FastAPI background task: the answer is posted
-    # proactively, so it does not belong to this request's lifecycle, and the handler
-    # must not depend on anything the request owns.
-    task = asyncio.create_task(
-        _answer_into_thread(
-            bot.reference_for(context.activity),
-            question,
-            author,
-            conversation,
-            document_urls,
-            graph_token,
-        )
+    graph_token = await sign_in.user_token(
+        context, magic_code=sign_in.magic_code_of(activity)
     )
-    _running.add(task)
-    task.add_done_callback(_finished)
+    if graph_token is None:
+        await sign_in.request_sign_in(context)
+        return
+
+    # Taken rather than read: Teams can deliver this action twice, and the question
+    # must be answered once.
+    pending = await sign_in.take(pending_id) if pending_id else None
+    await sign_in.show_signed_in(context, answering=pending is not None)
+    if pending is None:
+        return
+
+    logger.info("%s signed in; answering their parked question", pending.author)
+    _start_answering(
+        pending.conversation_reference(),
+        pending.question,
+        pending.author,
+        pending.conversation,
+        pending.document_urls,
+        graph_token,
+    )
 
 
 @router.post("/messages")

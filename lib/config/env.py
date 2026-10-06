@@ -57,18 +57,13 @@ class Config(BaseModel):
         description="Whether to enable CIMD for MCP OAuth providers. Disable if clients are behind VPNs that cannot reach the CIMD endpoint.",
     )
 
-    # Reading SharePoint documents with the service's own identity, for requests
-    # that arrive without a Word session to borrow (a Teams message, say).
-    AZURE_CLIENT_ID: Optional[str] = None
-    AZURE_TENANT_ID: Optional[str] = None
-    AZURE_CLIENT_SECRET: Optional[str] = None
+    # Which SharePoint documents the Teams bot may read, on top of the asking user's
+    # own permissions.
     GRAPH_ALLOWED_HOSTS: Optional[str] = Field(
         default=None,
         description=(
             "Comma-separated SharePoint hosts this service may read from. Required "
-            "before any document can be loaded: the app-only grant is tenant-wide "
-            "unless narrowed to Sites.Selected, and without a limit here the service "
-            "could read files the person asking cannot open themselves."
+            "before any document can be loaded: unset, every document is refused."
         ),
     )
     GRAPH_ALLOWED_SITE_PATHS: Optional[str] = Field(
@@ -98,18 +93,10 @@ class Config(BaseModel):
     TEAMS_USER_AUTH_CONNECTION: Optional[str] = Field(
         default=None,
         description=(
-            "Name of the OAuth connection configured on the Azure Bot resource. When "
-            "set, the bot reads a document as the person who asked, so it can reach "
-            "nothing they could not. When unset it reads with the service's own "
-            "app-only identity, which is wider than any one user and bounded only by "
-            "GRAPH_ALLOWED_HOSTS and GRAPH_ALLOWED_SITE_PATHS."
-        ),
-    )
-    TEAMS_USER_AUTH_SCOPES: str = Field(
-        default="Files.Read.All",
-        description=(
-            "Comma-separated delegated Graph scopes to request for the user. Read "
-            "scopes only: this path never writes to a document."
+            "Name of the OAuth connection configured on the Azure Bot resource. "
+            "Required: the bot reads every document as the person who asked, with "
+            "the token this connection signs them in for, so it can reach nothing "
+            "they could not."
         ),
     )
 
@@ -212,16 +199,12 @@ config = Config(
     ).lower()
     == "true",
     JINA_API_KEY=os.getenv("JINA_API_KEY") or None,
-    AZURE_CLIENT_ID=os.getenv("AZURE_CLIENT_ID"),
-    AZURE_TENANT_ID=os.getenv("AZURE_TENANT_ID"),
-    AZURE_CLIENT_SECRET=os.getenv("AZURE_CLIENT_SECRET"),
     GRAPH_ALLOWED_HOSTS=os.getenv("GRAPH_ALLOWED_HOSTS"),
     GRAPH_ALLOWED_SITE_PATHS=os.getenv("GRAPH_ALLOWED_SITE_PATHS"),
     TEAMS_BOT_APP_ID=os.getenv("TEAMS_BOT_APP_ID"),
     TEAMS_BOT_APP_PASSWORD=os.getenv("TEAMS_BOT_APP_PASSWORD"),
     TEAMS_BOT_TENANT_ID=os.getenv("TEAMS_BOT_TENANT_ID"),
     TEAMS_USER_AUTH_CONNECTION=os.getenv("TEAMS_USER_AUTH_CONNECTION"),
-    TEAMS_USER_AUTH_SCOPES=os.getenv("TEAMS_USER_AUTH_SCOPES", "Files.Read.All"),
 )
 
 
