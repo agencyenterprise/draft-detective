@@ -213,6 +213,18 @@ class TestReplyingToTheAction:
         assert "actions" not in body["value"]
 
     @pytest.mark.asyncio
+    async def test_a_bad_code_is_reported_as_the_protocol_says(self) -> None:
+        context = context_for(card_action())
+
+        await sign_in.reject_code(context)
+        body = sent_invoke_body(context)
+
+        assert body == {
+            "statusCode": 401,
+            "type": "application/vnd.microsoft.error.invalidAuthCode",
+        }
+
+    @pytest.mark.asyncio
     async def test_a_notice_goes_to_the_presser_only(self) -> None:
         context = context_for(card_action())
 

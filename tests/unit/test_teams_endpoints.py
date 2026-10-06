@@ -272,6 +272,7 @@ class TestSigningInFromTheCard:
         pending: Any,
         token_error: Exception | None = None,
         link_error: Exception | None = None,
+        tokens: list[str | None] | None = None,
     ) -> dict[str, Any]:
         sign_in = teams.sign_in
         return {
@@ -280,20 +281,21 @@ class TestSigningInFromTheCard:
             "user_token": patch.object(
                 sign_in,
                 "user_token",
-                AsyncMock(return_value=token, side_effect=token_error),
+                AsyncMock(return_value=token, side_effect=token_error or tokens),
             ),
             "request_sign_in": patch.object(
                 sign_in, "request_sign_in", AsyncMock(side_effect=link_error)
             ),
             "show_signed_in": patch.object(sign_in, "show_signed_in", AsyncMock()),
+            "reject_code": patch.object(sign_in, "reject_code", AsyncMock()),
             "tell": patch.object(sign_in, "tell", AsyncMock()),
             "answer": patch.object(teams, "_start_answering"),
         }
 
     async def run(
-        self, context: Any, token: str | None, pending: Any, **errors: Exception
+        self, context: Any, token: str | None, pending: Any, **extra: Any
     ) -> dict[str, Any]:
-        patches = self.patched(token, pending, **errors)
+        patches = self.patched(token, pending, **extra)
         mocks = {name: p.start() for name, p in patches.items()}
         try:
             await teams._on_sign_in_action(context, None)
@@ -358,6 +360,38 @@ class TestSigningInFromTheCard:
         assert mocks["tell"].await_args[0][1] == teams.SIGN_IN_UNAVAILABLE
         mocks["take"].assert_not_awaited()
         mocks["answer"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_code_that_does_not_redeem_is_rejected(self) -> None:
+        """Teams is told the code was bad, rather than asked to start over."""
+
+        mocks = await self.run(
+            self.context(state="123456"), None, self.pending(), tokens=[None, None]
+        )
+
+        mocks["reject_code"].assert_awaited_once()
+        mocks["request_sign_in"].assert_not_awaited()
+        mocks["take"].assert_not_awaited()
+        mocks["answer"].assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_code_already_redeemed_still_counts_as_signed_in(self) -> None:
+        """A repeated delivery carries a used code; the token from the first one stands."""
+
+        mocks = await self.run(
+            self.context(state="123456"), None, self.pending(), tokens=[None, "tok"]
+        )
+
+        mocks["reject_code"].assert_not_awaited()
+        mocks["take"].assert_awaited_once_with("p1")
+        assert mocks["answer"].call_args[0][-1] == "tok"
+
+    @pytest.mark.asyncio
+    async def test_no_code_and_no_token_starts_a_sign_in(self) -> None:
+        mocks = await self.run(self.context(), None, self.pending())
+
+        mocks["request_sign_in"].assert_awaited_once()
+        mocks["reject_code"].assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_a_question_already_answered_is_not_answered_again(self) -> None:

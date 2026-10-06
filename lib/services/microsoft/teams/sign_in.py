@@ -52,6 +52,7 @@ VERB = "draftDetective.signIn"
 
 _CARD = "application/vnd.microsoft.card.adaptive"
 _LOGIN_REQUEST = "application/vnd.microsoft.activity.loginRequest"
+_INVALID_AUTH_CODE = "application/vnd.microsoft.error.invalidAuthCode"
 _MESSAGE = "application/vnd.microsoft.activity.message"
 
 # Kept apart from the keys the SDK writes to the same table.
@@ -305,6 +306,16 @@ async def request_sign_in(context: TurnContext) -> None:
             },
         },
     )
+
+
+async def reject_code(context: TurnContext) -> None:
+    """Tell Teams the sign-in code it sent back did not redeem.
+
+    The reply the Universal Actions protocol defines for a bad ``state``: Teams can
+    prompt again or resend the action, rather than treating the sign-in as done.
+    """
+
+    await _reply(context, {"statusCode": 401, "type": _INVALID_AUTH_CODE})
 
 
 async def show_signed_in(context: TurnContext, answering: bool) -> None:

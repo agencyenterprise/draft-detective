@@ -277,10 +277,18 @@ async def _on_sign_in_action(context: Any, state: Any) -> None:
         )
         return
 
+    code = sign_in.magic_code_of(activity)
     try:
-        graph_token = await sign_in.user_token(
-            context, magic_code=sign_in.magic_code_of(activity)
-        )
+        graph_token = await sign_in.user_token(context, magic_code=code)
+        if graph_token is None and code:
+            # The token service answers a code it cannot redeem with the same 404 as
+            # "not signed in". A code already redeemed by an earlier delivery of this
+            # action is one of those, so look again without it before calling it bad.
+            graph_token = await sign_in.user_token(context)
+            if graph_token is None:
+                logger.warning("a sign-in code from Teams did not redeem")
+                await sign_in.reject_code(context)
+                return
         if graph_token is None:
             await sign_in.request_sign_in(context)
             return
