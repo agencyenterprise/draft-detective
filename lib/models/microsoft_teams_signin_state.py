@@ -1,21 +1,20 @@
-"""Cross-worker state for a Teams sign-in that is still in progress.
+"""Questions waiting for their askers to sign in to the Teams bot.
 
-A sign-in spans two requests: the message that posts the Sign in card, and the
-``signin/*`` invoke that completes it. Between them the Agents SDK keeps the flow's
-state and the question it parked, so it can replay the question once a token arrives.
+A question from someone the bot has no token for is parked here while they sign in, and
+taken back out by the card action that follows -- a different request, usually on a
+different worker. Production runs Uvicorn with ``--workers 4`` (``Dockerfile`` and
+``railway.toml``), so this cannot live in process memory. Same shape of problem as the
+one ``mcp_oauth_kv`` exists for, and a separate table because this is a different
+subsystem with a different lifetime.
 
-That state cannot live in process memory. Production runs Uvicorn with
-``--workers 4`` (``Dockerfile`` and ``railway.toml``), so the two requests usually
-land on different workers and the second one would find nothing -- first-time
-sign-in failing perhaps three times in four, and only once deployed. Same shape of
-bug as the one ``mcp_oauth_kv`` exists for, and a separate table because this is a
-different subsystem with a different lifetime.
+The table is also the Agents SDK's ``Storage``, which the bot's application requires,
+though the bot keeps no SDK state in it.
 
-Rows are short lived when a sign-in finishes -- the SDK deletes its own entries as the
-flow completes or fails. A sign-in nobody finishes deletes nothing, so
-``lib/services/microsoft/teams/storage.py`` sweeps rows left untouched for an hour on
-every write. That matters because one of the two things stored is the parked message,
-text and sender included, and this table is not the place for it to accumulate.
+Rows are short lived: a question is removed when it is answered. One whose asker never
+finishes signing in deletes nothing, so ``lib/services/microsoft/teams/storage.py``
+sweeps rows left untouched for an hour on every write. That matters because what is
+stored is the question, text and sender included, and this table is not the place for
+it to accumulate.
 """
 
 from datetime import datetime
@@ -31,15 +30,14 @@ class MicrosoftTeamsSignInState(SQLModel, table=True):
     key: str = Field(
         sa_column=Column(String, primary_key=True),
         description=(
-            "The SDK's own storage key. It embeds the channel, conversation and user, "
-            "so it is already scoped to one person's flow in one conversation."
+            "``pending-question/`` followed by the id the sign-in card carries."
         ),
     )
     value: dict = Field(
         sa_column=Column(JSONB, nullable=False),
         description=(
-            "The SDK's serialised StoreItem: flow state, and the activity parked to be "
-            "replayed after sign-in. No token -- those live in the Bot Framework token "
+            "The parked question: its text, who asked, the links it carried and where "
+            "to post the answer. No token -- those live in the Bot Framework token "
             "service, never here."
         ),
     )

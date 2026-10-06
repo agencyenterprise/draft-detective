@@ -74,11 +74,11 @@ class TestWhereSignInStateLives:
 
         monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555")
         monkeypatch.setattr(config, "TEAMS_BOT_APP_PASSWORD", "a-secret")
+        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
         monkeypatch.setattr(bot, "bot", bot._Bot())
         bot.bot._build()
 
-        assert bot.bot._authorization is not None
-        held = bot.bot._authorization._storage
+        held = bot.bot.application._storage
         assert isinstance(held, signin_storage.PostgresSignInStorage), (
             f"the SDK is holding {type(held).__name__}, which cannot span workers"
         )
@@ -90,7 +90,7 @@ class TestReadingAndWriting:
         """A flow the SDK has not started yet, or one already completed."""
 
         with patch.object(
-            signin_storage, "AsyncSessionLocal", lambda: session_returning(None)
+            signin_storage, "get_async_db_session", lambda: session_returning(None)
         ):
             key, item = await signin_storage.PostgresSignInStorage()._read_item(
                 "conv/user", target_cls=Item
@@ -102,7 +102,7 @@ class TestReadingAndWriting:
     async def test_a_stored_value_comes_back_through_the_target_class(self) -> None:
         row = MagicMock(value={"parked": "the question"})
         with patch.object(
-            signin_storage, "AsyncSessionLocal", lambda: session_returning(row)
+            signin_storage, "get_async_db_session", lambda: session_returning(row)
         ):
             key, item = await signin_storage.PostgresSignInStorage()._read_item(
                 "conv/user", target_cls=Item
@@ -116,7 +116,7 @@ class TestReadingAndWriting:
         """The Connector retries, and a retry must rewrite rather than fail."""
 
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "the question"})
             )
@@ -129,7 +129,7 @@ class TestReadingAndWriting:
     @pytest.mark.asyncio
     async def test_writing_stamps_a_time_for_sweeping_abandoned_flows(self) -> None:
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "q"})
             )
@@ -140,7 +140,7 @@ class TestReadingAndWriting:
     @pytest.mark.asyncio
     async def test_deleting_a_completed_flow_commits(self) -> None:
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._delete_item("conv/user")
 
         assert "delete" in statements(session)[0]
@@ -153,7 +153,7 @@ class TestReadingAndWriting:
         store = signin_storage.PostgresSignInStorage()
         row = MagicMock(value={"a": 1})
         with patch.object(
-            signin_storage, "AsyncSessionLocal", lambda: session_returning(row)
+            signin_storage, "get_async_db_session", lambda: session_returning(row)
         ):
             found = await store.read(["one", "two"], target_cls=Item)
 
@@ -172,7 +172,7 @@ class TestSweepingAbandonedSignIns:
     @pytest.mark.asyncio
     async def test_a_write_also_deletes_stale_rows(self) -> None:
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "q"})
             )
@@ -188,7 +188,7 @@ class TestSweepingAbandonedSignIns:
         """One commit: a sweep that failed alone would look like a failed write."""
 
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "q"})
             )
@@ -207,7 +207,7 @@ class TestSweepingAbandonedSignIns:
         """A sweep on an unindexed column would scan the table on every write."""
 
         session = session_returning(None)
-        with patch.object(signin_storage, "AsyncSessionLocal", lambda: session):
+        with patch.object(signin_storage, "get_async_db_session", lambda: session):
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "q"})
             )
@@ -221,7 +221,7 @@ class TestSweepingAbandonedSignIns:
 
         session = session_returning(None, swept=3)
         with patch.object(
-            signin_storage, "AsyncSessionLocal", lambda: session
+            signin_storage, "get_async_db_session", lambda: session
         ), patch.object(signin_storage.logger, "info") as logged:
             await signin_storage.PostgresSignInStorage()._write_item(
                 "conv/user", Item({"parked": "q"})

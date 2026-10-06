@@ -25,7 +25,7 @@ from deepagents.backends.utils import file_data_to_string
 from langgraph.types import Command
 
 from lib.agents.tools import sharepoint
-from lib.services.microsoft.graph.client import DocumentNotAllowed, GraphError
+from lib.services.microsoft.graph.client import GraphError
 from lib.services.microsoft.graph.documents import LoadedDocument
 
 TOKEN = "a-user-token"
@@ -206,16 +206,6 @@ class TestOpeningADocument:
         assert mounted(result)["/documents/v2-cern-for-ai.comments.md"] is None
 
     @pytest.mark.asyncio
-    async def test_a_document_outside_the_allowlist_is_refused_in_words(self) -> None:
-        """The model has to be able to explain the refusal, so it gets a string."""
-
-        with loading(DocumentNotAllowed("evil.com is not allowed")):
-            result = await call(opener(), "https://evil.com/a.docx", PATH, runtime())
-
-        assert isinstance(result, str)
-        assert "not allowed" in result
-
-    @pytest.mark.asyncio
     async def test_an_unexpected_failure_is_reported_not_raised(self) -> None:
         with loading(RuntimeError("boom")):
             result = await call(opener(), "https://x/a.docx", PATH, runtime())
@@ -329,20 +319,14 @@ class TestCheckingADocument:
         assert resolve.await_args.kwargs["token"] == "carlos-token"
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "failure",
-        [
-            GraphError("could not find v3.docx: 403"),
-            DocumentNotAllowed("outside the site paths this service may read"),
-        ],
-        ids=["graph refuses this person", "outside the allowlist"],
-    )
-    async def test_a_refusal_comes_back_as_words(self, failure: Exception) -> None:
-        with self.resolving(failure):
+    async def test_a_refusal_comes_back_as_words(self) -> None:
+        """Graph refusing this person is something the model has to explain."""
+
+        with self.resolving(GraphError("could not find v3.docx: 403")):
             result = await call(checker(), "https://x/v3.docx")
 
         assert isinstance(result, str)
-        assert "not allowed" in result or "could not check" in result
+        assert "could not check" in result
 
     @pytest.mark.asyncio
     async def test_a_document_with_no_edit_time_still_confirms_access(self) -> None:
@@ -371,10 +355,8 @@ class TestALinkIsTheOnlyWayIn:
 class TestWhoseAccessIsUsed:
     """The token a tool was built with is what limits what a run can read.
 
-    Under Teams SSO it is the asker's, so Graph refuses a document they cannot open. If
-    it were dropped anywhere between the tool and Graph, every read would silently become
-    the service's -- which is the privilege this whole arrangement removes, and it would
-    fail open rather than closed.
+    It is the asker's, so Graph refuses a document they cannot open. It must reach Graph
+    unchanged from the tool, or a read would no longer be limited to what they can open.
     """
 
     @pytest.mark.asyncio

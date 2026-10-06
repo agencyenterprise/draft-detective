@@ -10,8 +10,7 @@ person asking may be allowed to read. A link is something they already had.
 
 Both tools are built per run, bound to one identity, by the factories below. That is
 deliberate: the token belongs to the person who asked, so a run cannot read anything they
-could not, and there is no module-level tool that would read as the service instead. The
-model never sees the token -- it is closed over, not a parameter.
+could not. The model never sees the token -- it is closed over, not a parameter.
 
 ``open_document`` mounts the document rather than returning its text, because a tool
 result over roughly 80,000 characters is evicted by the filesystem middleware to
@@ -28,7 +27,7 @@ may have been edited since, and may have been loaded for somebody else in the th
 
 import logging
 import re
-from typing import Any, Optional
+from typing import Any
 
 from deepagents.backends.utils import create_file_data
 from deepagents.middleware.filesystem import FilesystemState
@@ -37,11 +36,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from lib.services.microsoft.graph import client, documents
-from lib.services.microsoft.graph.client import (
-    DocumentNotAllowed,
-    GraphError,
-    redacted,
-)
+from lib.services.microsoft.graph.client import GraphError, redacted
 
 logger = logging.getLogger(__name__)
 
@@ -129,8 +124,6 @@ def open_document_for(token: str) -> BaseTool:
 
         try:
             document = await documents.load(url, token=token)
-        except DocumentNotAllowed as error:
-            return f"I am not allowed to read that document: {error}"
         except GraphError as error:
             logger.error("could not open %s: %s", redacted(url), error)
             return f"I could not open that document: {error}"
@@ -184,8 +177,6 @@ def check_document_for(token: str) -> BaseTool:
 
         try:
             item = await client.resolve(url, token=token)
-        except DocumentNotAllowed as error:
-            return f"I am not allowed to read that document: {error}"
         except GraphError as error:
             logger.info("could not check %s: %s", redacted(url), error)
             return f"I could not check that document: {error}"

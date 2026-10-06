@@ -69,13 +69,11 @@ def _read_comments(path: Path, work: Path) -> list[tuple[str, str]]:
 async def load(url: str, *, token: str) -> LoadedDocument:
     """Load a document by its SharePoint URL, as whoever ``token`` belongs to.
 
-    The identity is required rather than defaulted. Under a user token Graph refuses a
-    document that person cannot open, and that refusal *is* the permission check --
-    a default would quietly turn it back into the service reading on their behalf.
+    The identity is required rather than defaulted: Graph refuses a document that person
+    cannot open, and that refusal *is* the permission check.
 
-    Raises ``client.DocumentNotAllowed`` when the URL is outside the configured
-    sites, and ``client.GraphError`` when Graph will not serve it -- including when it
-    will not serve it *to this person*.
+    Raises ``client.GraphError`` when Graph will not serve it -- including when it will
+    not serve it *to this person*.
     """
 
     item = await client.resolve(url, token=token)
