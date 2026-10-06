@@ -193,8 +193,9 @@ make the split explicit on the page:
   consult, not a section to read through.
 
 Say this on the page. Under the Part 2 heading, add a line noting that it
-reproduces every reviewer point in full and is there for reference, so no reader
-concludes that something was dropped from Part 1.
+reproduces every reviewer point in full (and, in a coverage report that has the
+author's response memos, the author's reply to each) and is there for reference,
+so no reader concludes that something was dropped from Part 1.
 
 **Part 1 is decision-grade, not descriptive.** The failure mode is a summary
 that retells the memos in shorter words, which adds length and saves nobody any
@@ -359,6 +360,15 @@ under each quoted point, record your assessment: the verdict, the point's
 location in the draft by content, and brief evidence (what changed in the
 revised draft, or the author's stated reason for not changing it).
 
+When you have the author's response memos, reproduce the author's reply to each
+point verbatim as well, directly under the quoted reviewer point and before your
+assessment. Mark it as a separate, labeled quote ("Author response (verbatim)")
+styled so it cannot be mistaken for the reviewer's text. Copy the reply as
+written, without trimming or merging it. When no reply answers a point, say "No
+author response to this point" in that slot rather than leaving it out. The QAM
+then sees, for every point, what the reviewer asked, what the author said, and
+what the draft shows, in that order.
+
 Use a verdict scale that reflects how real responses look, not a binary:
 
 - **addressed**: the revision resolves the point.
@@ -367,6 +377,22 @@ Use a verdict scale that reflects how real responses look, not a binary:
   (scope, document type, disagreement).
 - **not addressed**: no change and no reason. This is the only verdict that
   should read as a gap.
+
+When you have the author's response memos, read each point's reply alongside the
+draft comparison. The reply supplies the author's stated reason for a decline
+and says where they made a change, but the revised draft is the evidence. Check
+every claimed change against the draft. A claimed change counts only when your
+evidence shows it in the revised draft: quote the passage that was added or
+changed, or, for a claimed removal, name where the text was and confirm it is no
+longer there. Removals need the most care, because a nearby passage that did
+change can make "we dropped it" sound true when the text is still there. If the
+reply says a point was handled and the draft does not show it, the verdict
+follows the draft, and your note says what the reply claimed and what the draft
+shows. The QAM most needs to see these discrepancies, so a consequential one
+also belongs in "What needs another pass". A point that no reply answers is
+judged on the draft alone. When you have no response memos, say so in the
+header, since every "declined with rationale" verdict then rests on reasons you
+inferred from the draft rather than on reasons the author gave.
 
 Be document-type aware, because it changes what "responsive" means. A short
 perspective, commentary, or expert-opinion piece is shorter and more
@@ -392,8 +418,10 @@ the one the medium you were asked for actually supports.
   background), or a labeled and visually distinct block in a Word deliverable.
   Your own content sits outside the quote under a clear label. This boundary must
   hold in every output (see "Include the reviewer memo verbatim in every output").
-- **Make author replies clearly differentiable.** In response memos, the reader
-  needs to tell the author's reply from the reviewer's text at a glance. Choose a
+- **Make author replies clearly differentiable.** In response memos, and in a
+  coverage report that reproduces the author's replies, the reader needs to tell
+  the author's reply from the reviewer's text (and, in the coverage report, from
+  your assessment) at a glance. Choose a
   method the output format actually supports: colored text (blue is a common
   convention) works in a Word deliverable; Markdown has no color, so use a clear
   textual marker instead, such as a bold "Response:" label; HTML can do both, and

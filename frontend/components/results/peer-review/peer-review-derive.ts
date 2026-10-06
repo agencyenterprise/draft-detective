@@ -1,5 +1,5 @@
 /**
- * Derives everything the Peer Review tab needs from `projectDetail`.
+ * Derives everything the Peer Review tab needs from the project overview.
  *
  * Deliberately pure and React-free: these predicates mirror server-side
  * prechecks, and the point of keeping them in one file is that they can be read
@@ -11,22 +11,24 @@
  * Mirrored from:
  * - `get_latest_reviewer_memo_revision()` — lib/services/file_artifacts_service/file_artifacts_service.py
  * - `precheck()` in lib/workflows/{revision_planning_summary,reviewer_response_memos,reviewer_coverage_report}/manifest.py
+ * - the response-memo folder the coverage report reads — lib/workflows/reviewer_coverage_report/manifest.py
  */
 
 import {
   FileListItem,
   FileRole,
-  ProjectDetailed,
-  SimpleDeepAgentState,
+  ProjectOverview,
   WorkflowRunStatus,
+  WorkflowRunSummary,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getDisplayStatus, getWorkflowRunByType, WorkflowRunDetailTyped } from '@/lib/workflow-state';
+import { findRunByType, getDisplayStatus } from '@/lib/workflow-state';
 
+/** The step runs as the overview lists them; a step fetches its run's state when shown. */
 export interface PeerReviewRuns {
-  plan?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
-  memos?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
-  coverage?: WorkflowRunDetailTyped<SimpleDeepAgentState>;
+  plan?: WorkflowRunSummary;
+  memos?: WorkflowRunSummary;
+  coverage?: WorkflowRunSummary;
 }
 
 export interface PeerReviewFacts {
@@ -42,6 +44,25 @@ export interface PeerReviewFacts {
   activeMemos: FileListItem[];
   /** Revisions holding memos the agent will ignore, newest first. */
   staleMemoRevisions: number[];
+
+  /** Every response memo the author uploaded, across all revisions. */
+  responseMemos: FileListItem[];
+  /** Response memos on the current revision — the ones the coverage report reads. */
+  activeResponseMemos: FileListItem[];
+  /**
+   * Uploading a response memo only makes sense against a revised draft: the
+   * upload always attaches to the current revision, and before a revised draft
+   * exists that is still the one the reviewers read.
+   */
+  canUploadResponses: boolean;
+  /**
+   * An active response memo arrived after the coverage report finished, so
+   * the report on screen did not read it. Measured against completion, not
+   * creation: the run reads its file tree some time after it is queued, so a
+   * memo uploaded while it ran may or may not have been read, and the warning
+   * only fires when it certainly was not.
+   */
+  responsesNewerThanCoverage: boolean;
 
   reviewedMain?: FileListItem;
   currentMain?: FileListItem;
@@ -61,18 +82,18 @@ export interface PeerReviewFacts {
   runs: PeerReviewRuns;
 }
 
-export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerReviewFacts {
-  const files = projectDetail.files ?? [];
-  const workflowRuns = projectDetail.workflow_runs ?? [];
+export function derivePeerReviewFacts(overview: ProjectOverview): PeerReviewFacts {
+  const files = overview.files ?? [];
+  const workflowRuns = overview.workflow_runs ?? [];
 
-  const currentRevision = projectDetail.project.current_revision ?? 1;
-  // `projectDetail.revision` is the revision the API actually returned, which is
+  const currentRevision = overview.project.current_revision ?? 1;
+  // `overview.revision` is the revision the API actually returned, which is
   // more reliable than the selectedRevision prop (the share page never sends one).
-  const viewedRevision = projectDetail.revision ?? currentRevision;
+  const viewedRevision = overview.revision ?? currentRevision;
   const isViewingOldRevision = viewedRevision < currentRevision;
 
   // Mirrors get_latest_reviewer_memo_revision(): every memo, drop null revisions,
-  // take the max. `projectDetail.files` spans all revisions.
+  // take the max. `overview.files` spans all revisions.
   const memos = files.filter((f) => f.role === FileRole.ReviewerMemo);
   const memoRevisions = memos.map((f) => f.revision).filter((r): r is number => r != null);
   const reviewedRevision = memoRevisions.length > 0 ? Math.max(...memoRevisions) : null;
@@ -93,9 +114,22 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
   // All three declare required_dependencies = [DOCUMENT_PROCESSING], and starting
   // a run whose dependency has not completed errors out. There is a real window
   // right after a new revision where the main file exists but processing is not done.
-  const documentProcessing = getWorkflowRunByType(workflowRuns, WorkflowRunType.DocumentProcessing);
+  const documentProcessing = findRunByType(workflowRuns, WorkflowRunType.DocumentProcessing);
   const documentProcessingReady =
     !!documentProcessing && getDisplayStatus(documentProcessing) === WorkflowRunStatus.Completed;
+
+  // Uploads always land on the current revision, and the coverage report
+  // reads only that revision's folder, so older ones are ignored.
+  const responseMemos = files.filter((f) => f.role === FileRole.ResponseMemo);
+  const activeResponseMemos = responseMemos.filter((f) => f.revision === currentRevision);
+  const canUploadResponses = hasRevisedDraft && !isViewingOldRevision;
+
+  const coverageRun = findRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport);
+  // Generated types say Date, but the wire value is an ISO string.
+  const coverageCompletedAt = coverageRun?.run.completed_at ? new Date(coverageRun.run.completed_at).getTime() : null;
+  const responsesNewerThanCoverage =
+    coverageCompletedAt !== null &&
+    activeResponseMemos.some((f) => new Date(f.created_at).getTime() > coverageCompletedAt);
 
   const noMemos = reviewedRevision === null;
 
@@ -142,6 +176,10 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
     reviewedRevision,
     activeMemos,
     staleMemoRevisions,
+    responseMemos,
+    activeResponseMemos,
+    canUploadResponses,
+    responsesNewerThanCoverage,
     reviewedMain,
     currentMain,
     hasRevisedDraft,
@@ -150,9 +188,9 @@ export function derivePeerReviewFacts(projectDetail: ProjectDetailed): PeerRevie
     reviseBlockedReason,
     comparisonBlockedReason,
     runs: {
-      plan: getWorkflowRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
-      memos: getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
-      coverage: getWorkflowRunByType(workflowRuns, WorkflowRunType.ReviewerCoverageReport),
+      plan: findRunByType(workflowRuns, WorkflowRunType.RevisionPlanningSummary),
+      memos: findRunByType(workflowRuns, WorkflowRunType.ReviewerResponseMemos),
+      coverage: coverageRun,
     },
   };
 }
@@ -169,6 +207,7 @@ export function peerReviewNeedsAttention(facts: PeerReviewFacts, readOnly: boole
   // would show an attention dot next to a summary that is right there.
   const planCouldExistElsewhere = facts.reviewedRevision !== facts.viewedRevision;
   const planActionable = facts.planBlockedReason === null && !plan && !planCouldExistElsewhere;
-  const respondActionable = facts.comparisonBlockedReason === null && (!memos || !coverage);
+  const hasResponses = !!memos || facts.activeResponseMemos.length > 0;
+  const respondActionable = facts.comparisonBlockedReason === null && (!hasResponses || !coverage);
   return failed || planActionable || respondActionable;
 }

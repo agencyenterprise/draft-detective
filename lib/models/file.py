@@ -15,6 +15,9 @@ class FileRole(str, Enum):
     SUPPORT = "support"
     SUPPORTING_CANDIDATE = "supporting_candidate"
     REVIEWER_MEMO = "reviewer_memo"
+    # The author's final reply to the reviewers, attached to the revised draft
+    # it describes. Read by the coverage report alongside the draft diff.
+    RESPONSE_MEMO = "response_memo"
     # Derived artifact, not an upload: an image extracted from a document
     # during markdown conversion. Always has parent_file_id set. Readers must
     # opt in by role — file listings never include these implicitly.

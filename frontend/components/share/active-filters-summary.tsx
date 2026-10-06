@@ -53,21 +53,33 @@ function narrowsTheExport(filters: ActiveFilters): boolean {
 export function ExportScope({
   filters,
   counts,
+  countsFailed = false,
   includeEdits,
 }: {
   filters: ActiveFilters;
-  counts: ExportCounts;
+  /** Null until the issues behind them have loaded: an unknown count is not zero. */
+  counts: ExportCounts | null;
+  /** The issues could not be loaded, so there is nothing to count. */
+  countsFailed?: boolean;
   includeEdits: boolean;
 }) {
   const filtered = narrowsTheExport(filters);
 
   return (
     <div className="space-y-1.5">
-      <p className="text-sm">
-        <span className="font-medium tabular-nums">{plural(counts.issues, 'issue')}</span>
-        <span className="text-muted-foreground"> · </span>
-        <span className="font-medium tabular-nums">{editsPhrase(counts.edits)}</span>
-      </p>
+      {counts ? (
+        <p className="text-sm">
+          <span className="font-medium tabular-nums">{plural(counts.issues, 'issue')}</span>
+          <span className="text-muted-foreground"> · </span>
+          <span className="font-medium tabular-nums">{editsPhrase(counts.edits)}</span>
+        </p>
+      ) : countsFailed ? (
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          Couldn&apos;t count the issues. The export still includes every one that matches.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">Counting issues...</p>
+      )}
       <p className="text-sm text-muted-foreground">{exportOutcomeSentence(includeEdits)}</p>
       {filtered ? (
         <FilterBadges filters={filters} />

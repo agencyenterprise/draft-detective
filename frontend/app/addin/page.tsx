@@ -7,7 +7,11 @@ import { IssuesList } from '@/components/results/document-explorer/issues-list';
 import { addIssueMarkers, jumpToIssue } from '@/lib/addin/office-utils';
 import { useOfficeInit } from '@/lib/addin/use-office-init';
 import { ProjectFeedbackProvider } from '@/lib/contexts/project-feedback-context';
-import { getSharedResourceApiPublicShareTokenGet, Issue } from '@/lib/generated-api';
+import {
+  getProjectIssuesEndpointApiProjectProjectIdIssuesGet,
+  getSharedResourceApiPublicShareTokenGet,
+  Issue,
+} from '@/lib/generated-api';
 import {
   DEFAULT_FILTER,
   DocumentExplorerFilter,
@@ -28,11 +32,12 @@ export default function AddinPage() {
   const [filter, setFilter] = useState<DocumentExplorerFilter>(DEFAULT_FILTER);
   const updateFilter = (partial: Partial<DocumentExplorerFilter>) => setFilter((prev) => ({ ...prev, ...partial }));
 
+  // The link names the project; its issues are fetched with the same token.
   const {
-    data: project,
-    isLoading,
-    error,
-    refetch,
+    data: overview,
+    isLoading: isOverviewLoading,
+    error: overviewError,
+    refetch: refetchOverview,
   } = useQuery({
     enabled: !!token,
     queryKey: ['share', token],
@@ -44,22 +49,45 @@ export default function AddinPage() {
       }),
   });
 
+  const {
+    data: issues,
+    isLoading: isIssuesLoading,
+    error: issuesError,
+    refetch: refetchIssues,
+  } = useQuery({
+    enabled: !!overview,
+    queryKey: ['share', token, 'issues', overview?.issues_version],
+    staleTime: 60 * 1000 * 10,
+    queryFn: () =>
+      getProjectIssuesEndpointApiProjectProjectIdIssuesGet({
+        path: { project_id: overview!.project.id },
+        query: { share_token: token!, revision: overview!.revision },
+      }),
+  });
+
+  const isLoading = isOverviewLoading || isIssuesLoading;
+  const error = overviewError ?? issuesError;
+  const refetch = () => {
+    refetchOverview();
+    refetchIssues();
+  };
+
   useEffect(() => {
-    if (project?.issues?.length) {
-      addIssueMarkers(project.issues)
+    if (issues?.length) {
+      addIssueMarkers(issues)
         .then(setIssuesPerParagraph)
         .catch((e) => console.error('Error adding markers', e));
     }
-  }, [project]);
+  }, [issues]);
 
   const paragraphIssues = useMemo(() => {
-    if (!project?.issues || currentParagraphIndex === null) return [];
+    if (!issues || currentParagraphIndex === null) return [];
     return issuesPerParagraph.get(currentParagraphIndex) ?? [];
-  }, [project, currentParagraphIndex, issuesPerParagraph]);
+  }, [issues, currentParagraphIndex, issuesPerParagraph]);
 
   const activeIssues = useMemo(
-    () => (paragraphIssues.length > 0 ? paragraphIssues : (project?.issues ?? [])),
-    [paragraphIssues, project],
+    () => (paragraphIssues.length > 0 ? paragraphIssues : (issues ?? [])),
+    [paragraphIssues, issues],
   );
   const isParagraphView = paragraphIssues.length > 0;
 
@@ -117,7 +145,7 @@ export default function AddinPage() {
                   ? `${visibleIssueCount} issues`
                   : `${filteredIssueCount} of ${visibleIssueCount} issues`)}
             </span>
-            {project?.issues && project.issues.length > 0 && (
+            {issues && issues.length > 0 && (
               <div className="text-right flex flex-row flex-wrap gap-1">
                 {isParagraphView && (
                   <Button variant="outline" size="sm" className="text-xs h-6 px-2 gap-1 shadow-xs bg-card">
@@ -125,7 +153,7 @@ export default function AddinPage() {
                   </Button>
                 )}
                 <DocumentExplorerSidebarFilter
-                  issues={isParagraphView ? paragraphIssues : project.issues}
+                  issues={isParagraphView ? paragraphIssues : issues}
                   filter={filter}
                   onFilterChange={updateFilter}
                   resolvedCount={resolvedCount}

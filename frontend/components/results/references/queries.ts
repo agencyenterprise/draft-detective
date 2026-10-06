@@ -1,39 +1,32 @@
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { composeReferences } from '@/lib/composed-references';
-import { MatchSource, ProjectDetailed, ReferenceFetchStatus, WorkflowRunType } from '@/lib/generated-api';
-import { getWorkflowRunByType } from '@/lib/workflow-state';
+import { MatchSource, ProjectOverview, ReferenceFetchStatus, WorkflowRunType } from '@/lib/generated-api';
+import { useProjectReferences } from '@/lib/hooks/use-project-data';
+import { findRunByType } from '@/lib/workflow-state';
 import { useMemo } from 'react';
 import { ReferenceReviewItem } from './types';
 
-export function useReferenceReviewReferences(projectDetail: ProjectDetailed | undefined) {
-  const files = useMemo(() => projectDetail?.files ?? [], [projectDetail?.files]);
-  const workflowDetails = useMemo(() => projectDetail?.workflow_runs ?? [], [projectDetail?.workflow_runs]);
-
-  const { referenceExtraction, referenceFileMatching, referenceDownloader } = useMemo(() => {
-    return {
-      referenceExtraction: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceExtraction),
-      referenceFileMatching: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceFileMatching),
-      referenceDownloader: getWorkflowRunByType(workflowDetails, WorkflowRunType.ReferenceDownloader),
-    };
-  }, [workflowDetails]);
+export function useReferenceReviewReferences(overview: ProjectOverview) {
+  const files = useMemo(() => overview.files ?? [], [overview.files]);
+  const hasExtraction = !!findRunByType(overview.workflow_runs ?? [], WorkflowRunType.ReferenceExtraction);
+  // isPending rather than isLoading: a failed fetch whose retry is paused (the
+  // window lost focus, or went offline) is not loading, yet has no data either.
+  const { data: referenceData, isPending, isPlaceholderData, error } = useProjectReferences(overview);
 
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(
-    () =>
-      composeReferences(referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files),
-    [referenceExtraction?.state?.extracted_references, referenceFileMatching?.state?.matches, files],
+    () => composeReferences(referenceData?.extracted_references, referenceData?.matches, files),
+    [referenceData?.extracted_references, referenceData?.matches, files],
   );
 
   const references = useMemo(() => {
-    if (!referenceExtraction) {
+    if (!hasExtraction) {
       return [];
     }
 
     return composedReferences.map((item, index): ReferenceReviewItem => {
       const matchedFile = item.file_id ? files?.find((file) => file.id === item.file_id) : undefined;
-      const fetchedReference = referenceDownloader?.state?.fetched_references?.find(
-        (ref) => ref.reference_id === item.id,
-      );
+      const fetchedReference = referenceData?.fetched_references?.find((ref) => ref.reference_id === item.id);
 
       // Hide fetch results when the file was manually uploaded by the user — the fetch outcome is
       // irrelevant once a user-uploaded source is in place. Otherwise always surface the fetch
@@ -61,7 +54,14 @@ export function useReferenceReviewReferences(projectDetail: ProjectDetailed | un
         fetchResult: shouldShowFetchedResult ? fetchedReference : null,
       };
     });
-  }, [composedReferences, files, referenceExtraction, referenceDownloader]);
+  }, [composedReferences, files, hasExtraction, referenceData?.fetched_references]);
 
-  return references;
+  return {
+    references,
+    isLoading: hasExtraction && isPending,
+    // The previous version's references, shown while a newer one loads; fine
+    // to display, but not to decide on.
+    isStale: hasExtraction && isPlaceholderData,
+    error: hasExtraction ? error : null,
+  };
 }

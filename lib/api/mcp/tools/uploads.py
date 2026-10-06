@@ -41,8 +41,7 @@ async def get_tus_upload_credentials(
     role: "main" for the primary document or "support" for supporting files (default: "support").
         To upload a new main document, first call create_revision, then use role="main".
     reference_id: optional ID of the reference to link the file to (only for supporting files).
-        Obtain reference IDs from get_project (workflow_runs → type "reference_extraction" →
-        state.extracted_references[].id).
+        Obtain reference IDs from get_project_references (extracted_references[].id).
     """
     user = await helpers.resolve_user(token)
     await get_project_access(project_id, user=user, required_level=AccessLevel.WRITE)

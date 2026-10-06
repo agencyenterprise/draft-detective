@@ -1,29 +1,32 @@
 import {
   disableProjectSharingApiProjectsProjectIdShareDisablePost,
   enableProjectSharingApiProjectsProjectIdShareEnablePost,
-  getProjectShareStatusApiProjectsProjectIdShareGet,
+  ProjectOverview,
+  ShareStatusResponse,
 } from '@/lib/generated-api';
 import { getErrorMessage } from '@/lib/api-error';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export function useShareStatus(projectId: string, enabled: boolean = true) {
+/** The project's public link, read from the overview (the owner's only) and managed from here. */
+export function useShareStatus(overview: ProjectOverview) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const projectId = overview.project.id;
 
-  const query = useQuery({
-    queryKey: ['shareStatus', projectId],
-    enabled,
-    queryFn: () => getProjectShareStatusApiProjectsProjectIdShareGet({ path: { project_id: projectId } }),
-    staleTime: 30000,
-  });
+  // The overview is cached per revision, and the link is the project's, so every copy gets it.
+  const applyShareStatus = (shareStatus: ShareStatusResponse) => {
+    queryClient.setQueriesData(
+      { queryKey: projectQueryKeys.overviews(projectId) },
+      (curr: ProjectOverview | undefined) => (curr ? { ...curr, share_status: shareStatus } : curr),
+    );
+  };
 
   const enableMutation = useMutation({
     mutationFn: () => enableProjectSharingApiProjectsProjectIdShareEnablePost({ path: { project_id: projectId } }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(['shareStatus', projectId], data);
-    },
+    onSuccess: applyShareStatus,
     onError: (error) => {
       toast.error(getErrorMessage(error, 'Failed to enable sharing'));
       setIsDialogOpen(false);
@@ -33,7 +36,7 @@ export function useShareStatus(projectId: string, enabled: boolean = true) {
   const disableMutation = useMutation({
     mutationFn: () => disableProjectSharingApiProjectsProjectIdShareDisablePost({ path: { project_id: projectId } }),
     onSuccess: (data) => {
-      queryClient.setQueryData(['shareStatus', projectId], data);
+      applyShareStatus(data);
       setIsDialogOpen(false);
       toast.success('Sharing disabled. All existing links are now invalid.');
     },
@@ -42,9 +45,11 @@ export function useShareStatus(projectId: string, enabled: boolean = true) {
     },
   });
 
+  const shareStatus = overview.share_status ?? null;
+
   return {
-    isEnabled: query.data?.enabled ?? false,
-    shareStatus: query.data ?? null,
+    isEnabled: shareStatus?.enabled ?? false,
+    shareStatus,
     isDialogOpen,
     setIsDialogOpen,
     isEnabling: enableMutation.isPending,

@@ -143,3 +143,102 @@
       likely to appear in the sample of twelve, so the vocal-opponent finding may be partly
       an artifact. That single point must appear in the list of what needs another pass and
       must not be lost among the settled ones.
+# The two samples below reuse a scenario above and add the author's response
+# memos, uploaded to the revised draft. Kept as separate samples so the five
+# above stay comparable run to run on the path without replies.
+- id: hiring_audits_with_responses
+  draft: file://files/peer_review/hiring_audits/draft.md
+  revised: file://files/peer_review/hiring_audits/revised.md
+  memos:
+  - file://files/peer_review/hiring_audits/reviewer-memo.md
+  response_memos:
+  - file://files/peer_review/hiring_audits/response-memo.md
+  expected_reviewers:
+  - A
+  point_count_bands:
+    A:
+    - 8
+    - 14
+  verbatim_probes:
+  - These two statements are in tension.
+  - Third, reconcile the layer with the Uniform Guidelines on Employee Selection Procedures,
+    which already impose validation requirements and which the report does not mention at
+    all.
+  - A reader at an enforcement agency will stop here.
+  - A rough total would make this recommendation actionable instead of rhetorical.
+  author_probes:
+  - It now says the report assumes no technical background but concludes that agencies need
+    technical staff they do not yet have, and that the final section is an argument for hiring
+    them.
+  - 'We also added an evidence threshold: auditors should require a criterion validity coefficient
+    of at least 0.3 from a study on a comparable population.'
+  - We searched the EEOC and state enforcement dockets and found no published audit finding
+    on prosody-based scoring, so there is nothing in the public record we could add without
+    inventing one.
+  - 'We added a cost estimate to the Capacity section: 12 regional offices in scope, two staff
+    each, for a total of roughly $3.1 million a year.'
+  expects_unanswered_point: true
+  rubric:
+    scenario_trap: >-
+      The author's response memo claims three changes the revised draft does not make: an
+      evidence threshold for Layer 2 (a 0.3 validity coefficient), a paragraph reconciling
+      Layer 2 with the Uniform Guidelines, and a cost estimate of 12 offices and $3.1 million.
+      For each, the verdict must follow the draft rather than the reply, the assessment must
+      say what the reply claimed and that the draft does not show it, and the point must appear
+      in the list of what needs another pass. The reply to the prosody point gives a reason
+      that appears nowhere in the draft, that no published audit finding exists to add; that
+      point is settled (declined with rationale, or addressed) and its assessment should rest
+      on the author's stated reason. The replies skip the point asking whether Layer 3 describes
+      current doctrine; the revision does say so, so that point is judged on the draft alone
+      and is addressed, with its reply slot marked as having no author response.
+- id: remote_work_with_responses
+  draft: file://files/peer_review/remote_work/draft.md
+  revised: file://files/peer_review/remote_work/revised.md
+  memos:
+  - file://files/peer_review/remote_work/reviewer-a-memo.md
+  - file://files/peer_review/remote_work/reviewer-b-memo.md
+  response_memos:
+  - file://files/peer_review/remote_work/response-memo-a.md
+  - file://files/peer_review/remote_work/response-memo-b.md
+  expected_reviewers:
+  - A
+  - B
+  point_count_bands:
+    A:
+    - 8
+    - 14
+    B:
+    - 5
+    - 10
+  verbatim_probes:
+  - Voluntary recruitment through an industry consortium is a real limitation and it is mentioned
+    only in passing.
+  - '"Available on request" is not an acceptable reference list for a report that makes empirical
+    claims about prior literature.'
+  - I am not persuaded by the treatment of the team-age result.
+  - And the report never says what happened to the teams that were observed for fewer than
+    eight quarters, though a robustness check restricts to those that were.
+  author_probes:
+  - We have dropped Recommendation 2.
+  - Those data are not part of this study's sample, which is why they are not reported in the
+    text, but they are why we are comfortable making the recommendation.
+  - We softened this to a hypothesis and now name reviewer load as an alternative explanation
+    we have not tested.
+  - 'A new subsection breaks the changes down: 44 followed firm-wide policy changes, 12 were
+    team-initiated requests, and 5 followed office closures.'
+  expects_unanswered_point: true
+  rubric:
+    scenario_trap: >-
+      Reviewer A's response memo says Recommendation 2 was dropped, but the revised draft still
+      recommends co-locating newly formed teams. The verdict must follow the draft, the assessment
+      must name the discrepancy between the reply and the draft, and the point must appear in
+      the list of what needs another pass. The same memo keeps Recommendation 3 and gives a
+      reason found only in the reply: latency-reduction data from two panel firms that is not
+      part of the study's sample. With that reply, the point is declined with rationale citing
+      the author's reason, not "not addressed"; the assessment may note that the reason rests
+      on data the report does not include, but recording it as a change-free, reason-free gap
+      is the failure. Each reply must sit under the point it answers, Reviewer B's replies under
+      Reviewer B's points and Reviewer A's under Reviewer A's. Reviewer A's comment that the
+      interval does not quite touch zero has no reply; the revision states the interval and
+      says it excludes zero only just, so that point is judged on the draft alone and is addressed,
+      with its reply slot marked as having no author response.

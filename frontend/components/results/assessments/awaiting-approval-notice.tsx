@@ -5,13 +5,13 @@ import { UnmatchedReferencesApproveDialog } from '@/components/results/reference
 import { useReferenceApprovalFlow } from '@/components/results/references/use-reference-approval-flow';
 import { Button } from '@/components/ui/button';
 import { requiresGate } from '@/components/workflows/utils';
-import { ProjectDetailed, WorkflowGate, WorkflowRunDetail } from '@/lib/generated-api';
+import { ProjectOverview, WorkflowGate, WorkflowRunSummary } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { ArrowRight, BookOpen, Loader2, UserCheck } from 'lucide-react';
 
 interface AwaitingApprovalNoticeProps {
-  projectDetail: ProjectDetailed;
-  workflowRun: WorkflowRunDetail;
+  overview: ProjectOverview;
+  workflowRun: WorkflowRunSummary;
   readOnly: boolean;
   onNavigateToReferences: () => void;
 }
@@ -23,7 +23,7 @@ interface AwaitingApprovalNoticeProps {
  * the gate, says what clears it, and offers the two ways to clear it.
  */
 export function AwaitingApprovalNotice({
-  projectDetail,
+  overview,
   workflowRun,
   readOnly,
   onNavigateToReferences,
@@ -34,7 +34,7 @@ export function AwaitingApprovalNotice({
   if (requiresGate(workflowRun.run.type, WorkflowGate.ReferenceReview, workflowTypes)) {
     return (
       <ReferenceReviewNotice
-        projectDetail={projectDetail}
+        overview={overview}
         assessmentName={name}
         readOnly={readOnly}
         onNavigateToReferences={onNavigateToReferences}
@@ -52,17 +52,17 @@ export function AwaitingApprovalNotice({
 }
 
 function ReferenceReviewNotice({
-  projectDetail,
+  overview,
   assessmentName,
   readOnly,
   onNavigateToReferences,
 }: {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
   assessmentName: string;
   readOnly: boolean;
   onNavigateToReferences: () => void;
 }) {
-  const approval = useReferenceApprovalFlow(projectDetail, projectDetail.project.id);
+  const approval = useReferenceApprovalFlow(overview);
   const { unmatchedCount } = approval;
 
   return (

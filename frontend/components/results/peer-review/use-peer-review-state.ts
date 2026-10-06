@@ -3,28 +3,28 @@
 import { getErrorMessage } from '@/lib/api-error';
 import {
   cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost,
-  ProjectDetailed,
+  ProjectOverview,
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
+  WorkflowRunSummary,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { useProjectDetails } from '@/lib/hooks/use-project-details';
-import { getWorkflowRunByType, WorkflowRunDetailTyped } from '@/lib/workflow-state';
-import { SimpleDeepAgentState } from '@/lib/generated-api';
+import { useProjectOverview } from '@/lib/hooks/use-project-data';
+import { findRunByType } from '@/lib/workflow-state';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { derivePeerReviewFacts, PeerReviewFacts } from './peer-review-derive';
 
 interface UsePeerReviewStateArgs {
-  projectDetail: ProjectDetailed;
+  overview: ProjectOverview;
 }
 
 /** A planning summary that lives on an earlier revision than the one on screen. */
 export interface PlanFallback {
-  run: WorkflowRunDetailTyped<SimpleDeepAgentState>;
+  run: WorkflowRunSummary;
   revision: number;
-  /** That revision's payload, so the run's own issues resolve correctly. */
-  projectDetail: ProjectDetailed;
+  /** That revision's overview, so the run's own issues resolve correctly. */
+  overview: ProjectOverview;
 }
 
 export interface PeerReviewState {
@@ -43,33 +43,30 @@ export interface PeerReviewState {
  * which is the dialog this tab exists to remove, and none of the three has
  * anything to configure.
  */
-export function usePeerReviewState({ projectDetail }: UsePeerReviewStateArgs): PeerReviewState {
-  const projectId = projectDetail.project.id;
+export function usePeerReviewState({ overview }: UsePeerReviewStateArgs): PeerReviewState {
+  const projectId = overview.project.id;
   const queryClient = useQueryClient();
 
-  const facts = useMemo(() => derivePeerReviewFacts(projectDetail), [projectDetail]);
+  const facts = useMemo(() => derivePeerReviewFacts(overview), [overview]);
 
   // Workflow runs are scoped to a revision, so the planning summary disappears
   // from view the moment a revised draft creates a new one — even though it is
   // still the summary for the memos being worked through. Fetch the reviewed
-  // revision's payload to keep showing it. Same query key as the revision
+  // revision's overview to keep showing it. Same query key as the revision
   // switcher, so this usually resolves from cache, and the project-wide
   // invalidation below clears it too.
   const needsPlanFallback =
     facts.reviewedRevision !== null && facts.reviewedRevision !== facts.viewedRevision && !facts.runs.plan;
-  const { project: reviewedRevisionDetail } = useProjectDetails(
+  const { data: reviewedRevisionOverview } = useProjectOverview(
     needsPlanFallback ? projectId : null,
     facts.reviewedRevision,
   );
 
   const planFallback = useMemo<PlanFallback | undefined>(() => {
-    if (!needsPlanFallback || !reviewedRevisionDetail || facts.reviewedRevision === null) return undefined;
-    const run = getWorkflowRunByType(
-      reviewedRevisionDetail.workflow_runs ?? [],
-      WorkflowRunType.RevisionPlanningSummary,
-    );
-    return run ? { run, revision: facts.reviewedRevision, projectDetail: reviewedRevisionDetail } : undefined;
-  }, [needsPlanFallback, reviewedRevisionDetail, facts.reviewedRevision]);
+    if (!needsPlanFallback || !reviewedRevisionOverview || facts.reviewedRevision === null) return undefined;
+    const run = findRunByType(reviewedRevisionOverview.workflow_runs ?? [], WorkflowRunType.RevisionPlanningSummary);
+    return run ? { run, revision: facts.reviewedRevision, overview: reviewedRevisionOverview } : undefined;
+  }, [needsPlanFallback, reviewedRevisionOverview, facts.reviewedRevision]);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['project', projectId] });
 

@@ -13,7 +13,7 @@ function lineRangeHash(lineRange?: [number, number]): string | undefined {
 
 /** The peer review tab as a tab panel, taking its project from the shell. */
 export function PeerReviewPanel() {
-  const { projectDetail, readOnly, onRevisionChange, onRevisionCreated, navigateToTab } = useProjectView();
+  const { overview, readOnly, onRevisionChange, onRevisionCreated, navigateToTab } = useProjectView();
   // Peer Review is still alpha: the tab, and the route behind it, exist only
   // for users who opted in.
   const { showExperimentalFeatures, isLoading } = useExperimentalFeatures();
@@ -34,7 +34,7 @@ export function PeerReviewPanel() {
 
   return (
     <PeerReviewTab
-      projectDetail={projectDetail}
+      overview={overview}
       readOnly={readOnly}
       onRevisionChange={onRevisionChange}
       onRevisionCreated={onRevisionCreated}

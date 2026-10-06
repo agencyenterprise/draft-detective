@@ -3,6 +3,7 @@
 import { FeedbackPrivacyDialog } from '@/components/feedback/feedback-privacy-dialog';
 import type { FeedbackResponse, FeedbackType, FeedbackVisibility } from '@/lib/generated-api';
 import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { useProjectFeedback } from '@/lib/hooks/use-project-feedback';
 import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
@@ -58,8 +59,8 @@ export function ProjectFeedbackProvider({
           path: { project_id: projectId },
           body: { feedback_visibility: visibility },
         });
-        // Invalidate the project query so the new visibility is reflected everywhere
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+        // Only the project's own fields changed, which the overview carries.
+        queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
         doSubmit(pendingParams);
       } finally {
         setIsSavingVisibility(false);

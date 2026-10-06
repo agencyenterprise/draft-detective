@@ -3,14 +3,16 @@
 import { WorkflowIssuesList } from '@/components/results/components/workflow-issues-list';
 import { EmptyState } from '@/components/shared/empty-state';
 import { NavigateToExplorerButton } from '@/components/shared/navigate-to-explorer-button';
-import { AccessLevel, Issue, ProjectDetailed, WorkflowRunDetail } from '@/lib/generated-api';
+import { Issue, WorkflowRunDetail } from '@/lib/generated-api';
 import { isWorkflowCancelled, isWorkflowFailed, isWorkflowProcessing } from '@/lib/workflow-state';
 import { Ban, HistoryIcon, Loader2, XCircle } from 'lucide-react';
 import { useMemo } from 'react';
 
 interface GenericWorkflowResultsProps {
-  project: ProjectDetailed;
   workflowRun: WorkflowRunDetail;
+  /** Every issue of the revision. */
+  issues: Issue[];
+  canEditIssues: boolean;
   workflowName: string;
   onNavigateToDocumentExplorer: (lineRange?: [number, number]) => void;
 }
@@ -23,14 +25,14 @@ interface GenericWorkflowResultsProps {
  * findings of a completed assessment invisible from the tab that lists it.
  */
 export function GenericWorkflowResults({
-  project,
   workflowRun,
+  issues: allIssues,
+  canEditIssues,
   workflowName,
   onNavigateToDocumentExplorer,
 }: GenericWorkflowResultsProps) {
   const runId = workflowRun.run.id;
   const runType = workflowRun.run.type;
-  const allIssues = useMemo(() => project.issues ?? [], [project.issues]);
   const issues = useMemo<Issue[]>(
     () => allIssues.filter((issue) => issue.workflow_run_id === runId),
     [allIssues, runId],
@@ -89,7 +91,7 @@ export function GenericWorkflowResults({
   return (
     <WorkflowIssuesList
       issues={issues}
-      readOnly={project.access_level !== AccessLevel.Write}
+      readOnly={!canEditIssues}
       onNavigateToDocumentExplorer={onNavigateToDocumentExplorer}
       headerAction={
         <NavigateToExplorerButton

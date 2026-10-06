@@ -2,10 +2,9 @@ import { describe, expect, it } from 'vitest';
 import React from 'react';
 import { GenericWorkflowResults } from '@/components/results/components/generic-workflow-results';
 import { SimpleDeepAgentResults } from '@/components/workflows/results/simple-deep-agent-results';
-import { type ProjectDetailed, type WorkflowRunDetail, WorkflowRunType } from '@/lib/generated-api';
+import { type WorkflowRunDetail, WorkflowRunType, WorkflowStateStatus } from '@/lib/generated-api';
 import { renderWorkflowResults } from './workflow-results-renderer';
 
-const project = { id: 'project-1' } as unknown as ProjectDetailed;
 const names: Partial<Record<WorkflowRunType, string>> = {
   [WorkflowRunType.ActiveVoice]: 'Active Voice & Clear Actors',
 };
@@ -16,13 +15,20 @@ function run(type: WorkflowRunType): WorkflowRunDetail {
   return {
     run: { id: 'run-1', type },
     state: { status: 'completed', issues: [], report: 'Done.' },
+    state_status: WorkflowStateStatus.Ok,
   } as unknown as WorkflowRunDetail;
 }
 
 type ResultsProps = React.ComponentProps<typeof SimpleDeepAgentResults>;
 
 function render(detail: WorkflowRunDetail): React.ReactElement<ResultsProps> {
-  return renderWorkflowResults(project, detail, () => undefined, nameOf) as React.ReactElement<ResultsProps>;
+  return renderWorkflowResults({
+    workflowRun: detail,
+    issues: [],
+    canEditIssues: true,
+    onNavigateToDocumentExplorer: () => undefined,
+    getWorkflowTypeName: nameOf,
+  }) as React.ReactElement<ResultsProps>;
 }
 
 describe('renderWorkflowResults', () => {
@@ -30,7 +36,7 @@ describe('renderWorkflowResults', () => {
     const element = render(run(WorkflowRunType.ActiveVoice));
 
     expect(element.type).toBe(SimpleDeepAgentResults);
-    expect(element.props).toMatchObject({ project, workflowName: 'Active Voice & Clear Actors' });
+    expect(element.props).toMatchObject({ workflowName: 'Active Voice & Clear Actors' });
     expect(element.props.workflowDetail.run.type).toBe(WorkflowRunType.ActiveVoice);
   });
 

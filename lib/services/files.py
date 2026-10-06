@@ -250,7 +250,12 @@ async def get_project_files_list_items(
         stmt = select(File).where(
             col(File.project_id) == project_id,
             col(File.role).in_(
-                [FileRole.MAIN, FileRole.SUPPORT, FileRole.REVIEWER_MEMO]
+                [
+                    FileRole.MAIN,
+                    FileRole.SUPPORT,
+                    FileRole.REVIEWER_MEMO,
+                    FileRole.RESPONSE_MEMO,
+                ]
             ),
         )
         result = await session.execute(stmt)

@@ -9,12 +9,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from lib.models.project import AccessLevel
-from lib.services.projects import (
-    ProjectDetailed,
-    get_project_detailed_from_project,
-    get_shared_project,
-)
+from lib.services.project_overview import ProjectOverview, get_project_overview
+from lib.services.projects import get_project_access
 from lib.services.share_links import get_resource_by_token
 
 router = APIRouter(prefix="/api/public", tags=["public"])
@@ -36,13 +32,15 @@ class SharedWorkflowRun(BaseModel):
     status: str
 
 
-@router.get("/share/{token}", response_model=ProjectDetailed)
+@router.get("/share/{token}", response_model=ProjectOverview)
 async def get_shared_resource(token: str):
     """
     Access a shared resource by token.
 
     This endpoint does not require authentication - the token IS the auth.
-    Returns project info and workflow state in a single call.
+    The share page knows only the token, so this resolves it to its project
+    and returns the same overview as `/api/project/{id}/overview?share_token=`.
+    The heavier parts come from the project routes with `share_token`.
     """
     share_link = await get_resource_by_token(token)
     if not share_link:
@@ -51,8 +49,9 @@ async def get_shared_resource(token: str):
     if share_link.resource_type != "project":
         raise HTTPException(status_code=400, detail="Unsupported resource type")
 
-    project = await get_shared_project(str(share_link.resource_id))
-    project_detailed = await get_project_detailed_from_project(
-        project, access_level=AccessLevel.READ, include_internal=True
+    # No user on purpose: a share page renders what any holder of the link
+    # sees, so an owner previewing their own link gets READ like everyone else.
+    project, access_level = await get_project_access(
+        str(share_link.resource_id), user=None, share_token=token
     )
-    return project_detailed
+    return await get_project_overview(project, access_level)

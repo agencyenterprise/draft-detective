@@ -1,7 +1,7 @@
 import { FileListItem, FileRole } from '@/lib/generated-api';
 
-/** The three kinds of file a project holds, as the tab groups them. */
-export type FileGroup = 'main' | 'source' | 'memo';
+/** The kinds of file a project holds, as the tab groups them. */
+export type FileGroup = 'main' | 'source' | 'memo' | 'response';
 
 export const GROUP: Record<FileGroup, { label: string; plural: string; description: string; className: string }> = {
   main: {
@@ -22,12 +22,20 @@ export const GROUP: Record<FileGroup, { label: string; plural: string; descripti
     description: 'Peer-review feedback on a draft, read by the Peer Review assessments.',
     className: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
   },
+  response: {
+    label: 'Response memo',
+    plural: 'Response memos',
+    description:
+      "The author's reply to a reviewer, attached to the revised draft it describes. The QA coverage report checks it against that draft.",
+    className: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+  },
 };
 
 /** Supporting candidates are filtered out before this, and read as sources if any slip through. */
 export function fileGroup(role: FileRole): FileGroup {
   if (role === FileRole.Main) return 'main';
   if (role === FileRole.ReviewerMemo) return 'memo';
+  if (role === FileRole.ResponseMemo) return 'response';
   return 'source';
 }
 
@@ -40,9 +48,15 @@ export function revisionLabel(file: FileListItem, currentRevision: number): stri
     : `Revision ${file.revision} · superseded`;
 }
 
-/** Main first (newest revision first), then memos, then sources by name. */
+const RANK: Partial<Record<FileRole, number>> = {
+  [FileRole.Main]: 0,
+  [FileRole.ReviewerMemo]: 1,
+  [FileRole.ResponseMemo]: 2,
+};
+
+/** Main first (newest revision first), then reviewer and response memos, then sources by name. */
 export function sortFiles(files: FileListItem[]): FileListItem[] {
-  const rank = (role: FileRole) => (role === FileRole.Main ? 0 : role === FileRole.ReviewerMemo ? 1 : 2);
+  const rank = (role: FileRole) => RANK[role] ?? 3;
   return [...files].sort((a, b) => {
     const byRank = rank(a.role) - rank(b.role);
     if (byRank !== 0) return byRank;

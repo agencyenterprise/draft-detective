@@ -2,7 +2,8 @@
 API routes for managing share links (authenticated).
 
 These routes require authentication and allow users to manage sharing
-for their own resources.
+for their own resources. The current status is part of the project overview
+(`GET /api/project/{project_id}/overview`).
 """
 
 from fastapi import APIRouter, Depends
@@ -15,22 +16,9 @@ from lib.services.share_links import (
     ShareStatusResponse,
     disable_sharing,
     enable_sharing,
-    get_share_status,
 )
 
 router = APIRouter(tags=["share"])
-
-
-@router.get("/api/projects/{project_id}/share", response_model=ShareStatusResponse)
-async def get_project_share_status(
-    project_id: str,
-    current_user: User = Depends(get_current_user),
-):
-    """Get the sharing status for a project."""
-    project, _ = await get_project_access(
-        project_id, user=current_user, required_level=AccessLevel.WRITE
-    )
-    return await get_share_status("project", project.id)
 
 
 @router.post(

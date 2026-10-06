@@ -41,23 +41,31 @@ def _resolve_file_revision(metadata: dict, role: FileRole, project: Project) -> 
     document before uploading the memos that reviewed the previous draft — so
     clients may target that draft with a ``revision`` metadata field. Omitting it
     keeps the historical behaviour of attaching to the current revision.
+    Response memos describe the current draft, so like a main document they
+    always attach to the current revision.
     """
     raw = metadata.get("revision")
     has_explicit_revision = raw is not None and str(raw).strip() != ""
 
-    # Only MAIN and REVIEWER_MEMO are revision-scoped. Everything else is shared
-    # across revisions — including SUPPORTING_CANDIDATE, the temporary role the
-    # reference downloader uses before promoting a file to SUPPORT.
-    if role not in (FileRole.MAIN, FileRole.REVIEWER_MEMO):
+    # Only MAIN and the memo roles are revision-scoped. Everything else is
+    # shared across revisions — including SUPPORTING_CANDIDATE, the temporary
+    # role the reference downloader uses before promoting a file to SUPPORT.
+    if role not in (FileRole.MAIN, FileRole.REVIEWER_MEMO, FileRole.RESPONSE_MEMO):
         return None
 
-    if role == FileRole.MAIN:
+    if role in (FileRole.MAIN, FileRole.RESPONSE_MEMO):
         # A main document defines its revision; back-dating one would collide
         # with the one-main-per-revision guard below and corrupt the timeline.
+        # A response memo back-dated onto an older draft would be read against
+        # a draft it does not describe.
         if has_explicit_revision and str(raw).strip() != str(project.current_revision):
             raise HTTPException(
                 status_code=400,
-                detail="revision cannot be set for main documents",
+                detail=(
+                    "revision cannot be set for main documents"
+                    if role == FileRole.MAIN
+                    else "revision cannot be set for response memos"
+                ),
             )
         return project.current_revision
 
