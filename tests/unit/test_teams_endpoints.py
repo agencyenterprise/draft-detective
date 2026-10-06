@@ -266,22 +266,34 @@ class TestSigningInFromTheCard:
         )
         return context
 
-    def patched(self, token: str | None, pending: Any) -> dict[str, Any]:
+    def patched(
+        self,
+        token: str | None,
+        pending: Any,
+        token_error: Exception | None = None,
+        link_error: Exception | None = None,
+    ) -> dict[str, Any]:
         sign_in = teams.sign_in
         return {
             "peek": patch.object(sign_in, "peek", AsyncMock(return_value=pending)),
             "take": patch.object(sign_in, "take", AsyncMock(return_value=pending)),
             "user_token": patch.object(
-                sign_in, "user_token", AsyncMock(return_value=token)
+                sign_in,
+                "user_token",
+                AsyncMock(return_value=token, side_effect=token_error),
             ),
-            "request_sign_in": patch.object(sign_in, "request_sign_in", AsyncMock()),
+            "request_sign_in": patch.object(
+                sign_in, "request_sign_in", AsyncMock(side_effect=link_error)
+            ),
             "show_signed_in": patch.object(sign_in, "show_signed_in", AsyncMock()),
             "tell": patch.object(sign_in, "tell", AsyncMock()),
             "answer": patch.object(teams, "_start_answering"),
         }
 
-    async def run(self, context: Any, token: str | None, pending: Any) -> dict[str, Any]:
-        patches = self.patched(token, pending)
+    async def run(
+        self, context: Any, token: str | None, pending: Any, **errors: Exception
+    ) -> dict[str, Any]:
+        patches = self.patched(token, pending, **errors)
         mocks = {name: p.start() for name, p in patches.items()}
         try:
             await teams._on_sign_in_action(context, None)
@@ -333,6 +345,21 @@ class TestSigningInFromTheCard:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("where", ["token_error", "link_error"])
+    async def test_a_token_service_outage_is_told_to_the_presser(
+        self, where: str
+    ) -> None:
+        """Whether the token lookup or the sign-in link fails, the card gets an answer."""
+
+        outage = teams.sign_in.TokenServiceUnavailable("down")
+        mocks = await self.run(self.context(), None, self.pending(), **{where: outage})
+
+        mocks["tell"].assert_awaited_once()
+        assert mocks["tell"].await_args[0][1] == teams.SIGN_IN_UNAVAILABLE
+        mocks["take"].assert_not_awaited()
+        mocks["answer"].assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_a_question_already_answered_is_not_answered_again(self) -> None:
         """Teams can deliver the action twice; ``take`` hands the question out once."""
 
@@ -382,6 +409,24 @@ class TestAskingBeforeAnswering:
 
         park.assert_awaited_once()
         ask.assert_awaited_once()
+        answer.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_a_token_service_outage_is_said_not_raised(self) -> None:
+        """A 5xx would only be retried by the Connector, and nobody would hear why."""
+
+        with patch.object(
+            teams.sign_in,
+            "user_token",
+            AsyncMock(side_effect=teams.sign_in.TokenServiceUnavailable("down")),
+        ), patch.object(teams.sign_in, "park", AsyncMock()) as park, patch.object(
+            teams, "_start_answering"
+        ) as answer:
+            context = self.context()
+            await teams._on_question(context, None)
+
+        context.send_activity.assert_awaited_once_with(teams.SIGN_IN_UNAVAILABLE)
+        park.assert_not_awaited()
         answer.assert_not_called()
 
     @pytest.mark.asyncio

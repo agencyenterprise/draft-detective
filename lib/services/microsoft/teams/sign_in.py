@@ -28,7 +28,7 @@ import uuid
 from collections.abc import MutableMapping
 from typing import Any, Optional
 
-from aiohttp import ClientResponseError
+from aiohttp import ClientError, ClientResponseError
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -124,6 +124,15 @@ async def take(pending_id: str) -> Optional[PendingQuestion]:
     return PendingQuestion.model_validate(value) if value else None
 
 
+class TokenServiceUnavailable(Exception):
+    """Raised when the Bot Framework token service cannot be reached or fails.
+
+    Distinct from "not signed in", which is an answer rather than a failure: this one
+    means nobody can be signed in or read as right now, and the person should be told
+    so rather than shown a sign-in card that cannot work.
+    """
+
+
 def _token_client(context: TurnContext) -> UserTokenClientBase:
     # Keyed by the abstract base, as the adapter registers it; mypy only expects
     # concrete classes as keys.
@@ -141,6 +150,8 @@ async def user_token(
     Asks the Bot Framework token service, which holds the refresh token and refreshes
     on our behalf. ``magic_code`` is the ``state`` Teams returns after a sign-in, which
     the token service exchanges for the token.
+
+    Raises ``TokenServiceUnavailable`` when the token service cannot answer.
     """
 
     activity = context.activity
@@ -158,15 +169,20 @@ async def user_token(
         # raises on it rather than returning an empty response.
         if error.status == 404:
             return None
-        raise
+        raise TokenServiceUnavailable(f"token service answered {error.status}") from error
+    except (ClientError, TimeoutError) as error:
+        raise TokenServiceUnavailable(f"token service unreachable: {error}") from error
     return str(response.token) if response and response.token else None
 
 
 async def _sign_in_link(context: TurnContext) -> str:
-    resource = await _token_client(context).get_sign_in_resource(
-        connection_name=config.TEAMS_USER_AUTH_CONNECTION or "",
-        activity=context.activity,
-    )
+    try:
+        resource = await _token_client(context).get_sign_in_resource(
+            connection_name=config.TEAMS_USER_AUTH_CONNECTION or "",
+            activity=context.activity,
+        )
+    except (ClientError, TimeoutError) as error:
+        raise TokenServiceUnavailable(f"no sign-in link: {error}") from error
     return str(resource.sign_in_link)
 
 
@@ -265,7 +281,10 @@ async def _reply(context: TurnContext, body: dict[str, Any]) -> None:
 
 
 async def request_sign_in(context: TurnContext) -> None:
-    """Have Teams show a Sign-In button on the card, in the conversation itself."""
+    """Have Teams open the sign-in window, in the conversation itself.
+
+    Raises ``TokenServiceUnavailable`` when no sign-in link can be had.
+    """
 
     await _reply(
         context,

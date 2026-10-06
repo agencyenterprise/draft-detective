@@ -48,6 +48,13 @@ _running: set[asyncio.Task[None]] = set()
 
 APOLOGY = "I could not work that one out, sorry."
 
+# The token service is down or erroring. Said rather than raised: a 5xx here would only
+# be retried by the Connector, and the person would hear nothing either way.
+SIGN_IN_UNAVAILABLE = (
+    "I cannot reach the sign-in service right now, so I have not read anything. "
+    "Please try again in a few minutes."
+)
+
 
 def _finished(task: "asyncio.Task[None]") -> None:
     """Retire a detached task, and make sure a failure in one cannot vanish.
@@ -217,7 +224,12 @@ async def _on_question(context: Any, state: Any) -> None:
     # the turn, while the context that carries the sender is still available, and
     # handed to the detached task rather than looked up there. None means they have
     # not signed in yet.
-    graph_token = await sign_in.user_token(context)
+    try:
+        graph_token = await sign_in.user_token(context)
+    except sign_in.TokenServiceUnavailable as error:
+        logger.error("could not check %s's sign-in: %s", author, error)
+        await context.send_activity(SIGN_IN_UNAVAILABLE)
+        return
     if graph_token is None:
         pending = sign_in.pending_from(
             context.activity, question, author, document_urls
@@ -265,11 +277,16 @@ async def _on_sign_in_action(context: Any, state: Any) -> None:
         )
         return
 
-    graph_token = await sign_in.user_token(
-        context, magic_code=sign_in.magic_code_of(activity)
-    )
-    if graph_token is None:
-        await sign_in.request_sign_in(context)
+    try:
+        graph_token = await sign_in.user_token(
+            context, magic_code=sign_in.magic_code_of(activity)
+        )
+        if graph_token is None:
+            await sign_in.request_sign_in(context)
+            return
+    except sign_in.TokenServiceUnavailable as error:
+        logger.error("could not complete a sign-in: %s", error)
+        await sign_in.tell(context, SIGN_IN_UNAVAILABLE)
         return
 
     # Taken rather than read: the button can be pressed twice, and the question must be

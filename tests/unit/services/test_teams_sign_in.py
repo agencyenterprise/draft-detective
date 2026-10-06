@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiohttp import ClientResponseError
+from aiohttp import ClientConnectionError, ClientResponseError
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -146,16 +146,35 @@ class TestLookingUpTheToken:
         assert await sign_in.user_token(context_for(card_action(), client)) is None
 
     @pytest.mark.asyncio
-    async def test_any_other_failure_is_raised(self) -> None:
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            ClientResponseError(MagicMock(), (), status=500),
+            ClientConnectionError("connection refused"),
+            TimeoutError(),
+        ],
+        ids=["an error status", "unreachable", "timed out"],
+    )
+    async def test_an_outage_is_its_own_failure(self, failure: Exception) -> None:
         """A token service outage must not look like "please sign in"."""
 
         client = MagicMock()
-        client.get_user_token = AsyncMock(
-            side_effect=ClientResponseError(MagicMock(), (), status=500)
-        )
+        client.get_user_token = AsyncMock(side_effect=failure)
 
-        with pytest.raises(ClientResponseError):
+        with pytest.raises(sign_in.TokenServiceUnavailable):
             await sign_in.user_token(context_for(card_action(), client))
+
+    @pytest.mark.asyncio
+    async def test_no_sign_in_link_is_an_outage_too(self) -> None:
+        client = MagicMock()
+        client.get_sign_in_resource = AsyncMock(
+            side_effect=ClientConnectionError("connection refused")
+        )
+        context = context_for(card_action(), client)
+
+        with pytest.raises(sign_in.TokenServiceUnavailable):
+            await sign_in.request_sign_in(context)
+        context.send_activity.assert_not_awaited()
 
 
 class TestReplyingToTheAction:
