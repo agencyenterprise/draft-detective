@@ -42,9 +42,9 @@ WORKFLOW_PRESETS: list[PresetConfig] = [
     ),
     PresetConfig(
         slug="editorial_review",
-        label="Editorial Review",
+        label="Writing Style Review",
         description=(
-            "The editorial department's checks: who does what, every sentence "
+            "Writing style checks: who does what, every sentence "
             "earning its length, one voice throughout, words that fit the "
             "reader, data turned into an argument, headers that carry the "
             "point, and neutral tone."
