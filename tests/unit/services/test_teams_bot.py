@@ -10,11 +10,20 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from microsoft_agents.activity import Activity, ActivityTypes, Attachment
+from microsoft_agents.activity import (
+    Activity,
+    ActivityTypes,
+    Attachment,
+    ChannelAccount,
+    EntityTypes,
+    Mention,
+)
+from microsoft_agents.activity.invoke_response import InvokeResponse
+from microsoft_agents.hosting.core import ClaimsIdentity
 
 from lib.services.microsoft.teams import bot
 
@@ -25,9 +34,13 @@ def configured(monkeypatch: pytest.MonkeyPatch) -> None:
 
     from lib.config.env import config
 
-    monkeypatch.setattr(config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555")
+    monkeypatch.setattr(
+        config, "TEAMS_BOT_APP_ID", "11111111-2222-3333-4444-555555555555"
+    )
     monkeypatch.setattr(config, "TEAMS_BOT_APP_PASSWORD", "a-secret")
-    monkeypatch.setattr(config, "TEAMS_BOT_TENANT_ID", "66666666-7777-8888-9999-000000000000")
+    monkeypatch.setattr(
+        config, "TEAMS_BOT_TENANT_ID", "66666666-7777-8888-9999-000000000000"
+    )
     monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
     monkeypatch.setattr(bot, "bot", bot._Bot())
 
@@ -39,9 +52,7 @@ class TestRefusingRequests:
             await bot.bot.claims_for(None)
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "header", ["", "Bearer", "Basic abc", "abc", "Bearer    "]
-    )
+    @pytest.mark.parametrize("header", ["", "Bearer", "Basic abc", "abc", "Bearer    "])
     async def test_a_malformed_header_is_a_refusal(
         self, configured: None, header: str
     ) -> None:
@@ -162,6 +173,41 @@ class TestTheFollowUpActivity:
             Activity.model_validate(continuation.model_dump())
 
 
+class TestReadingTheQuestion:
+    """The bot's own mention is not part of the question."""
+
+    def context(self, text: str) -> Any:
+        the_bot = ChannelAccount(id="28:bot", name="Draft Detective")
+        activity = Activity(
+            type=ActivityTypes.message,
+            text=text,
+            recipient=the_bot,
+            entities=[
+                Mention(
+                    type=EntityTypes.MENTION,
+                    mentioned=the_bot,
+                    text="<at>Draft Detective</at>",
+                )
+            ],
+        )
+        context = MagicMock()
+        context.activity = activity
+        return context
+
+    def test_the_mention_of_the_bot_is_removed(self) -> None:
+        context = self.context("<at>Draft Detective</at> does this   overclaim?")
+
+        assert bot.question_from(context) == "does this overclaim?"
+
+    def test_a_message_without_a_mention_is_left_as_written(self) -> None:
+        """A 1:1 chat carries no mention at all."""
+
+        context = self.context("does this overclaim?")
+        context.activity.entities = []
+
+        assert bot.question_from(context) == "does this overclaim?"
+
+
 class TestFindingTheLinks:
     """A link is the only way to reach a document, so failing to spot one is fatal.
 
@@ -229,7 +275,9 @@ class TestFindingTheLinks:
         assert bot.document_urls_in(self.message("does this overclaim?")) == []
 
     def test_a_non_sharepoint_link_is_not_taken_as_a_document(self) -> None:
-        assert bot.document_urls_in(self.message("see https://example.com/a.docx")) == []
+        assert (
+            bot.document_urls_in(self.message("see https://example.com/a.docx")) == []
+        )
 
     def test_a_link_rendered_as_a_hyperlink_is_found_in_the_html(self) -> None:
         """The reported bug. The text is the file name; the href is in an attachment."""
@@ -339,6 +387,37 @@ class TestFindingTheLinks:
         ]
 
 
+class TestHandlingAnActivity:
+    """``handle`` is the whole path from the endpoint to the turn: authenticate, parse,
+    and run the given handler through the adapter, returning its invoke reply."""
+
+    @pytest.mark.asyncio
+    async def test_the_parsed_activity_and_handler_reach_the_adapter(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        claims = ClaimsIdentity(claims={}, is_authenticated=True)
+        reply = InvokeResponse(status=200, body={"statusCode": 200})
+        adapter = MagicMock()
+        adapter.process_activity = AsyncMock(return_value=reply)
+        monkeypatch.setattr(bot.bot, "claims_for", AsyncMock(return_value=claims))
+        monkeypatch.setattr(bot.bot, "_adapter", adapter)
+        on_turn = AsyncMock()
+
+        result = await bot.handle(
+            "Bearer ok",
+            {"type": "invoke", "name": "adaptiveCard/action", "value": {}},
+            on_turn,
+        )
+
+        assert result is reply
+        (passed_claims, activity, handler), _ = adapter.process_activity.await_args
+        assert passed_claims is claims
+        assert isinstance(activity, Activity)
+        assert activity.type == ActivityTypes.invoke
+        assert activity.name == "adaptiveCard/action"
+        assert handler is on_turn
+
+
 class TestAMalformedActivity:
     """A payload this SDK will not parse must be a 4xx, for the same reason a bad
     token is: the Bot Connector retries a 5xx and gives up on a 4xx. Retrying an
@@ -350,8 +429,6 @@ class TestAMalformedActivity:
     async def test_a_body_that_is_not_an_activity_is_its_own_error(
         self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from microsoft_agents.hosting.core import ClaimsIdentity
-
         # Past authentication, so the failure can only be the payload.
         monkeypatch.setattr(
             bot.bot,
@@ -360,7 +437,7 @@ class TestAMalformedActivity:
         )
 
         with pytest.raises(bot.InvalidActivity):
-            await bot.handle("Bearer ok", {"type": {"not": "a string"}})
+            await bot.handle("Bearer ok", {"type": {"not": "a string"}}, AsyncMock())
 
     @pytest.mark.asyncio
     async def test_it_is_not_a_permission_error_or_a_bare_exception(

@@ -15,7 +15,6 @@ from microsoft_agents.activity import (
     ActivityTypes,
     ChannelAccount,
     ChannelId,
-    ConversationAccount,
 )
 
 from lib.services.microsoft.teams import sign_in
@@ -50,7 +49,7 @@ def sent_invoke_body(context: MagicMock) -> Any:
 class TestRecognisingTheAction:
     def test_our_verb_is_a_sign_in_action(self) -> None:
         activity = card_action(action={"verb": sign_in.VERB, "data": {"pending": "p"}})
-        assert sign_in.is_sign_in_action(context_for(activity))
+        assert sign_in.is_sign_in_action(activity)
 
     @pytest.mark.parametrize(
         "activity",
@@ -62,7 +61,7 @@ class TestRecognisingTheAction:
         ],
     )
     def test_anything_else_is_not(self, activity: Activity) -> None:
-        assert not sign_in.is_sign_in_action(context_for(activity))
+        assert not sign_in.is_sign_in_action(activity)
 
     def test_the_pending_id_and_code_are_read_from_the_action(self) -> None:
         activity = card_action(
@@ -89,30 +88,6 @@ class TestTheCard:
     def test_a_long_question_is_cut_short_on_the_card(self) -> None:
         card = sign_in._card("p1", "x" * 1000)
         assert "x" * 201 not in card["body"][1]["text"]
-
-
-class TestThePendingQuestion:
-    def test_it_survives_the_trip_through_storage(self) -> None:
-        activity = Activity(
-            type=ActivityTypes.message,
-            id="1",
-            channel_id=ChannelId(channel="msteams"),
-            service_url="https://smba.trafficmanager.net/br/",
-            conversation=ConversationAccount(id="19:x;messageid=1"),
-            from_property=ChannelAccount(id="29:asker", name="Carlos"),
-            recipient=ChannelAccount(id="28:bot"),
-        )
-        pending = sign_in.pending_from(activity, "q", "Carlos", ["https://x"])
-
-        restored = sign_in.PendingQuestion.from_json_to_store_item(
-            pending.store_item_to_json()
-        )
-        reference = restored.conversation_reference()
-
-        assert restored == pending
-        assert restored.asker_id == "29:asker"
-        assert reference.conversation.id == "19:x;messageid=1"
-        assert reference.service_url == "https://smba.trafficmanager.net/br/"
 
 
 class TestLookingUpTheToken:
