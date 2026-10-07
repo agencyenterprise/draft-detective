@@ -1,16 +1,11 @@
 """Tests for what the Teams bot does with each activity.
 
-What is worth pinning first is the answer that arrives *after* the turn has ended. The
-person has already been told "I will follow up here shortly", so a failure that is
-merely logged leaves them waiting forever -- and a detached task whose result is never
-read does not even reliably log. That combination is how a lost reply becomes silent.
-
-Then the sign-in flow: whose parked question a card press may release, when the bot
-asks Teams to sign someone in, and what a token-service outage looks like to the person.
+The sign-in flow: whose parked question a card press may release, when the bot asks
+Teams to sign someone in, and what a token-service outage looks like to the person. What
+happens to the answer after the turn has ended is in ``test_teams_answering.py``, and
+which handler an activity reaches in ``test_teams_dispatch.py``.
 """
 
-import asyncio
-import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,136 +20,6 @@ from microsoft_agents.activity import (
 
 from lib.services.microsoft.teams import conversation
 from lib.services.microsoft.teams.pending_questions import PendingQuestion
-
-
-class TestWhenAnsweringFails:
-    """Every way out of ``_answer_into_thread`` has to end in something being said."""
-
-    @pytest.mark.asyncio
-    async def test_a_reported_failure_is_apologised_for(self) -> None:
-        failed = AsyncMock(
-            return_value=type("Answer", (), {"failed": True, "error": "boom", "text": ""})()
-        )
-        posted = AsyncMock()
-        with patch.object(conversation, "answer_question", failed), patch.object(
-            conversation.bot, "post_later", posted
-        ):
-            await conversation._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
-            )
-
-        posted.assert_awaited_once()
-        assert posted.await_args is not None
-        assert posted.await_args[0][1] == conversation.APOLOGY
-
-    @pytest.mark.asyncio
-    async def test_a_raise_is_apologised_for_too(self) -> None:
-        """``answer_question`` reports rather than raises, so this is the gap past it.
-
-        Its own guard does not cover prompt formatting or the run config, and an
-        ``except Exception`` never covers a future edit.
-        """
-
-        posted = AsyncMock()
-        with patch.object(
-            conversation, "answer_question", AsyncMock(side_effect=RuntimeError("upstream"))
-        ), patch.object(conversation.bot, "post_later", posted):
-            await conversation._answer_into_thread(
-                "ref", "does this overclaim?", "Carlos", "19:x", [], "token"
-            )
-
-        posted.assert_awaited_once()
-        assert posted.await_args is not None
-        assert posted.await_args[0][1] == conversation.APOLOGY
-
-    @pytest.mark.asyncio
-    async def test_a_raise_does_not_escape_to_the_task(self) -> None:
-        """Because the caller is detached, an escape would only be a warning."""
-
-        with patch.object(
-            conversation, "answer_question", AsyncMock(side_effect=RuntimeError("upstream"))
-        ), patch.object(conversation.bot, "post_later", AsyncMock()):
-            await conversation._answer_into_thread("ref", "q", "Carlos", "19:x", [], "t")
-
-    @pytest.mark.asyncio
-    async def test_the_question_is_truncated_in_the_log(self) -> None:
-        """A question can quote the document, and these are confidential."""
-
-        question = "x" * 500
-        with patch.object(
-            conversation, "answer_question", AsyncMock(side_effect=RuntimeError("upstream"))
-        ), patch.object(conversation.bot, "post_later", AsyncMock()), patch.object(
-            conversation.logger, "exception"
-        ) as logged:
-            await conversation._answer_into_thread("ref", question, "C", "19:x", [], "t")
-
-        assert logged.call_args is not None
-        assert len(logged.call_args[0][1]) == 120
-
-
-class TestRetiringADetachedTask:
-    """``_finished`` is the backstop for anything the coroutine's own guard misses."""
-
-    async def _task(self, coroutine: Any) -> "asyncio.Task[None]":
-        task = asyncio.create_task(coroutine)
-        conversation._running.add(task)
-        task.add_done_callback(conversation._finished)
-        await asyncio.sleep(0)
-        return task
-
-    @pytest.mark.asyncio
-    async def test_a_completed_task_is_released(self) -> None:
-        """Otherwise the set grows for the life of the process."""
-
-        async def fine() -> None:
-            return None
-
-        task = await self._task(fine())
-        await task
-        await asyncio.sleep(0)
-        assert task not in conversation._running
-
-    @pytest.mark.asyncio
-    async def test_a_failure_is_logged_rather_than_left_unretrieved(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """The bug this replaced: ``add_done_callback(_running.discard)`` alone.
-
-        It dropped the reference without reading the result, so asyncio had an
-        exception nobody retrieved -- a shutdown warning at best.
-        """
-
-        async def broken() -> None:
-            raise RuntimeError("something outside the guard")
-
-        with caplog.at_level(logging.ERROR, logger=conversation.logger.name):
-            task = await self._task(broken())
-            with pytest.raises(RuntimeError):
-                await task
-            await asyncio.sleep(0)
-
-        assert "detached answer task failed" in caplog.text
-        assert "something outside the guard" in caplog.text
-        assert task not in conversation._running
-
-    @pytest.mark.asyncio
-    async def test_cancellation_is_not_reported_as_a_fault(
-        self, caplog: pytest.LogCaptureFixture
-    ) -> None:
-        """Shutdown cancels in-flight work; that is not an error worth paging over."""
-
-        async def slow() -> None:
-            await asyncio.sleep(10)
-
-        with caplog.at_level(logging.ERROR, logger=conversation.logger.name):
-            task = await self._task(slow())
-            task.cancel()
-            with pytest.raises(asyncio.CancelledError):
-                await task
-            await asyncio.sleep(0)
-
-        assert "failed" not in caplog.text
-        assert task not in conversation._running
 
 
 class TestSigningInFromTheCard:
@@ -177,7 +42,6 @@ class TestSigningInFromTheCard:
         )
 
     def context(self, presser: str = "29:asker", state: str | None = None) -> Any:
-
 
         value: dict[str, Any] = {
             "action": {"verb": conversation.sign_in.VERB, "data": {"pending": "p1"}}
@@ -204,8 +68,12 @@ class TestSigningInFromTheCard:
         sign_in = conversation.sign_in
         pending_store = conversation.pending_questions
         return {
-            "peek": patch.object(pending_store, "peek", AsyncMock(return_value=pending)),
-            "take": patch.object(pending_store, "take", AsyncMock(return_value=pending)),
+            "peek": patch.object(
+                pending_store, "peek", AsyncMock(return_value=pending)
+            ),
+            "take": patch.object(
+                pending_store, "take", AsyncMock(return_value=pending)
+            ),
             "user_token": patch.object(
                 sign_in,
                 "user_token",
@@ -336,7 +204,6 @@ class TestAskingBeforeAnswering:
 
     def context(self) -> Any:
 
-
         context = MagicMock()
         context.activity = Activity(
             type=ActivityTypes.message,
@@ -352,13 +219,16 @@ class TestAskingBeforeAnswering:
 
     @pytest.mark.asyncio
     async def test_no_token_parks_the_question_and_asks(self) -> None:
-        with patch.object(
-            conversation.sign_in, "user_token", AsyncMock(return_value=None)
-        ), patch.object(
-            conversation.pending_questions, "park", AsyncMock(return_value="p1")
-        ) as park, patch.object(
-            conversation.sign_in, "ask_to_sign_in", AsyncMock()
-        ) as ask, patch.object(conversation, "_start_answering") as answer:
+        with (
+            patch.object(
+                conversation.sign_in, "user_token", AsyncMock(return_value=None)
+            ),
+            patch.object(
+                conversation.pending_questions, "park", AsyncMock(return_value="p1")
+            ) as park,
+            patch.object(conversation.sign_in, "ask_to_sign_in", AsyncMock()) as ask,
+            patch.object(conversation, "_start_answering") as answer,
+        ):
             await conversation.on_question(self.context())
 
         park.assert_awaited_once()
@@ -369,13 +239,17 @@ class TestAskingBeforeAnswering:
     async def test_a_token_service_outage_is_said_not_raised(self) -> None:
         """A 5xx would only be retried by the Connector, and nobody would hear why."""
 
-        with patch.object(
-            conversation.sign_in,
-            "user_token",
-            AsyncMock(side_effect=conversation.sign_in.TokenServiceUnavailable("down")),
-        ), patch.object(conversation.pending_questions, "park", AsyncMock()) as park, patch.object(
-            conversation, "_start_answering"
-        ) as answer:
+        with (
+            patch.object(
+                conversation.sign_in,
+                "user_token",
+                AsyncMock(
+                    side_effect=conversation.sign_in.TokenServiceUnavailable("down")
+                ),
+            ),
+            patch.object(conversation.pending_questions, "park", AsyncMock()) as park,
+            patch.object(conversation, "_start_answering") as answer,
+        ):
             context = self.context()
             await conversation.on_question(context)
 
@@ -385,66 +259,15 @@ class TestAskingBeforeAnswering:
 
     @pytest.mark.asyncio
     async def test_a_signed_in_asker_is_answered_straight_away(self) -> None:
-        with patch.object(
-            conversation.sign_in, "user_token", AsyncMock(return_value="tok")
-        ), patch.object(conversation.pending_questions, "park", AsyncMock()) as park, patch.object(
-            conversation.bot, "send_typing", AsyncMock()
-        ), patch.object(conversation, "_start_answering") as answer:
+        with (
+            patch.object(
+                conversation.sign_in, "user_token", AsyncMock(return_value="tok")
+            ),
+            patch.object(conversation.pending_questions, "park", AsyncMock()) as park,
+            patch.object(conversation.bot, "send_typing", AsyncMock()),
+            patch.object(conversation, "_start_answering") as answer,
+        ):
             await conversation.on_question(self.context())
 
         park.assert_not_awaited()
         assert answer.call_args[0][-1] == "tok"
-
-
-class TestDispatching:
-    """``on_turn`` sends each activity where it belongs, and ignores the rest."""
-
-    def context(self, activity: Activity) -> Any:
-        context = MagicMock()
-        context.activity = activity
-        return context
-
-    async def dispatch(self, activity: Activity) -> tuple[AsyncMock, AsyncMock]:
-        with patch.object(conversation, "on_question", AsyncMock()) as question, patch.object(
-            conversation, "on_sign_in_action", AsyncMock()
-        ) as sign_in:
-            await conversation.on_turn(self.context(activity))
-        return question, sign_in
-
-    @pytest.mark.asyncio
-    async def test_a_message_is_a_question(self) -> None:
-        question, sign_in = await self.dispatch(
-            Activity(type=ActivityTypes.message, text="hi")
-        )
-
-        question.assert_awaited_once()
-        sign_in.assert_not_awaited()
-
-    @pytest.mark.asyncio
-    async def test_the_sign_in_cards_action_signs_in(self) -> None:
-        question, sign_in = await self.dispatch(
-            Activity(
-                type=ActivityTypes.invoke,
-                name="adaptiveCard/action",
-                value={"action": {"verb": conversation.sign_in.VERB}},
-            )
-        )
-
-        sign_in.assert_awaited_once()
-        question.assert_not_awaited()
-
-    @pytest.mark.asyncio
-    @pytest.mark.parametrize(
-        "activity",
-        [
-            Activity(type=ActivityTypes.conversation_update),
-            Activity(type=ActivityTypes.typing),
-            Activity(type=ActivityTypes.invoke, name="signin/verifyState", value={}),
-        ],
-        ids=["membership change", "typing", "an old sign-in card"],
-    )
-    async def test_anything_else_is_ignored(self, activity: Activity) -> None:
-        question, sign_in = await self.dispatch(activity)
-
-        question.assert_not_awaited()
-        sign_in.assert_not_awaited()

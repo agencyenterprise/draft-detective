@@ -69,6 +69,17 @@ class TestThePendingQuestion:
         assert restored == question
         assert reference.service_url == "https://smba.trafficmanager.net/br/"
 
+    def test_a_question_stored_by_the_previous_version_still_reads(self) -> None:
+        """It also stored the asker and conversation as fields; those are ignored."""
+
+        legacy = {
+            **pending().model_dump(mode="json"),
+            "asker_id": "29:asker",
+            "conversation": "19:x;messageid=1",
+        }
+
+        assert pending_questions.PendingQuestion.model_validate(legacy) == pending()
+
     def test_the_asker_and_conversation_come_from_the_reference(self) -> None:
         """Not stored twice: the reference already names both."""
 
@@ -91,6 +102,17 @@ class TestParking:
         assert first and second and first != second
 
     @pytest.mark.asyncio
+    async def test_the_key_is_prefixed_like_rows_already_stored(self) -> None:
+        """A card posted before a deploy carries a bare id; its row has the prefix."""
+
+        session = session_returning(None)
+        with patch.object(pending_questions, "get_async_db_session", lambda: session):
+            pending_id = await pending_questions.park(pending())
+
+        values = session.execute.await_args_list[0][0][0].compile().params
+        assert values["key"] == f"pending-question/{pending_id}"
+
+    @pytest.mark.asyncio
     async def test_a_park_also_sweeps_abandoned_rows_in_one_transaction(self) -> None:
         """Abandoned rows hold the question -- its text and its sender."""
 
@@ -107,9 +129,10 @@ class TestParking:
     @pytest.mark.asyncio
     async def test_a_sweep_that_removed_rows_says_so(self) -> None:
         session = session_returning(None, swept=3)
-        with patch.object(
-            pending_questions, "get_async_db_session", lambda: session
-        ), patch.object(pending_questions.logger, "info") as logged:
+        with (
+            patch.object(pending_questions, "get_async_db_session", lambda: session),
+            patch.object(pending_questions.logger, "info") as logged,
+        ):
             await pending_questions.park(pending())
 
         assert logged.call_args[0][1] == 3
@@ -129,6 +152,16 @@ class TestTakingItBack:
         ):
             assert await pending_questions.peek("gone") is None
             assert await pending_questions.take("gone") is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("lookup", ["peek", "take"])
+    async def test_lookups_use_the_prefixed_key(self, lookup: str) -> None:
+        session = session_returning(None)
+        with patch.object(pending_questions, "get_async_db_session", lambda: session):
+            await getattr(pending_questions, lookup)("abc")
+
+        params = session.execute.await_args_list[0][0][0].compile().params
+        assert "pending-question/abc" in params.values()
 
     @pytest.mark.asyncio
     async def test_peek_leaves_it_in_place(self) -> None:

@@ -96,7 +96,9 @@ async def user_token(
         # raises on it rather than returning an empty response.
         if error.status == 404:
             return None
-        raise TokenServiceUnavailable(f"token service answered {error.status}") from error
+        raise TokenServiceUnavailable(
+            f"token service answered {error.status}"
+        ) from error
     except (ClientError, TimeoutError) as error:
         raise TokenServiceUnavailable(f"token service unreachable: {error}") from error
     return str(response.token) if response and response.token else None

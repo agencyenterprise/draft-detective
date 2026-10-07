@@ -2,12 +2,17 @@
 
 The endpoint only maps the outcome of a turn to what the Bot Connector expects. The
 authentication boundary is covered in ``test_teams_bot.py``, where the token validation
-lives, and what the bot does with an activity in ``test_teams_conversation.py``.
+lives, and what the bot does with an activity in ``test_teams_conversation.py`` and
+``test_teams_dispatch.py``.
 """
 
 import json
 from typing import Any
 from unittest.mock import AsyncMock, patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from microsoft_agents.activity.invoke_response import InvokeResponse
 
 from lib.api.routers.microsoft import teams
 
@@ -26,8 +31,6 @@ class TestAnsweringAnInvoke:
     }
 
     def response_for(self, status: int, body: Any) -> Any:
-        from microsoft_agents.activity.invoke_response import InvokeResponse
-
         return InvokeResponse(status=status, body=body)
 
     def test_the_body_reaches_teams_unchanged(self) -> None:
@@ -51,9 +54,6 @@ class TestAnsweringAnInvoke:
         Importing ``lib.api.main`` here builds every route and reads module-level
         config, which made this test depend on which other test had run first.
         """
-
-        from fastapi import FastAPI
-        from fastapi.testclient import TestClient
 
         app = FastAPI()
         app.include_router(teams.router, prefix="/api/microsoft")

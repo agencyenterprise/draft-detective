@@ -28,7 +28,7 @@ class MicrosoftTeamsSignInState(SQLModel, table=True):
     key: str = Field(
         sa_column=Column(String, primary_key=True),
         description=(
-            "The id the sign-in card carries."
+            "``pending-question/`` followed by the id the sign-in card carries."
         ),
     )
     value: dict = Field(

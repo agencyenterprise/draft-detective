@@ -42,6 +42,15 @@ logger = logging.getLogger(__name__)
 # enough that a parked message is not kept for days.
 ABANDONED_AFTER = timedelta(hours=1)
 
+# Rows are keyed by this prefix and the id the sign-in card carries. Kept from when the
+# table also held the Agents SDK's own entries: a card posted before a deploy still
+# carries a bare id, and its question was stored under the prefixed key.
+_KEY_PREFIX = "pending-question/"
+
+
+def _key(pending_id: str) -> str:
+    return _KEY_PREFIX + pending_id
+
 
 class PendingQuestion(BaseModel):
     """A question waiting for its asker to sign in.
@@ -91,7 +100,9 @@ async def park(pending: PendingQuestion) -> str:
     async with get_async_db_session() as session:
         await session.execute(
             insert(MicrosoftTeamsSignInState).values(
-                key=pending_id, value=pending.model_dump(mode="json"), updated_at=now
+                key=_key(pending_id),
+                value=pending.model_dump(mode="json"),
+                updated_at=now,
             )
         )
         # Same transaction as the park, so a sweep cannot be the thing that fails on its
@@ -120,7 +131,7 @@ async def peek(pending_id: str) -> Optional[PendingQuestion]:
         value = (
             await session.execute(
                 select(col(MicrosoftTeamsSignInState.value)).where(
-                    col(MicrosoftTeamsSignInState.key) == pending_id
+                    col(MicrosoftTeamsSignInState.key) == _key(pending_id)
                 )
             )
         ).scalar_one_or_none()
@@ -139,7 +150,7 @@ async def take(pending_id: str) -> Optional[PendingQuestion]:
         value = (
             await session.execute(
                 delete(MicrosoftTeamsSignInState)
-                .where(col(MicrosoftTeamsSignInState.key) == pending_id)
+                .where(col(MicrosoftTeamsSignInState.key) == _key(pending_id))
                 .returning(col(MicrosoftTeamsSignInState.value))
             )
         ).scalar_one_or_none()
