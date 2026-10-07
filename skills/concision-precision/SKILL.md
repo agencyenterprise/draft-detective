@@ -24,7 +24,12 @@ Two families of problem, six kinds of issue.
 
 **Concision**
 
-- **Wordy construction.** A phrase that says in several words what one says: *in order to* (to), *due to the fact that* (because), *at this point in time* (now), *in the event that* (if), *on a regular basis* (regularly), *in close proximity to* (near), *a large number of* (many), *has the ability to* (can), *it is important to note that*, *there is/are ... that* openers whose subject could lead. Redundant pairs where one word already carries the meaning: *each and every* (each), *first and foremost* (first), *past history* (history), *free gift* (gift), *end result* (result), *future plans* (plans). Filler words that add nothing: *very*, *really*, *basically*, *actually*, *in fact* when nothing is being contrasted.
+- **Wordy construction.** A phrase that says in several words what one says: *in order to* (to), *due to the fact that* (because), *at this point in time* (now), *in the event that* (if), *on a regular basis* (regularly), *in close proximity to* (near), *a large number of* (many), *has the ability to* (can), *it is important to note that*, *there is/are ... that* openers whose subject could lead. Redundant pairs where one word already carries the meaning: *each and every* (each), *first and foremost* (first), *past history* (history), *free gift* (gift), *end result* (result), *future plans* (plans). Filler words that add nothing: *very*, *really*, *basically*, *actually*, *indeed* and *in fact* when nothing is being contrasted. These turn up anywhere in a sentence, not only at its start:
+  - Wordy connectors and lead-ins: *in the case of* (for, in), *with regard to* and *with respect to* (for, on), *in addition to* (besides, beyond), *and also* (and).
+  - A connector set off by commas in the middle of a clause that reads as well without the commas: *would, therefore, benefit* (would therefore benefit).
+  - *As* used to mean *because* at the head of a clause (*As the staff had left, ...*): *because* is clearer, since *as* can also mean *while*.
+  - Near-synonym pairs where the second word adds nothing the first did not say: *goals and objectives*, *full and complete*, *aims and purposes*. Keep one.
+  - Empty verbs and nouns padding a phrase: *benefit from carrying out regular audits* (benefit from regular audits), *the on-the-ground situation in each county* (each county).
 - **Run-on sentence.** A sentence in which a comma alone joins two complete thoughts (a comma splice: *the assets rely on coal, the generating units are 39 to 55 years old*), or a chain of three or more complete thoughts that a reader has to hold in mind past its end. If a comma is joining two thoughts that deserve separate sentences, split them. Two related clauses joined by a comma and a conjunction (*, and*; *, but*) make an ordinary compound sentence, not a run-on.
 - **Throat-clearing.** A filler sentence that delays the point without providing any orientation: *It is important to note that this report covers many topics.* *There are several things to consider here.* *This is a complex issue.* The test is whether the sentence tells the reader anything they did not know, or points them anywhere.
 
@@ -53,8 +58,8 @@ Two families of problem, six kinds of issue.
 
 ## Procedure
 
-1. **Read the whole document first.** Note who the audience is and the level of the writing, so you can judge what counts as obvious to them and which terms are theirs.
-2. **Scan the body text paragraph by paragraph, from the first section to the last.** For each paragraph, list the sentences that meet one of the tests above. Skip the excluded material. In a long document, work through the sections in order and keep going until the final section: the last chapters need the check as much as the first, and a review that covers only the opening chapters is incomplete.
+1. **Read the whole document first.** Note who the audience is and the level of the writing, so you can judge what counts as obvious to them and which terms are theirs. Note how many lines the document has, as your tools report it: if it has more than 300 lines and you can hand work to sub-agents, follow **Long documents** below instead of reviewing the body yourself.
+2. **Scan the body text paragraph by paragraph, from the first section to the last.** For each paragraph, list the sentences that meet one of the tests above. Read every sentence to its end and list every wordy phrase in the paragraph, including those in the middle of long sentences and in subordinate clauses, not only the first one you see or the sentence openers: a dense paragraph can have several. Skip the excluded material. In a long document, work through the sections in order and keep going until the final section: the last chapters need the check as much as the first, and a review that covers only the opening chapters is incomplete.
 3. **Check each candidate before keeping it.** For a wordy construction, confirm a shorter form says the same thing with the same qualifications. For a run-on, confirm the sentence holds two thoughts that stand on their own. For throat-clearing, empty framing and obvious statements, confirm the sentence neither orients the reader nor tells them anything new. For a vague reference, confirm the referent is genuinely unclear rather than plain from the previous sentence. Drop anything that fails its test.
 4. **Work out the fix for each kept sentence.**
    - Change as little as possible. Replace the wordy phrase, split the run-on at the comma, delete the filler sentence, name the referent. Keep every claim, number, date, citation, footnote marker and qualifier of the original, in the original order where you can. Fix one sentence per edit; do not rewrite a span of several sentences to tighten one of them.
@@ -66,11 +71,21 @@ Two families of problem, six kinds of issue.
    - Do not introduce technical jargon, clinical terminology or vocabulary that was not already present. A rewrite should be clearer than the original, not more complex.
 5. **Check your rewrites.** A proposed sentence must say everything the original said, must not introduce passive voice the original did not have, must keep punctuation correct where words moved, and must still fit its paragraph. Reread it in the context of the paragraph. If tightening would change emphasis the author plainly intended, leave the sentence unreported.
 
+## Long documents
+
+When the document has more than 300 lines and you can hand work to sub-agents, split the work: do not review it in one pass, because attention thins over a long document and the later chapters get less of it. Take the line count from your tools (the total a file read reports), never from an estimate of its length.
+
+1. **Read the whole document first**, as step 1 of the procedure says, and note the audience and the level of the writing.
+2. **Cut the body into consecutive parts** at chapter or major-section headings, each roughly 100 to 250 lines, and no more than eight parts (for a very long document, make the parts larger). Join short neighbouring sections; split an over-long chapter at its subsection headings. Every body line belongs to exactly one part, and no paragraph is split between parts.
+3. **Give each part to its own sub-agent**, all at once if you can. Tell each one the first and last line it owns, to follow this skill's instructions for that range only, the audience and level you noted, to report its issues itself in the usual format with the usual edit rules, not to write the report deliverable, and to reply with how many issues of each kind it reported and the first and last line it reviewed.
+4. **Check that every part came back.** If a sub-agent failed, or reviewed less than its range, review the missing lines yourself.
+5. **Write the report** for the whole document from the sub-agents' replies.
+
 ## Reporting
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for sentences that pass. Explain each problem in plain practical terms, why the change reads better, never by reference to a rule or guideline.
 
-- **Wordy construction** → one issue per paragraph that contains wordy constructions, title `"Wordy Construction"`, **severity: low**. In the `description`, quote each wordy phrase from that paragraph with its sentence. In `suggested_action`, give the tighter wording for each. Bracket the paragraph with `start_line` and `end_line`.
+- **Wordy construction** → one issue per paragraph that contains wordy constructions, title `"Wordy Construction"`, **severity: low**. In the `description`, quote every wordy phrase from that paragraph with its sentence. In `suggested_action`, give the tighter wording for each, and attach an edit for each sentence that contains one. Bracket the paragraph with `start_line` and `end_line`.
 - **Run-on sentence** → one issue per sentence, title `"Run-On Sentence"`, **severity: low**. Quote the sentence and give the split version.
 - **Throat-clearing** → one issue per sentence, title `"Throat-Clearing"`, **severity: low**. Quote the sentence and say what, if anything, should replace it.
 - **Vague reference** → one issue per sentence, title `"Vague Reference"`, **severity: medium**. Quote the sentence, say which word is vague, and either name the referent or ask the author to.
@@ -83,7 +98,7 @@ When you can attach proposed edits to an issue, attach one edit per sentence who
 
 ### Volume and coverage
 
-Report every qualifying paragraph up to 40 concision issues. If the document has more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, **severity: low**, anchored to the section's first reportable paragraph and spanning the section: quote each reported phrase with its tighter wording, and attach edits as above. Precision issues are never consolidated. Every section of the document is covered either way.
+Report every qualifying paragraph up to 40 concision issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, **severity: low**, anchored to the section's first reportable paragraph and spanning the section: quote each reported phrase with its tighter wording, and attach edits as above. Precision issues are never consolidated. Every section of the document is covered either way.
 
 ## Report
 

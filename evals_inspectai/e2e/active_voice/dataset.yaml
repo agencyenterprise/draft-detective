@@ -619,3 +619,306 @@
   - anchor: the type of work being measured
     reason: generic
   notes: The Draft Detective demo report. Findings and decoys come from reviewing two Active Voice runs on it.
+
+# ---- interior patterns in long paragraphs (reviewer feedback) ----
+- input: file://files/writing_style/pathways_short.md
+  expected_issues:
+  - id: designed_to
+    title: Passive Voice
+    anchor: The pilot was designed to reduce
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was designed to
+  - id: relative_clause_passive
+    title: Passive Voice
+    anchor: which was further compounded by the departure of the original training vendor
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was further compounded by
+  decoys:
+  - anchor: Pathways is located in three service hubs
+    reason: stative
+  - anchor: Barriers that can be addressed through better scheduling
+    reason: generic
+  - anchor: Staff reported that the interview topics
+    reason: qualifier
+  - anchor: We interviewed 24 staff members
+    reason: active
+  notes: Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. A passive whose actor the text leaves unnamed still has an actor-free active form ("aimed
+    to"), so an edit is expected; a passive inside a relative clause counts like any other.
+- input: file://files/writing_style/pathways_long_report.md
+  expected_issues:
+  - id: designed_to
+    title: Passive Voice
+    anchor: The pilot was designed to reduce
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was designed to
+  - id: relative_clause_passive
+    title: Passive Voice
+    anchor: which was further compounded by the departure of the original training vendor
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was further compounded by
+  - id: filler_01
+    title: Passive Voice
+    anchor: been viewed by researchers
+    required: false
+  - id: filler_02
+    title: Passive Voice
+    anchor: was launched by the
+    required: false
+  - id: filler_03
+    title: Passive Voice
+    anchor: was provided by the
+    required: false
+  - id: filler_04
+    title: Passive Voice
+    anchor: was approved by voters
+    required: false
+  - id: filler_05
+    title: Passive Voice
+    anchor: were selected by county
+    required: false
+  - id: filler_06
+    title: Passive Voice
+    anchor: was engaged by the
+    required: false
+  - id: filler_07
+    title: Passive Voice
+    anchor: been addressed by the
+    required: false
+  - id: filler_08
+    title: Passive Voice
+    anchor: was greatly appreciated by
+    required: false
+  - id: filler_09
+    title: Passive Voice
+    anchor: been convened by the
+    required: false
+  - id: filler_10
+    title: Passive Voice
+    anchor: was adopted by the
+    required: false
+  - id: filler_11
+    title: Passive Voice
+    anchor: was issued by the
+    required: false
+  - id: filler_12
+    title: Passive Voice
+    anchor: is conducted by an
+    required: false
+  - id: filler_13
+    title: Passive Voice
+    anchor: is provided by a
+    required: false
+  - id: filler_14
+    title: Passive Voice
+    anchor: is delivered by the
+    required: false
+  - id: filler_15
+    title: Passive Voice
+    anchor: are requested by the
+    required: false
+  - id: filler_16
+    title: Passive Voice
+    anchor: is administered by the county
+    required: false
+  - id: filler_17
+    title: Passive Voice
+    anchor: are paid by the
+    required: false
+  - id: filler_18
+    title: Passive Voice
+    anchor: is reimbursed by the
+    required: false
+  - id: filler_19
+    title: Passive Voice
+    anchor: is administered by the Harlow
+    required: false
+  - id: filler_20
+    title: Passive Voice
+    anchor: was ended by mutual
+    required: false
+  - id: filler_21
+    title: Passive Voice
+    anchor: was allocated by the
+    required: false
+  - id: filler_22
+    title: Passive Voice
+    anchor: was developed by the
+    required: false
+  - id: filler_23
+    title: Passive Voice
+    anchor: been developed by the
+    required: false
+  - id: filler_24
+    title: Passive Voice
+    anchor: were provided by the state
+    required: false
+  - id: filler_25
+    title: Passive Voice
+    anchor: were provided by the Harlow
+    required: false
+  - id: filler_26
+    title: Passive Voice
+    anchor: was performed by hub
+    required: false
+  - id: filler_27
+    title: Passive Voice
+    anchor: was hired by the
+    required: false
+  - id: filler_28
+    title: Passive Voice
+    anchor: is covered by the
+    required: false
+  - id: filler_29
+    title: Passive Voice
+    anchor: was recorded by hub
+    required: false
+  - id: filler_30
+    title: Passive Voice
+    anchor: was attributed by program
+    required: false
+  - id: filler_31
+    title: Passive Voice
+    anchor: was caused by the
+    required: false
+  - id: filler_32
+    title: Passive Voice
+    anchor: was explained by staff
+    required: false
+  - id: filler_33
+    title: Passive Voice
+    anchor: were received by 65
+    required: false
+  - id: filler_34
+    title: Passive Voice
+    anchor: was attributed by staff
+    required: false
+  - id: filler_35
+    title: Passive Voice
+    anchor: were driven by delays
+    required: false
+  - id: filler_36
+    title: Passive Voice
+    anchor: been trained by the
+    required: false
+  - id: filler_37
+    title: Passive Voice
+    anchor: were approved by the
+    required: false
+  - id: filler_38
+    title: Passive Voice
+    anchor: were anticipated by program
+    required: false
+  - id: filler_39
+    title: Passive Voice
+    anchor: been resolved by the
+    required: false
+  - id: filler_40
+    title: Passive Voice
+    anchor: was fully implemented by
+    required: false
+  - id: filler_41
+    title: Passive Voice
+    anchor: were scheduled by the
+    required: false
+  - id: filler_42
+    title: Passive Voice
+    anchor: is served by only
+    required: false
+  - id: filler_43
+    title: Passive Voice
+    anchor: was driven by a
+    required: false
+  - id: filler_44
+    title: Passive Voice
+    anchor: was built by a
+    required: false
+  - id: filler_45
+    title: Passive Voice
+    anchor: were prepared by hand
+    required: false
+  - id: filler_46
+    title: Passive Voice
+    anchor: been finalized by the
+    required: false
+  - id: filler_47
+    title: Passive Voice
+    anchor: be explained by this
+    required: false
+  - id: filler_48
+    title: Passive Voice
+    anchor: been hired by the
+    required: false
+  - id: filler_49
+    title: Passive Voice
+    anchor: are reviewed by county
+    required: false
+  - id: filler_50
+    title: Passive Voice
+    anchor: were described by participants
+    required: false
+  - id: filler_51
+    title: Passive Voice
+    anchor: be reviewed by the
+    required: false
+  - id: filler_52
+    title: Passive Voice
+    anchor: be reached by apprentices
+    required: false
+  decoys:
+  - anchor: Pathways is located in three service hubs
+    reason: stative
+  - anchor: Barriers that can be addressed through better scheduling
+    reason: generic
+  - anchor: Staff reported that the interview topics
+    reason: qualifier
+  - anchor: We interviewed 24 staff members
+    reason: active
+  notes: Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. A passive whose actor the text leaves unnamed still has an actor-free active form ("aimed
+    to"), so an edit is expected; a passive inside a relative clause counts like any other. The long report repeats
+    the same paragraphs in Chapters 1, 3, 5 and 7 of an 11,900-word report padded with ordinary by-passives, listed
+    as optional so valid reports of them are not false positives; other unlabelled finds still lower precision here.
+# Same patterns as the Pathways records above, in different wording on a different invented program.
+- input: file://files/writing_style/harbor_short.md
+  expected_issues:
+  - id: designed_to
+    title: Passive Voice
+    anchor: The curriculum was developed to strengthen
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was developed to
+  - id: relative_clause_passive
+    title: Passive Voice
+    anchor: a gap that was made wider by the state's freeze
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - was made wider by
+  decoys:
+  - anchor: Harbor's main office is based in
+    reason: stative
+  - anchor: Choices about course timing must be tailored
+    reason: generic
+  - anchor: Mentors said that the observation schedule
+    reason: qualifier
+  - anchor: We completed 18 site visits
+    reason: active
+  notes: 'Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. A passive whose actor the text leaves unnamed still has an actor-free active form ("aimed
+    to"), so an edit is expected; a passive inside a relative clause counts like any other. The Harbor twin of the Pathways records.'

@@ -1,8 +1,9 @@
 """The Concision & Precision eval: its dataset, task and the workflow's own edit check."""
 
 from pathlib import Path
+from typing import Optional
 
-from evals_inspectai.common.issue_inventory import decoy_reasons, expects_edits, load_inventory_records
+from evals_inspectai.common.issue_inventory import ResolvedInventory, decoy_reasons, expects_edits, load_inventory_records
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.concision_precision.concision_precision_e2e import concision_precision_e2e
 from evals_inspectai.e2e.concision_precision.criteria import EXTRA_EDIT_CHECKS, JUDGE_CRITERIA, no_added_passive
@@ -16,9 +17,9 @@ def _edit(original: str, replacement: str) -> ProposedEdit:
 
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
-    assert len(records) == 15
-    expected = [e for r in records for e in r.expected_issues]
-    assert len(expected) == 19
+    assert len(records) == 18
+    expected = [e for r in records for e in r.expected_issues if e.required]
+    assert len(expected) == 46
     titles = {e.title for e in expected}
     assert titles == {"Wordy Construction", "Run-On Sentence", "Throat-Clearing", "Vague Reference", "Empty Framing", "Obvious Statement"}
     assert sum(1 for r in records if not r.expected_issues) == 5, "five clean documents"
@@ -27,6 +28,19 @@ def test_dataset_is_well_formed():
     # Every expected says whether an edit is expected, except an Obvious Statement, where deleting
     # the sentence and asking for the deeper point are both acceptable fixes.
     assert all(e.edit_expected is not None for e in expected if e.title != "Obvious Statement")
+
+
+def _required(record: ResolvedInventory) -> dict[str, Optional[str]]:
+    return {e.id: e.anchor for e in record.expected_issues if e.required}
+
+
+def test_harbor_twin_carries_the_same_required_patterns_as_pathways_in_other_words():
+    records = load_inventory_records(DATASET)
+    pathways = next(r for r in records if "Pathways" in r.document)
+    harbor = next(r for r in records if "Harbor" in r.document)
+    pathways_required, harbor_required = _required(pathways), _required(harbor)
+    assert set(harbor_required) == set(pathways_required)
+    assert not set(harbor_required.values()) & set(pathways_required.values())
 
 
 def test_no_added_passive_lets_tightening_through_but_not_a_new_passive():
@@ -38,7 +52,7 @@ def test_no_added_passive_lets_tightening_through_but_not_a_new_passive():
 
 def test_task_composes_the_inventory_scorers_and_its_own_checks():
     t = concision_precision_e2e()
-    assert len(t.dataset) == 15 and len(t.scorer) == 4
+    assert len(t.dataset) == 18 and len(t.scorer) == 4
     assert set(EXTRA_EDIT_CHECKS) == {"no_added_passive"}
     assert {c.key for c in JUDGE_CRITERIA} == {"edit_meaning_preserved", "edit_reads_well"}
     columns = [c.id for c in t.viewer.task_samples_view.columns]

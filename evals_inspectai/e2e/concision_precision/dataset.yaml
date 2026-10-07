@@ -319,3 +319,608 @@
   - anchor: Table 1 lists the sites
     reason: signposting
   notes: Nine planted issues across five sections, the last two in the final sections, so a run that stops early misses them.
+
+# ---- interior patterns in long paragraphs (reviewer feedback) ----
+- input: file://files/writing_style/pathways_short.md
+  expected_issues:
+  - id: in_the_case_of
+    title: Wordy Construction
+    anchor: In the case of Pathways
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - In the case of
+  - id: in_addition_to
+    title: Wordy Construction
+    anchor: In addition to losing some institutional knowledge
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - In addition to
+  - id: therefore_building
+    title: Wordy Construction
+    anchor: would, therefore, benefit from building
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - benefit from building
+  - id: doublet_cohesion
+    title: Wordy Construction
+    anchor: cohesion and strength
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - cohesion and strength
+  - id: causal_as
+    title: Wordy Construction
+    anchor: As the original program designers were no longer present
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - As the original
+  - id: doublet_gaps
+    title: Wordy Construction
+    anchor: design gaps and inconsistencies
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - gaps and inconsistencies
+  - id: indeed
+    title: Wordy Construction
+    anchor: Indeed, research on reentry
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - Indeed
+  - id: and_also_better_understand
+    title: Wordy Construction
+    anchor: and also better understand how potential participants perceive the program
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - and also better understand
+  - id: realities_of_the
+    title: Wordy Construction
+    anchor: the local realities of the participant population
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - realities of the
+  - id: like_such_as
+    anchor: explore factors like prevalence
+    required: false
+  - id: colon_split
+    anchor: 'from the outset: the departure'
+    required: false
+  - id: such_as_including
+    anchor: at the outset, such as cross-training
+    required: false
+  - id: working_well
+    anchor: working well as a multi-partner
+    required: false
+  - id: the_tensions
+    anchor: inconsistencies, the tensions between
+    required: false
+  - id: semicolon_in_particular
+    anchor: shapes engagement; in particular
+    required: false
+  - id: roundabout_leadin
+    anchor: Several important lessons emerged from
+    required: false
+  - id: faulty_parallelism
+    anchor: both supported the rollout of Pathways, as well as the barriers
+    required: false
+  decoys:
+  - anchor: In this chapter, we describe the Pathways program
+    reason: signposting
+  - anchor: Staff reported that the interview topics
+    reason: qualifier
+  - anchor: Participants may not notice these tensions directly
+    reason: hedge
+  notes: Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. The required phrases sit in the interior of long, multi-clause paragraphs, after an
+    opening a run tends to fix first; each needs its own edit. Optional items are style preferences a reasonable
+    editor may leave.
+- input: file://files/writing_style/pathways_long_report.md
+  expected_issues:
+  - id: in_the_case_of
+    title: Wordy Construction
+    anchor: In the case of Pathways
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - In the case of
+  - id: in_addition_to
+    title: Wordy Construction
+    anchor: In addition to losing some institutional knowledge
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - In addition to
+  - id: therefore_building
+    title: Wordy Construction
+    anchor: would, therefore, benefit from building
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - benefit from building
+  - id: doublet_cohesion
+    title: Wordy Construction
+    anchor: cohesion and strength
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - cohesion and strength
+  - id: causal_as
+    title: Wordy Construction
+    anchor: As the original program designers were no longer present
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - As the original
+  - id: doublet_gaps
+    title: Wordy Construction
+    anchor: design gaps and inconsistencies
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - gaps and inconsistencies
+  - id: indeed
+    title: Wordy Construction
+    anchor: Indeed, research on reentry
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - Indeed
+  - id: and_also_better_understand
+    title: Wordy Construction
+    anchor: and also better understand how potential participants perceive the program
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - and also better understand
+  - id: realities_of_the
+    title: Wordy Construction
+    anchor: the local realities of the participant population
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - realities of the
+  - id: like_such_as
+    anchor: explore factors like prevalence
+    required: false
+  - id: colon_split
+    anchor: 'from the outset: the departure'
+    required: false
+  - id: such_as_including
+    anchor: at the outset, such as cross-training
+    required: false
+  - id: working_well
+    anchor: working well as a multi-partner
+    required: false
+  - id: the_tensions
+    anchor: inconsistencies, the tensions between
+    required: false
+  - id: semicolon_in_particular
+    anchor: shapes engagement; in particular
+    required: false
+  - id: roundabout_leadin
+    anchor: Several important lessons emerged from
+    required: false
+  - id: faulty_parallelism
+    anchor: both supported the rollout of Pathways, as well as the barriers
+    required: false
+  - id: filler_01
+    title: Wordy Construction
+    anchor: a large number of people are
+    required: false
+  - id: filler_02
+    title: Wordy Construction
+    anchor: very large share of them
+    required: false
+  - id: filler_03
+    title: Wordy Construction
+    anchor: important and essential supports
+    required: false
+  - id: filler_04
+    title: Wordy Construction
+    anchor: it is important to note that people
+    required: false
+  - id: filler_05
+    title: Wordy Construction
+    anchor: due to the fact that they are
+    required: false
+  - id: filler_06
+    title: Wordy Construction
+    anchor: transit is very limited
+    required: false
+  - id: filler_07
+    title: Wordy Construction
+    anchor: in order to conduct
+    required: false
+  - id: filler_08
+    title: Wordy Construction
+    anchor: it is important to note that they
+    required: false
+  - id: filler_09
+    title: Wordy Construction
+    anchor: at this point in time and
+    required: false
+  - id: filler_10
+    title: Wordy Construction
+    anchor: each and every one
+    required: false
+  - id: filler_11
+    title: Wordy Construction
+    anchor: very generous cooperation of
+    required: false
+  - id: filler_12
+    title: Wordy Construction
+    anchor: A large number of people gave
+    required: false
+  - id: filler_13
+    title: Wordy Construction
+    anchor: in order to protect
+    required: false
+  - id: filler_14
+    title: Wordy Construction
+    anchor: in order to review
+    required: false
+  - id: filler_15
+    title: Wordy Construction
+    anchor: very few of them
+    required: false
+  - id: filler_16
+    title: Wordy Construction
+    anchor: really strong incentive to
+    required: false
+  - id: filler_17
+    title: Wordy Construction
+    anchor: It is important to note that the planning
+    required: false
+  - id: filler_18
+    title: Wordy Construction
+    anchor: very important role in
+    required: false
+  - id: filler_19
+    title: Wordy Construction
+    anchor: due to the fact that referrals
+    required: false
+  - id: filler_20
+    title: Wordy Construction
+    anchor: in order to take a position
+    required: false
+  - id: filler_21
+    title: Wordy Construction
+    anchor: very real difference in
+    required: false
+  - id: filler_22
+    title: Wordy Construction
+    anchor: It is important to note that some
+    required: false
+  - id: filler_23
+    title: Wordy Construction
+    anchor: due to the fact that certain
+    required: false
+  - id: filler_24
+    title: Wordy Construction
+    anchor: very deliberate effort to
+    required: false
+  - id: filler_25
+    title: Wordy Construction
+    anchor: In order to address the
+    required: false
+  - id: filler_26
+    title: Wordy Construction
+    anchor: very important to note
+    required: false
+  - id: filler_27
+    title: Wordy Construction
+    anchor: a large number of records
+    required: false
+  - id: filler_28
+    title: Wordy Construction
+    anchor: In order to deal
+    required: false
+  - id: filler_29
+    title: Wordy Construction
+    anchor: due to the fact that many
+    required: false
+  - id: filler_30
+    title: Wordy Construction
+    anchor: It is important to note that a
+    required: false
+  - id: filler_31
+    title: Wordy Construction
+    anchor: very limited supply of
+    required: false
+  - id: filler_32
+    title: Wordy Construction
+    anchor: area is very limited
+    required: false
+  - id: filler_33
+    title: Wordy Construction
+    anchor: really significant barrier for
+    required: false
+  - id: filler_34
+    title: Wordy Construction
+    anchor: very positive result
+    required: false
+  - id: filler_35
+    title: Wordy Construction
+    anchor: due to the fact that there
+    required: false
+  - id: filler_36
+    title: Wordy Construction
+    anchor: a great deal of improvement
+    required: false
+  - id: filler_37
+    title: Wordy Construction
+    anchor: in order to take a job
+    required: false
+  - id: filler_38
+    title: Wordy Construction
+    anchor: very positive about the services
+    required: false
+  - id: filler_39
+    title: Wordy Construction
+    anchor: really care about what
+    required: false
+  - id: filler_40
+    title: Wordy Construction
+    anchor: due to the fact that she
+    required: false
+  - id: filler_41
+    title: Wordy Construction
+    anchor: It is important to note that many
+    required: false
+  - id: filler_42
+    title: Wordy Construction
+    anchor: a large number of other
+    required: false
+  - id: filler_43
+    title: Wordy Construction
+    anchor: very much harder
+    required: false
+  - id: filler_44
+    title: Wordy Construction
+    anchor: a great deal of time
+    required: false
+  - id: filler_45
+    title: Wordy Construction
+    anchor: very beginning
+    required: false
+  - id: filler_46
+    title: Wordy Construction
+    anchor: A large number of participants were
+    required: false
+  - id: filler_47
+    title: Wordy Construction
+    anchor: in order to address this
+    required: false
+  - id: filler_48
+    title: Wordy Construction
+    anchor: had made a very real difference
+    required: false
+  - id: filler_49
+    title: Wordy Construction
+    anchor: very early in the
+    required: false
+  - id: filler_50
+    title: Wordy Construction
+    anchor: due to the fact that they could
+    required: false
+  - id: filler_51
+    title: Wordy Construction
+    anchor: very short timeline before
+    required: false
+  - id: filler_52
+    title: Wordy Construction
+    anchor: a large number of incomplete
+    required: false
+  - id: filler_53
+    title: Wordy Construction
+    anchor: very little confidence in
+    required: false
+  - id: filler_54
+    title: Wordy Construction
+    anchor: in order to ensure
+    required: false
+  - id: filler_55
+    title: Wordy Construction
+    anchor: due to the fact that the program
+    required: false
+  - id: filler_56
+    title: Wordy Construction
+    anchor: very similar at Eastgate
+    required: false
+  - id: filler_57
+    title: Wordy Construction
+    anchor: It is important to note that wage
+    required: false
+  - id: filler_58
+    title: Wordy Construction
+    anchor: very unlikely to be
+    required: false
+  - id: filler_59
+    title: Wordy Construction
+    anchor: very likely to rise
+    required: false
+  - id: filler_60
+    title: Wordy Construction
+    anchor: A large number of comparison
+    required: false
+  - id: filler_61
+    title: Wordy Construction
+    anchor: very important outcome for
+    required: false
+  - id: filler_62
+    title: Wordy Construction
+    anchor: very satisfied with the
+    required: false
+  - id: filler_63
+    title: Wordy Construction
+    anchor: a great deal of caution
+    required: false
+  - id: filler_64
+    title: Wordy Construction
+    anchor: very heavily on a
+    required: false
+  - id: filler_65
+    title: Wordy Construction
+    anchor: very different local settings
+    required: false
+  - id: filler_66
+    title: Wordy Construction
+    anchor: in order to attend
+    required: false
+  - id: filler_67
+    title: Wordy Construction
+    anchor: very positive about their
+    required: false
+  - id: filler_68
+    title: Wordy Construction
+    anchor: has the ability to
+    required: false
+  decoys:
+  - anchor: Staff reported that the interview topics
+    reason: qualifier
+  - anchor: Participants may not notice these tensions directly
+    reason: hedge
+  notes: Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. The required phrases sit in the interior of long, multi-clause paragraphs, after an
+    opening a run tends to fix first; each needs its own edit. Optional items are style preferences a reasonable
+    editor may leave. The long report repeats the same paragraphs in Chapters 1, 3, 5 and 7 of an 11,900-word report
+    padded with ordinary stock wordy phrases, listed as optional so valid reports of them are not false positives;
+    other unlabelled finds still lower precision here.
+# Same patterns as the Pathways records above, in different wording on a different invented program.
+- input: file://files/writing_style/harbor_short.md
+  expected_issues:
+  - id: in_the_case_of
+    title: Wordy Construction
+    anchor: With regard to Harbor
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - With regard to
+  - id: in_addition_to
+    title: Wordy Construction
+    anchor: Along with losing some planned internship slots
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - Along with losing some
+  - id: therefore_building
+    title: Wordy Construction
+    anchor: would, as a result, benefit from putting in place
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - putting in place
+  - id: doublet_cohesion
+    title: Wordy Construction
+    anchor: trust and goodwill
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - trust and goodwill
+  - id: causal_as
+    title: Wordy Construction
+    anchor: As the founding staff had moved on
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - As the founding
+  - id: doublet_gaps
+    title: Wordy Construction
+    anchor: shortcomings and weaknesses
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - shortcomings and weaknesses
+  - id: indeed
+    title: Wordy Construction
+    anchor: In fact, studies of youth employment
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - In fact
+  - id: and_also_better_understand
+    title: Wordy Construction
+    anchor: and also get a better sense of how young adults view the program
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - and also get a better sense
+  - id: realities_of_the
+    title: Wordy Construction
+    anchor: the day-to-day circumstances of the neighborhoods served
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include:
+      - day-to-day circumstances of the
+  - id: like_such_as
+    anchor: about issues like access
+    required: false
+  - id: colon_split
+    anchor: 'the first two years: the delay'
+    required: false
+  - id: such_as_including
+    anchor: early on, such as multiyear
+    required: false
+  - id: working_well
+    anchor: functioning smoothly as a network
+    required: false
+  - id: the_tensions
+    anchor: weaknesses, the disagreements among
+    required: false
+  - id: semicolon_in_particular
+    anchor: predicts retention; specifically
+    required: false
+  - id: roundabout_leadin
+    anchor: A number of key themes surfaced from
+    required: false
+  - id: faulty_parallelism
+    anchor: both strengthened coordination among partner organizations, as well as the obstacles
+    required: false
+  - id: carry_out
+    anchor: it could be especially useful to carry out
+    required: false
+  decoys:
+  - anchor: This chapter situates Harbor
+    reason: signposting
+  - anchor: Mentors said that the observation schedule
+    reason: qualifier
+  - anchor: Providers may not raise these disagreements formally
+    reason: hedge
+  notes: 'Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. The required phrases sit in the interior of long, multi-clause paragraphs, after an
+    opening a run tends to fix first; each needs its own edit. Optional items are style preferences a reasonable
+    editor may leave. The Harbor twin of the Pathways records.'
