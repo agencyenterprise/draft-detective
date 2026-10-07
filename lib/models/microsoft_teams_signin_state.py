@@ -7,12 +7,10 @@ different worker. Production runs Uvicorn with ``--workers 4`` (``Dockerfile`` a
 one ``mcp_oauth_kv`` exists for, and a separate table because this is a different
 subsystem with a different lifetime.
 
-The table is also the Agents SDK's ``Storage``, which the bot's application requires,
-though the bot keeps no SDK state in it.
-
 Rows are short lived: a question is removed when it is answered. One whose asker never
-finishes signing in deletes nothing, so ``lib/services/microsoft/teams/storage.py``
-sweeps rows left untouched for an hour on every write. That matters because what is
+finishes signing in is never taken back, so
+``lib/services/microsoft/teams/pending_questions.py`` sweeps rows left untouched for an
+hour every time a question is parked. That matters because what is
 stored is the question, text and sender included, and this table is not the place for
 it to accumulate.
 """
@@ -30,7 +28,7 @@ class MicrosoftTeamsSignInState(SQLModel, table=True):
     key: str = Field(
         sa_column=Column(String, primary_key=True),
         description=(
-            "``pending-question/`` followed by the id the sign-in card carries."
+            "The id the sign-in card carries."
         ),
     )
     value: dict = Field(

@@ -9,42 +9,37 @@ An Adaptive Card ``Action.Execute`` is the one route Teams documents for signing
 inside the conversation itself. The bot posts a card with a Sign in button; when its
 action reaches the bot and there is no token, the bot answers the invoke with a
 ``loginRequest`` instead of a card, and Teams opens the sign-in window. Once the person
-signs in,
-Teams sends the same action again carrying a ``state`` code, which the Bot Framework
-token service redeems for their token. It is the same OAuth connection as before
-(``TEAMS_USER_AUTH_CONNECTION``) and the same token service holding the refresh token;
-only the card that starts it differs.
+signs in, Teams sends the same action again carrying a ``state`` code, which the Bot
+Framework token service redeems for their token. It is the OAuth connection named by
+``TEAMS_USER_AUTH_CONNECTION``, and the token service holds the refresh token.
 
-The question waits in the sign-in table while this happens. It is keyed by an id the
-card carries, not by who clicked, and only the person who asked can release it: anyone
-in the channel can press the card's button, and the answer must be read with the
+The question waits in ``pending_questions.py`` while this happens. It is keyed by an id
+the card carries, not by who clicked, and only the person who asked can release it:
+anyone in the channel can press the card's button, and the answer must be read with the
 asker's access, not theirs.
 
 Reference: https://learn.microsoft.com/en-us/microsoftteams/platform/task-modules-and-cards/cards/universal-actions-for-adaptive-cards/authentication-flow-in-universal-action-for-adaptive-cards
 """
 
 import logging
-import uuid
-from collections.abc import MutableMapping
 from typing import Any, Optional
 
 from aiohttp import ClientError, ClientResponseError
-from microsoft_agents.activity import (
-    Activity,
-    ActivityTypes,
-    Attachment,
-    ConversationReference,
-)
+from microsoft_agents.activity import Activity, ActivityTypes, Attachment
 from microsoft_agents.activity.invoke_response import InvokeResponse
 from microsoft_agents.hosting.core import TurnContext
 from microsoft_agents.hosting.core.connector import UserTokenClientBase
-from microsoft_agents.hosting.core.storage import StoreItem
-from pydantic import BaseModel
 
 from lib.config.env import config
-from lib.services.microsoft.teams.storage import PostgresSignInStorage
 
 logger = logging.getLogger(__name__)
+
+# The SDK logs every non-200 from the token service at ERROR before raising, and "this
+# person has not signed in yet" is a 404 -- the normal path for every first question.
+# The failures that matter are logged here instead, as TokenServiceUnavailable.
+logging.getLogger("microsoft_agents.hosting.core.connector.client.user_token").setLevel(
+    logging.CRITICAL
+)
 
 # Namespaced: Teams delivers every card action to the bot, and this is the only one
 # that should start or finish a sign-in.
@@ -54,75 +49,6 @@ _CARD = "application/vnd.microsoft.card.adaptive"
 _LOGIN_REQUEST = "application/vnd.microsoft.activity.loginRequest"
 _INVALID_AUTH_CODE = "application/vnd.microsoft.error.invalidAuthCode"
 _MESSAGE = "application/vnd.microsoft.activity.message"
-
-# Kept apart from the keys the SDK writes to the same table.
-_KEY_PREFIX = "pending-question/"
-
-
-class PendingQuestion(BaseModel, StoreItem):
-    """A question waiting for its asker to sign in.
-
-    Everything needed to answer it later, from a different request and possibly a
-    different worker. The reference is what puts the answer back in the thread the
-    question came from.
-    """
-
-    question: str
-    author: str
-    asker_id: str
-    conversation: str
-    document_urls: list[str]
-    reference: dict[str, Any]
-
-    def store_item_to_json(self) -> dict[str, Any]:
-        return self.model_dump(mode="json")
-
-    @staticmethod
-    def from_json_to_store_item(
-        json_data: MutableMapping[str, Any],
-    ) -> "PendingQuestion":
-        return PendingQuestion.model_validate(json_data)
-
-    def conversation_reference(self) -> ConversationReference:
-        return ConversationReference.model_validate(self.reference)
-
-
-def pending_from(
-    activity: Activity,
-    question: str,
-    author: str,
-    document_urls: list[str],
-) -> PendingQuestion:
-    sender = activity.from_property
-    return PendingQuestion(
-        question=question,
-        author=author,
-        asker_id=sender.id if sender and sender.id else "",
-        conversation=activity.conversation.id if activity.conversation else "",
-        document_urls=document_urls,
-        reference=activity.get_conversation_reference().model_dump(
-            mode="json", by_alias=True, exclude_none=True
-        ),
-    )
-
-
-async def park(pending: PendingQuestion) -> str:
-    pending_id = uuid.uuid4().hex
-    await PostgresSignInStorage().write({_KEY_PREFIX + pending_id: pending})
-    return pending_id
-
-
-async def peek(pending_id: str) -> Optional[PendingQuestion]:
-    key = _KEY_PREFIX + pending_id
-    found = await PostgresSignInStorage().read([key], target_cls=PendingQuestion)
-    return found.get(key)
-
-
-async def take(pending_id: str) -> Optional[PendingQuestion]:
-    """Claim the question, so that exactly one request answers it."""
-
-    value = await PostgresSignInStorage().take(_KEY_PREFIX + pending_id)
-    return PendingQuestion.model_validate(value) if value else None
 
 
 class TokenServiceUnavailable(Exception):
@@ -228,24 +154,20 @@ def _done_card(text: str) -> dict[str, Any]:
     }
 
 
-async def ask_to_sign_in(
-    context: TurnContext, pending_id: str, pending: PendingQuestion
-) -> None:
+async def ask_to_sign_in(context: TurnContext, pending_id: str, question: str) -> None:
+    """Post the card whose button signs the asker in and releases their question."""
+
     await context.send_activity(
         Activity(
             type=ActivityTypes.message,
             attachments=[
-                Attachment(
-                    content_type=_CARD,
-                    content=_card(pending_id, pending.question),
-                )
+                Attachment(content_type=_CARD, content=_card(pending_id, question))
             ],
         )
     )
 
 
-def is_sign_in_action(context: TurnContext) -> bool:
-    activity = context.activity
+def is_sign_in_action(activity: Activity) -> bool:
     if activity.type != ActivityTypes.invoke or activity.name != "adaptiveCard/action":
         return False
     value = activity.value if isinstance(activity.value, dict) else {}

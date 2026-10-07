@@ -10,11 +10,11 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
-from typing import Optional
+from typing import Any, Optional
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from microsoft_agents.activity import Activity, ActivityTypes, Attachment
+from microsoft_agents.activity import Activity, ActivityTypes, Attachment, ChannelAccount
 
 from lib.services.microsoft.teams import bot
 
@@ -160,6 +160,43 @@ class TestTheFollowUpActivity:
         )
         with pytest.raises(pydantic.ValidationError):
             Activity.model_validate(continuation.model_dump())
+
+
+class TestReadingTheQuestion:
+    """The bot's own mention is not part of the question."""
+
+    def context(self, text: str) -> Any:
+        from microsoft_agents.activity import EntityTypes, Mention
+
+        the_bot = ChannelAccount(id="28:bot", name="Draft Detective")
+        activity = Activity(
+            type=ActivityTypes.message,
+            text=text,
+            recipient=the_bot,
+            entities=[
+                Mention(
+                    type=EntityTypes.MENTION,
+                    mentioned=the_bot,
+                    text="<at>Draft Detective</at>",
+                )
+            ],
+        )
+        context = MagicMock()
+        context.activity = activity
+        return context
+
+    def test_the_mention_of_the_bot_is_removed(self) -> None:
+        context = self.context("<at>Draft Detective</at> does this   overclaim?")
+
+        assert bot.question_from(context) == "does this overclaim?"
+
+    def test_a_message_without_a_mention_is_left_as_written(self) -> None:
+        """A 1:1 chat carries no mention at all."""
+
+        context = self.context("does this overclaim?")
+        context.activity.entities = []
+
+        assert bot.question_from(context) == "does this overclaim?"
 
 
 class TestFindingTheLinks:
@@ -360,7 +397,7 @@ class TestAMalformedActivity:
         )
 
         with pytest.raises(bot.InvalidActivity):
-            await bot.handle("Bearer ok", {"type": {"not": "a string"}})
+            await bot.handle("Bearer ok", {"type": {"not": "a string"}}, AsyncMock())
 
     @pytest.mark.asyncio
     async def test_it_is_not_a_permission_error_or_a_bare_exception(
