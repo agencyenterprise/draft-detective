@@ -40,7 +40,7 @@ The set of assessments grows regularly, so this page does not list them all. The
 
 ## Design principles
 
-**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Editorial Review_ select a useful group in one click.
+**One check, one question.** An assessment reads the document for a single kind of problem and nothing else. Narrow checks are easier to write, test and trust than one prompt that reviews everything, and a user can run only the ones that matter for a given draft. Presets such as _Standard Review_ and _Writing Style Review_ select a useful group in one click.
 
 **The rules are written as skills.** The instructions for an assessment live in a plain-language `SKILL.md` file: what to look for, how to judge it, how severe each kind of problem is, and what a good fix looks like. The app's agents load these files at run time, and the same files install on their own as a plugin for Claude Code or Codex, so a check behaves the same inside the app and in a chat assistant. A new single-pass check needs no Python code: a `SKILL.md` with a short block of frontmatter registers it, and regenerating the frontend's API types makes it available in the app (see [adding a check](./skill-workflows.md)).
 

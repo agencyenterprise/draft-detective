@@ -1,4 +1,4 @@
-"""The annotation sets users can work on: the Editorial Review preset's checks.
+"""The annotation sets users can work on: the Writing Style Review preset's checks.
 
 Each set lives in its own module under ``sets/``; adding one means writing the
 module and listing it here, then running the sync.
