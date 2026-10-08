@@ -6,7 +6,10 @@ WRITING_CONSISTENCY = AnnotationSetSpec(
     slug="writing_consistency",
     title="Writing Consistency",
     workflow_type="writing_consistency",
-    summary="Does the highlighted passage disagree with how the rest of the document says the same thing?",
+    summary=(
+        "Does the highlighted passage disagree with how the rest of the document says the same thing, "
+        "or put a verb in the wrong tense for its sentence?"
+    ),
     guidance="""\
 An inconsistency needs two places, so the highlighted passage is one side of it: look through the document for the other before judging. A verb in the wrong tense for its own sentence is the exception, judged from that sentence alone.
 
