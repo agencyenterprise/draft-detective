@@ -1,0 +1,52 @@
+# Synthetic regression cases derived from the active-voice skill's purpose rule.
+# These labels were authored by a coding agent, not a human reviewer. Keep them
+# separate from edit_pairs.yaml and do not claim them as human calibration data.
+# None of these cases is used as a few-shot example in the judge prompt.
+- id: purpose_unknown_designer
+  original: "The alert service was designed to warn rural clinics about supply shortages during winter."
+  replacement: "The alert service aimed to warn rural clinics about supply shortages during winter."
+  meaning_preserved: pass
+  reads_well: pass
+  note: "The service can perform the purpose; the designer is unnamed and the aim, scope and tense survive."
+- id: curriculum_seeks
+  original: "The workshop was created to prepare volunteer tutors for their first classroom placement."
+  replacement: "The workshop sought to prepare volunteer tutors for their first classroom placement."
+  meaning_preserved: pass
+  reads_well: pass
+  note: "An unnamed creator's purpose becomes the workshop's aim without claiming success."
+- id: named_designer_kept
+  original: "The alert service was designed by the county health team to warn rural clinics about supply shortages during winter."
+  replacement: "The county health team designed the alert service to warn rural clinics about supply shortages during winter."
+  meaning_preserved: pass
+  reads_well: pass
+  note: "A named designer still takes the ordinary actor-naming rewrite."
+- id: purpose_becomes_result
+  original: "The alert service was designed to warn rural clinics about supply shortages during winter."
+  replacement: "The alert service warned rural clinics about supply shortages during winter."
+  meaning_preserved: fail
+  reads_well: pass
+  note: "The replacement asserts that warnings occurred; the original states only a design purpose."
+- id: purpose_drops_population
+  original: "The workshop was created to prepare volunteer tutors for their first classroom placement."
+  replacement: "The workshop sought to prepare tutors for classroom placements."
+  meaning_preserved: fail
+  reads_well: pass
+  note: "The permitted verb does not excuse dropping volunteer and first."
+- id: named_designer_dropped
+  original: "The alert service was designed by the county health team to warn rural clinics about supply shortages during winter."
+  replacement: "The alert service aimed to warn rural clinics about supply shortages during winter."
+  meaning_preserved: fail
+  reads_well: pass
+  note: "The purpose exception applies only to an unnamed designer; this drops a named actor."
+- id: selection_not_purpose
+  original: "The warehouse was selected to reduce the agency's rental costs."
+  replacement: "The warehouse aimed to reduce the agency's rental costs."
+  meaning_preserved: fail
+  reads_well: pass
+  note: "The agency's reason for choosing a location is not a purpose the location performs."
+- id: expansion_not_purpose
+  original: "The network was expanded to reach remote communities."
+  replacement: "The network expanded to reach remote communities."
+  meaning_preserved: fail
+  reads_well: pass
+  note: "Removing the passive makes the expansion happen by itself and still hides who expanded it."
