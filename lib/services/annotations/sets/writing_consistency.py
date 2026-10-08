@@ -32,7 +32,7 @@ It leaves these alone:
 - Present tense for general truths, for interpreting the findings, or for what the document itself does (*this chapter describes*).
 - The present perfect for something that continues (*since 2022, the program has employed 14 workers*), and the past for one study named with its year (*Hale and Ortiz (2020) found*).
 - Hedges, conditionals and recommendations (*may not notice*, *would benefit*, *should fund*), and reported speech about a situation that continues (*staff said the list is still growing*).
-- Tables, which follow their own conventions, and anything that appears only once.
+- Tables, which follow their own conventions, and a term or spelling that appears only once. The house-style compound and a verb in the wrong tense for its sentence are flagged even when they appear once.
 """,
     questions=[should_flag_question()],
     decoy_reasons={

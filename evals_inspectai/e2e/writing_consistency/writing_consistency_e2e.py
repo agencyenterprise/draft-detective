@@ -16,7 +16,10 @@ one dated study in the past, hedges, conditionals, recommendations and
 reported speech, proper names, a sentence already in the document's settled
 form).
 
-Titles carry the variants after a colon (``Inconsistent Term: form A / form
+Each report covers at most one expected issue (``one_to_one`` pairing), since
+the skill reports one issue per inconsistency and one per sentence for a
+verb's tense: a run that merges two of them misses the second. Titles carry
+the variants after a colon (``Inconsistent Term: form A / form
 B``), so the inventory names the stable prefix, matched as whole words within
 the reported title; a pair that could fairly be called spelling or number
 style names the bare prefix ``Inconsistent``. Phrases expected of an edit are
@@ -70,7 +73,7 @@ def writing_consistency_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Tas
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded edit; the median grade is kept.
     """
-    suite = InventorySuite.load(DATASET)
+    suite = InventorySuite.load(DATASET, pairing="one_to_one")
     return Task(
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),

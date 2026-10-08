@@ -41,6 +41,7 @@ def test_minimal_change_accepts_a_swapped_variant_and_rejects_a_rewrite():
 def test_task_composes_the_inventory_scorers_and_its_own_checks():
     t = writing_consistency_e2e()
     assert len(t.dataset) == 21 and len(t.scorer) == 4
+    assert {s.metadata["inventory"]["policy"]["pairing"] for s in t.dataset} == {"one_to_one"}
     assert set(EXTRA_EDIT_CHECKS) == {"minimal_change"}
     assert {c.key for c in JUDGE_CRITERIA} == {"edit_meaning_preserved"}
     columns = [c.id for c in t.viewer.task_samples_view.columns]
