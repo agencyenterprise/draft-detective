@@ -18,6 +18,7 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
 )
 from lib.skills import strip_interactive_only
 from lib.workflows.models import WorkflowRunType
+from lib.workflows.simple_deep_agent.agent_types import input_file_path
 
 if TYPE_CHECKING:
     from lib.models.bibliography_item import BibliographyItem
@@ -462,16 +463,52 @@ class FileArtifactsService(FileArtifactsServiceType):
                 )
 
         if include_skills:
-            project_root = Path(__file__).parents[3]
-            skills_dir = project_root / "skills"
-            for skill_file in sorted(skills_dir.rglob("*")):
-                if skill_file.is_file():
-                    virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
-                    # Interactive-only sections (e.g. asking the user for
-                    # web-search consent) are for agents driven by a user; a
-                    # backend run has its consent already and nobody to ask.
-                    files[virtual_path] = create_file_data(
-                        strip_interactive_only(skill_file.read_text())
-                    )
+            files.update(_skill_backend_files())
 
         return files
+
+    async def get_input_backend_files(
+        self,
+        input_files: dict[str, list[str]],
+        include_skills: bool = True,
+    ) -> dict[str, Any]:
+        """Return a run's explicitly picked files for the DeepAgent backend.
+
+        Each file is mounted at ``/inputs/<slot>/<file_id>.md``, and nothing
+        else from the project is: a run given its inputs reads exactly those,
+        so the rest of the tree would only be a way to read the wrong draft.
+        Files that never went through document processing (any revision but
+        the current one) are converted on demand.
+        """
+        files: dict[str, Any] = {}
+        for slot, file_ids in input_files.items():
+            for file_id in file_ids:
+                file = await get_file_by_id(file_id)
+                if str(file.project_id) != str(self.project_id):
+                    raise ValueError(
+                        f"File {file_id} does not belong to project {self.project_id}"
+                    )
+                doc = await self._load_file_document_with_markdown(file)
+                files[input_file_path(slot, file_id)] = create_file_data(doc.markdown)
+
+        if include_skills:
+            files.update(_skill_backend_files())
+
+        return files
+
+
+def _skill_backend_files() -> dict[str, Any]:
+    """Every skill file, mounted at its repo path (``/skills/...``)."""
+    project_root = Path(__file__).parents[3]
+    skills_dir = project_root / "skills"
+    files: dict[str, Any] = {}
+    for skill_file in sorted(skills_dir.rglob("*")):
+        if skill_file.is_file():
+            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+            # Interactive-only sections (e.g. asking the user for web-search
+            # consent) are for agents driven by a user; a backend run has its
+            # consent already and nobody to ask.
+            files[virtual_path] = create_file_data(
+                strip_interactive_only(skill_file.read_text())
+            )
+    return files

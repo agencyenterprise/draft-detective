@@ -12,6 +12,7 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
 from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
+from lib.workflows.simple_deep_agent.agent_types import input_file_path
 
 
 def _empty_file_document(file_id: str) -> FileDocument:
@@ -117,14 +118,41 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             )
 
         if include_skills:
-            project_root = Path(__file__).parents[3]
-            skills_dir = project_root / "skills"
-            for skill_file in sorted(skills_dir.rglob("*")):
-                if skill_file.is_file():
-                    virtual_path = (
-                        "/" + skill_file.relative_to(project_root).as_posix()
-                    )
-                    files[virtual_path] = create_file_data(
-                        strip_interactive_only(skill_file.read_text())
-                    )
+            files.update(_skill_files())
         return files
+
+    async def get_input_backend_files(
+        self,
+        input_files: dict[str, list[str]],
+        include_skills: bool = True,
+    ) -> dict[str, Any]:
+        known = {
+            f.file_id: f
+            for f in [
+                *([self._main_file] if self._main_file else []),
+                *self._supporting_files,
+                *self._reviewer_memo_files,
+                *self._response_memo_files,
+            ]
+        }
+        files: dict[str, Any] = {}
+        for slot, file_ids in input_files.items():
+            for file_id in file_ids:
+                doc = known.get(file_id) or _empty_file_document(file_id)
+                files[input_file_path(slot, file_id)] = create_file_data(doc.markdown)
+        if include_skills:
+            files.update(_skill_files())
+        return files
+
+
+def _skill_files() -> dict[str, Any]:
+    project_root = Path(__file__).parents[3]
+    skills_dir = project_root / "skills"
+    files: dict[str, Any] = {}
+    for skill_file in sorted(skills_dir.rglob("*")):
+        if skill_file.is_file():
+            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+            files[virtual_path] = create_file_data(
+                strip_interactive_only(skill_file.read_text())
+            )
+    return files

@@ -25,12 +25,16 @@ if TYPE_CHECKING:
         FileArtifactsServiceType,
     )
 
-_SYSTEM_PROMPT = """\
+_INTRO = """\
 You are running the review-assistant skill to produce reviewer response memos. \
 Read the skill instructions at `/skills/review-assistant/SKILL.md` and the \
 companion tone skill at `/skills/voice-and-tone/SKILL.md` and follow them \
 exactly.
 
+"""
+
+# Where the inputs are found when the run reads the project tree.
+_PROJECT_INPUTS = """\
 ## Inputs
 
 The project's revisions are mounted under `/revisions/<n>/`. Find the \
@@ -44,6 +48,25 @@ The project's revisions are mounted under `/revisions/<n>/`. Find the \
 - The reviewer memos are the files under \
 `/revisions/<reviewed>/reviewer-memos/`. Read every memo in full.
 
+"""
+
+# Where they are when the run was handed its inputs (config.input_files).
+_EXPLICIT_INPUTS = """\
+## Inputs
+
+The files picked for this run are mounted under `/inputs/`, one folder per \
+input. Read only these: nothing else from the project is part of this run.
+
+- The original draft (the version the reviewers reviewed) is the file under \
+`/inputs/reviewed-draft/`.
+- The revised draft (the version that addresses the comments) is the file \
+under `/inputs/revised-draft/`.
+- The reviewer memos are the files under `/inputs/reviewer-memos/`. Read \
+every memo in full.
+
+"""
+
+_TASK_AND_OUTPUT = """\
 ## Task
 
 Produce ONLY the "Reviewer response memos" output described in the skill, not \
@@ -64,6 +87,9 @@ kind; embed any images as `data:` URIs.
 finish, and nothing you say in your final message is used in its place. Write \
 the whole document, and if you revise it, write it again in full.\
 """
+
+_SYSTEM_PROMPT = _INTRO + _PROJECT_INPUTS + _TASK_AND_OUTPUT
+_EXPLICIT_INPUTS_SYSTEM_PROMPT = _INTRO + _EXPLICIT_INPUTS + _TASK_AND_OUTPUT
 
 
 class ReviewerResponseMemosManifest(HtmlReportDeepAgentManifest):
@@ -86,6 +112,7 @@ class ReviewerResponseMemosManifest(HtmlReportDeepAgentManifest):
 
     skill = "review-assistant"
     system_prompt = _SYSTEM_PROMPT
+    explicit_inputs_system_prompt = _EXPLICIT_INPUTS_SYSTEM_PROMPT
     reasoning_effort = "high"
 
     async def precheck(self, service: "FileArtifactsServiceType") -> Optional[str]:

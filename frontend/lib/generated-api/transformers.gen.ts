@@ -19,6 +19,7 @@ import type {
   ListLogsApiAdminLogsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
+  ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
   ListThreadsApiChatThreadsGetResponse,
   ResolveIssueEndpointApiIssuesIssueIdResolvePostResponse,
@@ -381,5 +382,17 @@ export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async 
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
   data = projectOverviewSchemaResponseTransformer(data);
+  return data;
+};
+
+const reviewAssistantRunSchemaResponseTransformer = (data: any) => {
+  data.run = workflowRunPublicSchemaResponseTransformer(data.run);
+  return data;
+};
+
+export const listReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponseTransformer = async (
+  data: any,
+): Promise<ListReviewAssistantRunsEndpointApiReviewAssistantProjectsProjectIdRunsGetResponse> => {
+  data = data.map((item: any) => reviewAssistantRunSchemaResponseTransformer(item));
   return data;
 };
