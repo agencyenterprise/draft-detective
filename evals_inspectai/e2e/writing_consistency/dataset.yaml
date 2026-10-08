@@ -176,6 +176,265 @@
   - anchor: This chapter describes the findings
     reason: signposting_tense
 
+# ---- verb tense that does not fit the sentence ----------------------------------------------
+- input: |
+    # Staffing
+
+    ## Chapter 2
+
+    The agency cut its permitting staff from 40 to 31 between 2021 and 2023. Last year, the agency has cut the review period for small projects from 90 days to 45. Since 2022, the agency has posted every decision online within a week.
+  expected_issues:
+  - id: last_year_present_perfect
+    title: Verb Tense
+    anchor: Last year, the agency has cut the review period
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["the agency cut the review period"]
+  decoys:
+  - anchor: Since 2022, the agency has posted every decision online
+    reason: ongoing_present_perfect
+  notes: A finished time (last year) takes the simple past; "since 2022" for something still happening takes the present perfect.
+- input: |
+    # Background
+
+    ## Chapter 1
+
+    Studies of after-school tutoring show that small groups raise reading scores; in particular, teachers in these studies described tutoring as most useful for students who missed school (Baird and Moss, 2019). Baird and Moss (2019) found that groups of three worked better than groups of six.
+  expected_issues:
+  - id: literature_simple_past
+    title: Verb Tense
+    anchor: teachers in these studies described tutoring
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["have described"]
+  decoys:
+  - anchor: Baird and Moss (2019) found that groups of three
+    reason: dated_study
+  notes: A sentence summarizing what research shows, framed in the present, reports what the studies' subjects said in the present perfect. One study named with its year as the subject keeps the past.
+- input: |
+    # Pilot Results
+
+    ## Chapter 3
+
+    The pilot ran from July 2022 to June 2024, when its grant expired. Over its two years, the pilot has reduced wait times at both clinics by about a third. Both clinics have kept the shorter schedule since the pilot ended. We found that patients missed fewer appointments in the second year.
+  expected_issues:
+  - id: finished_pilot_present_perfect
+    title: Tense
+    anchor: Over its two years, the pilot has reduced wait times
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["the pilot reduced wait times"]
+  decoys:
+  - anchor: Both clinics have kept the shorter schedule since the pilot ended
+    reason: ongoing_present_perfect
+  notes: What a finished program did over its run takes the simple past. The title is the bare word Tense, since a run could fairly file this as a finding out of step with the other findings.
+- input: |
+    # Implications
+
+    ## Chapter 5
+
+    Participants may not notice these delays directly, but they appear in the enrollment data. Future programs would benefit from a longer planning period. A shorter intake form could reduce the delays further, and the state should fund a pilot of one. Staff said the waiting list is still growing.
+  decoys:
+  - anchor: Participants may not notice these delays directly
+    reason: hedge
+  - anchor: Future programs would benefit from a longer planning period
+    reason: conditional
+  - anchor: A shorter intake form could reduce the delays further
+    reason: hedge
+  - anchor: Staff said the waiting list is still growing
+    reason: reported_speech
+  notes: Hedges, conditionals and recommendations keep their modal verbs; they are not findings to move into the past tense. Reported speech about a situation that continues may keep the present.
+- input: file://e2e/writing_consistency/files/home_visit_evaluation.md
+  expected_issues:
+  - id: before_launch_present_perfect
+    title: Verb Tense
+    anchor: Before the program launched, the county has relied on hospital social workers
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["has relied"]
+  - id: in_2023_present_perfect
+    title: Verb Tense
+    anchor: In 2023, the program has added a second clinic
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["the program added"]
+  - id: at_baseline_present_perfect
+    title: Verb Tense
+    anchor: At baseline, most enrolled patients have missed at least one clinic appointment
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["had missed"]
+  - id: since_simple_past
+    title: Verb Tense
+    anchor: Since the program began in 2021, community health workers completed more than 3,000 home visits
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["have completed"]
+  - id: pilot_phase_present_perfect
+    title: Tense
+    anchor: During the pilot phase, the program has strengthened referrals
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["the program strengthened"]
+  - id: literature_reported
+    title: Verb Tense
+    anchor: patients with diabetes reported fewer missed doses
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["have reported"]
+  decoys:
+  - anchor: This chapter describes the program and the questions
+    reason: signposting_tense
+  - anchor: Medicaid covers home visits in the state only when a physician orders them
+    reason: general_truth
+  - anchor: Since 2022, the program has employed 14 community health workers
+    reason: ongoing_present_perfect
+  - anchor: Several community health workers said the caseloads are still too large
+    reason: reported_speech
+  - anchor: Patients may not notice these changes directly
+    reason: hedge
+  - anchor: Hale and Ortiz (2020) found that monthly visits worked best
+    reason: dated_study
+  - anchor: Future programs would benefit from hiring community health workers
+    reason: conditional
+  - anchor: The county should keep the monthly schedule
+    reason: recommendation
+  notes: Six verbs whose tense does not fit the sentence, against findings otherwise reported in the past and terms
+    used consistently, so tense is the only thing to report. Patterns from reviewer feedback comparing Draft Detective
+    with a paragraph-rewriting style editor (a finished program's results in the present perfect, a literature summary
+    in the simple past), plus the time markers that fix a tense (in 2023, at baseline, since, before).
+
+- input: file://e2e/writing_consistency/files/pathways_tense_long.md
+  expected_issues:
+  - id: long_research_summary_intro
+    title: Verb Tense
+    anchor: people interviewed in these studies described the first month
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["have described"]
+  - id: long_left_in_june_2023
+    title: Verb Tense
+    anchor: The founding director has left the Office of Reentry Services in June 2023
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["has left"]
+  - id: long_approved_in_february_2025
+    title: Verb Tense
+    anchor: it has been reviewed and approved by the county's research review committee in February 2025
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["has been reviewed"]
+  - id: long_referred_between
+    title: Tense
+    anchor: a total of 1,034 people have been referred to Pathways
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["people were referred"]
+  - id: long_first_year_sent
+    title: Tense
+    anchor: During the first year, referrals from the jail and from probation have been sent
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["have been sent"]
+  - id: long_before_launch_built
+    title: Verb Tense
+    anchor: Before the program launched, a county contractor has built
+    edit_expected: true
+    severity: low
+    edit:
+      must_not_include: ["has built"]
+  - id: long_improved_between_years
+    title: Tense
+    anchor: they have improved a great deal between the first and second years
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["they improved"]
+  - id: long_research_summary_recommendations
+    title: Verb Tense
+    anchor: people returning from incarceration emphasized the value
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["have emphasized"]
+  - id: long_since_opened_enrolled
+    title: Verb Tense
+    anchor: it enrolled 612 people
+    edit_expected: true
+    severity: low
+    edit:
+      must_include: ["has enrolled"]
+  - id: long_remained_through_end
+    title: Tense
+    anchor: has remained in that role through the end of the evaluation period
+    required: false
+  - id: long_raised_profile
+    title: Tense
+    anchor: Pathways has raised the profile
+    required: false
+  - id: long_case_tracking_system
+    title: Inconsistent
+    anchor: case tracking system during the first year
+    required: false
+  - id: long_board
+    title: Inconsistent
+    anchor: Several board members have asked
+    required: false
+  - id: long_sheriff
+    title: Inconsistent
+    anchor: the county sheriff's office
+    required: false
+  - id: long_staff_numerals
+    title: Inconsistent
+    anchor: members who were interviewed included 9 hub staff
+    required: false
+  - id: long_seven_case_managers
+    title: Inconsistent
+    anchor: employs seven case managers
+    required: false
+  - id: long_nine_employers
+    title: Inconsistent
+    anchor: nine employers
+    required: false
+  decoys:
+  - anchor: Employment after release has long been viewed by researchers
+    reason: ongoing_present_perfect
+  - anchor: The program's written procedures call for intake
+    reason: general_truth
+  - anchor: Participants may not notice these tensions directly
+    reason: hedge
+  - anchor: the tensions between partner agencies can become particularly salient
+    reason: hedge
+  - anchor: We present them in order of the number of hubs they affect
+    reason: signposting_tense
+  - anchor: should give case managers the authority
+    reason: recommendation
+  - anchor: partner roles have not yet been fully formalized
+    reason: ongoing_present_perfect
+  - anchor: We would encourage the Board of Supervisors
+    reason: conditional
+  - anchor: The improvements that were made in 2024 have made it possible
+    reason: ongoing_present_perfect
+  notes: The 365-line, 12,000-word report the Active Voice and Concision records use, with nine verbs whose tense does
+    not fit their sentence planted from the first chapter to the last (three in the final fifth), so a run that reads
+    the start closely and skims the rest loses recall. The report's own consistency findings (spellings, number style)
+    and two arguable present perfects are optional. Titles that a run could fairly file as a finding out of step with
+    the other findings use the bare word Tense.
+
 # ---- tone -----------------------------------------------------------------------------------
 - input: |
     # Approach

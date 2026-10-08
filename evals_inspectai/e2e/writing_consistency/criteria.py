@@ -5,6 +5,7 @@ else. ``minimal_change`` checks that deterministically; the graded criterion
 checks the sentence still says what it said.
 """
 
+from difflib import SequenceMatcher
 from typing import Optional
 
 from evals_inspectai.common.issue_inventory import normalize
@@ -15,15 +16,11 @@ MAX_CHANGED_WORDS = 3
 
 
 def _changed_words(a: str, b: str) -> int:
-    """Words that differ between two texts, ignoring the shared prefix and suffix."""
+    """Words inserted, deleted or replaced between two texts, counted per change,
+    so an auxiliary added before each of three coordinated verbs counts three."""
     x, y = normalize(a).split(), normalize(b).split()
-    i = 0
-    while i < min(len(x), len(y)) and x[i] == y[i]:
-        i += 1
-    j = 0
-    while j < min(len(x), len(y)) - i and x[-1 - j] == y[-1 - j]:
-        j += 1
-    return max(len(x) - i - j, len(y) - i - j)
+    ops = SequenceMatcher(a=x, b=y, autojunk=False).get_opcodes()
+    return sum(max(i2 - i1, j2 - j1) for tag, i1, i2, j1, j2 in ops if tag != "equal")
 
 
 def minimal_change(edit: ProposedEdit) -> Optional[bool]:
@@ -47,8 +44,10 @@ MEANING_CRITERION = (
     "treat whatever the replacement uses as the chosen form and do not judge the choice: swapping one name for "
     "another the document uses for the same thing (participants for respondents), one spelling or hyphenation "
     "for another (healthcare for health care, next-generation for next generation), a number style (7 percent "
-    "for 7%), a finding's verb tense, or the house-style compound \"decisionmaking\" (one word, no hyphen, a "
-    "deliberate style rather than a misspelling) are all the intended change. Judge only that nothing beyond "
+    "for 7%), a finding's verb tense, a verb moved to the tense its own sentence calls for (has added to added "
+    "after \"In 2023\", completed to have completed after \"Since 2021\"), or the house-style compound "
+    "\"decisionmaking\" (one word, no hyphen, a deliberate style rather than a misspelling) are all the intended "
+    "change. Judge only that nothing beyond "
     "the variant moved: every claim, qualifier, number, date, citation and footnote marker survives, no other "
     "wording is altered, and the sentence still refers to the same thing. It is incorrect if the edit rewrites "
     "more than the variant, changes what the sentence asserts, or alters text inside a quotation, a title or a "

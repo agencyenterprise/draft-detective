@@ -16,13 +16,14 @@ def _edit(original: str, replacement: str) -> ProposedEdit:
 
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
-    assert len(records) == 15
+    assert len(records) == 21
     expected = [e for r in records for e in r.expected_issues]
-    assert len(expected) == 15
+    assert len(expected) == 41
+    assert sum(e.required for e in expected) == 33
     prefixes = {e.title for e in expected}
-    assert prefixes == {"Inconsistent Term", "Inconsistent", "Inconsistent Spelling", "Inconsistent Hyphenation", "Inconsistent Number Style", "Inconsistent Tense", "Inconsistent Tone", "House Style"}
-    assert sum(1 for r in records if not r.expected_issues) == 5, "five clean documents"
-    assert {"different_things", "glossed_short_form", "predicate_position", "quoted", "table"} <= set(decoy_reasons(records))
+    assert prefixes == {"Inconsistent Term", "Inconsistent", "Inconsistent Spelling", "Inconsistent Hyphenation", "Inconsistent Number Style", "Inconsistent Tense", "Inconsistent Tone", "House Style", "Verb Tense", "Tense"}
+    assert sum(1 for r in records if not r.expected_issues) == 6, "six clean documents"
+    assert {"different_things", "glossed_short_form", "predicate_position", "quoted", "table", "hedge", "ongoing_present_perfect", "dated_study"} <= set(decoy_reasons(records))
     assert expects_edits(records) is True
     # Tone shifts get no edit; everything else does.
     assert all((e.edit_expected is False) == (e.title == "Inconsistent Tone") for e in expected)
@@ -32,13 +33,20 @@ def test_minimal_change_accepts_a_swapped_variant_and_rejects_a_rewrite():
     assert minimal_change(_edit("Respondents rated scheduling as their main concern.", "Participants rated scheduling as their main concern.")) is True
     assert minimal_change(_edit("The council's decision-making followed the bylaws.", "The council's decisionmaking followed the bylaws.")) is True
     assert minimal_change(_edit("Principals report that recruiting was easier.", "Principals reported that recruiting was easier.")) is True
+    assert minimal_change(_edit("In 2023, the program has added a second clinic.", "In 2023, the program added a second clinic.")) is True
     assert minimal_change(_edit("Respondents rated scheduling as their main concern.", "Scheduling was the main concern participants raised.")) is False
+    # An auxiliary before each coordinated verb is three inserted words, not the span between them.
+    coordinated = "it enrolled 612 people, helped 389 of them find work, and placed 214 of them into apprenticeships"
+    with_auxiliaries = "it has enrolled 612 people, has helped 389 of them find work, and has placed 214 of them into apprenticeships"
+    assert minimal_change(_edit(coordinated, with_auxiliaries)) is True
+    assert minimal_change(_edit(coordinated, "it has enrolled 612 people, has helped 389 of them find jobs, and has placed 214 of them in apprenticeships")) is False
     assert minimal_change(_edit("Respondents rated scheduling.", "")) is None
 
 
 def test_task_composes_the_inventory_scorers_and_its_own_checks():
     t = writing_consistency_e2e()
-    assert len(t.dataset) == 15 and len(t.scorer) == 4
+    assert len(t.dataset) == 21 and len(t.scorer) == 4
+    assert {s.metadata["inventory"]["policy"]["pairing"] for s in t.dataset} == {"one_to_one"}
     assert set(EXTRA_EDIT_CHECKS) == {"minimal_change"}
     assert {c.key for c in JUDGE_CRITERIA} == {"edit_meaning_preserved"}
     columns = [c.id for c in t.viewer.task_samples_view.columns]
