@@ -5,6 +5,7 @@ else. ``minimal_change`` checks that deterministically; the graded criterion
 checks the sentence still says what it said.
 """
 
+from difflib import SequenceMatcher
 from typing import Optional
 
 from evals_inspectai.common.issue_inventory import normalize
@@ -15,15 +16,11 @@ MAX_CHANGED_WORDS = 3
 
 
 def _changed_words(a: str, b: str) -> int:
-    """Words that differ between two texts, ignoring the shared prefix and suffix."""
+    """Words inserted, deleted or replaced between two texts, counted per change,
+    so an auxiliary added before each of three coordinated verbs counts three."""
     x, y = normalize(a).split(), normalize(b).split()
-    i = 0
-    while i < min(len(x), len(y)) and x[i] == y[i]:
-        i += 1
-    j = 0
-    while j < min(len(x), len(y)) - i and x[-1 - j] == y[-1 - j]:
-        j += 1
-    return max(len(x) - i - j, len(y) - i - j)
+    ops = SequenceMatcher(a=x, b=y, autojunk=False).get_opcodes()
+    return sum(max(i2 - i1, j2 - j1) for tag, i1, i2, j1, j2 in ops if tag != "equal")
 
 
 def minimal_change(edit: ProposedEdit) -> Optional[bool]:

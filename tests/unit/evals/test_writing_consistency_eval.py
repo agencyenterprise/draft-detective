@@ -35,6 +35,11 @@ def test_minimal_change_accepts_a_swapped_variant_and_rejects_a_rewrite():
     assert minimal_change(_edit("Principals report that recruiting was easier.", "Principals reported that recruiting was easier.")) is True
     assert minimal_change(_edit("In 2023, the program has added a second clinic.", "In 2023, the program added a second clinic.")) is True
     assert minimal_change(_edit("Respondents rated scheduling as their main concern.", "Scheduling was the main concern participants raised.")) is False
+    # An auxiliary before each coordinated verb is three inserted words, not the span between them.
+    coordinated = "it enrolled 612 people, helped 389 of them find work, and placed 214 of them into apprenticeships"
+    with_auxiliaries = "it has enrolled 612 people, has helped 389 of them find work, and has placed 214 of them into apprenticeships"
+    assert minimal_change(_edit(coordinated, with_auxiliaries)) is True
+    assert minimal_change(_edit(coordinated, "it has enrolled 612 people, has helped 389 of them find jobs, and has placed 214 of them in apprenticeships")) is False
     assert minimal_change(_edit("Respondents rated scheduling.", "")) is None
 
 
