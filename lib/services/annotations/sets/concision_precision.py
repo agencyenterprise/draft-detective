@@ -10,7 +10,12 @@ CONCISION_PRECISION = AnnotationSetSpec(
     guidance="""\
 The check flags sentences that cost the reader effort without adding meaning:
 
-- **Wordy constructions** that a shorter phrasing says just as well (*in order to*, *due to the fact that*, *each and every*, filler like *very* or *basically*).
+- **Wordy constructions** that a shorter phrasing says just as well (*in order to*, *due to the fact that*, *each and every*, filler like *very*, *basically* or *indeed*). They count anywhere in a sentence, not only at its start, and every one in a paragraph counts, not just the first:
+  - wordy connectors: *in the case of* (for), *with regard to* (on), *in addition to* (besides), *and also* (and);
+  - a connector set off by commas mid-clause: *would, therefore, benefit* (would therefore benefit);
+  - *as* meaning *because* at the head of a clause, where *because* is clearer;
+  - near-synonym pairs where the second word adds nothing (*goals and objectives*);
+  - padding words (*benefit from carrying out regular audits* for *benefit from regular audits*).
 - **Run-on sentences:** two complete thoughts joined by a comma alone, or a chain of thoughts the reader has to hold past the end.
 - **Throat-clearing and empty framing:** sentences that delay or promise a point without making one (*This is a complex issue.*).
 - **Vague references:** a bare *this* or *these factors* when the earlier text offers more than one thing it could mean.

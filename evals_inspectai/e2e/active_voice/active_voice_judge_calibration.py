@@ -13,6 +13,10 @@ Usage::
 
     uv run inspect eval evals_inspectai/e2e/active_voice/active_voice_judge_calibration.py --model-role grader=openai/gpt-5.4
     uv run inspect eval evals_inspectai/e2e/active_voice/active_voice_judge_calibration.py -T calls=3
+
+Use ``-T purpose_rewrites=true`` to run the separate, rubric-derived purpose
+rewrite regression cases. Their labels are not human calibration evidence;
+the original human-labelled pairs remain the default dataset.
 """
 
 from pathlib import Path
@@ -29,6 +33,7 @@ from evals_inspectai.common.issue_judge import edit_prompt, grade
 from evals_inspectai.e2e.active_voice.criteria import MEANING_CRITERION, READS_CRITERION
 
 PAIRS = Path(__file__).parent / "calibration" / "edit_pairs.yaml"
+PURPOSE_PAIRS = PAIRS.with_name("purpose_rewrites.yaml")
 CRITERIA = {"meaning_preserved": MEANING_CRITERION, "reads_well": READS_CRITERION}
 
 
@@ -110,9 +115,10 @@ def reads_agreement(calls: int = 1) -> Scorer:
 
 
 @task
-def active_voice_judge_calibration(calls: int = 1) -> Task:
+def active_voice_judge_calibration(calls: int = 1, purpose_rewrites: bool = False) -> Task:
     return Task(
-        dataset=yaml_dataset(PAIRS, _record_to_sample),
+        dataset=yaml_dataset(PURPOSE_PAIRS if purpose_rewrites else PAIRS, _record_to_sample),
+        metadata={"label_source": "rubric-derived regression cases" if purpose_rewrites else "human-labelled pairs"},
         solver=replacement_as_output(),
         scorer=[meaning_agreement(calls), reads_agreement(calls)],
     )

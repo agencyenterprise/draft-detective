@@ -55,7 +55,7 @@ def concision_edit_checks() -> Scorer:
 
 
 @task
-def concision_precision_e2e(timeout_s: float = 600, judge_calls: int = 1) -> Task:
+def concision_precision_e2e(timeout_s: float = 1200, judge_calls: int = 1) -> Task:
     """Run Concision & Precision on every sample and score it against the inventory.
 
     Args:

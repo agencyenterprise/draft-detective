@@ -8,9 +8,10 @@ ACTIVE_VOICE = AnnotationSetSpec(
     workflow_type="active_voice",
     summary="Is the highlighted sentence passive when it should be active, or does it hide who is responsible?",
     guidance="""\
-The check flags two kinds of sentence:
+The check flags three kinds of sentence:
 
-- **Passive voice that hides or buries a nameable actor.** *Data were collected from three sites*, when the text makes clear who collected them, or when leaving the actor out hides who decided, funded, approved or will carry out something.
+- **Passive voice that hides or buries a nameable actor.** *Data were collected from three sites*, when the text makes clear who collected them, or when leaving the actor out hides who decided, funded, approved or will carry out something. A passive counts wherever it sits, including inside a *which* or *that* clause in the middle of a long sentence (*a backlog, which was later made worse by the move to a new system*).
+- **Passives that state what something is for.** *The pilot was designed to reduce wait times* reads better as *The pilot aimed to reduce wait times*, so it is flagged even when the text never says who designed it. This does not cover a choice someone made for their own reasons (*the site was selected to reduce costs*), which still hides who chose.
 - **Ambiguous actors.** An inanimate subject standing in for people (*the evaluation will assess...*) when several organizations share the work, so the reader cannot tell who does it.
 
 It leaves these alone:

@@ -3,8 +3,9 @@
 The generic inventory scorer checks that expected issues were detected and that
 edits keep the text intact. This module says what an Active Voice edit must
 do on top: remove the passive (deterministic), preserve meaning while naming
-the actor the text supports, read well in place, and, where the actor is
-unknown, ask the author rather than guess (graded). The two edit criteria are
+the actor the text supports or retaining an unnamed actor's purpose as an aim,
+read well in place, and otherwise, where the actor is unknown, ask the author
+rather than guess (graded). The two edit criteria are
 calibrated against human-labelled edit pairs by
 ``active_voice_judge_calibration.py``.
 """
@@ -78,9 +79,17 @@ EXTRA_EDIT_DESCRIPTIONS = {
 
 MEANING_CRITERION = (
     "The replacement rewrites the original from passive into active voice and preserves its meaning. "
-    "Naming the actor the passive left implicit is the purpose of the edit and does not count as adding "
+    "Normally, the edit names the actor the passive left implicit; this does not count as adding "
     "information, as long as the actor named is the one the sentence or its paragraph supports (for a report "
-    "written in the first person, the authors as \"we\"). Everything else is strict: every claim, qualifier, "
+    "written in the first person, the authors as \"we\"). There is one purpose-statement exception: when "
+    "the text does not name the designer or creator, and the thing itself can perform the stated purpose, "
+    "making that thing the subject of a verb of aim (aims/aimed to, seeks/sought to) is a correct active "
+    "rewrite. Under this exception, expressing the design or creation purpose as the thing's aim preserves "
+    "meaning; do not require a named actor or a separate design/creation claim. Preserve the original "
+    "tense and purpose, including its scope and qualifications, without asserting that the aim was achieved. "
+    "This exception does not permit dropping a designer the text names, treating a choice made for "
+    "someone else's reasons as the chosen thing's aim, or making an action seem to happen by itself. "
+    "Outside this exception, every claim must survive. In all cases every qualifier, "
     "number, date, citation and footnote marker in the original survives with the same meaning, no other "
     "information is added, and the actor is not a guess the text does not support."
 )
@@ -108,7 +117,7 @@ def _unknown_actor_passive(expected: ResolvedIssue) -> bool:
 
 
 JUDGE_DESCRIPTIONS = {
-    "edit_meaning_preserved": "Graded per edit: the active rewrite keeps every claim, number, citation and qualifier, naming only the actor the text supports (C=1, P=0.5, I=0).",
+    "edit_meaning_preserved": "Graded per edit: the active rewrite preserves meaning, numbers, citations and qualifiers, using a supported actor or the permitted purpose-as-aim rewrite (C=1, P=0.5, I=0).",
     "edit_reads_well": "Graded per edit: substituted into its paragraph, the replacement reads at least as well as the original (C=1, P=0.5, I=0).",
     "unknown_actor_asked_not_guessed": "Graded per passive issue with no edit expected: the suggested action asks the author to name the actor rather than supplying one (C=1, P=0.5, I=0).",
 }
