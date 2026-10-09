@@ -1,10 +1,8 @@
 """DOCX manipulation service for adding AI-generated comments."""
 
 import asyncio
-import json
 import logging
 import re
-from collections import defaultdict
 from enum import StrEnum
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
@@ -17,10 +15,6 @@ from pydantic import BaseModel
 from lib.config.env import config
 from lib.models.issue import Issue
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
-from lib.services.docx.docx_xml import (
-    add_custom_properties_to_docx,
-    wrap_paragraph_with_content_control,
-)
 from lib.workflows.models import SeverityEnum
 from lib.workflows.registry import get_workflow_manifest
 
@@ -40,7 +34,6 @@ def _sanitize_for_xml(text: str) -> str:
 class DocxManipulatorType(StrEnum):
     """Type of DOCX to generate."""
 
-    ADD_IN = "add-in"
     COMMENTS = "comments"
     COMMENTS_WITH_LINKS = "comments-with-links"
 
@@ -75,10 +68,9 @@ def count_unanchorable_issues(
 ) -> Tuple[int, int]:
     """Count issues no export can place, split by cause.
 
-    Returns ``(no_line_range, matched_no_paragraph)``. Both the comments and
-    add-in paths silently skip these — `issue_to_comment` and `_build_issue_map`
-    apply the same two checks — so callers use this to report the omission
-    instead of letting the export quietly come up short.
+    Returns ``(no_line_range, matched_no_paragraph)``. The export silently skips
+    these — `issue_to_comment` applies the same two checks — so callers use this
+    to report the omission instead of letting the export quietly come up short.
     """
     no_line_range = 0
     matched_no_paragraph = 0
@@ -120,16 +112,6 @@ SEVERITY_AUTHORS = {
     CommentSeverity.LOW: ("💡 Low Priority", "LP"),
     CommentSeverity.NONE: ("✅ Passing", "PA"),
 }
-
-ISSUE_MARKER_TAG = "AIReviewer_Issue_Marker"
-PARAGRAPH_LINE_RANGES_PROPERTY = "AIReviewer_ParagraphLineRanges"
-
-SEVERITY_HIGHLIGHT_COLORS = {
-    SeverityEnum.HIGH: "F87274",
-    SeverityEnum.MEDIUM: "CD8900",
-    SeverityEnum.LOW: "52AEFF",
-}
-
 
 class DocxComment(BaseModel):
     """Represents a comment to be added to a docx file."""
@@ -229,33 +211,6 @@ def issue_to_comment(
     )
 
 
-def _build_issue_map(
-    issues: List[Issue],
-    paragraph_line_ranges: Dict[int, Tuple[int, int]],
-) -> Dict[int, List[Issue]]:
-    issue_map: Dict[int, List[Issue]] = defaultdict(list)
-    for issue in issues:
-        line_range = _resolve_issue_line_range(issue)
-        if line_range is None:
-            continue
-        paragraph_index = find_paragraph_by_line_range(
-            paragraph_line_ranges, line_range[0], line_range[1]
-        )
-        if paragraph_index is None:
-            continue
-        issues_for_paragraph = issue_map[paragraph_index]
-        existing_hashes = {i.issue_hash for i in issues_for_paragraph}
-        if issue.issue_hash not in existing_hashes:
-            issues_for_paragraph.append(issue)
-    return issue_map
-
-
-def _get_paragraph_severity(issues: List[Issue]) -> SeverityEnum:
-    if not issues:
-        return SeverityEnum.NONE
-    return max(issues, key=lambda issue: issue.severity.sort_index()).severity
-
-
 class DocxManipulatorService:
     """Service for manipulating DOCX files with AI-generated comments."""
 
@@ -272,84 +227,6 @@ class DocxManipulatorService:
     ) -> Path:
         """Get the deterministic output path for a processed docx file."""
         return self.get_output_dir() / f"{workflow_run_id}_{docx_type.value}.docx"
-
-    async def add_addin_metadata_to_docx(
-        self,
-        original_docx_path: str,
-        share_token: str,
-        workflow_run_id: str,
-        paragraph_line_ranges: Dict[int, Tuple[int, int]],
-        issues: List[Issue] | None = None,
-    ) -> str:
-        """Add custom properties and a comment to a DOCX file.
-
-        ``chunks`` are only consulted as a legacy fallback for resolving
-        pre-migration issues that lack ``start_line``/``end_line``.
-        """
-        return await asyncio.to_thread(
-            self._add_addin_metadata_to_docx_sync,
-            original_docx_path,
-            share_token,
-            workflow_run_id,
-            paragraph_line_ranges,
-            issues,
-        )
-
-    def _add_addin_metadata_to_docx_sync(
-        self,
-        original_docx_path: str,
-        share_token: str,
-        workflow_run_id: str,
-        paragraph_line_ranges: Dict[int, Tuple[int, int]],
-        issues: List[Issue] | None = None,
-    ) -> str:
-        """Sync implementation for add-in metadata generation."""
-        original_path = Path(original_docx_path)
-        if not original_path.exists():
-            raise FileNotFoundError(f"Original file not found: {original_docx_path}")
-
-        output_path = self.get_output_path(workflow_run_id, DocxManipulatorType.ADD_IN)
-        logger.info(f"Creating reviewed docx at {output_path} with add-in metadata")
-
-        doc = Document(original_docx_path)
-        docx_paragraphs = [p for p in doc.paragraphs if p.text.strip()]
-
-        # Create the content controls for each paragraph that has issues
-        if issues is not None:
-            if paragraph_line_ranges:
-                issue_map = _build_issue_map(issues, paragraph_line_ranges)
-                for paragraph_index, paragraph in enumerate(docx_paragraphs):
-                    paragraph_issues = issue_map.get(paragraph_index, [])
-                    if not paragraph_issues:
-                        continue
-                    paragraph_severity = _get_paragraph_severity(paragraph_issues)
-                    highlight_color = SEVERITY_HIGHLIGHT_COLORS.get(paragraph_severity)
-                    wrap_paragraph_with_content_control(
-                        paragraph=paragraph,
-                        tag_value=f"{ISSUE_MARKER_TAG}:{paragraph_index}",
-                        title=f"{len(paragraph_issues)} Draft Detective Issues",
-                        color_hex=highlight_color,
-                    )
-            else:
-                logger.warning(
-                    "Issue markers skipped: missing paragraph line-range mapping"
-                )
-
-        doc.save(str(output_path))
-        add_custom_properties_to_docx(
-            output_path,
-            {
-                "AIReviewer_AuthToken": share_token,
-                PARAGRAPH_LINE_RANGES_PROPERTY: (
-                    json.dumps(
-                        {str(p): [s, e] for p, (s, e) in paragraph_line_ranges.items()}
-                    )
-                    if paragraph_line_ranges
-                    else None
-                ),
-            },
-        )
-        return str(output_path)
 
     async def add_comments_to_docx(
         self,

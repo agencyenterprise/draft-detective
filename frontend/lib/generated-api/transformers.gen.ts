@@ -17,6 +17,7 @@ import type {
   ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
   ListAppConfigsApiAppConfigsGetResponse,
   ListLogsApiAdminLogsGetResponse,
+  ListPendingApiMicrosoftWordHandoffsGetResponse,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponse,
   ListProjectsEndpointApiProjectsGetResponse,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponse,
@@ -381,5 +382,27 @@ export const getSharedResourceApiPublicShareTokenGetResponseTransformer = async 
   data: any,
 ): Promise<GetSharedResourceApiPublicShareTokenGetResponse> => {
   data = projectOverviewSchemaResponseTransformer(data);
+  return data;
+};
+
+const handoffViewSchemaResponseTransformer = (data: any) => {
+  data.created_at = new Date(data.created_at);
+  return data;
+};
+
+const pendingHandoffsSchemaResponseTransformer = (data: any) => {
+  if (data.here) {
+    data.here = data.here.map((item: any) => handoffViewSchemaResponseTransformer(item));
+  }
+  if (data.elsewhere) {
+    data.elsewhere = data.elsewhere.map((item: any) => handoffViewSchemaResponseTransformer(item));
+  }
+  return data;
+};
+
+export const listPendingApiMicrosoftWordHandoffsGetResponseTransformer = async (
+  data: any,
+): Promise<ListPendingApiMicrosoftWordHandoffsGetResponse> => {
+  data = pendingHandoffsSchemaResponseTransformer(data);
   return data;
 };

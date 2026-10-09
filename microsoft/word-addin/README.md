@@ -34,8 +34,11 @@ Use the generated public HTTPS URLs in the steps below.
 ### Prepare the manifest
 
 1. Copy `microsoft/word-addin/manifest-template.xml` to a new file (for example, `microsoft/word-addin/manifest-dev.local.xml`).
-2. Replace `{FRONTEND_URL}` with your public frontend URL (the 3000 tunnel).
-   - Example: `sed -i "" "s|{FRONTEND_URL}|https://<your-frontend-url>|g" microsoft/word-addin/manifest-dev.local.xml`
+2. Replace the placeholders:
+   - `{FRONTEND_URL}`: your public frontend URL (the 3000 tunnel), with `https://`.
+   - `{FRONTEND_HOST}`: the same host, without `https://`.
+   - `{ENTRA_CLIENT_ID}`: the client id of the add-in's Entra app (see "Signing in" below).
+   - Example: `sed -i "" -e "s|{FRONTEND_URL}|https://<host>|g" -e "s|{FRONTEND_HOST}|<host>|g" -e "s|{ENTRA_CLIENT_ID}|<client id>|g" microsoft/word-addin/manifest-dev.local.xml`
 
 ### Frontend API URL
 
@@ -68,12 +71,8 @@ Requires re-opening Word every time manifest changes.
 
 ## Preview in browser (without Word)
 
-To speed up development, you can preview the add-in sidebar directly in the browser.
-
-1. Remove the Office script import from `frontend/app/addin/layout.tsx`.
-2. Open `http://localhost:3000/addin?token=SHARE_TOKEN`, replacing SHARE_TOKEN by the project shared token.
-
-Limitations: paragraph-related features do not work (for example, paragraph filtering and jump to paragraph).
+To work on the pane's layout, open `http://localhost:3000/addin` in a browser. Anything
+that reads or writes the document needs Word.
 
 ## Publish the Word add-in in your organization
 
@@ -85,3 +84,53 @@ In step 3, choose **Add-in only manifest** and provide the manifest URL.
 Manifest URL from this repo: `https://raw.githubusercontent.com/agencyenterprise/draft-detective/refs/heads/dev/microsoft/word-addin/manifest.xml`
 
 Reference video (older, but still useful): https://www.youtube.com/watch?v=p3aeO9muEI8&t=181s
+
+## How the pane writes to the document
+
+The pane reads a paragraph's markup with `getOoxml`, sends it to
+`/api/microsoft/word/comments/annotate` or `/api/microsoft/word/suggestions/apply`, and
+puts the result back with `insertOoxml` (`frontend/lib/addin/word-writes.ts`). The
+backend writes the comment, or the `w:ins`/`w:del` of a tracked change, authored as
+Draft Detective. See `frontend/lib/addin/apply-handoff.ts` and "From Teams to Word" in
+[`../README.md`](../README.md) for how changes asked for in Teams get there.
+
+Two things worth knowing:
+
+- It has to be markup. Word's API attributes a comment to whoever is signed in, with
+  no way to override it, and cannot create a tracked change at all.
+- The pane switches the document's change tracking off around every write and
+  restores it afterwards. Left on, Word records our write as a revision by the
+  signed-in user, which wraps Draft Detective's suggestion inside the author's own.
+
+## Signing in
+
+The pane signs in as a Microsoft account, because changes asked for in Teams are
+released only to the account that asked (matched by Entra object id, not email).
+
+1. **Office single sign-on**, tried silently when the pane opens: Office hands over a
+   token for the account signed in to Word, issued for the add-in's Entra app. The
+   backend verifies it (`lib/api/addin_auth.py`).
+2. **A dialog**, when single sign-on is not available: `/addin/sign-in` signs in with
+   Draft Detective's own Microsoft sign-in and hands the session token back. Only a
+   Microsoft sign-in works here; it is the one that carries the object id.
+
+Both use one Entra app registration per environment: the same one as Draft Detective's
+own "Sign in with Microsoft" (`AUTH_MICROSOFT_ENTRA_ID_ID`), with:
+
+- **Expose an API**: Application ID URI `api://<frontend host>/<client id>`, a scope
+  `access_as_user` (admins and users can consent), and the client application
+  `ea5a67f6-b6f3-4338-b240-c655ddc3cc8e` (Microsoft Office) pre-authorized for it.
+- **Manifest**: `requestedAccessTokenVersion` set to `2`.
+- **Authentication**: Web redirect URI `https://<frontend host>/api/auth/callback/microsoft-entra-id`.
+- **Token configuration**: optional claim `email` on the ID and access tokens.
+- **API permissions**: Microsoft Graph delegated `openid`, `profile`, `email`,
+  `offline_access`, `User.Read`, with admin consent.
+- **Certificates & secrets**: a client secret, for the frontend.
+
+Then set `AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET` and
+`AUTH_MICROSOFT_ENTRA_ID_ISSUER` (`https://login.microsoftonline.com/<tenant id>/v2.0`) in
+**both** the frontend and the backend. All three are required: a deployment that does not
+sign its users in with Microsoft has no add-in sign-in. A tenant-specific issuer means only
+that tenant's accounts are accepted. The manifest's `WebApplicationInfo` names the
+same client id and Application ID URI. The URI contains the frontend host, so a tunnel
+whose URL changes needs the app, the manifest and the redirect URI updated with it.

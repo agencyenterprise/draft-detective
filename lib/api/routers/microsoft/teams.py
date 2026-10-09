@@ -8,8 +8,9 @@ status chosen so that the Connector retries only what a retry can fix.
 
 Read-only, deliberately. A whole-file write back is refused with 423 while anyone has
 the document open, whatever identity asks, so this path answers in chat and never
-touches the document. Requests that really need a comment or a tracked change belong to
-the add-in, which is the only client that can write into a live session.
+touches the document. Requests that really need a comment or a tracked change are
+handed to the add-in, the only client that can write into a live session -- see
+``lib/services/microsoft/word/handoffs.py``.
 
 Two other transports were tried and removed. An outgoing webhook needed a Workflows
 flow to post answers and could only reply in a separate message. A transport-neutral

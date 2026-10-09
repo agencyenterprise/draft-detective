@@ -152,6 +152,63 @@ class TestLookingUpTheToken:
         context.send_activity.assert_not_awaited()
 
 
+class TestSigningOut:
+    @pytest.mark.asyncio
+    async def test_the_token_service_forgets_the_sender(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from lib.config.env import config
+
+        monkeypatch.setattr(config, "TEAMS_USER_AUTH_CONNECTION", "graph-user")
+        client = MagicMock()
+        client.sign_out_user = AsyncMock()
+
+        await sign_in.sign_out(context_for(card_action(), client))
+
+        kwargs = client.sign_out_user.await_args.kwargs
+        assert kwargs["user_id"] == "29:asker"
+        assert kwargs["connection_name"] == "graph-user"
+        assert kwargs["channel_id"] == "msteams"
+
+    @pytest.mark.asyncio
+    async def test_nobody_to_sign_out_is_not_an_error(self) -> None:
+        client = MagicMock()
+        client.sign_out_user = AsyncMock(
+            side_effect=ClientResponseError(MagicMock(), (), status=404)
+        )
+
+        await sign_in.sign_out(context_for(card_action(), client))
+
+    @pytest.mark.asyncio
+    async def test_an_activity_without_a_sender_does_nothing(self) -> None:
+        client = MagicMock()
+        client.sign_out_user = AsyncMock()
+        activity = Activity(
+            type=ActivityTypes.message, channel_id=ChannelId(channel="msteams")
+        )
+
+        await sign_in.sign_out(context_for(activity, client))
+
+        client.sign_out_user.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "failure",
+        [
+            ClientResponseError(MagicMock(), (), status=500),
+            ClientConnectionError("connection refused"),
+            TimeoutError(),
+        ],
+        ids=["an error status", "unreachable", "timed out"],
+    )
+    async def test_an_outage_is_reported(self, failure: Exception) -> None:
+        client = MagicMock()
+        client.sign_out_user = AsyncMock(side_effect=failure)
+
+        with pytest.raises(sign_in.TokenServiceUnavailable):
+            await sign_in.sign_out(context_for(card_action(), client))
+
+
 class TestReplyingToTheAction:
     @pytest.mark.asyncio
     async def test_a_login_request_is_what_teams_reads_as_sign_in(

@@ -443,3 +443,29 @@ class TestThePrompt:
         from lib.agents.teams_agent import SYSTEM_PROMPT
 
         assert "Some questions need no document at all" in SYSTEM_PROMPT
+
+
+class TestOfferingChanges:
+    @pytest.mark.asyncio
+    async def test_with_a_conversation_to_report_to_the_agent_can_offer_changes(self) -> None:
+        agent = agent_returning("an answer")
+        with patch("lib.agents.teams_agent.build_llm"), patch(
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        ) as build:
+            await answer_question(
+                "fix the typos", graph_token=TOKEN, thread_id=THREAD, reference={"x": 1}
+            )
+
+        names = [tool.name for tool in build.call_args.kwargs["tools"]]
+        assert "offer_changes" in names
+
+    @pytest.mark.asyncio
+    async def test_without_one_it_cannot(self) -> None:
+        agent = agent_returning("an answer")
+        with patch("lib.agents.teams_agent.build_llm"), patch(
+            "lib.agents.teams_agent.build_deep_agent", return_value=agent
+        ) as build:
+            await answer_question("fix the typos", graph_token=TOKEN, thread_id=THREAD)
+
+        names = [tool.name for tool in build.call_args.kwargs["tools"]]
+        assert "offer_changes" not in names

@@ -34,6 +34,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.email = user?.email ?? profile?.email;
         token.name = user?.name ?? profile?.name;
         token.provider = account.provider;
+        // A Microsoft account is identified by its Entra object id in its tenant. The
+        // Word add-in is released Teams handoffs by these, never by email.
+        if (account.provider === 'microsoft-entra-id') {
+          token.oid = profile?.oid;
+          token.tid = profile?.tid;
+        }
       }
       return token;
     },
@@ -54,6 +60,7 @@ async function createAccessToken(token: Record<string, unknown>): Promise<string
     email: token.email as string,
     name: token.name as string,
     provider: token.provider as string,
+    ...(token.oid ? { oid: token.oid as string, tid: token.tid as string | undefined } : {}),
     iss: 'ai-reviewer',
     aud: 'ai-reviewer-api',
   };

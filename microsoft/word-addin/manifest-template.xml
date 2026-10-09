@@ -5,7 +5,7 @@
   <ProviderName>Draft Detective</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Draft Detective"/>
-  <Description DefaultValue="Draft Detective add-in allows you to see the issues on Draft Detective in your word document." />
+  <Description DefaultValue="Writes Draft Detective's comments and suggested changes into your Word document." />
   <IconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
   <HighResolutionIconUrl DefaultValue="{FRONTEND_URL}/logo_160x160.png"/>
   <SupportUrl DefaultValue="{FRONTEND_URL}/"/>
@@ -84,5 +84,15 @@
         <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the Draft Detective add-in."/>
       </bt:LongStrings>
     </Resources>
+    <!-- Office single sign-on: the Entra app the pane asks Office for a token for.
+         Without it the pane signs in through the dialog instead. -->
+    <WebApplicationInfo>
+      <Id>{ENTRA_CLIENT_ID}</Id>
+      <Resource>api://{FRONTEND_HOST}/{ENTRA_CLIENT_ID}</Resource>
+      <Scopes>
+        <Scope>openid</Scope>
+        <Scope>profile</Scope>
+      </Scopes>
+    </WebApplicationInfo>
   </VersionOverrides>
 </OfficeApp>

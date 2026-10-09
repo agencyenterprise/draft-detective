@@ -104,6 +104,36 @@ async def user_token(
     return str(response.token) if response and response.token else None
 
 
+async def sign_out(context: TurnContext) -> None:
+    """Forget the sender's token, so the next question asks them to sign in again.
+
+    The token service holds the refresh token, so this is the only place a sign-in can
+    be undone short of revoking the person's sessions in Entra, which would sign them
+    out of Teams too.
+
+    Raises ``TokenServiceUnavailable`` when the token service cannot answer.
+    """
+
+    activity = context.activity
+    if not activity.from_property or not activity.from_property.id:
+        return
+    try:
+        await _token_client(context).sign_out_user(
+            user_id=activity.from_property.id,
+            connection_name=config.TEAMS_USER_AUTH_CONNECTION or "",
+            channel_id=activity.channel_id or "",
+        )
+    except ClientResponseError as error:
+        # Nothing to forget is not a failure.
+        if error.status == 404:
+            return
+        raise TokenServiceUnavailable(
+            f"token service answered {error.status}"
+        ) from error
+    except (ClientError, TimeoutError) as error:
+        raise TokenServiceUnavailable(f"token service unreachable: {error}") from error
+
+
 async def _sign_in_link(context: TurnContext) -> str:
     try:
         resource = await _token_client(context).get_sign_in_resource(
@@ -129,7 +159,7 @@ def _card(pending_id: str, question: str) -> dict[str, Any]:
         "body": [
             {
                 "type": "TextBlock",
-                "text": "Sign in so I can read the document as you",
+                "text": "Sign in so I can read your documents as you",
                 "weight": "Bolder",
                 "wrap": True,
             },

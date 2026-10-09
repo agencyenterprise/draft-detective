@@ -358,3 +358,51 @@ class TestBuildingTheGraphPath:
         )
 
         assert httpx.URL(urls[-1]).path.endswith("/a.docx")
+
+
+def graph_answering(status: int, body: dict[str, Any]) -> Any:
+    """A Graph client whose every GET answers with ``status`` and ``body``."""
+
+    response = MagicMock(status_code=status)
+    response.json.return_value = body
+    transport = MagicMock()
+    transport.get = AsyncMock(return_value=response)
+    transport.__aenter__ = AsyncMock(return_value=transport)
+    transport.__aexit__ = AsyncMock(return_value=False)
+    return transport
+
+
+class TestWhoIsAsking:
+    @pytest.mark.asyncio
+    async def test_the_signed_in_user_is_read_with_their_token(self) -> None:
+        graph = graph_answering(200, {"userPrincipalName": "ana@contoso.com", "mail": None})
+        with patch("httpx.AsyncClient", return_value=graph):
+            person = await client.me(token="t")
+
+        assert person["userPrincipalName"] == "ana@contoso.com"
+        assert graph.get.await_args.kwargs["headers"]["Authorization"] == "Bearer t"
+
+    @pytest.mark.asyncio
+    async def test_a_refusal_is_a_graph_error(self) -> None:
+        with patch("httpx.AsyncClient", return_value=graph_answering(401, {})):
+            with pytest.raises(client.GraphError):
+                await client.me(token="t")
+
+
+class TestTheLibrary:
+    @pytest.mark.asyncio
+    async def test_its_web_url(self) -> None:
+        url = "https://contoso.sharepoint.com/sites/Policy/Shared%20Documents"
+        graph = graph_answering(200, {"webUrl": url})
+        with patch("httpx.AsyncClient", return_value=graph):
+            assert await client.library_url("b!x/y", token="t") == url
+
+        assert graph.get.await_args.args[0].endswith("/drives/b%21x%2Fy"), (
+            "the drive id is encoded so it cannot address another path"
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("status,body", [(403, {}), (200, {})], ids=["refused", "no url"])
+    async def test_without_one_it_is_none(self, status: int, body: dict[str, Any]) -> None:
+        with patch("httpx.AsyncClient", return_value=graph_answering(status, body)):
+            assert await client.library_url("b!x", token="t") is None

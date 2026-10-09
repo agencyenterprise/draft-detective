@@ -83,11 +83,7 @@ export function useDownloadDocx({
     const dType = docxType ?? initialDocxType ?? 'original';
     const withEdits = includeEdits ?? initialIncludeEdits;
     const loadingMessage =
-      dType === 'add-in'
-        ? 'Preparing DOCX for Draft Detective Add-In...'
-        : dType === 'comments-with-links'
-          ? 'Preparing DOCX with share links...'
-          : 'Preparing DOCX for download...';
+      dType === 'comments-with-links' ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
 
     const toastId = toast.loading(loadingMessage, {
       description: 'This may take a few moments',

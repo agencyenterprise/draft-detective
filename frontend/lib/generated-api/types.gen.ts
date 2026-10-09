@@ -536,6 +536,30 @@ export type AgentConversation = {
 };
 
 /**
+ * AnnotateRequest
+ */
+export type AnnotateRequest = {
+  /**
+   * Ooxml
+   *
+   * Flat OPC markup for the range the comment belongs on: the paragraph, or the whole outermost table when it is inside one. Write the result back at the same scope it was read at.
+   */
+  ooxml: string;
+  /**
+   * Quote
+   *
+   * Optionally the phrase within this paragraph to highlight, verbatim. Omitted, or not found, anchors the comment to the whole paragraph.
+   */
+  quote?: string | null;
+  /**
+   * Comment
+   *
+   * What to say about it
+   */
+  comment: string;
+};
+
+/**
  * AnnotatedItem
  *
  * An item with every annotation it has received.
@@ -950,6 +974,46 @@ export type AppConfigValueResponse = {
    * Value
    */
   value: string;
+};
+
+/**
+ * AppliedEdit
+ */
+export type AppliedEdit = {
+  /**
+   * Applied
+   */
+  applied: boolean;
+  /**
+   * Quote
+   */
+  quote: string;
+  /**
+   * Detail
+   */
+  detail?: string;
+  /**
+   * Revision Ids
+   */
+  revision_ids?: Array<number>;
+};
+
+/**
+ * ApplySuggestionsRequest
+ */
+export type ApplySuggestionsRequest = {
+  /**
+   * Ooxml
+   *
+   * Flat OPC markup for the range to change: the paragraph, or the whole outermost table when it is inside one. Write the result back at the same scope it was read at.
+   */
+  ooxml: string;
+  /**
+   * Edits
+   *
+   * Every change for this one paragraph, applied in one pass, so the caller reads and writes the paragraph once however many there are.
+   */
+  edits: Array<EditToApply>;
 };
 
 /**
@@ -1416,6 +1480,30 @@ export type ClaimReferenceValidationV2State = {
 };
 
 /**
+ * CommentPlacement
+ */
+export type CommentPlacement = {
+  /**
+   * Anchored
+   */
+  anchored: boolean;
+  /**
+   * Ooxml
+   *
+   * The markup to put back, when we anchored
+   */
+  ooxml?: string | null;
+  /**
+   * Comment Id
+   */
+  comment_id?: string | null;
+  /**
+   * Detail
+   */
+  detail?: string;
+};
+
+/**
  * CostBreakdown
  *
  * Aggregated cost across all models used in a workflow run.
@@ -1718,11 +1806,7 @@ export type DocumentSummarizationWorkflowConfig = {
  *
  * Type of DOCX to generate.
  */
-export const DocxManipulatorType = {
-  AddIn: 'add-in',
-  Comments: 'comments',
-  CommentsWithLinks: 'comments-with-links',
-} as const;
+export const DocxManipulatorType = { Comments: 'comments', CommentsWithLinks: 'comments-with-links' } as const;
 
 /**
  * DocxManipulatorType
@@ -1730,6 +1814,56 @@ export const DocxManipulatorType = {
  * Type of DOCX to generate.
  */
 export type DocxManipulatorType = (typeof DocxManipulatorType)[keyof typeof DocxManipulatorType];
+
+/**
+ * EditToApply
+ */
+export type EditToApply = {
+  /**
+   * Quote
+   *
+   * The exact words to change, verbatim
+   */
+  quote: string;
+  /**
+   * Replacement
+   *
+   * What they become. Empty removes them.
+   */
+  replacement: string;
+};
+
+/**
+ * EditsWritten
+ */
+export type EditsWritten = {
+  /**
+   * Applied
+   *
+   * How many changes were written
+   */
+  applied: number;
+  /**
+   * Ooxml
+   *
+   * The markup to put back, when anything was written
+   */
+  ooxml?: string | null;
+  /**
+   * Edits
+   */
+  edits?: Array<AppliedEdit>;
+  /**
+   * Detail
+   */
+  detail?: string;
+  /**
+   * Warnings
+   *
+   * Why a change was withheld, when it was
+   */
+  warnings?: Array<string>;
+};
 
 /**
  * ErrorDetails
@@ -2256,6 +2390,98 @@ export type HttpValidationError = {
 };
 
 /**
+ * HandoffComment
+ */
+export type HandoffComment = {
+  /**
+   * Quote
+   *
+   * The exact words to attach the comment to
+   */
+  quote: string;
+  /**
+   * Comment
+   *
+   * What Draft Detective says about them
+   */
+  comment: string;
+};
+
+/**
+ * HandoffEdit
+ */
+export type HandoffEdit = {
+  /**
+   * Quote
+   *
+   * The exact words to change
+   */
+  quote: string;
+  /**
+   * Replacement
+   *
+   * What they become. Empty removes them.
+   */
+  replacement: string;
+};
+
+/**
+ * HandoffItems
+ */
+export type HandoffItems = {
+  /**
+   * Comments
+   */
+  comments?: Array<HandoffComment>;
+  /**
+   * Edits
+   */
+  edits?: Array<HandoffEdit>;
+};
+
+/**
+ * HandoffOutcome
+ */
+export type HandoffOutcome = {
+  /**
+   * Items
+   */
+  items?: Array<ItemOutcome>;
+};
+
+/**
+ * HandoffResult
+ */
+export type HandoffResult = {
+  outcome: HandoffOutcome;
+};
+
+/**
+ * HandoffView
+ *
+ * A pending handoff as the add-in sees it.
+ */
+export type HandoffView = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Document Name
+   */
+  document_name: string;
+  /**
+   * Document Url
+   */
+  document_url: string;
+  items: HandoffItems;
+  /**
+   * Created At
+   */
+  created_at: Date;
+};
+
+/**
  * Issue
  *
  * Persisted issue from workflow analysis.
@@ -2618,6 +2844,28 @@ export const IssueStatus = { Active: 'active', Archived: 'archived' } as const;
 export type IssueStatus = (typeof IssueStatus)[keyof typeof IssueStatus];
 
 /**
+ * ItemOutcome
+ */
+export type ItemOutcome = {
+  /**
+   * Kind
+   */
+  kind: 'comment' | 'edit';
+  /**
+   * Quote
+   */
+  quote: string;
+  /**
+   * Applied
+   */
+  applied: boolean;
+  /**
+   * Detail
+   */
+  detail?: string;
+};
+
+/**
  * LineRange
  *
  * An inclusive, 1-indexed range of document lines.
@@ -2757,6 +3005,24 @@ export type ModelCostBreakdown = {
    * Request Count
    */
   request_count?: number;
+};
+
+/**
+ * PendingHandoffs
+ */
+export type PendingHandoffs = {
+  /**
+   * Here
+   *
+   * Waiting on the document at this URL
+   */
+  here?: Array<HandoffView>;
+  /**
+   * Elsewhere
+   *
+   * Waiting on other documents, or on this one under a URL not recognised
+   */
+  elsewhere?: Array<HandoffView>;
 };
 
 /**
@@ -7836,6 +8102,158 @@ export type SetApiKeyApiUsersMeApiKeyPutResponses = {
 
 export type SetApiKeyApiUsersMeApiKeyPutResponse =
   SetApiKeyApiUsersMeApiKeyPutResponses[keyof SetApiKeyApiUsersMeApiKeyPutResponses];
+
+export type AnnotateApiMicrosoftWordCommentsAnnotatePostData = {
+  body: AnnotateRequest;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/comments/annotate';
+};
+
+export type AnnotateApiMicrosoftWordCommentsAnnotatePostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type AnnotateApiMicrosoftWordCommentsAnnotatePostError =
+  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors[keyof AnnotateApiMicrosoftWordCommentsAnnotatePostErrors];
+
+export type AnnotateApiMicrosoftWordCommentsAnnotatePostResponses = {
+  /**
+   * Successful Response
+   */
+  200: CommentPlacement;
+};
+
+export type AnnotateApiMicrosoftWordCommentsAnnotatePostResponse =
+  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses[keyof AnnotateApiMicrosoftWordCommentsAnnotatePostResponses];
+
+export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData = {
+  body: ApplySuggestionsRequest;
+  path?: never;
+  query?: never;
+  url: '/api/microsoft/word/suggestions/apply';
+};
+
+export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostError =
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors[keyof ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors];
+
+export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: EditsWritten;
+};
+
+export type ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponse =
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses[keyof ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses];
+
+export type ListPendingApiMicrosoftWordHandoffsGetData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Url
+     *
+     * The document URL Word reports
+     */
+    url: string;
+  };
+  url: '/api/microsoft/word/handoffs';
+};
+
+export type ListPendingApiMicrosoftWordHandoffsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListPendingApiMicrosoftWordHandoffsGetError =
+  ListPendingApiMicrosoftWordHandoffsGetErrors[keyof ListPendingApiMicrosoftWordHandoffsGetErrors];
+
+export type ListPendingApiMicrosoftWordHandoffsGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: PendingHandoffs;
+};
+
+export type ListPendingApiMicrosoftWordHandoffsGetResponse =
+  ListPendingApiMicrosoftWordHandoffsGetResponses[keyof ListPendingApiMicrosoftWordHandoffsGetResponses];
+
+export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData = {
+  body: HandoffResult;
+  path: {
+    /**
+     * Handoff Id
+     */
+    handoff_id: string;
+  };
+  query?: never;
+  url: '/api/microsoft/word/handoffs/{handoff_id}/applied';
+};
+
+export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostError =
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors[keyof ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors];
+
+export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponse =
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses[keyof ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses];
+
+export type DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostData = {
+  body?: never;
+  path: {
+    /**
+     * Handoff Id
+     */
+    handoff_id: string;
+  };
+  query?: never;
+  url: '/api/microsoft/word/handoffs/{handoff_id}/dismissed';
+};
+
+export type DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostError =
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors[keyof DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors];
+
+export type DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponse =
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses[keyof DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses];
 
 export type BotMessagesApiMicrosoftTeamsMessagesPostData = {
   body?: never;

@@ -1,7 +1,6 @@
-"""Tests for the construction both document-review deep agents share.
+"""Tests for the construction our deep agents share.
 
-These moved out of ``test_word_agent.py`` along with the code. What they cover is
-what would break silently for *both* agents at once: the reasoning summary that makes
+What they cover is what would break silently for every agent at once: the reasoning summary that makes
 a wrong answer inspectable in Langfuse, the shared rate limiter, and the mounting of
 the document and skills at the paths every skill's line numbers are defined against.
 """
@@ -12,11 +11,9 @@ from unittest.mock import patch
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
     _with_our_additions,
-    build_agent_files,
     build_llm,
     build_skill_files,
     general_purpose_subagent,
-    number_paragraphs,
     tool_names,
 )
 
@@ -52,17 +49,6 @@ class TestModelConstruction:
 
 
 class TestAgentFiles:
-    def test_mounts_the_document_and_the_skills(self) -> None:
-        files = build_agent_files("the document text")
-        assert "/main.md" in files
-        skills = [path for path in files if path.startswith("/skills/")]
-        assert len(skills) > 10, "the project's skills should be mounted"
-        assert any(path.endswith("/SKILL.md") for path in skills)
-
-    def test_the_document_is_readable_by_the_agent(self) -> None:
-        files = build_agent_files("the document text")
-        assert "the document text" in str(files["/main.md"]["content"])
-
     def test_skills_alone_mount_no_document(self) -> None:
         """What the Teams agent mounts: it opens its own document mid-run."""
 
@@ -91,16 +77,6 @@ class TestAgentFiles:
         files = build_skill_files(exclude={"literature-review"})
         assert not any(path.startswith("/skills/literature-review/") for path in files)
         assert "/skills/reference-validation/SKILL.md" in files
-
-
-class TestNumberingParagraphs:
-    def test_each_paragraph_carries_its_index(self) -> None:
-        """The index is an exact handle back to the paragraph, not a search term."""
-
-        assert number_paragraphs(["First.", "Second."]) == "[0] First.\n\n[1] Second."
-
-    def test_no_paragraphs_is_not_an_error(self) -> None:
-        assert number_paragraphs([]) == ""
 
 
 class TestToolNames:

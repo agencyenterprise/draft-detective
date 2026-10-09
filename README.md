@@ -90,7 +90,7 @@ The full-featured way to use the tool. Upload a draft (`.docx` recommended, PDF 
 - **Share a project** with colleagues via a read-only link.
 - Fetch or upload the full text of references for the checks that need it (Claim Reference Validation).
 
-Draft Detective also reaches into Microsoft 365 — an experimental **Word add-in** that surfaces the same reviews inside Word, and a **Teams bot** that answers questions about a document in chat. See [`microsoft/README.md`](microsoft/README.md).
+Draft Detective also reaches into Microsoft 365 — an experimental **Word add-in** that writes Draft Detective's comments and tracked changes into a document, and a **Teams bot** that answers questions about a document in chat. See [`microsoft/README.md`](microsoft/README.md).
 
 To run the web app locally, see [Development](#development). The in-app **About** page documents every analysis type and data-handling detail.
 

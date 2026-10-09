@@ -5,11 +5,11 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
   xsi:type="TaskPaneApp">
   <Id>e8f82310-9703-42b4-8e7c-996e237f7d23</Id>
-  <Version>1.0.0.0</Version>
+  <Version>1.1.0.0</Version>
   <ProviderName>Draft Detective</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Draft Detective" />
-  <Description DefaultValue="Draft Detective add-in allows you to see the issues on Draft Detective in your word document." />
+  <Description DefaultValue="Writes Draft Detective's comments and suggested changes into your Word document." />
   <IconUrl DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
   <HighResolutionIconUrl
     DefaultValue="https://ai-reviewer-app-production.up.railway.app/logo_160x160.png" />
@@ -96,5 +96,15 @@
         <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Click to open the Draft Detective add-in." />
       </bt:LongStrings>
     </Resources>
+    <!-- Office single sign-on: the Entra app the pane asks Office for a token for.
+         Without it the pane signs in through the dialog instead. -->
+    <WebApplicationInfo>
+      <Id>e7ca390f-cdd6-4f6a-bd7f-2a4bb66e31d6</Id>
+      <Resource>api://ai-reviewer-app-production.up.railway.app/e7ca390f-cdd6-4f6a-bd7f-2a4bb66e31d6</Resource>
+      <Scopes>
+        <Scope>openid</Scope>
+        <Scope>profile</Scope>
+      </Scopes>
+    </WebApplicationInfo>
   </VersionOverrides>
 </OfficeApp>
