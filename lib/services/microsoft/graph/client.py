@@ -20,14 +20,17 @@ Two things were established by probing a real tenant rather than from documentat
   live edit by about half a second, but with nobody editing it is simply current.
 
 Writing is deliberately absent. A whole-file PUT is refused with 423 while anyone
-has the document open, whatever identity asks, so writes belong to a Word client --
-see ``lib/services/microsoft/word/word_package.py`` and the add-in.
+has the document open, whatever identity asks -- even a View Only desktop session --
+and Word desktop keeps that lock for more than nine minutes after it quits (probed
+2026-10-08). So writes belong to a Word client: see
+``lib/services/microsoft/word/word_package.py`` and the add-in, and
+``lib/services/microsoft/word/handoffs.py`` for how a request made in Teams gets there.
 """
 
 import base64
 import logging
 import re
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import quote, unquote, urlparse
 
 import httpx
@@ -235,3 +238,37 @@ async def download(item: dict[str, Any], *, token: str) -> bytes:
     if response.status_code != 200:
         raise GraphError(f"could not download {item.get('name')}: {response.status_code}")
     return response.content
+
+
+async def me(*, token: str) -> dict[str, Any]:
+    """Who ``token`` belongs to: their Entra object id (``id``), UPN and mail address."""
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(
+            f"{GRAPH}/me",
+            params={"$select": "id,userPrincipalName,mail"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    if response.status_code != 200:
+        raise GraphError(f"could not read the signed-in user: {response.status_code}")
+    return dict(response.json())
+
+
+async def library_url(drive_id: str, *, token: str) -> Optional[str]:
+    """The webUrl of a document library, or ``None`` if Graph will not say.
+
+    A Word document's own webUrl is a viewer link; its path has to be rebuilt from the
+    library it lives in, which is what this is for.
+    """
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.get(
+            f"{GRAPH}/drives/{quote(drive_id, safe='')}",
+            params={"$select": "webUrl"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    if response.status_code != 200:
+        logger.info("could not read library %s: %s", drive_id, response.status_code)
+        return None
+    url = response.json().get("webUrl")
+    return str(url) if url else None

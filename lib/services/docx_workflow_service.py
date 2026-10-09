@@ -1,4 +1,4 @@
-"""Generate exported DOCX files (with comments or add-in metadata) on demand."""
+"""Generate exported DOCX files (with comments and tracked changes) on demand."""
 
 import logging
 import uuid
@@ -64,8 +64,8 @@ async def generate_docx(
         severities: Optional list of severity levels to filter issues
         workflow_types: Optional list of workflow types to filter issues
         docx_type: The export variant. ``"original"`` returns the uploaded file
-            untouched; ``COMMENTS`` / ``COMMENTS_WITH_LINKS`` / ``ADD_IN`` produce
-            the corresponding processed variants.
+            untouched; ``COMMENTS`` / ``COMMENTS_WITH_LINKS`` produce the
+            corresponding processed variants.
         include_passing: Whether to include passing issues (severity=none)
         include_edits: Whether to apply the issues' proposed edits as Word
             tracked changes, on top of the comments. Comment exports only.
@@ -105,7 +105,7 @@ async def generate_docx(
 
     # Build paragraph → (start_line, end_line) map via marker injection. This is
     # authoritative (no fuzzy matching) and resolves each issue's line range to a
-    # target docx paragraph for both the comments and add-in flows. The persisted
+    # target docx paragraph. The persisted
     # markdown's line count guards against a structurally different conversion
     # (e.g. drawing rasterization failing now but not at ingestion) silently
     # anchoring every comment to the wrong paragraph.
@@ -143,8 +143,8 @@ async def generate_docx(
     # Unique per invocation so concurrent exports never collide.
     output_id = uuid.uuid4().hex
 
-    # Both export modes silently skip issues they cannot tie to a paragraph, so
-    # account for them once here rather than in either branch. Two causes: no
+    # The export silently skips issues it cannot tie to a paragraph, so account
+    # for them here. Two causes: no
     # line range at all (typically a legacy row carrying only chunk_indices, from
     # before workflows emitted line ranges), or a range overlapping no paragraph.
     no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
@@ -184,9 +184,6 @@ async def generate_docx(
                 project.current_revision,
             )
             share_token_for_comments = None
-        # Tracked changes ride along with the comment exports only. The add-in
-        # wraps paragraphs in content controls and drives its own review UI;
-        # mixing redlines into that is not supported yet.
         workspace_root = str(docx_manipulator_service.get_output_dir())
         edit_export = (
             await plan_edit_export(
@@ -228,16 +225,6 @@ async def generate_docx(
                 project_id,
                 workspace_root=workspace_root,
             )
-    elif docx_type == DocxManipulatorType.ADD_IN:
-        if share_token is None:
-            raise ValueError("share_token is required for ADD_IN docx export")
-        output_path = await docx_manipulator_service.add_addin_metadata_to_docx(
-            original_docx_path=main_file.file_path,
-            share_token=share_token,
-            workflow_run_id=output_id,
-            paragraph_line_ranges=paragraph_line_ranges,
-            issues=issues,
-        )
     else:
         raise ValueError(f"Unsupported docx_type: {docx_type}")
 

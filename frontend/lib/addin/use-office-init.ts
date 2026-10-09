@@ -1,179 +1,44 @@
-import { useEffect, useState } from 'react';
-import { debounce } from 'lodash';
-import { getCurrentParagraphIndex, loadSettings } from '@/lib/addin/office-utils';
+import { useQuery } from '@tanstack/react-query';
 
-// Office onReady check to prevent double initialization issues
-let isOfficeReady = false;
-const OFFICE_POLL_INTERVAL_MS = 200;
-const OFFICE_POLL_MAX_ATTEMPTS = 50;
-
-type UseOfficeInitResult = {
-  token: string | null;
-  currentParagraphIndex: number | null;
-  isInitialized: boolean;
-};
-
-type MountCheck = () => boolean;
-
-type OfficeInitHandlers = {
-  isMounted: MountCheck;
-  setToken: (token: string | null) => void;
-  setIsInitialized: (initialized: boolean) => void;
-  updateCurrentParagraph: () => Promise<void>;
-  onSelectionChanged: () => void;
-};
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForOfficeAvailability(isMounted: MountCheck): Promise<boolean> {
-  if (typeof Office !== 'undefined') return true;
-
-  let attempts = 0;
-  while (typeof Office === 'undefined' && attempts < OFFICE_POLL_MAX_ATTEMPTS && isMounted()) {
-    await sleep(OFFICE_POLL_INTERVAL_MS);
-    attempts++;
+/** Resolves once office.js, which the add-in layout loads after hydration, is ready. */
+export async function officeReady(): Promise<Office.HostType | null> {
+  for (let attempt = 0; typeof Office === 'undefined' && attempt < 50; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
   }
-
-  return typeof Office !== 'undefined';
-}
-
-async function configureStartupBehavior(): Promise<void> {
-  try {
-    if (Office.addin && Office.addin.setStartupBehavior) {
-      await Office.addin.setStartupBehavior(Office.StartupBehavior.load);
-    }
-  } catch (error) {
-    console.error('Error setting startup behavior:', error);
-  }
-}
-
-async function showTaskpaneIfAvailable(): Promise<void> {
-  try {
-    if (Office.addin && Office.addin.showAsTaskpane) {
-      await Office.addin.showAsTaskpane();
-    }
-  } catch (error) {
-    console.error('Error showing taskpane:', error);
-  }
-}
-
-function registerSelectionHandler(onSelectionChanged: () => void): void {
-  if (!Office.context?.document) return;
-
-  Office.context.document.addHandlerAsync(Office.EventType.DocumentSelectionChanged, onSelectionChanged, (result) => {
-    if (result.status === Office.AsyncResultStatus.Failed) {
-      console.error('Failed to add handler', result.error);
-    }
-  });
-}
-
-async function hydrateToken(setToken: (token: string | null) => void, isMounted: MountCheck): Promise<void> {
-  const { authToken } = await loadSettings();
-  if (isMounted()) {
-    setToken(authToken);
-  }
-}
-
-async function initializeOffice(handlers: OfficeInitHandlers): Promise<void> {
-  const { isMounted, setToken, setIsInitialized, updateCurrentParagraph, onSelectionChanged } = handlers;
-
-  const officeAvailable = await waitForOfficeAvailability(isMounted);
-  if (!officeAvailable) {
-    console.warn('Office.js not available, running in browser mode');
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const debugToken = params.get('token');
-      if (debugToken && isMounted()) {
-        setToken(debugToken);
-      }
-    }
-    await updateCurrentParagraph();
-    if (isMounted()) {
-      setIsInitialized(true);
-    }
-    return;
-  }
-
+  if (typeof Office === 'undefined') throw new Error('Office did not load');
   const info = await Office.onReady();
-  if (!isMounted()) return;
+  return info.host;
+}
 
-  if (info.host !== Office.HostType.Word) {
-    console.warn('Add-in is not running in Word');
-    setIsInitialized(true);
-    return;
-  }
-
-  if (isOfficeReady) {
-    await hydrateToken(setToken, isMounted);
-    await updateCurrentParagraph();
-    if (isMounted()) {
-      setIsInitialized(true);
-    }
-    return;
-  }
-
-  isOfficeReady = true;
-
-  await hydrateToken(setToken, isMounted);
-  await configureStartupBehavior();
-  await showTaskpaneIfAvailable();
-  registerSelectionHandler(onSelectionChanged);
-  await updateCurrentParagraph();
-
-  if (isMounted()) {
-    setIsInitialized(true);
+/**
+ * Keep the add-in loaded with its document, and its pane open.
+ *
+ * Both calls are best-effort: older Word builds do not have them, and the pane works
+ * without either.
+ */
+async function configureStartup(): Promise<void> {
+  try {
+    await Office.addin?.setStartupBehavior?.(Office.StartupBehavior.load);
+    await Office.addin?.showAsTaskpane?.();
+  } catch (error) {
+    console.error('Error configuring the add-in startup:', error);
   }
 }
 
-function createParagraphUpdater(
-  setCurrentParagraphIndex: (index: number) => void,
-  isMounted: MountCheck,
-): () => Promise<void> {
-  return async () => {
-    if (typeof Word === 'undefined') return;
-
-    try {
-      const index = await getCurrentParagraphIndex();
-      if (isMounted()) {
-        setCurrentParagraphIndex(index);
-      }
-    } catch (error) {
-      console.error('Error getting paragraph index:', error);
-    }
-  };
+async function initializeOffice(): Promise<boolean> {
+  const host = await officeReady();
+  if (host === Office.HostType.Word) await configureStartup();
+  else console.warn('Add-in is not running in Word');
+  return true;
 }
 
-export function useOfficeInit(): UseOfficeInitResult {
-  const [token, setToken] = useState<string | null>(null);
-  const [currentParagraphIndex, setCurrentParagraphIndex] = useState<number | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    const isMounted = () => mounted;
-    const updateCurrentParagraph = createParagraphUpdater((index) => setCurrentParagraphIndex(index), isMounted);
-
-    const debouncedUpdate = debounce(updateCurrentParagraph, 300);
-    void initializeOffice({
-      isMounted,
-      setToken,
-      setIsInitialized,
-      updateCurrentParagraph,
-      onSelectionChanged: debouncedUpdate,
-    }).catch((error) => {
-      console.error('Failed to initialize Office', error);
-      if (isMounted()) {
-        setIsInitialized(true);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      debouncedUpdate.cancel();
-    };
-  }, []);
-
-  return { token, currentParagraphIndex, isInitialized };
+/** Whether Office has finished loading. Outside Word it settles too, so the page can render. */
+export function useOfficeInit(): { isInitialized: boolean } {
+  const { isPending } = useQuery({
+    queryKey: ['office-init'],
+    queryFn: initializeOffice,
+    staleTime: Infinity,
+    retry: false,
+  });
+  return { isInitialized: !isPending };
 }

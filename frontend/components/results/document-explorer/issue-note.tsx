@@ -170,18 +170,13 @@ function AssessmentReportLink({ issue }: { issue: Issue }) {
  * The counterpart of the report link, for an issue read from its assessment's
  * own results: the way to the passage it is about. An issue with no lines still
  * gets one — it opens the explorer, which is where the rest of them are.
- *
- * `label` overrides the default wording for a host where the line number means
- * nothing to the reader, such as the Word add-in selecting a paragraph.
  */
 export function IssueDocumentLink({
   issue,
   onNavigate,
-  label,
 }: {
   issue: Issue;
   onNavigate: (lineRange?: [number, number]) => void;
-  label?: string;
 }) {
   const range = issueLineRange(issue);
   const line = lineLabel(issue);
@@ -192,7 +187,7 @@ export function IssueDocumentLink({
       onClick={() => onNavigate(range ?? undefined)}
       className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
     >
-      {label ?? (line ? `View in document at ${line}` : 'View in document')}
+      {line ? `View in document at ${line}` : 'View in document'}
       <ArrowUpRightIcon className="size-3" />
     </button>
   );

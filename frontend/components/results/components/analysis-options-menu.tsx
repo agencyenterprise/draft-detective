@@ -135,7 +135,7 @@ export function AnalysisOptionsMenu({
   // Execute the actual download based on pending action
   const executeDownload = (docxType: DocxType, includeEdits: boolean) => {
     const notShared = !share.isEnabled && !shareContext.shareToken;
-    const needsShare = docxType === 'add-in' || docxType === 'comments-with-links';
+    const needsShare = docxType === 'comments-with-links';
     if (needsShare && notShared) {
       downloadWithShare(docxType, includeEdits);
     } else {

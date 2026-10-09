@@ -11,6 +11,12 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
+  AnnotateApiMicrosoftWordCommentsAnnotatePostData,
+  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
+  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData,
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostData,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostErrors,
   ApproveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePostResponses,
@@ -56,6 +62,9 @@ import type {
   DisableProjectSharingApiProjectsProjectIdShareDisablePostData,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostErrors,
   DisableProjectSharingApiProjectsProjectIdShareDisablePostResponses,
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostData,
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors,
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses,
   DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetData,
   DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetErrors,
   DownloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGetResponses,
@@ -176,6 +185,9 @@ import type {
   ListMessagesApiChatThreadsThreadIdMessagesGetData,
   ListMessagesApiChatThreadsThreadIdMessagesGetErrors,
   ListMessagesApiChatThreadsThreadIdMessagesGetResponses,
+  ListPendingApiMicrosoftWordHandoffsGetData,
+  ListPendingApiMicrosoftWordHandoffsGetErrors,
+  ListPendingApiMicrosoftWordHandoffsGetResponses,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetData,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetErrors,
   ListProjectFilesEndpointApiProjectProjectIdFilesGetResponses,
@@ -199,6 +211,9 @@ import type {
   ReadThreadFileContentApiChatThreadsThreadIdFilesGetResponses,
   RemoveApiKeyApiUsersMeApiKeyDeleteData,
   RemoveApiKeyApiUsersMeApiKeyDeleteResponses,
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData,
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors,
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses,
   ResetAppConfigApiAppConfigsKeyDeleteData,
   ResetAppConfigApiAppConfigsKeyDeleteErrors,
   ResetAppConfigApiAppConfigsKeyDeleteResponses,
@@ -2228,6 +2243,143 @@ export const setApiKeyApiUsersMeApiKeyPut = <ThrowOnError extends boolean = true
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Annotate
+ *
+ * Write one Draft Detective comment into this paragraph's markup.
+ */
+export const annotateApiMicrosoftWordCommentsAnnotatePost = <ThrowOnError extends boolean = true>(
+  options: Options<AnnotateApiMicrosoftWordCommentsAnnotatePostData, ThrowOnError>,
+): RequestResult<
+  AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
+  AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    AnnotateApiMicrosoftWordCommentsAnnotatePostResponses,
+    AnnotateApiMicrosoftWordCommentsAnnotatePostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/comments/annotate',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Apply Suggestions
+ *
+ * Write Draft Detective's proposed changes into this paragraph as tracked changes.
+ */
+export const applySuggestionsApiMicrosoftWordSuggestionsApplyPost = <ThrowOnError extends boolean = true>(
+  options: Options<ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostData, ThrowOnError>,
+): RequestResult<
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
+  ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostResponses,
+    ApplySuggestionsApiMicrosoftWordSuggestionsApplyPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/suggestions/apply',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List Pending
+ *
+ * The signed-in user's pending handoffs, split by whether they are for this document.
+ */
+export const listPendingApiMicrosoftWordHandoffsGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListPendingApiMicrosoftWordHandoffsGetData, ThrowOnError>,
+): RequestResult<
+  ListPendingApiMicrosoftWordHandoffsGetResponses,
+  ListPendingApiMicrosoftWordHandoffsGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    ListPendingApiMicrosoftWordHandoffsGetResponses,
+    ListPendingApiMicrosoftWordHandoffsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/handoffs',
+    ...options,
+  });
+
+/**
+ * Report Applied
+ *
+ * Close a handoff the add-in has written, and say how it went in Teams.
+ */
+export const reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost = <ThrowOnError extends boolean = true>(
+  options: Options<ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData, ThrowOnError>,
+): RequestResult<
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses,
+  ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostResponses,
+    ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/handoffs/{handoff_id}/applied',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Dismiss
+ *
+ * Close a handoff without applying it. Nothing is posted to Teams.
+ */
+export const dismissApiMicrosoftWordHandoffsHandoffIdDismissedPost = <ThrowOnError extends boolean = true>(
+  options: Options<DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostData, ThrowOnError>,
+): RequestResult<
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses,
+  DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostResponses,
+    DismissApiMicrosoftWordHandoffsHandoffIdDismissedPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/microsoft/word/handoffs/{handoff_id}/dismissed',
+    ...options,
   });
 
 /**

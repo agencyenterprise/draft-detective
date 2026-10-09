@@ -1,20 +1,13 @@
-"""Shared construction for the deep agents that review a document directly.
+"""Shared construction for our deep agents.
 
-Two agents work on a Word document without a project or a database behind them: the
-one answering a comment from the add-in, and the one answering a question from Teams.
-They differ in their prompts, their tools and what they return, but they are built
-the same way -- same model construction, same rate limiter, same skills mounted into
-the same virtual filesystem.
-
-That construction lives here rather than in either agent. It was in ``word_agent``
-first and the Teams agent imported it from there, which had the dependency the wrong
-way round: answering a question in a chat has nothing to do with Word comments, and
-one agent should not be the other's utility library.
+The agents differ in their prompts, their tools and what they return, but they are
+built the same way -- same model construction, same rate limiter, same skills mounted
+into the same virtual filesystem -- and that construction lives here.
 
 Every deep agent we run is built with ``build_deep_agent``: ``create_deep_agent``
 with our additions, so they live in one place rather than at every call site.
 
-``/main.md`` is the document path shared by ``build_agent_files``,
+``/main.md`` is the document path shared by
 ``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
 Those prompts designate the document used for structured issue line numbers;
 the portable ``skills/issues/SKILL.md`` defines the numbering conventions without
@@ -53,18 +46,6 @@ REQUEST_TIMEOUT = 120
 # claim against a source, which is more than a lookup. The summary is surfaced in
 # Langfuse, so the reasoning behind an answer can be inspected when one looks wrong.
 REASONING: ReasoningDict = {"effort": "medium", "summary": "auto"}
-
-
-def number_paragraphs(paragraphs: list[str]) -> str:
-    """The document as the agent sees it, each paragraph prefixed with its index.
-
-    Numbering is what lets an annotation point at a place instead of describing it.
-    The indices come from the caller's own paragraph list, so they are an exact
-    handle back to the paragraph rather than something to search for. The same idea
-    as the sentinels the docx export injects, which exist to avoid fuzzy matching.
-    """
-
-    return "\n\n".join(f"[{index}] {text}" for index, text in enumerate(paragraphs))
 
 
 def build_skill_files(
@@ -166,16 +147,6 @@ build_deep_agent = _with_our_additions(create_deep_agent)
 """``create_deep_agent``, same signature, with our middleware added to the caller's
 and to every subagent the caller declares, and the general-purpose subagent replaced
 by ours (unless the caller passes one)."""
-
-
-def build_agent_files(document_text: str) -> dict[str, Any]:
-    """Mount the document and the project's skills into the agent's filesystem.
-
-    Mirrors ``FileArtifactsService.get_deepagent_backend_files`` without needing a
-    project or a database.
-    """
-
-    return {"/main.md": create_file_data(document_text), **build_skill_files()}
 
 
 def build_llm(

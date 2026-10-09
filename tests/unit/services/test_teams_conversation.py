@@ -16,6 +16,7 @@ from microsoft_agents.activity import (
     ChannelAccount,
     ChannelId,
     ConversationAccount,
+    ConversationReference,
 )
 
 from lib.services.microsoft.teams import conversation
@@ -258,6 +259,52 @@ class TestAskingBeforeAnswering:
         answer.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_sign_out_forgets_the_token_and_answers_nothing(self) -> None:
+        with (
+            patch.object(conversation.bot, "question_from", return_value="Sign out."),
+            patch.object(conversation.sign_in, "sign_out", AsyncMock()) as sign_out,
+            patch.object(conversation.sign_in, "user_token", AsyncMock()) as token,
+            patch.object(conversation, "_start_answering") as answer,
+        ):
+            context = self.context()
+            await conversation.on_question(context)
+
+        sign_out.assert_awaited_once_with(context)
+        token.assert_not_awaited()
+        answer.assert_not_called()
+        assert "signed out" in context.send_activity.await_args.args[0]
+
+    @pytest.mark.asyncio
+    async def test_a_token_service_outage_on_sign_out_is_said(self) -> None:
+        with (
+            patch.object(conversation.bot, "question_from", return_value="sign out"),
+            patch.object(
+                conversation.sign_in,
+                "sign_out",
+                AsyncMock(side_effect=conversation.sign_in.TokenServiceUnavailable("down")),
+            ),
+        ):
+            context = self.context()
+            await conversation.on_question(context)
+
+        context.send_activity.assert_awaited_once_with(conversation.SIGN_IN_UNAVAILABLE)
+
+    @pytest.mark.asyncio
+    async def test_a_question_mentioning_sign_out_is_still_a_question(self) -> None:
+        with (
+            patch.object(
+                conversation.bot, "question_from", return_value="how do I sign out of SharePoint?"
+            ),
+            patch.object(conversation.sign_in, "sign_out", AsyncMock()) as sign_out,
+            patch.object(conversation.sign_in, "user_token", AsyncMock(return_value=None)),
+            patch.object(conversation.pending_questions, "park", AsyncMock(return_value="p1")),
+            patch.object(conversation.sign_in, "ask_to_sign_in", AsyncMock()),
+        ):
+            await conversation.on_question(self.context())
+
+        sign_out.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_a_signed_in_asker_is_answered_straight_away(self) -> None:
         with (
             patch.object(
@@ -271,3 +318,27 @@ class TestAskingBeforeAnswering:
 
         park.assert_not_awaited()
         assert answer.call_args[0][-1] == "tok"
+
+
+class TestAnswering:
+    @pytest.mark.asyncio
+    async def test_the_agent_is_told_where_to_report_applied_changes(self) -> None:
+        """Without the reference, changes offered in Teams could not be reported back."""
+
+        reference = ConversationReference(
+            service_url="https://smba.trafficmanager.net/br/",
+            channel_id=ChannelId(channel="msteams"),
+            conversation=ConversationAccount(id="19:x;messageid=1"),
+        )
+        answer = MagicMock(failed=False, text="done")
+        with patch.object(
+            conversation, "answer_question", AsyncMock(return_value=answer)
+        ) as ask, patch.object(conversation.bot, "post_later", AsyncMock()):
+            await conversation._answer_into_thread(
+                reference, "fix the typos", "Ana", "19:x;messageid=1", [], "token"
+            )
+
+        assert ask.await_args is not None
+        stored = ask.await_args.kwargs["reference"]
+        assert stored["serviceUrl"] == "https://smba.trafficmanager.net/br/"
+        assert ConversationReference.model_validate(stored).conversation.id == "19:x;messageid=1"

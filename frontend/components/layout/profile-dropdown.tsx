@@ -14,7 +14,9 @@ const userNavigation = [
   { name: 'Settings', href: '/account' },
   { name: 'MCP Server', href: '/connect' },
   { name: 'Help improve accuracy', href: '/annotate' },
-  { name: 'Sign out', href: '/api/auth/signout' },
+  // An explicit destination: without one, Auth.js returns to whatever the last sign-in
+  // asked for, which after a Word add-in sign-in on this domain is the add-in's page.
+  { name: 'Sign out', href: '/api/auth/signout?callbackUrl=%2F' },
 ];
 const adminNavigation = [
   { name: 'Usage Dashboard', href: '/dashboard' },

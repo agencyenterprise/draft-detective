@@ -275,12 +275,11 @@ class TestIssueToComment:
 
 
 class TestUnanchorableIssueAccounting:
-    """The count must match what the export paths actually drop.
+    """The count must match what the export actually drops.
 
-    Both modes skip issues they cannot tie to a paragraph — `issue_to_comment`
-    for comments, `_build_issue_map` for the add-in — and both do it silently.
-    The count is what turns that into a log line, so it has to agree with the
-    real behaviour rather than approximate it.
+    The export skips issues it cannot tie to a paragraph — in `issue_to_comment`
+    — and does it silently. The count is what turns that into a log line, so it
+    has to agree with the real behaviour rather than approximate it.
     """
 
     PARAGRAPHS = {0: (1, 2), 1: (3, 5)}

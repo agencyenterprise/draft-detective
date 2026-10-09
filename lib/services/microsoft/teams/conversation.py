@@ -127,6 +127,10 @@ async def _answer_into_thread(
             document_urls=document_urls,
             asked_by=author,
             user_id=author,
+            # Stored with any changes offered, so applying them in Word can be reported
+            # back here. Dumped the way pending questions are, without the unset fields
+            # that would not validate back.
+            reference=reference.model_dump(mode="json", by_alias=True, exclude_none=True),
         )
     except Exception:  # noqa: BLE001 - nobody upstream to hand this to
         # ``answer_question`` reports a failure rather than raising, so arriving here
@@ -142,6 +146,24 @@ async def _answer_into_thread(
         return
 
     await bot.post_later(reference, answer.text)
+
+
+# Said on its own, these sign the sender out rather than being answered as a question.
+SIGN_OUT_COMMANDS = {"sign out", "signout", "log out", "logout"}
+
+
+async def _sign_out(context: TurnContext) -> None:
+    """Forget the sender's sign-in, so their next question shows the sign-in card."""
+
+    try:
+        await sign_in.sign_out(context)
+    except sign_in.TokenServiceUnavailable as error:
+        logger.error("could not sign someone out: %s", error)
+        await context.send_activity(SIGN_IN_UNAVAILABLE)
+        return
+    await context.send_activity(
+        "You are signed out. Next time you ask me something, I will ask you to sign in again."
+    )
 
 
 async def on_question(context: TurnContext) -> None:
@@ -165,6 +187,10 @@ async def on_question(context: TurnContext) -> None:
         await context.send_activity(
             "Mention me with a question about the document and I will take a look."
         )
+        return
+
+    if question.lower().rstrip(".!") in SIGN_OUT_COMMANDS:
+        await _sign_out(context)
         return
 
     # From the activity, not the question: Teams shows a pasted link as a

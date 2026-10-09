@@ -11,15 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { RadioGroup, RadioGroupItemWithDescription } from '@/components/ui/radio-group-with-description';
-import { AlertTriangle, Download, Link, Loader2, PencilLineIcon } from 'lucide-react';
+import { Download, Link, Loader2, PencilLineIcon } from 'lucide-react';
 import { DocxType } from '../results/components/use-download-docx';
 import { ActiveFilters, ExportScope } from './active-filters-summary';
 import type { ExportCounts } from '@/lib/export-scope';
-
-// Temporarily hidden: the Draft Detective add-in export is not offered right now.
-// Flip back to `true` to restore the export type picker.
-const SHOW_ADD_IN_OPTION = false;
 
 interface ShareWarningDialogProps {
   open: boolean;
@@ -66,21 +61,16 @@ export function ShareWarningDialog({
   // Hold the download until the reader can see what it contains; a failed count
   // does not hold it, since the export does not depend on the count.
   const isCounting = counts === null && !countsFailed;
-  const [selectedExportType, setSelectedExportType] = useState<'comments' | 'add-in'>('comments');
   const [makePublicAndAddLinks, setMakePublicAndAddLinks] = useState(isProjectPublic);
   const [includeEdits, setIncludeEdits] = useState(true);
 
-  const shouldShowEditsCheckbox = selectedExportType === 'comments';
-  const shouldShowLinksCheckbox = selectedExportType === 'comments' && !isProjectPublic && linksAvailable;
-  const shouldShowLinksUnavailableNote = selectedExportType === 'comments' && !linksAvailable;
-  const shouldShowAddInDisclaimer = selectedExportType === 'add-in';
+  const shouldShowLinksCheckbox = !isProjectPublic && linksAvailable;
   // Never ask for links the backend would drop: the file would be the same
   // either way, and asking would make a private project public for nothing.
   const addLinks = linksAvailable && makePublicAndAddLinks;
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
-      setSelectedExportType('comments');
       setMakePublicAndAddLinks(isProjectPublic);
       setIncludeEdits(true);
     }
@@ -88,11 +78,9 @@ export function ShareWarningDialog({
   };
 
   const handleDownload = () => {
-    const docxType: DocxType =
-      selectedExportType === 'add-in' ? 'add-in' : addLinks ? 'comments-with-links' : 'comments';
+    const docxType: DocxType = addLinks ? 'comments-with-links' : 'comments';
 
-    onDownload(docxType, { includeEdits: selectedExportType === 'comments' && includeEdits });
-    setSelectedExportType('comments');
+    onDownload(docxType, { includeEdits });
     setMakePublicAndAddLinks(isProjectPublic);
     setIncludeEdits(true);
   };
@@ -110,51 +98,21 @@ export function ShareWarningDialog({
         <div className="space-y-5">
           <section className="space-y-2">
             <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Included</h3>
-            <ExportScope
-              filters={filters}
-              counts={counts}
-              countsFailed={countsFailed}
-              includeEdits={shouldShowEditsCheckbox && includeEdits}
-            />
+            <ExportScope filters={filters} counts={counts} countsFailed={countsFailed} includeEdits={includeEdits} />
           </section>
 
           <section className="space-y-2">
             <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Options</h3>
             <div className="divide-y rounded-lg border">
-              {SHOW_ADD_IN_OPTION && (
-                <RadioGroup
-                  value={selectedExportType}
-                  onValueChange={(value) => setSelectedExportType(value as 'comments' | 'add-in')}
-                  className="gap-0 p-1"
-                >
-                  <RadioGroupItemWithDescription
-                    id="comments"
-                    value={selectedExportType}
-                    label="Regular comments"
-                    description="Adds standard Word comments for use outside the add-in."
-                    disabled={isProcessing}
-                  />
-                  <RadioGroupItemWithDescription
-                    id="add-in"
-                    value={selectedExportType}
-                    label="Draft Detective add-in"
-                    description="Reviewers can see issues directly in the add-in as they do in the app."
-                    disabled={isProcessing}
-                  />
-                </RadioGroup>
-              )}
-
-              {shouldShowEditsCheckbox && (
-                <CheckboxWithDescription
-                  id="include-edits"
-                  icon={PencilLineIcon}
-                  checked={includeEdits}
-                  disabled={isProcessing}
-                  onCheckedChange={setIncludeEdits}
-                  label="Apply proposed edits as tracked changes"
-                  description="Accept or reject each edit in Word. Every edit is also described in its issue's comment."
-                />
-              )}
+              <CheckboxWithDescription
+                id="include-edits"
+                icon={PencilLineIcon}
+                checked={includeEdits}
+                disabled={isProcessing}
+                onCheckedChange={setIncludeEdits}
+                label="Apply proposed edits as tracked changes"
+                description="Accept or reject each edit in Word. Every edit is also described in its issue's comment."
+              />
 
               {shouldShowLinksCheckbox && (
                 <CheckboxWithDescription
@@ -168,19 +126,9 @@ export function ShareWarningDialog({
                 />
               )}
 
-              {shouldShowLinksUnavailableNote && (
+              {!linksAvailable && (
                 <p className="p-4 text-sm text-muted-foreground">
                   Links to Draft Detective are only added when exporting the current revision.
-                </p>
-              )}
-
-              {shouldShowAddInDisclaimer && (
-                <p className="flex items-start gap-2 p-4 text-sm text-muted-foreground">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                  <span>
-                    Requires the Draft Detective Word add-in.
-                    {!isProjectPublic && ' This will make this project public.'}
-                  </span>
                 </p>
               )}
             </div>
