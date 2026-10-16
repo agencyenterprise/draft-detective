@@ -28,7 +28,7 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.issue_persistence import get_project_issues
 from lib.services.projects import get_user_projects
-from lib.services.workflow_runs import get_project_workflow_runs
+from lib.services.workflow_runs.service import get_project_workflow_runs
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 # Removed in an earlier cleanup; rows carrying it are still in the database.

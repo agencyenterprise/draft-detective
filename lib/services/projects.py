@@ -30,7 +30,7 @@ from lib.services.references import (
     remove_file_from_references,
 )
 from lib.services.share_links import get_resource_by_token
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     cancel_workflow_run,
 )

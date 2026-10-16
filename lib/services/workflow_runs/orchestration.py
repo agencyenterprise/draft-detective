@@ -7,7 +7,7 @@ from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRunStatus,
 )
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     update_workflow_run_status,
 )

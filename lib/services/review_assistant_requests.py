@@ -21,7 +21,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
 from lib.services.files import get_files_by_project_id
 from lib.services.project_overview import current_run_errors
 from lib.services.uuid_utils import ensure_uuid
-from lib.services.workflow_runs import persist_workflow_run_state
+from lib.services.workflow_runs.service import persist_workflow_run_state
 from lib.workflows.models import WorkflowError, WorkflowRunType
 from lib.workflows.review_assistant.state import (
     ReviewAssistantConfig,

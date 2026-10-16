@@ -14,7 +14,7 @@ PROGRESS_ID = uuid.uuid4()
 @pytest.mark.asyncio
 @patch("lib.workflows.decorators.get_or_create_progress", return_value=PROGRESS_ID)
 @patch("lib.workflows.decorators.increment_and_complete_if_done", return_value=True)
-@patch("lib.services.workflow_runs.get_workflow_run_status", return_value=None)
+@patch("lib.services.workflow_runs.service.get_workflow_run_status", return_value=None)
 async def test_decorator_receives_runtime_with_context(
     mock_get_status, mock_increment, mock_get_or_create
 ):

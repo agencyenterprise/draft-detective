@@ -14,14 +14,14 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunT
 from lib.services.files import assert_project_has_main_file
 from lib.services.projects import get_project_access
 from lib.services.users import get_user_decrypted_api_key
-from lib.services.workflow_gates import (
+from lib.services.workflow_runs.gates import (
     approve_gate,
     get_approved_gates,
     get_effective_gates,
     get_unsatisfied_gates,
     release_runs_awaiting_approval,
 )
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     get_workflow_run_status,

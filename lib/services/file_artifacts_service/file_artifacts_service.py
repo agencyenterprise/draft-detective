@@ -21,7 +21,7 @@ from lib.services.files import (
     update_file_artifacts,
 )
 from lib.services.markdown_conversion import convert_file_document_to_markdown
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     read_workflow_run_state,
 )

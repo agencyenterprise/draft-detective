@@ -19,7 +19,7 @@ from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.projects import create_new_revision
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     get_project_workflow_runs,
 )

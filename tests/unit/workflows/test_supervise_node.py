@@ -31,11 +31,11 @@ async def test_supervise_bumps_heartbeat_while_node_runs():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status",
+            "lib.services.workflow_runs.service.get_workflow_run_status",
             new=AsyncMock(return_value=WorkflowRunStatus.RUNNING),
         ),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_heartbeat",
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
             new=AsyncMock(),
         ) as heartbeat_mock,
     ):
@@ -64,11 +64,11 @@ async def test_supervise_cancels_node_when_workflow_status_is_cancelled():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status",
+            "lib.services.workflow_runs.service.get_workflow_run_status",
             new=AsyncMock(return_value=WorkflowRunStatus.CANCELLED),
         ),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_heartbeat",
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
             new=AsyncMock(),
         ) as heartbeat_mock,
     ):
@@ -100,11 +100,11 @@ async def test_supervise_cancels_node_when_workflow_status_is_failed():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status",
+            "lib.services.workflow_runs.service.get_workflow_run_status",
             new=AsyncMock(return_value=WorkflowRunStatus.FAILED),
         ),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_heartbeat",
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
             new=AsyncMock(),
         ) as heartbeat_mock,
     ):
@@ -132,10 +132,11 @@ async def test_supervise_returns_when_node_completes_first():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status", new=AsyncMock()
+            "lib.services.workflow_runs.service.get_workflow_run_status",
+            new=AsyncMock(),
         ) as status_mock,
         patch(
-            "lib.services.workflow_runs.update_workflow_run_heartbeat",
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
             new=AsyncMock(),
         ) as heartbeat_mock,
     ):

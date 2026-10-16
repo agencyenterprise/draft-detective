@@ -41,7 +41,7 @@ from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.config.logger import setup_logger
-from lib.services.workflow_reaper import run_reaper_loop
+from lib.services.workflow_runs.reaper import run_reaper_loop
 
 setup_logger()
 

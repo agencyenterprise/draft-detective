@@ -10,7 +10,7 @@ from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
-from lib.services.workflow_gates import get_effective_gates
+from lib.services.workflow_runs.gates import get_effective_gates
 from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG, CategoryConfig
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 from lib.workflows.presets import WORKFLOW_PRESETS, PresetConfig

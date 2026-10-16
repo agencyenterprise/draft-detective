@@ -192,7 +192,7 @@ async def create_state(
     it is passed to create_initial_state, which most workflows ignore — only
     accumulating workflows (e.g. reference_downloader) seed from it.
     """
-    from lib.services.workflow_runs import get_project_workflow_runs  # noqa: PLC0415  circular: workflow_runs imports this module
+    from lib.services.workflow_runs.service import get_project_workflow_runs  # noqa: PLC0415  circular: workflow_runs imports this module
 
     # Include internal workflows so dependencies can access their states
     workflow_runs = await get_project_workflow_runs(

@@ -18,7 +18,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.workflow_runs import get_latest_workflow_run_state_by_type
+from lib.services.workflow_runs.service import get_latest_workflow_run_state_by_type
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
     ReferenceDownloaderWorkflowConfig,

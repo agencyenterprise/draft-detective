@@ -20,7 +20,7 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.workflow_reaper import _find_stuck_runs
+from lib.services.workflow_runs.reaper import _find_stuck_runs
 
 RUNNING_GRACE = 60.0
 PENDING_GRACE = 7200.0

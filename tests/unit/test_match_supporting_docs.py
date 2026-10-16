@@ -110,7 +110,7 @@ def mock_decorator_progress():
             return_value=True,
         ),
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status",
+            "lib.services.workflow_runs.service.get_workflow_run_status",
             return_value=None,
         ),
     ):

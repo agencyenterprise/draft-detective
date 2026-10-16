@@ -37,7 +37,7 @@ from lib.services.projects import (
 )
 from lib.services.references import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
-from lib.services.workflow_progress import get_project_workflow_progress
+from lib.services.workflow_runs.progress import get_project_workflow_progress
 from lib.workflows.models import SeverityEnum
 
 router = APIRouter(tags=["projects"])

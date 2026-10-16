@@ -11,7 +11,7 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.workflow_runs import WorkflowRunDetail, WorkflowStateStatus
+from lib.services.workflow_runs.service import WorkflowRunDetail, WorkflowStateStatus
 from lib.workflows.document_summarization.state import (
     DocumentSummarizationState,
     DocumentSummarizationWorkflowConfig,

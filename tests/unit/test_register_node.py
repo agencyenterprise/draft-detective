@@ -34,7 +34,7 @@ def patch_external_deps():
             return_value=False,
         ),
         patch(
-            "lib.services.workflow_runs.get_workflow_run_status",
+            "lib.services.workflow_runs.service.get_workflow_run_status",
             return_value=WorkflowRunStatus.RUNNING,
         ),
     ):
@@ -106,7 +106,7 @@ class TestErrorHandling:
 
         with (
             patch(
-                "lib.services.workflow_runs.get_workflow_run_status",
+                "lib.services.workflow_runs.service.get_workflow_run_status",
                 return_value=WorkflowRunStatus.CANCELLED,
             ),
         ):
@@ -161,7 +161,7 @@ class TestProgressFinallyBlock:
                 return_value=False,
             ) as mock_increment,
             patch(
-                "lib.services.workflow_runs.get_workflow_run_status",
+                "lib.services.workflow_runs.service.get_workflow_run_status",
                 return_value=WorkflowRunStatus.CANCELLED,
             ),
         ):
@@ -185,7 +185,7 @@ class TestCancellationCheck:
 
         with (
             patch(
-                "lib.services.workflow_runs.get_workflow_run_status",
+                "lib.services.workflow_runs.service.get_workflow_run_status",
                 return_value=WorkflowRunStatus.CANCELLED,
             ),
             pytest.raises(WorkflowCancelledError),

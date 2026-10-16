@@ -19,11 +19,13 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
 from lib.services.projects import get_project_access, strip_converted_markdown
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     build_workflow_run_detail,
     get_project_run_summaries,
 )
-from lib.services.workflow_runs import get_workflow_run as get_workflow_run_record
+from lib.services.workflow_runs.service import (
+    get_workflow_run as get_workflow_run_record,
+)
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import is_available_workflow_type
 

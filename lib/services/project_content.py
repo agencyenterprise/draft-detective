@@ -15,7 +15,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.workflow_run import WorkflowRun
 from lib.services.projects import get_main_document_markdown
-from lib.services.workflow_runs import latest_run_per_type_stmt
+from lib.services.workflow_runs.service import latest_run_per_type_stmt
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_downloader.state import ReferenceFetchResult
 from lib.workflows.reference_extraction.state import ExtractedReference

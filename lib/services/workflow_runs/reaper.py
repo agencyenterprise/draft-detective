@@ -41,8 +41,8 @@ from lib.models.workflow_run import (
     WorkflowRunFailureReason,
     WorkflowRunStatus,
 )
-from lib.services.workflow_orchestration import DEPENDENCY_WAIT_TIMEOUT
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.orchestration import DEPENDENCY_WAIT_TIMEOUT
+from lib.services.workflow_runs.service import (
     fail_workflow_run,
     persist_workflow_run_state,
     read_workflow_run_state,

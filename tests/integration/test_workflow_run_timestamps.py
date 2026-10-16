@@ -14,7 +14,7 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     create_workflow_run,
     persist_workflow_run_state,
     update_workflow_run_heartbeat,

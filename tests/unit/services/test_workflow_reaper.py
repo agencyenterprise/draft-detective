@@ -12,8 +12,8 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services import workflow_reaper
-from lib.services.workflow_reaper import (
+from lib.services.workflow_runs import reaper as workflow_reaper
+from lib.services.workflow_runs.reaper import (
     PENDING_GRACE_SECONDS,
     REAPER_GRACE_SECONDS,
     _reap_once,

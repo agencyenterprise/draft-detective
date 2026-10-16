@@ -12,7 +12,7 @@ import uuid
 import pytest
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     WorkflowStateStatus,
     hydrate_workflow_run_state_with_status,
     read_workflow_run_state,

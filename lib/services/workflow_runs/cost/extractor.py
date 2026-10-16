@@ -2,7 +2,7 @@ from typing import Any
 
 from langchain_core.messages import BaseMessage
 
-from lib.services.workflow_cost.breakdown import UsageRecord
+from lib.services.workflow_runs.cost.breakdown import UsageRecord
 
 
 def _get_attr_or_key(obj: Any, key: str) -> Any:

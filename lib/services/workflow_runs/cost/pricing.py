@@ -16,7 +16,7 @@ from functools import lru_cache
 from genai_prices import Usage, calc_price
 from genai_prices.types import PriceCalculation
 
-from lib.services.workflow_cost.breakdown import (
+from lib.services.workflow_runs.cost.breakdown import (
     CostBreakdown,
     ModelCostBreakdown,
     UsageRecord,

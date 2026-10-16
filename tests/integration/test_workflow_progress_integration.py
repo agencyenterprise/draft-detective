@@ -6,8 +6,8 @@ import pytest
 
 from lib.config.database import get_async_db_session
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.workflow_progress import get_workflow_progress
-from lib.services.workflow_runs import create_workflow_run
+from lib.services.workflow_runs.progress import get_workflow_progress
+from lib.services.workflow_runs.service import create_workflow_run
 from tests.conftest import create_test_context
 
 

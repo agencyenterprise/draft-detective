@@ -7,7 +7,7 @@ from typing import cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
-from lib.services.workflow_runs import (
+from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     persist_workflow_run_state,

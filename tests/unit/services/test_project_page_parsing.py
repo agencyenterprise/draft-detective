@@ -11,7 +11,7 @@ from langchain_core.messages import HumanMessage
 
 from lib.services.project_content import _text_or_none, _validate_items
 from lib.services.project_overview import current_run_errors
-from lib.services.workflow_runs import _without_messages
+from lib.services.workflow_runs.service import _without_messages
 from lib.workflows.about_this_ger.state import AgentConversation
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.models import WorkflowErrorSeverity, WorkflowRunType

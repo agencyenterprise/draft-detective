@@ -11,7 +11,7 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.workflow_runs import fail_workflow_run
+from lib.services.workflow_runs.service import fail_workflow_run
 
 
 def _make_run(
@@ -36,16 +36,23 @@ async def test_fail_marks_run_failed_with_reason_and_message():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run",
+            "lib.services.workflow_runs.service.get_workflow_run",
             new=AsyncMock(return_value=run),
         ),
-        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()
+            "lib.services.workflow_runs.service.cancel_workflow_progress",
+            new=AsyncMock(),
+        ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_status",
+            new=AsyncMock(),
         ) as mock_update,
-        patch("lib.services.workflow_runs.get_required_dependents", return_value=[]),
         patch(
-            "lib.services.workflow_runs.get_project_workflow_run_by_type",
+            "lib.services.workflow_runs.service.get_required_dependents",
+            return_value=[],
+        ),
+        patch(
+            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=None),
         ),
     ):
@@ -71,16 +78,23 @@ async def test_fail_calls_cancel_workflow_progress():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run",
+            "lib.services.workflow_runs.service.get_workflow_run",
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()
+            "lib.services.workflow_runs.service.cancel_workflow_progress",
+            new=AsyncMock(),
         ) as mock_cancel_progress,
-        patch("lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()),
-        patch("lib.services.workflow_runs.get_required_dependents", return_value=[]),
         patch(
-            "lib.services.workflow_runs.get_project_workflow_run_by_type",
+            "lib.services.workflow_runs.service.update_workflow_run_status",
+            new=AsyncMock(),
+        ),
+        patch(
+            "lib.services.workflow_runs.service.get_required_dependents",
+            return_value=[],
+        ),
+        patch(
+            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=None),
         ),
     ):
@@ -114,19 +128,23 @@ async def test_fail_cascades_to_pending_dependent_as_cancelled():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run",
+            "lib.services.workflow_runs.service.get_workflow_run",
             new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)]),
         ),
-        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()
+            "lib.services.workflow_runs.service.cancel_workflow_progress",
+            new=AsyncMock(),
+        ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_status",
+            new=AsyncMock(),
         ) as mock_update,
         patch(
-            "lib.services.workflow_runs.get_required_dependents",
+            "lib.services.workflow_runs.service.get_required_dependents",
             side_effect=dependents_for,
         ),
         patch(
-            "lib.services.workflow_runs.get_project_workflow_run_by_type",
+            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=dependent_run),
         ),
     ):
@@ -156,19 +174,23 @@ async def test_fail_does_not_cascade_to_completed_dependent():
 
     with (
         patch(
-            "lib.services.workflow_runs.get_workflow_run",
+            "lib.services.workflow_runs.service.get_workflow_run",
             new=AsyncMock(return_value=run),
         ),
-        patch("lib.services.workflow_runs.cancel_workflow_progress", new=AsyncMock()),
         patch(
-            "lib.services.workflow_runs.update_workflow_run_status", new=AsyncMock()
+            "lib.services.workflow_runs.service.cancel_workflow_progress",
+            new=AsyncMock(),
+        ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_status",
+            new=AsyncMock(),
         ) as mock_update,
         patch(
-            "lib.services.workflow_runs.get_required_dependents",
+            "lib.services.workflow_runs.service.get_required_dependents",
             return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
         ),
         patch(
-            "lib.services.workflow_runs.get_project_workflow_run_by_type",
+            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
             new=AsyncMock(return_value=dependent_run),
         ),
     ):
@@ -189,7 +211,8 @@ async def test_fail_raises_when_run_has_no_project_id():
     run.project_id = None
 
     with patch(
-        "lib.services.workflow_runs.get_workflow_run", new=AsyncMock(return_value=run)
+        "lib.services.workflow_runs.service.get_workflow_run",
+        new=AsyncMock(return_value=run),
     ):
         with pytest.raises(ValueError, match="no project_id"):
             await fail_workflow_run(

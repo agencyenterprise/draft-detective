@@ -138,7 +138,7 @@ class WorkflowGate(str, Enum):
     Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
     started while one of its gates is unsatisfied is held in
     ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
-    project's revision (see ``lib.services.workflow_gates``).
+    project's revision (see ``lib.services.workflow_runs.gates``).
     """
 
     # The user has looked over the reference-to-source-file matching and is

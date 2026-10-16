@@ -4757,7 +4757,7 @@ export type WorkflowErrorSeverity = (typeof WorkflowErrorSeverity)[keyof typeof 
  * Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
  * started while one of its gates is unsatisfied is held in
  * ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
- * project's revision (see ``lib.services.workflow_gates``).
+ * project's revision (see ``lib.services.workflow_runs.gates``).
  */
 export const WorkflowGate = { ReferenceReview: 'reference_review' } as const;
 
@@ -4770,7 +4770,7 @@ export const WorkflowGate = { ReferenceReview: 'reference_review' } as const;
  * Manifests declare the gates they need in ``WorkflowManifest.gates``. A run
  * started while one of its gates is unsatisfied is held in
  * ``WorkflowRunStatus.AWAITING_APPROVAL`` until the gate is approved for the
- * project's revision (see ``lib.services.workflow_gates``).
+ * project's revision (see ``lib.services.workflow_runs.gates``).
  */
 export type WorkflowGate = (typeof WorkflowGate)[keyof typeof WorkflowGate];
 
