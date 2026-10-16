@@ -7,8 +7,11 @@ from langgraph.runtime import Runtime
 from lib.agents.document_summarizer import DocumentSummarizerAgent
 from lib.models.file import FileRole
 from lib.run_utils import convert_exceptions_to_workflow_errors, run_tasks
-from lib.services.file import FileDocument
-from lib.services.files import get_cached_summary_for_file, update_file_artifacts
+from lib.services.files.document import FileDocument
+from lib.services.files.service import (
+    get_cached_summary_for_file,
+    update_file_artifacts,
+)
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_summarization.state import (

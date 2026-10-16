@@ -10,10 +10,10 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from lib.models.file import File, FileRole
-from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
+from lib.services.files.document import FileDocument
 
 MODULE = "lib.services.file_artifacts_service.file_artifacts_service"
 

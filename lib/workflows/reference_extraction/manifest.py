@@ -4,7 +4,7 @@ import builtins
 
 from langgraph.graph import StateGraph
 
-from lib.services.files import get_main_file_id
+from lib.services.files.service import get_main_file_id
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_extraction.graph import build_reference_extraction_graph

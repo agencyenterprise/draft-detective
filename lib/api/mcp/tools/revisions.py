@@ -10,8 +10,8 @@ from lib.api.mcp.instance import mcp
 from lib.models.file import File as FileModel
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel
-from lib.services.file_finalization import finalize_file
-from lib.services.files import get_files_by_project_id
+from lib.services.files.finalization import finalize_file
+from lib.services.files.service import get_files_by_project_id
 from lib.services.projects import create_new_revision, get_project_access
 
 

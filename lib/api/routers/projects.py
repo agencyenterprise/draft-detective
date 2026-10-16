@@ -19,7 +19,7 @@ from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx_workflow_service import DocxManipulatorType, generate_docx
-from lib.services.files import get_files_by_project_id
+from lib.services.files.service import get_files_by_project_id
 from lib.services.project_zip import create_project_files_zip
 from lib.services.projects import (
     MAX_PROJECT_PAGE_SIZE,

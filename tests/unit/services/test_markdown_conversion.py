@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.models.file import FileRole
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.services.markdown_conversion import (
     _converter_for,
     convert_and_cache_file_markdown,

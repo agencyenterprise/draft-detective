@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
 
 

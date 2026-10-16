@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, Field
 
 from lib.models.file import FileRole
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 
 
 class UnreadableDocument(BaseModel):

@@ -8,7 +8,7 @@ from lib.models.file import FileRole
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
-from lib.services.files import (
+from lib.services.files.service import (
     delete_project_files,
     get_supporting_candidate_files,
     update_files_role,

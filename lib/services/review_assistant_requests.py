@@ -18,7 +18,7 @@ from sqlmodel import col
 from lib.config.database import get_async_db_session
 from lib.models.file import FileRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
-from lib.services.files import get_files_by_project_id
+from lib.services.files.service import get_files_by_project_id
 from lib.services.project_overview import current_run_errors
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_runs import persist_workflow_run_state

@@ -6,7 +6,10 @@ from starlette.responses import FileResponse
 from lib.api.auth import get_current_user_optional
 from lib.config.env import config
 from lib.models.user import User
-from lib.services.files import check_file_access, check_file_access_by_share_token
+from lib.services.files.service import (
+    check_file_access,
+    check_file_access_by_share_token,
+)
 
 router = APIRouter(tags=["files"])
 

@@ -15,7 +15,11 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.file import File, FileRole
-from lib.services.files import _delete_file_from_disk, _is_path_shared, get_file_by_id
+from lib.services.files.service import (
+    _delete_file_from_disk,
+    _is_path_shared,
+    get_file_by_id,
+)
 from lib.services.image_extraction import ExtractedImage
 
 

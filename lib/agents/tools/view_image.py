@@ -19,7 +19,7 @@ from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import BaseMessage, ToolMessage
 
 from lib.models.file import FileRole
-from lib.services.files import get_file_by_id
+from lib.services.files.service import get_file_by_id
 from lib.services.image_extraction import IMAGE_REFERENCE_SCHEME
 from lib.workflows.context import ContextSchema
 

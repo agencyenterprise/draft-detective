@@ -14,7 +14,7 @@ from lib.config.database import get_async_db_session
 from lib.models.file import File, FileListItem, FileRole
 from lib.models.project import Project
 from lib.models.share_link import ShareLink
-from lib.services.file import FileDocument, create_file_document_from_path
+from lib.services.files.document import FileDocument, create_file_document_from_path
 from lib.services.text_sanitization import sanitize_for_postgres
 from lib.services.uuid_utils import ensure_uuid
 

@@ -26,7 +26,7 @@ from lib.services.docx.review_markup_markdown import (
     tracked_changes_markdown,
     visible_changes,
 )
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.workflows.review_assistant.state import ReviewAssistantInput
 
 logger = logging.getLogger(__name__)

@@ -8,13 +8,13 @@ from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import File, FileRole
-from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
     LoadedDocuments,
     UnreadableDocument,
 )
-from lib.services.files import (
+from lib.services.files.document import FileDocument
+from lib.services.files.service import (
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,

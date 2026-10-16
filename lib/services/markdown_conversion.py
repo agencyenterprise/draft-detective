@@ -20,9 +20,9 @@ from lib.services.docx.image_display_sizes import (
     DisplaySizes,
     read_docx_image_display_sizes,
 )
-from lib.services.file import FileDocument
-from lib.services.file_images import replace_extracted_images
-from lib.services.files import (
+from lib.services.files.document import FileDocument
+from lib.services.files.images import replace_extracted_images
+from lib.services.files.service import (
     get_file_by_id,
     load_file_document,
     update_file_artifacts,

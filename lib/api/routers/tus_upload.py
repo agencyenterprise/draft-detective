@@ -13,8 +13,8 @@ from lib.config.env import config
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
-from lib.services.file_finalization import finalize_file_from_path
-from lib.services.files import get_files_by_project_id
+from lib.services.files.finalization import finalize_file_from_path
+from lib.services.files.service import get_files_by_project_id
 from lib.services.projects import get_project_access
 from lib.services.references import add_file_to_reference
 from lib.workflows.reference_file_matching.state import MatchSource

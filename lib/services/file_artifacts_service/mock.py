@@ -5,11 +5,11 @@ from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import FileRole
-from lib.services.file import FileDocument
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
     LoadedDocuments,
 )
+from lib.services.files.document import FileDocument
 from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference

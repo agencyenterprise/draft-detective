@@ -6,7 +6,7 @@ import pytest
 from deepagents.backends.utils import file_data_to_string
 from docx_editor import Document as EditorDocument
 
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.workflows.review_assistant.inputs import INPUTS_INDEX_PATH, mount_review_inputs
 from lib.workflows.review_assistant.manifest import (
     collect_reports,

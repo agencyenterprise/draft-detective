@@ -5,7 +5,10 @@ from typing import cast
 
 from langgraph.graph import StateGraph
 
-from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
+from lib.services.files.service import (
+    get_main_file_id,
+    get_processed_supporting_file_ids,
+)
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import DocumentIssue, WorkflowRunType
 from lib.workflows.reference_file_matching.graph import (

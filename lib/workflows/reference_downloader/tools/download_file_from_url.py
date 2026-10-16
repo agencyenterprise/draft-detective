@@ -21,7 +21,7 @@ from xxhash import xxh128
 
 from lib.config.env import config
 from lib.models.file import FileRole
-from lib.services.files import create_file_record
+from lib.services.files.service import create_file_record
 from lib.services.postgres_rate_limiter import PostgresRateLimiter
 from lib.workflows.context import ContextSchema
 

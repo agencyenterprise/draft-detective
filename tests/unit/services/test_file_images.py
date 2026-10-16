@@ -1,4 +1,4 @@
-"""Unit tests for `lib.services.file_images`."""
+"""Unit tests for `lib.services.files.images`."""
 
 import uuid
 from types import SimpleNamespace
@@ -8,10 +8,10 @@ import pytest
 from sqlalchemy.sql.dml import Delete
 
 from lib.models.file import FileRole
-from lib.services.file_images import replace_extracted_images
+from lib.services.files.images import replace_extracted_images
 from lib.services.image_extraction import ExtractedImage
 
-MODULE = "lib.services.file_images"
+MODULE = "lib.services.files.images"
 
 
 class _FakeSession:

@@ -23,7 +23,7 @@ from lib.models.file import FileListItem
 from lib.models.issue import Issue, IssueStatus
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
-from lib.services.files import get_project_files_list_items
+from lib.services.files.service import get_project_files_list_items
 from lib.services.share_links import ShareStatusResponse, get_share_status
 from lib.services.workflow_runs import latest_run_per_type_stmt
 from lib.workflows.models import WorkflowError, WorkflowRunType

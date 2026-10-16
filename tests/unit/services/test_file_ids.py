@@ -11,7 +11,10 @@ from uuid import UUID, uuid4
 import pytest
 
 from lib.models.file import File, FileRole
-from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
+from lib.services.files.service import (
+    get_main_file_id,
+    get_processed_supporting_file_ids,
+)
 
 PROJECT_ID = uuid4()
 
@@ -45,7 +48,7 @@ def _lookup(files: list[File]) -> AsyncMock:
 async def test_get_main_file_id_returns_the_revision_main_file():
     main = _file(FileRole.MAIN, revision=2)
     with patch(
-        "lib.services.files.get_files_by_project_id", new=_lookup([main])
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([main])
     ) as lookup:
         assert await get_main_file_id(PROJECT_ID, 2) == str(main.id)
 
@@ -59,14 +62,14 @@ async def test_get_main_file_id_ignores_a_main_row_without_a_revision():
     stray = _file(FileRole.MAIN, revision=None)
     main = _file(FileRole.MAIN, revision=2)
     with patch(
-        "lib.services.files.get_files_by_project_id", new=_lookup([stray, main])
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([stray, main])
     ):
         assert await get_main_file_id(PROJECT_ID, 2) == str(main.id)
 
 
 @pytest.mark.asyncio
 async def test_get_main_file_id_raises_when_the_revision_has_no_main_file():
-    with patch("lib.services.files.get_files_by_project_id", new=_lookup([])):
+    with patch("lib.services.files.service.get_files_by_project_id", new=_lookup([])):
         with pytest.raises(ValueError, match="No main file found"):
             await get_main_file_id(PROJECT_ID, 1)
 
@@ -75,7 +78,7 @@ async def test_get_main_file_id_raises_when_the_revision_has_no_main_file():
 async def test_processed_supporting_file_ids_lists_files_with_cached_markdown():
     a, b = _file(FileRole.SUPPORT, None), _file(FileRole.SUPPORT, None)
     with patch(
-        "lib.services.files.get_files_by_project_id", new=_lookup([a, b])
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([a, b])
     ) as lookup:
         assert await get_processed_supporting_file_ids(PROJECT_ID, 1) == [
             str(a.id),
@@ -91,11 +94,13 @@ async def test_processed_supporting_file_ids_skips_files_without_cached_markdown
     markdown. It must be left out so consumers do not abort on it."""
     ok = _file(FileRole.SUPPORT, None)
     failed = _file(FileRole.SUPPORT, None, markdown=None)
-    with patch("lib.services.files.get_files_by_project_id", new=_lookup([failed, ok])):
+    with patch(
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([failed, ok])
+    ):
         assert await get_processed_supporting_file_ids(PROJECT_ID, 1) == [str(ok.id)]
 
 
 @pytest.mark.asyncio
 async def test_processed_supporting_file_ids_is_empty_without_support_files():
-    with patch("lib.services.files.get_files_by_project_id", new=_lookup([])):
+    with patch("lib.services.files.service.get_files_by_project_id", new=_lookup([])):
         assert await get_processed_supporting_file_ids(PROJECT_ID, 1) == []

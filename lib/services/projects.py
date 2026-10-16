@@ -21,7 +21,7 @@ from lib.models.workflow_run import (
 from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
-from lib.services.files import (
+from lib.services.files.service import (
     delete_project_files,
     get_files_by_project_id,
 )

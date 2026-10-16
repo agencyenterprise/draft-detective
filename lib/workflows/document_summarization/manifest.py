@@ -4,7 +4,10 @@ import builtins
 
 from langgraph.graph import StateGraph
 
-from lib.services.files import get_main_file_id, get_processed_supporting_file_ids
+from lib.services.files.service import (
+    get_main_file_id,
+    get_processed_supporting_file_ids,
+)
 from lib.workflows.document_summarization.graph import (
     build_document_summarization_graph,
 )

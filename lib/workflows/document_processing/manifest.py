@@ -4,8 +4,8 @@ import logging
 from langgraph.graph import StateGraph
 
 from lib.models.file import FileRole
-from lib.services.file import FileDocument
-from lib.services.files import get_files_by_project_id, load_file_document
+from lib.services.files.document import FileDocument
+from lib.services.files.service import get_files_by_project_id, load_file_document
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,

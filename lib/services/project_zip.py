@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from lib.config.env import config
 from lib.models.file import File, FileRole
-from lib.services.files import get_files_by_project_id
+from lib.services.files.service import get_files_by_project_id
 
 logger = logging.getLogger(__name__)
 

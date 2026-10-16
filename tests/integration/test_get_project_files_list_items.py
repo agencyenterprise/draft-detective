@@ -11,7 +11,7 @@ from lib.config.database import get_async_db_session
 from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User, UserRole
-from lib.services.files import get_project_files_list_items
+from lib.services.files.service import get_project_files_list_items
 
 
 @pytest_asyncio.fixture

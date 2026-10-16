@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph
 
 from lib.agents.citation_validator import TruthfulnessLabel
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.workflows.claim_reference_validation_v2.graph import (
     build_claim_reference_validation_v2_graph,
 )

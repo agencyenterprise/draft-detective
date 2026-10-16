@@ -10,7 +10,7 @@ from lib.api.mcp import helpers, serialization
 from lib.api.mcp.instance import mcp
 from lib.models.file import FileRole
 from lib.services import project_content
-from lib.services.file_finalization import finalize_file
+from lib.services.files.finalization import finalize_file
 from lib.services.projects import create_project as create_project_record
 from lib.services.projects import get_project_access, get_user_projects
 

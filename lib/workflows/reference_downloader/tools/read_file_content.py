@@ -7,7 +7,7 @@ from langchain.tools import ToolRuntime, tool
 from lib.models.file import File
 from lib.services.converters.markitdown import markitdown_converter
 from lib.services.converters.pypdfium import pypdfium_converter
-from lib.services.files import get_file_by_id
+from lib.services.files.service import get_file_by_id
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)

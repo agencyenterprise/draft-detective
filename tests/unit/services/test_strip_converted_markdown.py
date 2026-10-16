@@ -4,7 +4,7 @@ The document-processing state carries every converted document in full, and
 the agent reading a run through get_workflow_run has no use for any of it.
 """
 
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.services.projects import strip_converted_markdown
 from lib.services.workflow_runs import WorkflowRunDetail
 from lib.workflows.document_processing.state import (

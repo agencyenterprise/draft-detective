@@ -19,7 +19,7 @@ from lib.api.mcp.tools.projects import get_project, get_project_references
 from lib.api.mcp.tools.workflows import get_workflow_run
 from lib.config.database import get_async_db_session
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
-from lib.services.file import FileDocument
+from lib.services.files.document import FileDocument
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
     DocumentProcessingWorkflowConfig,

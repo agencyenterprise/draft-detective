@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from lib.services.file import FileDocument
+    from lib.services.files.document import FileDocument
 
 
 class BibliographyItem(BaseModel):

@@ -13,7 +13,7 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 
 from lib.models.file import FileRole
-from lib.services.files import create_file_record
+from lib.services.files.service import create_file_record
 
 
 class _FakeSession:
@@ -45,7 +45,7 @@ def _integrity_error(message: str) -> IntegrityError:
 
 async def _create_record(session: _FakeSession):
     with patch(
-        "lib.services.files.get_async_db_session",
+        "lib.services.files.service.get_async_db_session",
         side_effect=lambda: session,
     ):
         return await create_file_record(
