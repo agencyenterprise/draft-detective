@@ -1,10 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel, Field
 
+from lib.models.bibliography_item import BibliographyItem
 from lib.models.file import FileRole
 from lib.services.files.document import FileDocument
+from lib.workflows.document_summarization.state import FileSummary
+from lib.workflows.reference_extraction.state import ExtractedReference
 
 
 class UnreadableDocument(BaseModel):
@@ -22,35 +25,29 @@ class LoadedDocuments(BaseModel):
     unreadable: list[UnreadableDocument] = Field(default_factory=list)
 
 
-if TYPE_CHECKING:
-    from lib.models.bibliography_item import BibliographyItem
-    from lib.workflows.document_summarization.state import FileSummary
-    from lib.workflows.reference_extraction.state import ExtractedReference
-
-
 class FileArtifactsServiceType(ABC):
     @abstractmethod
-    async def get_file_document(self, file_id: str) -> "FileDocument": ...
+    async def get_file_document(self, file_id: str) -> FileDocument: ...
 
     @abstractmethod
-    async def get_main_file(self, revision: int | None = None) -> "FileDocument": ...
+    async def get_main_file(self, revision: int | None = None) -> FileDocument: ...
 
     @abstractmethod
     async def get_project_files(
         self, roles: list[FileRole], revision: int | None = None
-    ) -> list["FileDocument"]: ...
+    ) -> list[FileDocument]: ...
 
     @abstractmethod
-    async def get_file_summary(self, file_id: str) -> "FileSummary": ...
+    async def get_file_summary(self, file_id: str) -> FileSummary: ...
 
     @abstractmethod
-    async def get_extracted_references(self) -> list["ExtractedReference"]: ...
+    async def get_extracted_references(self) -> list[ExtractedReference]: ...
 
     @abstractmethod
-    async def get_references(self) -> list["BibliographyItem"]: ...
+    async def get_references(self) -> list[BibliographyItem]: ...
 
     @abstractmethod
-    async def get_file_documents(self, file_ids: list[str]) -> "LoadedDocuments": ...
+    async def get_file_documents(self, file_ids: list[str]) -> LoadedDocuments: ...
 
     @abstractmethod
     async def get_deepagent_backend_files(

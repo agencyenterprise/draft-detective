@@ -9,31 +9,7 @@ from lib.config.env import config
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.workflows.context import ContextSchema
-
-
-class DocumentSummary(BaseModel):
-    title: str = Field(
-        description="The title of the document. Suggest a clear, concise title if the document does not have one."
-    )
-    authors: str = Field(
-        description="The authors of the document (if available, otherwise empty string)."
-    )
-    publication_date: str = Field(
-        description="The publication date of the document, or 'Unknown' if not available."
-    )
-    abstract: str = Field(
-        description="The abstract of the document, or 'Unknown' if not available."
-    )
-    summary: str = Field(
-        description=(
-            "A ~1000-word miniature version of the document (roughly 900–1100 words) "
-            "that focuses on the main argument of the work. It should read like a "
-            "compressed research report: clearly stating the central question or problem, "
-            "the main claim/argument, the essential methods or analytical framework, the "
-            "critical results, and how these results support the argument, while omitting "
-            "tangential or overly detailed implementation information."
-        )
-    )
+from lib.workflows.document_summarization.state import DocumentSummary
 
 
 class DocumentSummarizerResponse(BaseModel):
@@ -118,6 +94,7 @@ if __name__ == "__main__":
     from pathlib import Path
 
     from lib.services.converters.base import convert_to_markdown
+    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 
     # Set the file path here, or pass it as a command line argument
     FILE_PATH = "tests/data/RAND_RRA3307-1.pdf"  # e.g., "tests/data/sample_document.md"
@@ -146,8 +123,6 @@ if __name__ == "__main__":
         print("-" * 80)
 
         # Run the agent
-        from lib.services.file_artifacts_service.mock import MockFileArtifactsService  # noqa: PLC0415  circular: the mock imports this agent's state
-
         document_summarizer_agent = DocumentSummarizerAgent(
             ContextSchema(
                 openai_api_key=config.OPENAI_API_KEY,

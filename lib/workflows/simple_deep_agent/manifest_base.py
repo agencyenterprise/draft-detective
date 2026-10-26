@@ -15,6 +15,9 @@ from langgraph.graph.state import END
 from langgraph.runtime import Runtime
 
 from lib.config.llm_models import LLMModel, web_search_tool
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.skills import load_skill_prompt
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
@@ -33,9 +36,6 @@ from lib.workflows.simple_deep_agent.state import (
 )
 
 if TYPE_CHECKING:
-    from lib.services.file_artifacts_service.file_artifacts_service_type import (
-        FileArtifactsServiceType,
-    )
     from lib.workflows.workflow_types import WorkflowState
 
 
@@ -94,7 +94,7 @@ class SimpleDeepAgentManifest(
         )
 
     async def prompt_inputs(
-        self, state: SimpleDeepAgentState, service: "FileArtifactsServiceType"
+        self, state: SimpleDeepAgentState, service: FileArtifactsServiceType
     ) -> str:
         """Per-run inputs appended to the user prompt. Default: none."""
         return ""
