@@ -2,8 +2,8 @@
 
 The sign-in flow: whose parked question a card press may release, when the bot asks
 Teams to sign someone in, and what a token-service outage looks like to the person. What
-happens to the answer after the turn has ended is in ``test_teams_answering.py``, and
-which handler an activity reaches in ``test_teams_dispatch.py``.
+happens to the answer after the turn has ended is in ``test_answering.py``, and
+which handler an activity reaches in ``test_dispatch.py``.
 """
 
 from typing import Any
