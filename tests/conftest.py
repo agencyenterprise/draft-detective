@@ -3,7 +3,6 @@
 This module provides reusable utilities that work across all agent test suites:
 - Path resolution
 - Document loading
-- Supporting documents formatting
 """
 
 import os
@@ -13,13 +12,7 @@ from pathlib import Path
 from xxhash import xxh128
 
 from lib.config.env import config
-from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    FileArtifactsServiceType,
-)
-from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.files.document import create_file_document_from_path
-from lib.services.vector_store import VectorStoreService
-from lib.workflows.context import ContextSchema
 
 TESTS_DIR = Path(__file__).parent
 
@@ -85,29 +78,4 @@ async def create_test_file_document_from_path(path: str):
         file_id=path,
         original_file_name=original_file_name,
         markdown_convert=True,
-    )
-
-
-def create_test_context(
-    file_artifacts_service: FileArtifactsServiceType | None = None,
-    openai_api_key: str | None = None,
-    vector_store: VectorStoreService | None = None,
-    user_id: str | None = None,
-    project_id: str = "test-project",
-    workflow_run_id: str | None = None,
-):
-    """
-    Create a ContextSchema instance for testing agents.
-
-    Returns:
-        ContextSchema with test configuration (uses config.OPENAI_API_KEY, no vector_store)
-    """
-    return ContextSchema(
-        openai_api_key=openai_api_key or config.OPENAI_API_KEY,
-        vector_store=vector_store
-        or VectorStoreService(config.OPENAI_API_KEY or "test-key"),
-        project_id=project_id,
-        file_artifacts_service=file_artifacts_service or MockFileArtifactsService(),
-        user_id=user_id,
-        workflow_run_id=workflow_run_id,
     )
