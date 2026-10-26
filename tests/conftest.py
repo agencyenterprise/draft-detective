@@ -88,24 +88,6 @@ async def create_test_file_document_from_path(path: str):
     )
 
 
-def extract_paragraph_from_chunk(full_document: str, chunk: str) -> str:
-    """
-    Extract paragraph context from chunk.
-
-    For test purposes, we detect the paragraph that contains the chunk breaking the full document into paragraphs.
-
-    In production, state.get_paragraph(chunk.paragraph_index) reconstructs
-    the full paragraph from all chunks sharing the same paragraph_index.
-    """
-
-    paragraphs = full_document.split("\n")
-    for paragraph in paragraphs:
-        if chunk in paragraph:
-            return paragraph
-
-    raise ValueError(f"Chunk not found in full document: {chunk}")
-
-
 def create_test_context(
     file_artifacts_service: FileArtifactsServiceType | None = None,
     openai_api_key: str | None = None,

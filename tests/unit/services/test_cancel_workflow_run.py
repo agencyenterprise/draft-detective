@@ -24,38 +24,6 @@ def _make_run(
     )
 
 
-def _patches(
-    run: WorkflowRun,
-    dependents: list[WorkflowRunType],
-    dependent_runs: dict[WorkflowRunType, WorkflowRun | None],
-):
-    """Return a context-manager stack that mocks all DB calls in cancel_workflow_run."""
-    return (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(return_value=run),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=dependents,
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(
-                side_effect=lambda proj_id, wf_type, **kw: dependent_runs.get(wf_type)
-            ),
-        ),
-    )
-
-
 # ---------------------------------------------------------------------------
 # Basic cancellation (no cascade)
 # ---------------------------------------------------------------------------
