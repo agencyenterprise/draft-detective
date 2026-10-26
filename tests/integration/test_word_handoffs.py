@@ -208,26 +208,60 @@ async def test_a_dismissed_handoff_is_closed_without_an_outcome(ana: Account) ->
 
 @pytest.mark.asyncio
 async def test_a_handoff_past_its_week_is_unusable_and_swept(ana: Account) -> None:
+    # Its week is an hour in this process only. Other tests' sweeps keep the real week,
+    # so nothing but the calls below can skip or delete this two-hour-old handoff.
     handoff_id = await ask(ana)
-    await age(handoff_id, handoffs.KEPT_FOR + timedelta(days=1))
+    await age(handoff_id, timedelta(hours=2))
 
-    assert await handoffs.start(handoff_id, ana) is False
-    assert await handoffs.finish(handoff_id, ana, "dismissed") is None
-    # Skipped even when the sweep has not removed it yet.
-    with patch.object(handoffs, "_sweep", AsyncMock()):
+    with patch.object(handoffs, "KEPT_FOR", timedelta(hours=1)):
+        assert await handoffs.start(handoff_id, ana) is False
+        assert await handoffs.finish(handoff_id, ana, "dismissed") is None
+        # Skipped even when the sweep has not removed it yet.
+        with patch.object(handoffs, "_sweep", AsyncMock()):
+            assert await listed(ana) == {}
+        assert await stored(handoff_id) is not None
+
         assert await listed(ana) == {}
-
-    assert await listed(ana) == {}
     assert await stored(handoff_id) is None
 
 
 @pytest.mark.asyncio
-async def test_storing_a_handoff_sweeps_anyones_past_their_week(ana: Account) -> None:
-    # Someone else's, so the fixture leaves it to the sweep. Under xdist another test's
-    # create may sweep it first: that can hide a break here, never fail it.
-    expired = await ask(Account(oid=f"oid-{uuid.uuid4()}"))
-    await age(expired, handoffs.KEPT_FOR + timedelta(days=1))
+async def test_storing_a_handoff_sweeps(ana: Account) -> None:
+    with patch.object(handoffs, "_sweep", wraps=handoffs._sweep) as sweep:
+        await ask(ana)
 
-    await ask(ana)
+    sweep.assert_awaited_once()
 
-    assert await stored(expired) is None
+
+@pytest.mark.asyncio
+async def test_the_sweep_deletes_anyones_past_their_week_and_nothing_else() -> None:
+    """Run inside one uncommitted transaction, which no other test's sweep can see."""
+
+    def handoff(age: timedelta) -> MicrosoftWordHandoff:
+        return MicrosoftWordHandoff(
+            id=uuid.uuid4(),
+            requested_by_oid=f"oid-{uuid.uuid4()}",
+            requested_by_upn="someone@contoso.com",
+            document_name="Draft.docx",
+            document_url=URL,
+            document_keys=[],
+            items=ITEMS.model_dump(mode="json"),
+            status="pending",
+            created_at=datetime.now(UTC) - age,
+        )
+
+    expired = handoff(handoffs.KEPT_FOR + timedelta(days=1))
+    current = handoff(handoffs.KEPT_FOR - timedelta(days=1))
+    async with get_async_db_session() as session:
+        session.add_all([expired, current])
+        await session.flush()
+
+        await handoffs._sweep(session)
+
+        left = await session.execute(
+            select(col(MicrosoftWordHandoff.id)).where(
+                col(MicrosoftWordHandoff.id).in_([expired.id, current.id])
+            )
+        )
+        assert set(left.scalars()) == {current.id}
+        await session.rollback()
