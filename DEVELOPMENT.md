@@ -150,7 +150,12 @@ The project includes comprehensive Docker support with three services:
 
 ### Quick Start
 
+Compose reads the root `.env` and won't start without it, so create it first (see Environment Variables):
+
 ```bash
+# Create the root .env, then fill in AUTH_SECRET and a sign-in provider
+cp .env.template .env
+
 # Start all services in detached mode
 docker compose up -d
 
@@ -175,6 +180,20 @@ uv run alembic upgrade head
 docker compose exec api uv run alembic upgrade head
 ```
 
+The API container seeds the annotation sets (the `/annotate` pages) each time it starts (`scripts/start_api.sh`). That needs the tables, so on a fresh database the first start's sync fails (the log says `Annotation sync failed; starting the API without it.`) and the API starts without the sets. After migrating, restart the API once, or run the sync in the running container:
+
+```bash
+docker compose restart api
+# or
+docker compose exec api uv run python -m lib.services.annotations.sync
+```
+
+`uv run dev.py` never seeds them. To get the sets in a local database, run the sync after migrating (it is idempotent):
+
+```bash
+uv run python -m lib.services.annotations.sync
+```
+
 ## Environment Variables
 
 The backend and the frontend each read their own `.env`, and each has a template next to it. Copy both and fill in the required variables:
@@ -191,7 +210,7 @@ Sign-in needs the same `AUTH_SECRET` in both files, and at least one provider co
 
 `pnpm dev` trusts the host it runs on, but a production build (`pnpm start`) doesn't: add `AUTH_URL=http://localhost:3000` to `frontend/.env` before running it, or every sign-in request fails with `UntrustedHost`.
 
-For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md).
+For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md) (Railway) or [k8s/README.md](k8s/README.md) (Kubernetes and OpenShift).
 
 
 ## Development Workflow
@@ -238,7 +257,7 @@ uv run alembic downgrade -1
 ### Testing
 
 ```bash
-# Run all Python tests (unit + integration)
+# Run all Python tests (unit + integration; integration needs Postgres: docker compose up -d db)
 uv run pytest
 
 # Run a specific test file or pattern
