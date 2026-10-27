@@ -349,7 +349,15 @@ def create_context(
         raise ValueError("No OpenAI API key found in config or environment variables")
 
     # Only initialize vector store if we have an API key (needed for embeddings)
-    vector_store = VectorStoreService(openai_api_key) if openai_api_key else None
+    vector_store = (
+        VectorStoreService(
+            openai_api_key,
+            workflow_run_id=workflow_run_id,
+            project_id=config.project_id,
+        )
+        if openai_api_key
+        else None
+    )
 
     file_artifacts_service = FileArtifactsService(config.project_id, revision=revision)
 

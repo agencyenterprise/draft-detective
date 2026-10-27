@@ -248,9 +248,14 @@ class TestTwoStageMatching:
         with mock_two_stage_matching(
             candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "A")],
-        ):
+        ) as (MockEmbed, _):
             result = await match_supporting_docs_node(state, runtime)
 
+        MockEmbed.assert_called_once_with(
+            "test-key",
+            workflow_run_id=runtime.context.workflow_run_id,
+            project_id=runtime.context.project_id,
+        )
         assert len(result["matches"]) == 1
         match = result["matches"][0]
         assert match.reference_id == "ref-0"

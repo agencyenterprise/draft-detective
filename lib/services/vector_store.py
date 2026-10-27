@@ -125,13 +125,23 @@ def get_collection_id(file_hash: str) -> str:
 class VectorStoreService:
     """Service for vector storage and retrieval operations."""
 
-    def __init__(self, openai_api_key: str):
+    def __init__(
+        self,
+        openai_api_key: str,
+        *,
+        workflow_run_id: str | None = None,
+        project_id: str | None = None,
+    ):
         """Initialize vector store using the shared async engine.
 
         Reuses the process-wide ``async_engine`` from ``lib.config.database``
         instead of creating a second engine/pool, so all DB access shares one
         bounded connection pool (prevents Postgres ``too many clients``).
+
+        ``workflow_run_id`` and ``project_id`` only label embedding error logs.
         """
+        self._workflow_run_id = workflow_run_id
+        self._project_id = project_id
         self.embeddings = init_embeddings(api_key=openai_api_key)
         self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
 
@@ -200,6 +210,8 @@ class VectorStoreService:
                 model=EMBEDDING_MODEL_LARGE,
                 provider="openai",
                 embeddings_client=self.embeddings,
+                workflow_run_id=self._workflow_run_id,
+                project_id=self._project_id,
             )
             raise
         return len(results) > 0
@@ -235,6 +247,8 @@ class VectorStoreService:
                         model=EMBEDDING_MODEL_LARGE,
                         provider="openai",
                         embeddings_client=self.embeddings,
+                        workflow_run_id=self._workflow_run_id,
+                        project_id=self._project_id,
                     )
                     raise
                 logger.debug(
@@ -275,6 +289,8 @@ class VectorStoreService:
                     model=EMBEDDING_MODEL_LARGE,
                     provider="openai",
                     embeddings_client=self.embeddings,
+                    workflow_run_id=self._workflow_run_id,
+                    project_id=self._project_id,
                 )
                 raise
 
