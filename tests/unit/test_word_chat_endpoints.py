@@ -251,8 +251,12 @@ class TestATurn:
         start.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_a_document_too_large_is_refused(self) -> None:
-        with patch.object(word_chat, "MAX_DOCUMENT_BYTES", 3):
+    async def test_a_document_too_large_is_refused_before_anything_runs(self) -> None:
+        with (
+            patch.object(word_chat, "MAX_DOCUMENT_BYTES", 3),
+            patch.object(word_chat.pane_document, "from_docx") as convert,
+            patch.object(word_chat.chat_threads, "current_or_new") as start,
+        ):
             with pytest.raises(HTTPException) as raised:
                 await word_chat.stream_turn(
                     url=URL,
@@ -262,6 +266,8 @@ class TestATurn:
                 )
 
         assert raised.value.status_code == 413
+        convert.assert_not_called()
+        start.assert_not_called()
 
 
 class TestClearing:
@@ -291,10 +297,17 @@ class TestSuggestions:
 
 class TestResuming:
     @pytest.mark.asyncio
-    async def test_nothing_paused_is_a_409(self) -> None:
+    @pytest.mark.parametrize(
+        "thread",
+        [a_thread(), None],
+        ids=["nothing paused", "no conversation, as after a clear in another pane"],
+    )
+    async def test_nothing_paused_is_a_409(
+        self, thread: MicrosoftWordChatThread | None
+    ) -> None:
         with (
             patch.object(
-                word_chat.chat_threads, "current", AsyncMock(return_value=a_thread())
+                word_chat.chat_threads, "current", AsyncMock(return_value=thread)
             ),
             patch.object(word_chat, "pending_suggestion", AsyncMock(return_value=None)),
         ):
@@ -571,6 +584,64 @@ class TestTheRequestThePaneSends:
         assert response.status_code == 409
         assert response.json()["detail"] == word_chat.DOCUMENT_NEEDED
         current.assert_awaited_once_with(ANA, URL)
+
+    def test_the_form_the_pane_sends_reaches_the_turn(self) -> None:
+        # The pane builds this form by hand (frontend/lib/addin/word-chat-stream.ts),
+        # not from the generated client: a field renamed here would be dropped, not
+        # refused, and the document would never arrive.
+        thread = a_thread()
+        read = LoadedDocument(name="Draft.docx", url=URL, markdown="# Draft")
+
+        async def no_events(*_args: object) -> AsyncIterator[dict]:
+            return
+            yield {}
+
+        with (
+            # Linking by email reaches the database when a tenant is configured.
+            patch.object(
+                word_chat.linked_users, "user_for", AsyncMock(return_value=None)
+            ),
+            patch.object(
+                word_chat.chat_threads,
+                "current_or_new",
+                AsyncMock(return_value=thread),
+            ),
+            patch.object(word_chat.chat_threads, "begin_turn", AsyncMock()),
+            patch.object(
+                word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
+            ),
+            patch.object(
+                word_chat.pane_document, "from_docx", AsyncMock(return_value=read)
+            ) as convert,
+            patch.object(word_chat, "_swap_images", AsyncMock()),
+            patch.object(word_chat, "run_word_chat_turn", side_effect=no_events) as run,
+        ):
+            response = self.client().post(
+                "/chat/thread/stream",
+                data={
+                    "url": URL,
+                    "message": "Tighten the summary",
+                    "message_id": "msg-1",
+                    "selection": "the summary",
+                },
+                files={"document": ("document.docx", b"the .docx bytes")},
+            )
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert convert.await_args is not None
+        assert convert.await_args.args == (b"the .docx bytes",)
+        assert convert.await_args.kwargs["url"] == URL
+        turn, _target, _key = run.call_args.args
+        assert turn.text == "Tighten the summary" and turn.message_id == "msg-1"
+        assert turn.selection == "the summary" and turn.document == read
+
+    def test_reading_the_conversation_needs_the_document_url(self) -> None:
+        with patch.object(word_chat.chat_threads, "current") as current:
+            response = self.client().get("/chat/thread")
+
+        assert response.status_code == 422
+        current.assert_not_called()
 
     @pytest.mark.parametrize(
         "form",
