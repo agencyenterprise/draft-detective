@@ -7,7 +7,6 @@ import type {
   GenerateThreadTitleApiChatThreadsThreadIdTitlePostResponse,
   GetAdminFeedbacksApiAdminFeedbacksGetResponse,
   GetDashboardApiAdminDashboardGetResponse,
-  GetIssueEndpointApiIssuesIssueIdGetResponse,
   GetProjectIssuesEndpointApiProjectProjectIdIssuesGetResponse,
   GetProjectOverviewEndpointApiProjectProjectIdOverviewGetResponse,
   GetProjectWorkflowProgressEndpointApiProjectProjectIdWorkflowProgressGetResponse,
@@ -206,13 +205,6 @@ export const resolveIssueEndpointApiIssuesIssueIdResolvePostResponseTransformer 
 export const unresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponseTransformer = async (
   data: any,
 ): Promise<UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse> => {
-  data = issueResponseSchemaResponseTransformer(data);
-  return data;
-};
-
-export const getIssueEndpointApiIssuesIssueIdGetResponseTransformer = async (
-  data: any,
-): Promise<GetIssueEndpointApiIssuesIssueIdGetResponse> => {
   data = issueResponseSchemaResponseTransformer(data);
   return data;
 };

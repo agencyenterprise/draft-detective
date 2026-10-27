@@ -224,34 +224,6 @@ async def get_feedback_by_issue(
     return feedback_result.scalar_one_or_none()
 
 
-async def get_workflow_feedback(
-    session: AsyncSession, workflow_run_id: uuid.UUID, user: User
-) -> list[Feedback]:
-    """
-    Get all feedback for a workflow run.
-
-    Args:
-        session: Database session
-        workflow_run_id: The workflow run ID
-        user: The user requesting the feedback
-
-    Returns:
-        List of Feedback objects
-
-    Raises:
-        HTTPException: If workflow run not found or user doesn't own it
-    """
-    await _verify_workflow_run_ownership(session, workflow_run_id, user)
-
-    stmt = (
-        select(Feedback)
-        .where(col(Feedback.workflow_run_id) == workflow_run_id)
-        .where(col(Feedback.user_id) == user.id)
-    )
-    result = await session.execute(stmt)
-    return list(result.scalars().all())
-
-
 async def get_project_issue_feedback(
     session: AsyncSession, project_id: uuid.UUID, user: User
 ) -> list[Feedback]:

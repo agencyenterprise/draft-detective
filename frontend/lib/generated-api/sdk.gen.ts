@@ -20,9 +20,6 @@ import type {
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
-  CheckPreflightApiPreflightPostData,
-  CheckPreflightApiPreflightPostErrors,
-  CheckPreflightApiPreflightPostResponses,
   ClearThreadApiMicrosoftWordChatThreadClearPostData,
   ClearThreadApiMicrosoftWordChatThreadClearPostErrors,
   ClearThreadApiMicrosoftWordChatThreadClearPostResponses,
@@ -117,9 +114,6 @@ import type {
   GetFeedbackApiFeedbackGetData,
   GetFeedbackApiFeedbackGetErrors,
   GetFeedbackApiFeedbackGetResponses,
-  GetIssueEndpointApiIssuesIssueIdGetData,
-  GetIssueEndpointApiIssuesIssueIdGetErrors,
-  GetIssueEndpointApiIssuesIssueIdGetResponses,
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetData,
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetErrors,
   GetNextAnnotationTaskApiAnnotationsSetsSlugNextGetResponses,
@@ -155,9 +149,6 @@ import type {
   GetThreadApiMicrosoftWordChatThreadGetData,
   GetThreadApiMicrosoftWordChatThreadGetErrors,
   GetThreadApiMicrosoftWordChatThreadGetResponses,
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData,
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
   GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetData,
   GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetErrors,
   GetWorkflowRawStateApiWorkflowsWorkflowRunIdRawStateGetResponses,
@@ -788,30 +779,6 @@ export const extractAttachmentTextApiChatExtractPost = <ThrowOnError extends boo
   });
 
 /**
- * Check Preflight
- *
- * Run preflight validation before starting analysis.
- */
-export const checkPreflightApiPreflightPost = <ThrowOnError extends boolean = true>(
-  options: Options<CheckPreflightApiPreflightPostData, ThrowOnError>,
-): RequestResult<CheckPreflightApiPreflightPostResponses, CheckPreflightApiPreflightPostErrors, ThrowOnError, 'data'> =>
-  (options.client ?? client).post<
-    CheckPreflightApiPreflightPostResponses,
-    CheckPreflightApiPreflightPostErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/preflight',
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-/**
  * Start Workflow
  *
  * Start a workflow
@@ -1145,31 +1112,6 @@ export const submitFeedbackApiFeedbackPost = <ThrowOnError extends boolean = tru
   });
 
 /**
- * Get Workflow Feedback
- *
- * Get all feedback for a workflow run
- */
-export const getWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData, ThrowOnError>,
-): RequestResult<
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).get<
-    GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses,
-    GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/feedback/workflow/{workflow_run_id}',
-    ...options,
-  });
-
-/**
  * Get Project Feedback
  *
  * Get all issue feedback for a project (single call for all issues)
@@ -1357,31 +1299,6 @@ export const unresolveIssueEndpointApiIssuesIssueIdUnresolvePost = <ThrowOnError
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/issues/{issue_id}/unresolve',
-    ...options,
-  });
-
-/**
- * Get Issue Endpoint
- *
- * Get a single issue by ID.
- */
-export const getIssueEndpointApiIssuesIssueIdGet = <ThrowOnError extends boolean = true>(
-  options: Options<GetIssueEndpointApiIssuesIssueIdGetData, ThrowOnError>,
-): RequestResult<
-  GetIssueEndpointApiIssuesIssueIdGetResponses,
-  GetIssueEndpointApiIssuesIssueIdGetErrors,
-  ThrowOnError,
-  'data'
-> =>
-  (options.client ?? client).get<
-    GetIssueEndpointApiIssuesIssueIdGetResponses,
-    GetIssueEndpointApiIssuesIssueIdGetErrors,
-    ThrowOnError,
-    'data'
-  >({
-    responseStyle: 'data',
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/api/issues/{issue_id}',
     ...options,
   });
 
@@ -2535,7 +2452,8 @@ export const botMessagesApiMicrosoftTeamsMessagesPost = <ThrowOnError extends bo
  *
  * Public, like the add-in's manifest: it holds the bot's app id and nothing secret.
  * Refused until the bot is configured, so a bot that could answer nobody is never
- * published.
+ * published, and until ``FRONTEND_URL`` is HTTPS: the manifest links to it, and
+ * Teams refuses a package whose links are not.
  */
 export const teamsPackageApiMicrosoftTeamsPackageZipGet = <ThrowOnError extends boolean = true>(
   options?: Options<TeamsPackageApiMicrosoftTeamsPackageZipGetData, ThrowOnError>,
