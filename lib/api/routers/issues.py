@@ -108,13 +108,3 @@ async def unresolve_issue_endpoint(
         raise HTTPException(status_code=404, detail="Issue not found")
 
     return IssueResponse.from_model(issue)
-
-
-@router.get("/api/issues/{issue_id}", response_model=IssueResponse)
-async def get_issue_endpoint(
-    issue_id: UUID,
-    current_user: User = Depends(get_current_user),
-) -> IssueResponse:
-    """Get a single issue by ID."""
-    issue = await _get_verified_issue(issue_id, current_user)
-    return IssueResponse.from_model(issue)

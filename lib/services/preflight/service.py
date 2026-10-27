@@ -71,6 +71,3 @@ class PreflightValidationService:
                     severity=ValidationSeverity.WARNING,
                 )
             ]
-
-
-preflight_service = PreflightValidationService()
