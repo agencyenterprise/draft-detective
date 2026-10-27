@@ -237,6 +237,21 @@ class TestTheSignInAppsTenant:
         )
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("tenants", ["common", "organizations"])
+    async def test_a_multi_tenant_issuer_still_needs_a_tenant_on_the_session(
+        self, monkeypatch: pytest.MonkeyPatch, tenants: str
+    ) -> None:
+        # Single sign-on always names its tenant, and an account is its object id in
+        # its tenant: a session without one would be an account no sign-in matches.
+        monkeypatch.setattr(
+            addin_auth.config,
+            "AUTH_MICROSOFT_ENTRA_ID_ISSUER",
+            f"https://login.microsoftonline.com/{tenants}/v2.0",
+        )
+
+        assert await addin_auth.identify(session_token(tid=None)) is None
+
+    @pytest.mark.asyncio
     @pytest.mark.parametrize(
         "issuer",
         [

@@ -164,6 +164,9 @@ def from_session_token(token: str) -> AddinIdentity | None:
         logger.info("rejected an add-in session token without an object id")
         return None
     tenant = claims.get("tid")
+    if not tenant:
+        logger.info("rejected an add-in session token without a tenant")
+        return None
     if required_issuer and f"/{str(tenant).lower()}/" not in required_issuer.lower():
         logger.info("rejected an add-in session token from tenant %s", tenant)
         return None
