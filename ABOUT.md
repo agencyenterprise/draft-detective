@@ -56,9 +56,8 @@ Each check is listed below, organized by category and shown in the order it appe
 | Analysis Type | Description | Eval |
 |:---|:---|:---:|
 | **Abbreviation Scan** | Scans the document for abbreviations and acronyms, verifies each is defined inline at its first occurrence, and checks that all abbreviations appear in an Abbreviations section. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/abbreviation_checker) |
-| **About This (GER)** | Checks that the preface / "About This" section meets publication requirements — publication context, objectives, audience, funding, and author biographies. Tailored to RAND GER publications; available to RAND and admin accounts. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/about_this_ger) |
-| **Document Contents** | Checks that key content is present: About This, Acknowledgements, Methods, Results, Conclusion, References, and Appendix (if referenced in text). | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/document_structure) |
 | **Figures & Tables Check** | Verifies that every figure and table has a title, is consistently numbered, is referenced in the body text, and that every body-text reference resolves to an actual figure or table in the document. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/figures_tables_check) |
+| **Structural Checks (GER)** | Checks that the report has every required section (About This, About the Authors, Acknowledgements, Methods, Results, Conclusion, References, and an Appendix when the text refers to one), that its preface states its context, objectives, audience, place in the literature, contribution and scope, and that each author biography gives a position and affiliation, research focus and highest degree in three sentences. Tailored to RAND GER publications. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/structural_checks_ger) |
 
 ### Language
 
