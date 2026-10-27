@@ -1,6 +1,6 @@
 """Integration tests for the reaper's stuck-run SQL predicate.
 
-The unit tests in tests/unit/services/test_workflow_reaper.py stub
+The unit tests in tests/unit/services/workflow_runs/test_reaper.py stub
 `_find_stuck_runs` out, so they don't catch a regression in the SQL itself.
 A subtle change like swapping ``or_`` for ``and_``, or comparing
 ``started_at`` against the wrong cutoff, could silently mass-fail healthy
