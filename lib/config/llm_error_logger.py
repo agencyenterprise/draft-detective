@@ -13,7 +13,7 @@ import json
 import logging
 from dataclasses import dataclass
 from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
@@ -22,12 +22,6 @@ from lib.config.llm_diagnostics import (
     capture_http_error,
     safe_endpoint,
 )
-
-if TYPE_CHECKING:
-    # Imported only for typing to avoid a circular import:
-    # lib.workflows.context -> lib.services.vector_store -> lib.config.llm_error_logger.
-    # At runtime we duck-type access to context.workflow_run_id / context.project_id.
-    from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +329,8 @@ def log_embedding_error(
     model: str,
     provider: str,
     embeddings_client: Any = None,
-    context: ContextSchema | None = None,
+    workflow_run_id: str | None = None,
+    project_id: str | None = None,
 ) -> None:
     """Log an error from an embeddings call in the same format as chat errors.
 
@@ -357,16 +352,8 @@ def log_embedding_error(
         model_name=model,
         provider=provider,
         endpoint=endpoint,
-        workflow_run_id=(
-            str(context.workflow_run_id)
-            if context is not None and getattr(context, "workflow_run_id", None)
-            else None
-        ),
-        project_id=(
-            str(context.project_id)
-            if context is not None and getattr(context, "project_id", None)
-            else None
-        ),
+        workflow_run_id=workflow_run_id,
+        project_id=project_id,
         status=_status_code(error),
         error_type=type(error).__name__,
         message=_flatten_message(error),
