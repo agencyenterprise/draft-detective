@@ -9,7 +9,9 @@ and nothing in this suite can drift from them.
 An expected issue's part is read from its title: "Missing Section: <name>" for
 the required sections, "Preface: <element> Missing" for About This, and the
 stable "Author Bio Issue" for About the Authors. Every detected issue is graded
-against the whole report, except an author issue, graded against its bio.
+against the whole report, except an author issue, graded against its bio: on its
+suggested action, and on whether its title names that bio's author, which the
+inventory cannot check since it matches only the stable part of the title.
 """
 
 import re
@@ -76,6 +78,15 @@ BIO_ACTION = _criterion(
     "position or research area the report does not state is incorrect; asking the author for it is correct.",
 )
 
+AUTHOR_NAMED = _criterion(
+    3,
+    "The reviewer reported that one author's biography fails one or more of these rules, and the biography is "
+    "shown. Grade only the issue's title: it must name the author of this biography, as the rules require "
+    '("Author Bio Issue: {author_name}"), with the full name as the biography gives it. An honorific such as '
+    '"Dr." may be kept or dropped. A title that names another author, names no one, or gives only part of the '
+    "name is incorrect. Do not grade the description.",
+)
+
 
 def part_of(expected: ResolvedIssue) -> str | None:
     """Which part of the skill an expected issue falls under, read from its title."""
@@ -112,6 +123,14 @@ JUDGE_CRITERIA = [
         applies_to=lambda e: part_of(e) == "preface",
     ),
     JudgeCriterion(
+        key="author_named",
+        criterion=AUTHOR_NAMED,
+        scope="expected",
+        passage="section",
+        reads="issue",
+        applies_to=lambda e: part_of(e) == "authors",
+    ),
+    JudgeCriterion(
         key="bio_action",
         criterion=BIO_ACTION,
         scope="expected",
@@ -124,6 +143,7 @@ JUDGE_DESCRIPTIONS = {
     "section_action_specific": "Graded per detected missing-section issue against the whole report, with the skill's required-sections rules: the suggested action says what this report's missing section should contain (C=1, P=0.5, I=0).",
     "section_action_grounded": "Graded per detected missing-section issue against the whole report, with the skill's required-sections rules: anything specific the suggested action proposes comes from the report (C=1, P=0.5, I=0).",
     "preface_action": "Graded per detected preface issue against the whole report, with the skill's About This rules: the suggested action says what this report's preface should add, inventing nothing (C=1, P=0.5, I=0).",
+    "author_named": "Graded per detected author issue against the bio, with the skill's About the Authors rules: the issue's title names this bio's author in full, with or without an honorific (C=1, I=0).",
     "bio_action": "Graded per detected author issue against the bio, with the skill's About the Authors rules: the suggested action addresses every rule the bio fails and only those, and supplies no credentials (C=1, P=0.5, I=0).",
 }
 
@@ -131,5 +151,6 @@ SCORE_LABELS = {
     "section_action_specific": "Section action specific",
     "section_action_grounded": "Section action grounded",
     "preface_action": "Preface action",
+    "author_named": "Author named",
     "bio_action": "Bio action",
 }

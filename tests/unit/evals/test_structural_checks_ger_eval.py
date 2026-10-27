@@ -12,6 +12,7 @@ from evals_inspectai.common.issue_inventory import (
     expects_severities,
     load_inventory_records,
 )
+from evals_inspectai.common.issue_judge import expected_prompt
 from evals_inspectai.common.simple_deep_agent_types import IssueItem
 from evals_inspectai.e2e.structural_checks_ger.criteria import (
     AUTHOR_TITLE,
@@ -104,6 +105,7 @@ def test_each_criterion_carries_its_part_of_the_skill():
         "section_action_specific": 1,
         "section_action_grounded": 1,
         "preface_action": 2,
+        "author_named": 3,
         "bio_action": 3,
     }
     assert {c.key for c in JUDGE_CRITERIA} == set(parts)
@@ -115,7 +117,7 @@ def test_each_expected_issue_is_judged_by_its_parts_criteria():
     by_part = {
         "sections": ["section_action_specific", "section_action_grounded"],
         "preface": ["preface_action"],
-        "authors": ["bio_action"],
+        "authors": ["author_named", "bio_action"],
     }
     for e in EXPECTED:
         applies = [
@@ -134,3 +136,28 @@ def test_skill_part_stops_at_the_next_section():
     assert skill_part(2, skill) == "## 2 — Two\n\nsecond"
     with pytest.raises(ValueError):
         skill_part(3, skill)
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["Author Bio Issue: Jane Smith", "Author Bio Issue", "Author Bio Issue: Marsh"],
+)
+def test_the_author_named_grader_sees_the_title_against_the_bio(title: str):
+    """The inventory matches only "Author Bio Issue", so a wrong, missing or partial name
+    reaches the grader, next to the bio whose author it should name."""
+    (expected,) = MARSH_TWO_RULES.expected_issues
+    (criterion,) = [c for c in JUDGE_CRITERIA if c.key == "author_named"]
+    assert expected.line is not None
+    issue = IssueItem(
+        title=title,
+        description="Two sentences and no degree.",
+        start_line=expected.line,
+        end_line=expected.line,
+    )
+    values, _ = issue_detection_scores(
+        [issue], MARSH_TWO_RULES.with_policy(edits=False, pairing="one_to_one")
+    )
+    assert values["title_correct"] == 1.0, "the inventory alone cannot tell them apart"
+    prompt = expected_prompt(criterion, expected, issue, MARSH_TWO_RULES.document)
+    assert f"Title: {title}" in prompt
+    assert "Kevin Marsh is a research associate" in prompt
