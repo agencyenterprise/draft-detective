@@ -115,7 +115,10 @@ async def test_returns_only_the_most_recent_projects_assessments(seeder):
     await seeder.project(
         user,
         age_days=10,
-        runs=[(WorkflowRunType.REVIEWER_2, 1), (WorkflowRunType.DOCUMENT_STRUCTURE, 1)],
+        runs=[
+            (WorkflowRunType.REVIEWER_2, 1),
+            (WorkflowRunType.ABBREVIATION_SCAN_V2, 1),
+        ],
     )
     await seeder.project(
         user,

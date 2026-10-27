@@ -44,8 +44,6 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
         label="Editorial and Style Review",
         workflows=[
             WorkflowRunType.ABBREVIATION_SCAN_V2,
-            WorkflowRunType.ABOUT_THIS_GER,
-            WorkflowRunType.DOCUMENT_STRUCTURE,
             WorkflowRunType.FIGURES_TABLES_CHECK,
         ],
     ),
@@ -60,6 +58,10 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     # with the outputs and documents the author picked, and a run without them
     # has nothing to read. Leaving it out of every category is what keeps it out
     # of the assessment picker.
+    # ABOUT_THIS_GER and DOCUMENT_STRUCTURE are deliberately absent too. Structural
+    # Checks (GER), declared by skills/structural-checks-ger/SKILL.md, runs their rules
+    # in one check and replaces both in the picker. They stay registered, so existing
+    # runs still list and render and the API can still start them by type.
     # The Research & Writing Assistant workflows (LITERATURE_REVIEW_V2 and
     # LIVE_REPORTS_V2) are deliberately absent. Draft Detective is positioned as a
     # suite of checks that review a draft the author already has; these instead go
