@@ -261,7 +261,7 @@ uv run alembic downgrade -1
 uv run pytest
 
 # Run a specific test file or pattern
-uv run pytest tests/integration/test_workflow_progress_service.py
+uv run pytest tests/integration/workflow_runs/test_progress.py
 uv run pytest tests/ -k "test_name"
 ```
 
