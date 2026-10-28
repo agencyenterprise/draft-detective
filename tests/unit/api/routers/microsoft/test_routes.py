@@ -16,7 +16,7 @@ from lib.api.routers.microsoft import routes
 
 
 def mounted() -> dict[str, APIRoute]:
-    """Just these routes, not the whole application (see ``test_teams_endpoints``)."""
+    """Just these routes, not the whole application (see ``test_teams``)."""
 
     app = FastAPI()
     app.include_router(routes.router)
