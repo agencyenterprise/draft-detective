@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
 
 from lib.config.env import config as env_config
 
@@ -24,9 +23,6 @@ async_engine = create_async_engine(
 AsyncSessionLocal = async_sessionmaker(
     async_engine, expire_on_commit=False, class_=AsyncSession
 )
-
-# Base class for models
-Base = declarative_base()
 
 
 @asynccontextmanager
