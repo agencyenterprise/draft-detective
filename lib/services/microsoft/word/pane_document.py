@@ -5,7 +5,8 @@ add-in is the only party that can see a document mid-edit: SharePoint holds the 
 saved copy, which was measured lagging a fresh edit by most of a minute, and an unsaved
 document is nowhere else at all. It is read the way the Teams bot reads a downloaded
 .docx (``lib/services/microsoft/graph/documents.py``), images included; the caller
-stores those for the conversation with ``replace_conversation_images``.
+stores those for the conversation (``_swap_images`` in
+``lib/api/routers/microsoft/word_chat.py``).
 """
 
 import shutil

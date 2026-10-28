@@ -70,6 +70,12 @@ DOCUMENT_NEEDED = (
     "This conversation does not have the document yet: send it with the message."
 )
 
+# A document never saved has no URL: the pane sends a key of its own instead
+# (``chatDocumentKey`` in ``frontend/lib/addin/pane-document.ts``).
+URL_DESCRIPTION = (
+    "The document URL Word reports, or `unsaved:<id>` for a document never saved"
+)
+
 # A whole .docx, images included.
 MAX_DOCUMENT_BYTES = 50 * 1024 * 1024
 
@@ -95,12 +101,12 @@ class WordChatHistory(BaseModel):
 
 
 class WordChatClearRequest(BaseModel):
-    url: str = Field(description="The document URL Word reports; empty when unsaved")
+    url: str = Field(description=URL_DESCRIPTION)
 
 
 @router.get("/thread", response_model=WordChatHistory)
 async def get_thread(
-    url: str = Query(description="The document URL Word reports"),
+    url: str = Query(description=URL_DESCRIPTION),
     caller: AddinIdentity = Depends(get_addin_identity),
 ) -> WordChatHistory:
     """The current conversation about this document, if there is one."""
@@ -122,9 +128,7 @@ async def get_thread(
     responses={200: {"content": {"text/event-stream": {}}}},
 )
 async def stream_turn(
-    url: Annotated[
-        str, Form(description="The document URL Word reports; empty when unsaved")
-    ],
+    url: Annotated[str, Form(description=URL_DESCRIPTION)],
     message: Annotated[str, Form(min_length=1, description="What they typed")],
     message_id: Annotated[
         str | None,
@@ -351,7 +355,7 @@ def _target(caller: AddinIdentity, thread: MicrosoftWordChatThread) -> Suggestio
 
 
 class WordChatResumeRequest(BaseModel):
-    url: str = Field(description="The document URL Word reports; empty when unsaved")
+    url: str = Field(description=URL_DESCRIPTION)
 
 
 @router.post(

@@ -1098,7 +1098,7 @@ export type BodyStreamTurnApiMicrosoftWordChatThreadStreamPost = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
   /**
@@ -4683,7 +4683,7 @@ export type WordChatClearRequest = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
 };
@@ -4721,7 +4721,7 @@ export type WordChatResumeRequest = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
 };
@@ -8198,7 +8198,7 @@ export type GetThreadApiMicrosoftWordChatThreadGetData = {
     /**
      * Url
      *
-     * The document URL Word reports
+     * The document URL Word reports, or `unsaved:<id>` for a document never saved
      */
     url: string;
   };

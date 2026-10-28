@@ -58,7 +58,7 @@ class MicrosoftWordChatThread(SQLModel, table=True):
     )
     last_turn_at: datetime = Field(
         sa_column=Column(DateTime(timezone=True), nullable=False),
-        description="When the last message was sent; suggestions settled after it are news",
+        description="When the last message was sent; the newest thread is the current one",
     )
     running_since: datetime | None = Field(
         default=None,
