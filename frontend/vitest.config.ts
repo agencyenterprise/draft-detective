@@ -21,9 +21,18 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/.next/**'],
     coverage: {
       provider: 'v8',
-      // Hand-written code only: generated clients and tests would skew the numbers.
-      include: ['app/**', 'components/**', 'hooks/**', 'lib/**'],
-      exclude: ['**/*.test.{ts,tsx}', 'lib/generated-api/**', 'lib/test-render.tsx'],
+      // Every hand-written module; generated clients, tests and tool configs would skew the numbers.
+      include: ['**/*.{ts,tsx}'],
+      exclude: [
+        '**/node_modules/**',
+        '**/.next/**',
+        '**/*.d.ts',
+        '**/*.test.{ts,tsx}',
+        'lib/generated-api/**',
+        'lib/test-render.tsx',
+        'vitest.config.ts',
+        'openapi-ts.config.ts',
+      ],
     },
   },
 });
