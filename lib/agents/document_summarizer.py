@@ -5,10 +5,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.config.env import config
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
-from lib.workflows.context import ContextSchema
 from lib.workflows.document_summarization.state import DocumentSummary
 
 
@@ -84,81 +82,3 @@ class DocumentSummarizerAgent(LangChainAgent):
             DocumentSummarizerResponse,
             await self.llm.ainvoke(messages, config=config),
         )
-
-
-# Test script - can be run directly or imported
-if __name__ == "__main__":
-    import asyncio
-    import os
-    import sys
-    from pathlib import Path
-
-    from lib.services.converters.base import convert_to_markdown
-    from lib.services.file_artifacts_service.mock import MockFileArtifactsService
-
-    # Set the file path here, or pass it as a command line argument
-    FILE_PATH = "tests/data/RAND_RRA3307-1.pdf"  # e.g., "tests/data/sample_document.md"
-    FILE_PATH = "tests/data/case_1/main_document.md"
-
-    async def test_document_summarizer(file_path: str):
-        """Test the document summarizer agent with a given file."""
-        # Resolve the file path (handle relative paths from project root)
-        if not os.path.isabs(file_path):
-            # Assume relative to project root
-            project_root = Path(__file__).parent.parent.parent
-            file_path = str(project_root / file_path)
-
-        if not os.path.exists(file_path):
-            print(f"Error: File not found: {file_path}")
-            return
-
-        print(f"Reading file: {file_path}")
-        print("-" * 80)
-
-        # Convert file to markdown
-        markdown_content = await convert_to_markdown(file_path)
-
-        print(f"Document length: {len(markdown_content)} characters")
-        print("Running document summarizer agent...")
-        print("-" * 80)
-
-        # Run the agent
-        document_summarizer_agent = DocumentSummarizerAgent(
-            ContextSchema(
-                openai_api_key=config.OPENAI_API_KEY,
-                vector_store=None,
-                project_id="dev",
-                file_artifacts_service=MockFileArtifactsService(),
-            )
-        )
-        response = await document_summarizer_agent.ainvoke(
-            {"document": markdown_content}
-        )
-
-        # Print the results
-        summary = response.summary
-        print("\n" + "=" * 80)
-        print("DOCUMENT SUMMARY")
-        print("=" * 80)
-        print(f"\nTitle: {summary.title}")
-        print(f"Authors: {summary.authors or 'N/A'}")
-        print(f"Publication Date: {summary.publication_date}")
-        print(f"\nAbstract:\n{summary.abstract}")
-        print("\n" + "-" * 80)
-        print("Summary (~1000 words):")
-        print("-" * 80)
-        print(summary.summary)
-        print("\n" + "=" * 80)
-
-    # Get file path from command line or use the FILE_PATH variable
-    if len(sys.argv) > 1:
-        file_path = sys.argv[1]
-    elif FILE_PATH:
-        file_path = FILE_PATH
-    else:
-        print("Usage: python document_summarizer_new.py <file_path>")
-        print("   or: Set FILE_PATH variable in the script")
-        sys.exit(1)
-
-    # Run the test
-    asyncio.run(test_document_summarizer(file_path))
