@@ -2,8 +2,9 @@
 
 ``on_turn`` is handed to the adapter for every authenticated activity and dispatches on
 what it is. A message is a question; the sign-in card's ``Action.Execute`` signs the
-asker in and releases the question they parked. Everything else -- membership changes,
-typing, reactions -- is accepted and ignored, which is what stops Teams retrying it.
+asker in and releases the question they parked. Anything else that is not an invoke --
+membership changes, typing, reactions -- is accepted and ignored, which is what stops
+Teams retrying it. Another invoke goes unanswered, which the SDK turns into a 501.
 
 Answering takes about a minute, far longer than the request should stay open, so a turn
 acknowledges and ends and the answer is posted into the thread afterwards.
