@@ -19,5 +19,11 @@ export default defineConfig({
     globals: false,
     include: ['**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/.next/**'],
+    coverage: {
+      provider: 'v8',
+      // Hand-written code only: generated clients and tests would skew the numbers.
+      include: ['app/**', 'components/**', 'hooks/**', 'lib/**'],
+      exclude: ['**/*.test.{ts,tsx}', 'lib/generated-api/**', 'lib/test-render.tsx'],
+    },
   },
 });
