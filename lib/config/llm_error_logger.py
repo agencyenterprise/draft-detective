@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from time import monotonic
 from typing import Any
 from uuid import UUID
 
 from langchain_core.callbacks import BaseCallbackHandler
+from pydantic import BaseModel, ConfigDict
 
 from lib.config.llm_diagnostics import (
     capture_http_error,
@@ -35,14 +35,15 @@ _ENDPOINT_ATTRS = ("openai_api_base", "anthropic_api_url", "base_url")
 _UNKNOWN = "unknown"
 
 
-@dataclass(frozen=True)
-class _CallMetadata:
+class _CallMetadata(BaseModel):
     """Metadata captured at LLM call start, consumed at error/end time.
 
     The callback receives `serialized` + `metadata` + `tags` only on
     `on_chat_model_start` / `on_llm_start` — not on `on_llm_error` — so we
     cache what we need keyed by the call's `run_id`.
     """
+
+    model_config = ConfigDict(frozen=True)
 
     agent_name: str
     model_name: str
