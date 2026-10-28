@@ -44,6 +44,7 @@ from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
 from pydantic import BaseModel, Field
 
+from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
@@ -373,7 +374,7 @@ async def answer_question(
                         # Skills only. Documents arrive through the tool and stay in the
                         # thread's own files; skills have to be mounted up front because
                         # a tool cannot add them later.
-                        files=build_skill_files(),
+                        files=build_skill_files(exclude=EXCLUDED_CHAT_SKILLS),
                         messages=[HumanMessage(content=prompt)],
                     ),
                     config=run_config,

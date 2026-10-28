@@ -74,26 +74,35 @@ CHAT_MODELS: tuple[ChatModelOption, ...] = (
 )
 DEFAULT_CHAT_MODEL = CHAT_MODELS[0].model
 
-# These two go looking for new literature rather than reviewing a draft the
-# author already has, which is a different product. Their SKILL.md files stay on
-# disk for the workflows; they are just not offered in the chat.
-EXCLUDED_CHAT_SKILLS = frozenset({"literature-review", "live-reports"})
+# Skills on disk that no agent talking to a user mounts: the chat, the Word add-in
+# and the Teams agent all exclude this one list, so they always offer the same set.
+# The SKILL.md files stay on disk for the workflows that load them.
+EXCLUDED_CHAT_SKILLS = frozenset(
+    {
+        # They go looking for new literature rather than reviewing a draft the
+        # author already has, which is a different product.
+        "literature-review",
+        "live-reports",
+        # Retired in favour of Structural Checks (GER), which runs all their rules;
+        # kept on disk for the retired workflows' existing runs.
+        "about-this-authors",
+        "about-this-preface",
+        "document-contents",
+    }
+)
 
 # The workflow each chat skill is the batch form of. A skill's slash-command
 # description is taken from that manifest, so the two never drift apart; skills
 # without a workflow (helpers such as `issues` or `voice-and-tone`) keep the
 # description in their own SKILL.md. Curated rather than derived, because the
-# relation is not one-to-one: `about_this_ger` backs two skills, and the
-# `review-assistant` skill produces three outputs rather than running a check.
+# relation is not always one-to-one: the `review-assistant` skill produces three
+# outputs rather than running a check.
 # Skill-declared workflows are not listed: theirs is one-to-one and read off the
 # manifest (see `manifest_for_skill`).
 SKILL_WORKFLOWS: dict[str, WorkflowRunType] = {
     "abbreviation-scan": WorkflowRunType.ABBREVIATION_SCAN_V2,
-    "about-this-authors": WorkflowRunType.ABOUT_THIS_GER,
-    "about-this-preface": WorkflowRunType.ABOUT_THIS_GER,
     "advocacy-tone": WorkflowRunType.ADVOCACY_TONE_V2,
     "citation-support": WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-    "document-contents": WorkflowRunType.DOCUMENT_STRUCTURE,
     "figures-tables-check": WorkflowRunType.FIGURES_TABLES_CHECK,
     "inference-validation": WorkflowRunType.INFERENCE_VALIDATION_V2,
     "methodology-comparison": WorkflowRunType.METHODOLOGICAL_ALIGNMENT,

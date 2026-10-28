@@ -44,7 +44,7 @@ def test_stable_checks_come_before_experimental_ones() -> None:
     assert flags == sorted(flags)
 
 
-def test_checks_retired_from_the_picker_are_left_out() -> None:
+def test_retired_checks_are_left_out() -> None:
     """Structural Checks (GER) replaced the About This and Document Contents checks."""
 
     checks = listed()
