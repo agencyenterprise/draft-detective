@@ -127,16 +127,15 @@
   - id: noun_noun_clause
     title: Faulty Parallelism
     anchor: Residents receive a stipend, tuition support, and mentors meet with them weekly.
-  - id: not_only_but
-    anchor: not only retention in the district but residents' classroom performance
-    required: false
   decoys:
+  - anchor: not only retention in the district but residents' classroom performance
+    reason: correct_correlative
   - anchor: Both residents and mentors completed surveys
     reason: correct_correlative
   - anchor: Residents valued the stipend, the cohort model, and the weekly coaching.
     reason: parallel_series
   notes: The stipend sentence can be fixed as a noun series or as two clauses, so neither an edit nor its wording is
-    scored. "Not only X but Y" without "also" is accepted usage, so reporting it is optional.
+    scored. "Not only X but Y" without "also" is accepted usage, so it is a decoy.
 - input: |
     # Food Bank Distribution Study
 

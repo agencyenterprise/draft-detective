@@ -63,7 +63,7 @@ performs on documents it has never seen.
 | 25 | `audience_fit`[^audience_fit] | 16 | 3 | 20 deterministic 0.667–1.000 · 5 judged 0.667–1.000 | **0.933** | 2026-10-21 | [`…_9eS5wwK272wFG9ikGg6Lbg.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-21T14-36-04-00-00_audience-fit-e2e_9eS5wwK272wFG9ikGg6Lbg.eval) |
 | 26 | `reviewer_response_memos`[^reviewer_response_memos] | 6 | 3 | 8 deterministic all 1.000 · 4 judged 0.778–0.972 · 1 identification 1.000 | **0.959** | 2026-10-14 | [`…_bgdoqfEtZTCZzT6VHPtQAG.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-14T12-52-15-00-00_reviewer-response-memos-e2e_bgdoqfEtZTCZzT6VHPtQAG.eval) |
 | 27 | `citation_consistency`[^citation_consistency] | 11 | 3 | 20 deterministic all 1.000 | **1.000** | 2026-10-27 | [`…_c8sMydxjUTnFLmEt7pEEpF.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-27T19-15-23-00-00_citation-consistency-e2e_c8sMydxjUTnFLmEt7pEEpF.eval) |
-| 28 | `sentence_structure`[^sentence_structure] | 15 | 3 | 24 deterministic 0.991–1.000 · 2 judged all 1.000 | **1.000** | 2026-10-29 | [`…_fM6YDqb8VV6XwBYLgBybsL.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-29T18-08-28-00-00_sentence-structure-e2e_fM6YDqb8VV6XwBYLgBybsL.eval) |
+| 28 | `sentence_structure`[^sentence_structure] | 15 | 3 | 24 deterministic 0.991–1.000 · 2 judged all 1.000 | **1.000** | 2026-10-29 | [`…_2SA79JBcwcZKtdXKDeESPv.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-29T18-15-11-00-00_sentence-structure-e2e_2SA79JBcwcZKtdXKDeESPv.eval) |
 | | **Mean across all evals** | | | | **0.981** | | |
 
 ## Notes

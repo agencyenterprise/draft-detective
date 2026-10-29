@@ -12,13 +12,13 @@ The check flags sentences whose structure trips the reader:
 
 - **Incomplete sentences:** a body sentence missing a word it needs, such as its verb (*The research questions summarized in Table 2.*), a dropped preposition, or a *because* clause with no main clause.
 - **Broken shared constructions:** two verbs or prepositions sharing one object that fits only one of them (*raised the profile of and normalized apprenticeships*, *as good or better than*, *interested and committed to*).
-- **Faulty parallelism:** a pair or series built in different forms (*both X, as well as Y*; *to recruit, training, and to place*; *not only X but Y*).
+- **Faulty parallelism:** a pair or series built in different forms (*both X, as well as Y*; *to recruit, training, and to place*).
 - **Indirect summary sentences:** only two lead-ins: the authors' own recommendations, conclusions or lessons said to *emerge* or *arise* (*Several recommendations emerged from the analysis*), and *It is in Table 4 that the costs are presented*.
 
 It leaves these alone:
 
 - Shared constructions where each half works on its own (*we collected and analyzed the data*, *access to and use of services*).
-- Correct pairs and series (*both X and Y*), and *as well as* on its own.
+- Correct pairs and series (*both X and Y*, *not only X but Y* with or without *also*), and *as well as* on its own.
 - Bullet points, captions and table cells written as phrases.
 - Themes or patterns that emerge from data, and lead-ins that already lead with the table or content (*Table 2 summarizes...*).
 - Placeholder or wordy lead-ins (*It is possible to estimate...*, *These numbers are reflective of...*), which Concision & Precision covers.
