@@ -61,9 +61,7 @@ class MockFileArtifactsService(FileArtifactsServiceType):
             return self._main_file
         return _empty_file_document("main_file_id")
 
-    async def get_project_files(
-        self, roles: list[FileRole], revision: int | None = None
-    ) -> list[FileDocument]:
+    async def get_project_files(self, roles: list[FileRole]) -> list[FileDocument]:
         documents: list[FileDocument] = []
         if FileRole.SUPPORT in roles:
             documents.extend(self._supporting_files)

@@ -180,8 +180,8 @@ async def release(thread_id: uuid.UUID, token: datetime) -> None:
         await session.commit()
 
 
-async def begin_turn(thread_id: uuid.UUID) -> datetime | None:
-    """Stamp a new turn, and return when the previous one began.
+async def begin_turn(thread_id: uuid.UUID) -> None:
+    """Stamp a new turn.
 
     The stamp puts the thread first among the account's threads for the document
     (``current``). What counts as news to the agent is not decided by time: each settled
@@ -191,12 +191,10 @@ async def begin_turn(thread_id: uuid.UUID) -> datetime | None:
     async with get_async_db_session() as session:
         thread = await session.get(MicrosoftWordChatThread, thread_id)
         if thread is None:
-            return None
-        previous = thread.last_turn_at
+            return
         thread.last_turn_at = datetime.now(UTC)
         session.add(thread)
         await session.commit()
-    return previous
 
 
 async def clear(account: Account, url: str) -> bool:

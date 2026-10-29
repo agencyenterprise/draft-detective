@@ -102,17 +102,16 @@ async def test_clearing_sets_a_thread_aside_for_good(
 
 
 @pytest.mark.asyncio
-async def test_a_turn_reports_when_the_previous_one_began(
+async def test_a_turn_stamps_when_it_began(
     accounts: tuple[Account, Account],
 ) -> None:
     ana, _ = accounts
     thread = await chat_threads.current_or_new(ana, PATH_URL)
 
-    first = await chat_threads.begin_turn(thread.id)
-    second = await chat_threads.begin_turn(thread.id)
+    await chat_threads.begin_turn(thread.id)
+    stamped = await chat_threads.current(ana, PATH_URL)
 
-    assert first == thread.last_turn_at
-    assert first is not None and second is not None and second > first
+    assert stamped is not None and stamped.last_turn_at > thread.last_turn_at
 
 
 @pytest.mark.asyncio

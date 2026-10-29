@@ -114,9 +114,7 @@ class TestATurn:
                 "current_or_new",
                 AsyncMock(return_value=thread),
             ) as start,
-            patch.object(
-                word_chat.chat_threads, "begin_turn", AsyncMock(return_value=NOW)
-            ),
+            patch.object(word_chat.chat_threads, "begin_turn", AsyncMock()),
             patch.object(
                 word_chat.chat_suggestions, "for_thread", AsyncMock(return_value=[])
             ),
