@@ -27,8 +27,10 @@ _FOOTNOTE_REFERENCE = re.compile(r"\[\[\d+\]\]\(#footnote-[^)]*\)|\[\^\d+\]")
 
 # An equation as the converter writes it: `$$...$$` for a display block,
 # `$...$` inline. Word carries an equation as math markup, never as paragraph
-# text, so the LaTeX is on the line and nowhere in the paragraph.
-_EQUATION = re.compile(r"\$\$[^$]+\$\$|\$[^$\n]+\$")
+# text, so the LaTeX is on the line and nowhere in the paragraph. Inline math
+# follows Pandoc's rule -- no space inside either delimiter, no digit after the
+# closing one -- so prices such as `$5 to $10` are not read as an equation.
+_EQUATION = re.compile(r"\$\$[^$]+\$\$|\$(?!\s)[^$\n]*?(?<!\s)\$(?!\d)")
 
 # How alike a line and a paragraph must be to be the same passage, and how
 # long both have to be before likeness is worth measuring at all.

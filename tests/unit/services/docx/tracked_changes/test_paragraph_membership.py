@@ -321,3 +321,11 @@ class TestEquationsAreNotDrift:
         # An equation MarkItDown cannot convert keeps its own characters,
         # between the same delimiters; Word's paragraph text has a gap there.
         assert line_belongs_to_paragraph("Use $lnN$ here.", "Use  here.")
+
+    def test_prices_beside_an_equation_are_kept(self):
+        # Two `$` prices on a line with equations are not an equation: Word
+        # carries them as text, so they must stay on the line.
+        assert line_belongs_to_paragraph(
+            "A $x$ and B $y$ cost $5 to $10 in each period.",
+            "A  and B  cost $5 to $10 in each period.",
+        )
