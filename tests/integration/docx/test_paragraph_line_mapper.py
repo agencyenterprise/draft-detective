@@ -15,7 +15,11 @@ from lib.services.docx.paragraph_line_mapper import (
     build_paragraph_line_ranges,
     find_paragraph_by_line_range,
 )
-from tests.conftest import create_test_file_document_from_path, data_path
+from tests.conftest import (
+    create_test_file_document_from_path,
+    data_path,
+    write_docx_with_equations,
+)
 
 
 @pytest.mark.asyncio
@@ -111,3 +115,26 @@ async def test_document_with_no_text_paragraphs_maps_to_nothing(tmp_path):
     Document().save(path)
 
     assert await build_paragraph_line_ranges(path) == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("keep_equations", [True, False])
+async def test_build_paragraph_line_ranges_matches_markdown_with_or_without_equations(
+    tmp_path: Path, keep_equations: bool
+):
+    """Markdown stored before equations were kept dropped them all; the mapper
+    still anchors against it, and against markdown converted today."""
+    docx_path = write_docx_with_equations(tmp_path / "equations.docx")
+    persisted = await markitdown_converter.convert_to_markdown(
+        docx_path, keep_equations=keep_equations
+    )
+    persisted_lines = persisted.splitlines()
+
+    ranges = await build_paragraph_line_ranges(
+        docx_path, expected_line_count=persisted.count("\n") + 1
+    )
+
+    paragraphs = [p.text for p in Document(docx_path).paragraphs if p.text.strip()]
+    assert len(ranges) == len(paragraphs)
+    for i, (start, _end) in ranges.items():
+        assert persisted_lines[start - 1].startswith(paragraphs[i].split()[0])

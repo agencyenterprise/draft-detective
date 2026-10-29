@@ -80,6 +80,30 @@ def _extract_marker_positions(markdown: str) -> dict[int, int]:
     return positions
 
 
+def _line_count(markdown: str) -> int:
+    return markdown.count("\n") + 1
+
+
+async def _convert_like_persisted(
+    docx_path: str, expected_line_count: int | None
+) -> str:
+    """Convert the marked copy the way the persisted markdown was converted.
+
+    Markdown stored before equations were converted one at a time lost every
+    equation whenever one of them failed. When today's conversion does not
+    match its line count, try that older conversion before giving up.
+    """
+    markdown = await markitdown_converter.convert_to_markdown(docx_path)
+    if expected_line_count is None or _line_count(markdown) == expected_line_count:
+        return markdown
+    legacy = await markitdown_converter.convert_to_markdown(
+        docx_path, keep_equations=False
+    )
+    if _line_count(legacy) == expected_line_count:
+        return legacy
+    return markdown
+
+
 async def build_paragraph_line_ranges(
     docx_path: str, expected_line_count: int | None = None
 ) -> dict[int, tuple[int, int]]:
@@ -107,8 +131,8 @@ async def build_paragraph_line_ranges(
             tmp_path = tmp.name
         try:
             doc.save(tmp_path)
-            markdown_with_markers = await markitdown_converter.convert_to_markdown(
-                tmp_path
+            markdown_with_markers = await _convert_like_persisted(
+                tmp_path, expected_line_count
             )
         finally:
             try:
@@ -122,7 +146,7 @@ async def build_paragraph_line_ranges(
             except OSError:
                 pass
 
-    total_lines = markdown_with_markers.count("\n") + 1
+    total_lines = _line_count(markdown_with_markers)
     if expected_line_count is not None and total_lines != expected_line_count:
         logger.warning(
             "Paragraph line-range mapper: conversion produced %d lines but the "

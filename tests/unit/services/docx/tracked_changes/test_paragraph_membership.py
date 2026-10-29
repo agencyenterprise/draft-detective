@@ -8,8 +8,10 @@ the same passage and what does not.
 from pathlib import Path
 
 import pytest
+from lxml import etree
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
+from lib.services.docx.tracked_changes.lines import line_belongs_to_paragraph
 from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import (
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
@@ -258,3 +260,72 @@ class TestAShortParagraphHasNoPrefixToFallBackOn:
         )
 
         assert _statuses(plan.outcomes) == {edit.id: "applied"}
+
+
+# A sentence dense with equations. Word holds each one as math markup, so the
+# paragraph's text has a gap where the markdown line has LaTeX.
+_EQUATION_LINE = (
+    r"For $m$ categories, where $n\_{i}$ counts category $i$ and "
+    r"$N=\sum\_{i=1}^{m}n\_{i}$, the share is $p\_{i}=n\_{i}/N$."
+)
+_EQUATION_PIECES = (
+    "For ",
+    "m",
+    " categories, where ",
+    "ni",
+    " counts category ",
+    "i",
+    " and ",
+    "N=∑ni",
+    ", the share is ",
+    "pi=ni/N",
+    ".",
+)
+_OMML = (
+    '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">'
+    "<m:r><m:t>{}</m:t></m:r></m:oMath>"
+)
+
+
+@pytest.fixture
+def equation_docx_path(tmp_path: Path) -> Path:
+    document = new_document()
+    paragraph = document.add_paragraph()
+    for i, piece in enumerate(_EQUATION_PIECES):
+        if i % 2:
+            paragraph._element.append(etree.fromstring(_OMML.format(piece)))
+        else:
+            paragraph.add_run(piece)
+    path = tmp_path / "equation.docx"
+    document.save(str(path))
+    return path
+
+
+class TestEquationsAreNotDrift:
+    @pytest.mark.asyncio
+    async def test_a_prose_edit_beside_equations_is_applied(
+        self, equation_docx_path: Path
+    ):
+        edit = _edit("the share is", "the proportion is", 1)
+
+        plan, _ = await _plan(
+            equation_docx_path,
+            [edit],
+            paragraph_line_ranges={0: (1, 1)},
+            markdown=_EQUATION_LINE,
+        )
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+
+    def test_an_equation_kept_as_its_characters_is_dropped_too(self):
+        # An equation MarkItDown cannot convert keeps its own characters,
+        # between the same delimiters; Word's paragraph text has a gap there.
+        assert line_belongs_to_paragraph("Use $lnN$ here.", "Use  here.")
+
+    def test_prices_beside_an_equation_are_kept(self):
+        # Two `$` prices on a line with equations are not an equation: Word
+        # carries them as text, so they must stay on the line.
+        assert line_belongs_to_paragraph(
+            "A $x$ and B $y$ cost $5 to $10 in each period.",
+            "A  and B  cost $5 to $10 in each period.",
+        )
