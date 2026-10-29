@@ -4,7 +4,8 @@ MarkItDown converts every OMML equation in a document part in a single pass
 and, when any one of them fails (0.1.5 cannot convert ``ln``), keeps the
 original XML. mammoth then drops OMML, so a single unsupported equation erases
 every equation from the markdown. Converting each equation on its own keeps
-the ones that convert as LaTeX and the rest as their own characters.
+the ones that convert as LaTeX and the rest as their own characters, both
+between ``$`` delimiters.
 
 The output mirrors MarkItDown's own replacement (an inline ``$...$`` run, a
 ``$$...$$`` paragraph per ``oMathPara``), so documents whose equations already
@@ -40,17 +41,23 @@ def _omath_to_latex(omath: etree._Element) -> str:
 
 
 def _replacement_text(omath: etree._Element, block: bool) -> str:
+    """The equation between math delimiters: LaTeX, or its own characters.
+
+    The fallback keeps the delimiters too, so it still reads as an equation
+    and the export can tell it apart from the paragraph's prose.
+    """
     try:
-        latex = _omath_to_latex(omath)
+        body = _omath_to_latex(omath)
     except Exception as exc:
-        text = _equation_text(omath)
+        body = _equation_text(omath).strip()
         logger.warning(
             "Equation kept as plain text, LaTeX conversion failed (%s): %r",
             exc,
-            text,
+            body,
         )
-        return text
-    return f"$${latex}$$" if block else f"${latex}$"
+        if not body:
+            return ""
+    return f"$${body}$$" if block else f"${body}$"
 
 
 def _text_run(text: str) -> etree._Element:

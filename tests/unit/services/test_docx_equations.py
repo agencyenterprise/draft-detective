@@ -17,7 +17,7 @@ async def test_convertible_and_unconvertible_equations_both_survive(tmp_path: Pa
     markdown = await markitdown_converter.convert_to_markdown(docx_path)
 
     assert r"where $x\_{i}$ is the score for item i." in markdown
-    assert "The entropy uses lnN for the base." in markdown
+    assert "The entropy uses $lnN$ for the base." in markdown
 
 
 @pytest.mark.asyncio

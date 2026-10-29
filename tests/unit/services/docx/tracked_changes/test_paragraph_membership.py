@@ -11,6 +11,7 @@ import pytest
 from lxml import etree
 
 from lib.services.docx.tracked_changes import apply_tracked_changes
+from lib.services.docx.tracked_changes.lines import line_belongs_to_paragraph
 from tests.unit.services.docx.lean_docx import new_document
 from tests.unit.services.docx.tracked_changes.support import (
     OTHER_PASSAGE_DETAIL as _OTHER_PASSAGE_DETAIL,
@@ -315,3 +316,8 @@ class TestEquationsAreNotDrift:
         )
 
         assert _statuses(plan.outcomes) == {edit.id: "applied"}
+
+    def test_an_equation_kept_as_its_characters_is_dropped_too(self):
+        # An equation MarkItDown cannot convert keeps its own characters,
+        # between the same delimiters; Word's paragraph text has a gap there.
+        assert line_belongs_to_paragraph("Use $lnN$ here.", "Use  here.")
