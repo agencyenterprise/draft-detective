@@ -5214,6 +5214,7 @@ export const WorkflowRunType = {
   ConcisionPrecision: 'concision_precision',
   HeadersSkimmability: 'headers_skimmability',
   NarrativeSynthesis: 'narrative_synthesis',
+  SentenceStructure: 'sentence_structure',
   WritingConsistency: 'writing_consistency',
 } as const;
 

@@ -28,6 +28,7 @@ evals_inspectai/
 │   ├── reference_downloader/
 │   ├── reference_text_extractor/
 │   ├── reference_validation_v2/
+│   ├── sentence_structure/
 │   ├── results_extraction/
 │   ├── reviewer_2/
 │   ├── reviewer_coverage_report/
@@ -68,6 +69,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/reference_downloader` | Searches for and downloads the full text of a reference. |
 | `e2e/reference_text_extractor` | Extracts bibliographic reference entries, run via the full workflow. |
 | `e2e/reference_validation_v2` | Reference Error Checker — verifies each citation exists online and matches public sources. |
+| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions, faulty parallelism and indirect summary sentences, with restructured rewrites. |
 | `e2e/results_extraction` | Reproducibility Check — extracts main results and classifies each by reproducibility. |
 | `e2e/reviewer_2` | Produces a senior-reviewer-style critique and a devil's-advocate rebuttal. |
 | `e2e/reviewer_coverage_report` | Review Assistant: the coverage report on how a revised draft answers each reviewer point. |

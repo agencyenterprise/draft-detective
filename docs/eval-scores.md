@@ -2,9 +2,9 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-10-27
+- **Last updated:** 2026-10-29
 - **Model:** `gpt-5.6-terra` on every agent
-- **Total:** 27 evals · 544 runnable samples · run at epochs=3
+- **Total:** 28 evals · 558 runnable samples · run at epochs=3
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
@@ -63,6 +63,7 @@ performs on documents it has never seen.
 | 25 | `audience_fit`[^audience_fit] | 16 | 3 | 20 deterministic 0.667–1.000 · 5 judged 0.667–1.000 | **0.933** | 2026-10-21 | [`…_9eS5wwK272wFG9ikGg6Lbg.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-21T14-36-04-00-00_audience-fit-e2e_9eS5wwK272wFG9ikGg6Lbg.eval) |
 | 26 | `reviewer_response_memos`[^reviewer_response_memos] | 6 | 3 | 8 deterministic all 1.000 · 4 judged 0.778–0.972 · 1 identification 1.000 | **0.959** | 2026-10-14 | [`…_bgdoqfEtZTCZzT6VHPtQAG.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-14T12-52-15-00-00_reviewer-response-memos-e2e_bgdoqfEtZTCZzT6VHPtQAG.eval) |
 | 27 | `citation_consistency`[^citation_consistency] | 11 | 3 | 20 deterministic all 1.000 | **1.000** | 2026-10-27 | [`…_c8sMydxjUTnFLmEt7pEEpF.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-27T19-15-23-00-00_citation-consistency-e2e_c8sMydxjUTnFLmEt7pEEpF.eval) |
+| 28 | `sentence_structure`[^sentence_structure] | 14 | 3 | 22 deterministic 0.975–1.000 · 2 judged 0.990–0.995 | **0.998** | 2026-10-29 | [`…_dJaWChKxN4mi7nrMYWZApW.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-29T16-25-58-00-00_sentence-structure-e2e_dJaWChKxN4mi7nrMYWZApW.eval) |
 | | **Mean across all evals** | | | | **0.981** | | |
 
 ## Notes
@@ -95,3 +96,4 @@ performs on documents it has never seen.
 [^headers_skimmability]: Flags a missing bottom line, vague headers, headers without a takeaway or that do not match their section, weak bold lead sentences, and an overlong key findings box, with suggested wording as a comment. **Read this as a dev-split figure**, on the same terms as [^active_voice]. Severity is left to the agent and not scored. The lowest scores are judged: chapter-header suggestions so general that the reader still has to read the section, and wording that leans on one side of a mixed finding. One bold lead ("**Crews.**") is missed in one epoch.
 [^audience_fit]: Settles on the document's audience, flags a missing, vague or conflicting one, and flags technical language in the main body for a non-technical audience. **Read this as a dev-split figure**, on the same terms as [^active_voice]. Severity is left to the agent and not scored. Every miss is one epoch on the long sample, which reported 16 single "Technical Language" issues and no summary, ignoring the cap of 15: that fails every overflow check and leaves "multilevel model" without its own issue. Otherwise the set does not discriminate; harder samples (a mixed policy-and-research audience, borderline field terms, a long methods chapter) are the outstanding work.
 [^figures]: Figure samples embed a PNG chart, drawn by `evals_inspectai/files/figures/generate_fixtures.py` and inlined at upload, that carries information the text does not (a logo that is not a figure, a caption inside the image, a placeholder box, values only in a bar chart, a truncated axis). Where the transcript is available, `tool_called` records whether the agent actually looked at the image. Judged criteria receive the embedded images alongside the text, so a proposed caption or chart reading is graded against the figure itself.
+[^sentence_structure]: Flags incomplete sentences (a missing verb or word), broken shared constructions (two verbs or prepositions sharing an object that fits only one), faulty parallelism (mismatched correlatives and series) and indirect summary sentences (a lead-in that buries what it introduces, such as recommendations that "emerged"), with a restructured rewrite when the fix is fully determined. Built from RAND reviewer feedback on structural rewrites, so **read this as a dev-split figure**: the dataset was written alongside the skill, and its three long-paragraph records (Pathways, its Harbor twin and the 11,900-word Pathways report) are shared with `active_voice` and `concision_precision`. Decoys cover every exclusion the skill states, including sentences whose only fault is passive voice or wordiness, which other Writing Style checks own. Severity is left to the agent and not scored. The misses are single epochs: an expected edit left off (0.975), and two unlisted findings on the long report, one of them a throat-clearing sentence Concision owns.
