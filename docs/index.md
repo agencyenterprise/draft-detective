@@ -32,7 +32,7 @@ Each check, called an **assessment**, answers one narrow question about the docu
 | Citation check | Are the references real and correctly cited? | Reference Error Checker |
 | Substantive review | Do the claims, reasoning, methods and recommendations hold up? | Claim Reference Validation, Internal Inference Validation, Methodological Alignment, Recommendation Check |
 | Editorial and style review | Does the document meet structural and house-style requirements? | Figures & Tables Check, Abbreviation Scan, Headers & Skimmability |
-| Language | Is the prose neutral, direct and consistent? | Advocacy & Tone, Active Voice & Clear Actors, Concision & Precision |
+| Language | Is the prose neutral, direct and consistent? | Advocacy & Tone, Active Voice & Clear Actors, Concision & Precision, Sentence Structure |
 
 Beyond these, the Review Assistant helps authors respond to reviewers. From whatever documents they have (drafts, reviewer memos, Word copies with comments or tracked changes, response memos), unlabeled, it writes a revision plan, a response memo per reviewer, or a report on which points a revised draft addresses. A simulated reviewer (Reviewer 2) writes a whole-document critique with a devil's-advocate rebuttal.
 

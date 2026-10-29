@@ -1,0 +1,505 @@
+# Eval samples for the sentence_structure workflow, in inventory form: the issues a correct run
+# reports (anchored by verbatim quotes, with edit expectations) and the decoys it must leave alone
+# (with the reason). See evals_inspectai/common/issue_inventory.py.
+# Short snippets pin one kind each; clean documents measure false positives, including sentences
+# whose only problem another Writing Style check owns; the reviewer-feedback fixtures carry the
+# patterns inside long paragraphs and, in the long report, into the last chapter.
+
+# ---- incomplete sentences ------------------------------------------------------------------
+- input: |
+    # Rural Broadband Grant Review
+
+    ## Methods
+
+    The review examined whether grantees met their buildout milestones on schedule. The milestone definitions for each grant tier described in Appendix A. We compared grantee reports with field inspection records from 2024.
+
+    We asked grantees about three topics:
+
+    - Timing of construction starts
+    - Cost per connected household
+    - Barriers to subscriber uptake
+
+    ## Findings
+
+    Most grantees met their first milestone on time. Two grantees reported delays of more than six months. Because the state changed its permitting rules midway through the second year.
+  expected_issues:
+  - id: definitions_described
+    title: Incomplete Sentence
+    anchor: The milestone definitions for each grant tier described in Appendix A.
+    edit_expected: true
+    edit:
+      must_include:
+      - Appendix A describes
+  - id: stranded_because
+    title: Incomplete Sentence
+    anchor: Because the state changed its permitting rules
+  decoys:
+  - anchor: Timing of construction starts
+    reason: list_fragment
+  - anchor: Cost per connected household
+    reason: list_fragment
+  notes: The because-clause could explain either of the two sentences before it, so the check may attach it or ask;
+    either is acceptable, and neither an edit nor its absence is scored.
+- input: |
+    # Small Business Loan Fund Review
+
+    ## Methods
+
+    The review assessed whether the fund reached businesses that banks had turned down. The loan terms for each of the three funding rounds shown in Table 1. We met with the fund's staff and reviewed files from 120 loans.
+
+    Loan officers met with each applicant and discussed repayment them before closing. Most loans closed within 30 days of the application.
+  expected_issues:
+  - id: terms_shown
+    title: Incomplete Sentence
+    anchor: The loan terms for each of the three funding rounds shown in Table 1.
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 1 shows
+  - id: dropped_with
+    title: Incomplete Sentence
+    anchor: discussed repayment them before closing
+    edit_expected: true
+    edit:
+      must_include:
+      - repayment with them
+  decoys:
+  - anchor: We met with the fund's staff and reviewed files from 120 loans.
+    reason: grammatical_shared
+  notes: The missing verb would make a passive, so the fix leads with the table instead.
+
+# ---- broken shared constructions -----------------------------------------------------------
+- input: |
+    # Community Health Worker Program Assessment
+
+    ## Results
+
+    The program has increased awareness of and enrolled hundreds of residents in the county's Medicaid expansion. Clinic directors described the workers as good or better than the outreach firm they replaced. We collected and analyzed intake forms from all six clinics. Patients reported improved access to and use of preventive services.
+
+    Most workers were interested and committed to staying in the role for a second year. Turnover fell from 40 percent to 12 percent.
+  expected_issues:
+  - id: awareness_of_and
+    title: Broken Shared Construction
+    anchor: increased awareness of and enrolled hundreds of residents
+    edit_expected: true
+    edit:
+      must_not_include:
+      - awareness of and
+  - id: good_or_better
+    title: Broken Shared Construction
+    anchor: as good or better than the outreach firm
+    edit_expected: true
+    edit:
+      must_include:
+      - as good as
+  - id: interested_and_committed
+    title: Broken Shared Construction
+    anchor: interested and committed to staying
+    edit_expected: true
+    edit:
+      must_include:
+      - interested in
+  decoys:
+  - anchor: We collected and analyzed intake forms
+    reason: grammatical_shared
+  - anchor: improved access to and use of preventive services
+    reason: grammatical_shared
+  notes: Both decoys share an object that each verb or noun takes on its own; the three issues share one that fits only
+    one half.
+
+# ---- faulty parallelism --------------------------------------------------------------------
+- input: |
+    # Teacher Residency Program Review
+
+    ## Program Model
+
+    The residency aims to recruit career changers, training them alongside a mentor teacher, and to place them in hard-to-staff schools. Residents receive a stipend, tuition support, and mentors meet with them weekly. The evaluation considered not only retention in the district but residents' classroom performance.
+
+    Both residents and mentors completed surveys in the spring. Residents valued the stipend, the cohort model, and the weekly coaching.
+  expected_issues:
+  - id: infinitive_gerund
+    title: Faulty Parallelism
+    anchor: to recruit career changers, training them alongside a mentor teacher
+    edit_expected: true
+    edit:
+      must_not_include:
+      - training them
+  - id: noun_noun_clause
+    title: Faulty Parallelism
+    anchor: Residents receive a stipend, tuition support, and mentors meet with them weekly.
+  decoys:
+  - anchor: not only retention in the district but residents' classroom performance
+    reason: correct_correlative
+  - anchor: Both residents and mentors completed surveys
+    reason: correct_correlative
+  - anchor: Residents valued the stipend, the cohort model, and the weekly coaching.
+    reason: parallel_series
+  notes: The stipend sentence can be fixed as a noun series or as two clauses, so neither an edit nor its wording is
+    scored. "Not only X but Y" without "also" is accepted usage, so it is a decoy.
+- input: |
+    # Food Bank Distribution Study
+
+    ## Approach
+
+    We examined the routes that both reduced delivery times, as well as the routes that raised fuel costs. Partner pantries either received deliveries on a fixed schedule or by request. Drivers, as well as warehouse staff, took part in the interviews.
+
+    The study covered both urban and rural pantries, and it ran from January to June 2025.
+  expected_issues:
+  - id: both_as_well_as
+    title: Faulty Parallelism
+    anchor: both reduced delivery times, as well as the routes
+    edit_expected: true
+    edit:
+      must_not_include:
+      - both reduced
+  - id: either_misplaced
+    title: Faulty Parallelism
+    anchor: either received deliveries on a fixed schedule or by request
+    edit_expected: true
+    edit:
+      must_include:
+      - either on a fixed schedule
+  decoys:
+  - anchor: Drivers, as well as warehouse staff, took part
+    reason: as_well_as
+  - anchor: both urban and rural pantries
+    reason: correct_correlative
+- input: |
+    # Workforce Board Annual Report
+
+    ## Highlights
+
+    - 1,200 job seekers served
+    - 85 employer partners
+    - New apprenticeship track in health care
+
+    ## Next Year
+
+    The board's goals for next year are to expand the health care track, adding two employer partners, and to open a second career center. Each goal has a lead staff member and a quarterly target.
+
+    | Measure | 2024 |
+    |---|---|
+    | Placements | 640 |
+
+    Table 1. Placements by program, 2024
+  expected_issues:
+  - id: goals_series
+    title: Faulty Parallelism
+    anchor: to expand the health care track, adding two employer partners
+    edit_expected: true
+  decoys:
+  - anchor: 1,200 job seekers served
+    reason: list_fragment
+  - anchor: New apprenticeship track in health care
+    reason: list_fragment
+  - anchor: Table 1. Placements by program, 2024
+    reason: list_fragment
+
+# ---- indirect summary sentences ------------------------------------------------------------
+- input: |
+    # Library Digital Literacy Pilot
+
+    ## Findings
+
+    Three themes emerged from the interviews with librarians. Demand exceeded class capacity at every branch, older patrons preferred small groups, and most patrons wanted help with a specific task rather than a general course. Table 2 summarizes attendance by branch.
+
+    ## Recommendations
+
+    Several key recommendations emerged from the analysis of class attendance data, interviews with librarians, and a review of comparable programs. We list them in order of cost.
+
+    First, the library should offer evening classes at the two branches with the longest waitlists. Second, it should train volunteers to give one-on-one help.
+  expected_issues:
+  - id: recommendations_emerged
+    title: Indirect Summary Sentence
+    anchor: Several key recommendations emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  decoys:
+  - anchor: Three themes emerged from the interviews with librarians.
+    reason: emergent_finding
+  - anchor: Table 2 summarizes attendance by branch.
+    reason: direct_leadin
+  - anchor: We list them in order of cost.
+    reason: direct_leadin
+  notes: Themes emerge from interview data; recommendations are the authors' own and do not.
+- input: |
+    # County Court Text Reminder Evaluation
+
+    ## Results
+
+    It is in Table 4 that the reminder costs for each county are presented. What the analysis showed across the four counties was a steady decline in missed court dates after reminders began. Missed court dates fell from 21 percent to 14 percent in the first year.
+
+    ## Conclusions
+
+    A number of conclusions arose from comparing the four counties' court records. We discuss each below, starting with cost.
+  expected_issues:
+  - id: cleft_table
+    title: Indirect Summary Sentence
+    anchor: It is in Table 4 that the reminder costs
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 4
+      must_not_include:
+      - It is in Table 4
+  - id: conclusions_arose
+    title: Indirect Summary Sentence
+    anchor: A number of conclusions arose from comparing
+    edit_expected: true
+    edit:
+      must_not_include:
+      - arose
+  decoys:
+  - anchor: What the analysis showed across the four counties
+    reason: other_check
+  - anchor: Missed court dates fell from 21 percent to 14 percent in the first year.
+    reason: direct_leadin
+  notes: The pseudo-cleft "What the analysis showed... was" is a placeholder lead-in, which Concision owns.
+
+- input: |
+    # Regional Transit Fare Study
+
+    ## Findings
+
+    If we assume that fares rose by 10 percent, it is possible to estimate the effect on ridership for each of the four routes. A summary of the ridership changes for each route is shown in Figure 3. This summary suggests that the express routes would lose the most riders unless the authority adds off-peak service. These numbers are reflective of two patterns in the data. The section below contains several tables to illustrate the changes by route.
+
+    ## Conclusions
+
+    It is in Table 5 that the cost of each option is compared. Several lessons emerged from the authority's ridership counts and rider surveys. The first concerns off-peak service.
+  expected_issues:
+  - id: cleft_table_5
+    title: Indirect Summary Sentence
+    anchor: It is in Table 5 that the cost of each option is compared.
+    edit_expected: true
+    edit:
+      must_not_include:
+      - It is in Table 5
+  - id: lessons_emerged_authority
+    title: Indirect Summary Sentence
+    anchor: Several lessons emerged from the authority's ridership counts
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  decoys:
+  - anchor: it is possible to estimate the effect on ridership
+    reason: other_check
+  - anchor: A summary of the ridership changes for each route is shown in Figure 3.
+    reason: other_check
+  - anchor: This summary suggests that the express routes would lose the most riders
+    reason: hedged_summary
+  - anchor: These numbers are reflective of two patterns in the data.
+    reason: other_check
+  - anchor: The section below contains several tables to illustrate the changes by route.
+    reason: direct_leadin
+  notes: Lead-ins that tripped the check on real RAND drafts. Only the cleft and the misattributed "emerged" are this
+    check's; the placeholder and wordy lead-ins are Concision's, the passive figure lead-in is Active Voice's, and the
+    hedged "suggests" sentence must not be merged with the sentence before it into "Figure 3 shows...".
+
+# ---- clean documents -----------------------------------------------------------------------
+- input: |
+    # Water Utility Rate Study
+
+    ## Methods
+
+    The rate scenarios were modeled by the utility's finance team. In order to compare scenarios, we held the customer base constant. The study was completed in March 2025, and it covered all residential accounts.
+
+    The results, which were reviewed by an outside economist, appear in Chapter 3. Chapter 3 compares the three scenarios.
+  expected_issues: []
+  decoys:
+  - anchor: The rate scenarios were modeled by the utility's finance team.
+    reason: other_check
+  - anchor: In order to compare scenarios, we held the customer base constant.
+    reason: other_check
+  - anchor: which were reviewed by an outside economist
+    reason: other_check
+  - anchor: Chapter 3 compares the three scenarios.
+    reason: direct_leadin
+  notes: Passive voice and a wordy phrase belong to other Writing Style checks; nothing here is structural.
+- input: |
+    # Transit Fare Discount Evaluation
+
+    ## Background
+
+    The county launched the discount in 2023 for riders whose household income falls below 200 percent of the federal poverty level, and by the end of 2024 more than 41,000 riders had enrolled, most of them through the online form that the transit agency introduced in the program's second month. One rider told us the program "saved me and my family both money, as well as time on the road." Riders, drivers and agency staff all described enrollment as simple.
+
+    ## Findings
+
+    Ridership among enrolled riders rose by 18 percent in the first year. Table 2 shows the change by route.
+  expected_issues: []
+  decoys:
+  - anchor: The county launched the discount in 2023
+    reason: long_parses
+  - anchor: saved me and my family both money, as well as time on the road
+    reason: quoted
+  - anchor: Riders, drivers and agency staff all described enrollment as simple.
+    reason: parallel_series
+  - anchor: Table 2 shows the change by route.
+    reason: direct_leadin
+- input: |
+    # Hospital Discharge Follow-Up Study
+
+    ## Methods
+
+    Before, during and after the pilot, nurses called patients within two days of discharge. We designed the call script with the hospital's quality team and tested it with ten patients. Patterns emerged from the call notes that the team had not anticipated.
+
+    Table 1 lists the call outcomes, and Figure 2 shows readmissions by month. Both the call rate and the readmission rate are reported for each unit.
+  expected_issues: []
+  decoys:
+  - anchor: Before, during and after the pilot
+    reason: grammatical_shared
+  - anchor: We designed the call script with the hospital's quality team and tested it with ten patients.
+    reason: grammatical_shared
+  - anchor: Patterns emerged from the call notes
+    reason: emergent_finding
+  - anchor: Table 1 lists the call outcomes
+    reason: direct_leadin
+  - anchor: Both the call rate and the readmission rate are reported for each unit.
+    reason: correct_correlative
+
+# ---- structural patterns in long paragraphs (reviewer feedback) ----------------------------
+- input: file://files/writing_style/pathways_short.md
+  expected_issues:
+  - id: profile_of_and
+    title: Broken Shared Construction
+    anchor: raised the profile of and normalized paid apprenticeships
+    edit_expected: true
+    edit:
+      must_not_include:
+      - profile of and
+  - id: questions_summarized
+    title: Incomplete Sentence
+    anchor: The process evaluation research questions summarized in Table 2.
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 2 summarizes
+  - id: both_as_well_as
+    title: Faulty Parallelism
+    anchor: both supported the rollout of Pathways, as well as the barriers
+    edit_expected: true
+    edit:
+      must_not_include:
+      - both supported
+  - id: lessons_emerged
+    title: Indirect Summary Sentence
+    anchor: Several important lessons emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  - id: and_also_understand
+    anchor: and also better understand how potential participants perceive the program
+    required: false
+  decoys:
+  - anchor: In this chapter, we describe the Pathways program
+    reason: direct_leadin
+  - anchor: The pilot was designed to reduce the time between release
+    reason: other_check
+  - anchor: In the case of Pathways, staff turnover
+    reason: other_check
+  - anchor: Staff reported that the interview topics matched
+    reason: other_check
+  - anchor: We present them in order of the number of hubs they affect.
+    reason: direct_leadin
+  notes: Patterns from reviewer feedback comparing Draft Detective with a paragraph-rewriting style editor, rewritten
+    on an invented program. Each sits in a paragraph whose other sentences carry wordy phrases or passives another
+    check owns. The "and also better understand" clause can be read as a parallelism slip, so reporting it is optional.
+# Same patterns as the Pathways record above, in different wording on a different invented program.
+- input: file://files/writing_style/harbor_short.md
+  expected_issues:
+  - id: reach_of_and
+    title: Broken Shared Construction
+    anchor: expanded the reach of and legitimized short-term credentials
+    edit_expected: true
+    edit:
+      must_not_include:
+      - reach of and
+  - id: domains_listed
+    title: Incomplete Sentence
+    anchor: The interview protocol domains listed in Appendix B.
+    edit_expected: true
+    edit:
+      must_include:
+      - Appendix B lists
+  - id: both_as_well_as
+    title: Faulty Parallelism
+    anchor: both strengthened coordination among partner organizations, as well as the obstacles
+    edit_expected: true
+    edit:
+      must_not_include:
+      - both strengthened
+  - id: themes_surfaced
+    anchor: A number of key themes surfaced from the review
+    required: false
+  - id: and_also_get
+    anchor: and also get a better sense of how young adults view the program
+    required: false
+  decoys:
+  - anchor: This chapter situates Harbor within the city's broader youth employment strategy.
+    reason: direct_leadin
+  - anchor: The curriculum was developed to strengthen the job readiness
+    reason: other_check
+  - anchor: With regard to Harbor, funding uncertainty
+    reason: other_check
+  - anchor: Mentors said that the observation schedule fit their regular workload.
+    reason: other_check
+  - anchor: We order them by how many participants they affect.
+    reason: direct_leadin
+  notes: The Harbor summary sentence says "themes" surfaced, which can read as an emergent finding although it opens the
+    recommendations, so reporting it is optional.
+- input: file://files/writing_style/pathways_long_report.md
+  expected_issues:
+  - id: profile_of_and
+    title: Broken Shared Construction
+    anchor: raised the profile of and normalized paid apprenticeships
+    edit_expected: true
+    edit:
+      must_not_include:
+      - profile of and
+  - id: questions_summarized
+    title: Incomplete Sentence
+    anchor: The process evaluation research questions summarized in Table 2.
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 2 summarizes
+  - id: both_as_well_as
+    title: Faulty Parallelism
+    anchor: both supported the rollout of Pathways, as well as the barriers
+    edit_expected: true
+    edit:
+      must_not_include:
+      - both supported
+  - id: lessons_emerged
+    title: Indirect Summary Sentence
+    anchor: Several important lessons emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  - id: and_also_understand
+    anchor: and also better understand how potential participants perceive the program
+    required: false
+  - id: sequence_followed_by
+    anchor: which is intake, followed by case management and training, followed by placement
+    required: false
+  decoys:
+  - anchor: The outcome research questions are listed in Table 3.
+    reason: other_check
+  - anchor: reflects both the time that was needed to build up referral relationships and the disruption
+    reason: correct_correlative
+  - anchor: both overall and by hub
+    reason: correct_correlative
+  - anchor: reflecting both the types of jobs that were available in the area and the smaller share
+    reason: correct_correlative
+  - anchor: had performed as well as or better than other entry-level employees
+    reason: grammatical_shared
+  - anchor: 'whether participants obtained employment, how long it took them to do so, how much they earned'
+    reason: parallel_series
+  - anchor: Staff reported that the interview topics matched
+    reason: other_check
+  notes: The Pathways paragraphs inside an 11,900-word report, in Chapters 1, 3 and 7, so a run that thins out toward
+    the end misses the last one. The listed-in-Table-3 sentence is complete; its passive belongs to Active Voice.
