@@ -85,6 +85,7 @@ PASSAGE_LABELS = {
 READS_LABELS = {
     "suggested_action": "Reviewer's suggested action",
     "analysis": "Reviewer's analysis",
+    "issue": "Reviewer's issue",
 }
 REFERENCE_LABEL = "Labeller's reference rationale"
 
@@ -111,8 +112,9 @@ class JudgeCriterion(BaseModel):
     # whole report.
     passage: Literal["none", "section", "document"] = "none"
     # What an expected-scope criterion grades of the reported issue: its suggested
-    # action, or its analysis (the description and long description).
-    reads: Literal["suggested_action", "analysis"] = "suggested_action"
+    # action, its analysis (the description and long description), or the issue
+    # itself (its title and analysis), for a criterion about what the title says.
+    reads: Literal["suggested_action", "analysis", "issue"] = "suggested_action"
     # Whether the grader also sees the expected issue's ``rationale``, the labeller's
     # account of what is wrong; the criterion then applies only to expected issues that
     # carry one.
@@ -262,13 +264,16 @@ def _paragraph(expected: ResolvedIssue, document: str) -> str:
 
 def _read(criterion: JudgeCriterion, issue: IssueItem) -> str:
     """The part of the reported issue the criterion grades."""
-    if criterion.reads == "analysis":
-        return "\n\n".join(
-            part
-            for part in (issue.description, issue.long_description or "")
-            if part.strip()
-        )
-    return issue.suggested_action or ""
+    if criterion.reads == "suggested_action":
+        return issue.suggested_action or ""
+    analysis = "\n\n".join(
+        part
+        for part in (issue.description, issue.long_description or "")
+        if part.strip()
+    )
+    if criterion.reads == "issue":
+        return "\n\n".join(part for part in (f"Title: {issue.title}", analysis) if part)
+    return analysis
 
 
 def expected_prompt(
@@ -343,11 +348,7 @@ async def judge_sample(
                     )
                     record(criterion, expected, *await grade(grader, prompt, calls))
             elif not _read(criterion, issue).strip():
-                what = (
-                    "suggested action"
-                    if criterion.reads == "suggested_action"
-                    else "analysis"
-                )
+                what = READS_LABELS[criterion.reads].removeprefix("Reviewer's ")
                 record(criterion, expected, 0.0, f"no {what} to judge")
             else:
                 prompt = expected_prompt(criterion, expected, issue, inventory.document)

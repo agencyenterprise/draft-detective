@@ -24,6 +24,7 @@ import jwt
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
+from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
 from lib.agents.teams_agent import (
     SYSTEM_PROMPT,
     answer_question,
@@ -172,6 +173,11 @@ class TestWhatTheAgentIsGiven:
         assert any(path.startswith("/skills/") for path in files), (
             "skills must be mounted before the run; a tool cannot add them"
         )
+        assert "/skills/structural-checks-ger/SKILL.md" in files
+        for excluded in EXCLUDED_CHAT_SKILLS:
+            assert not any(path.startswith(f"/skills/{excluded}/") for path in files), (
+                "Teams excludes the same skills as the chat and the Word add-in"
+            )
 
     @pytest.mark.asyncio
     async def test_the_asker_is_named_in_the_prompt(self) -> None:

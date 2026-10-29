@@ -429,6 +429,32 @@ async def test_an_analysis_criterion_grades_the_description_and_long_description
 
 
 @pytest.mark.asyncio
+async def test_an_issue_criterion_grades_the_title_with_the_analysis():
+    grader = _Grader()
+    criterion = JudgeCriterion(
+        key="named", criterion="Names the author.", scope="expected", reads="issue"
+    )
+    issue = IssueItem(
+        title="Passive Voice: The institute",
+        description="Two sentences.",
+        suggested_action="Add a sentence.",
+        start_line=5,
+        end_line=5,
+    )
+
+    values, _ = await judge_sample(
+        cast(Model, grader), [issue], _inventory(_expected()), [criterion]
+    )
+
+    assert values == {"named": 1.0}
+    assert (
+        "[Reviewer's issue]: Title: Passive Voice: The institute\n\nTwo sentences."
+        in grader.prompts[0]
+    )
+    assert "Add a sentence." not in grader.prompts[0]
+
+
+@pytest.mark.asyncio
 async def test_an_analysis_criterion_fails_an_issue_with_no_analysis():
     grader = _Grader()
     criterion = JudgeCriterion(
