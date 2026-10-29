@@ -125,7 +125,7 @@ def build_reference_edits(
     quotes = [
         quote
         for change in (_anchored(c, original, spans) for c in changes)
-        if _inside(_touched(change, original), original, spans)
+        if _inside(_touched(change), original, spans)
         and (quote := _unique_quote(change, original, lines, start_line, end_line))
     ]
     return [
@@ -254,7 +254,7 @@ def _anchored(
     return change
 
 
-def _touched(change: _WordChange, original: list[str]) -> range:
+def _touched(change: _WordChange) -> range:
     """The original's words a change replaces, or for an insertion its neighbour."""
     if change.start < change.end:
         return range(change.start, change.end)

@@ -64,7 +64,7 @@ def test_fixes_escaped_underscore_in_markdown_link_syntax():
 
 
 def test_fixes_escaped_underscore_when_label_and_url_are_the_same():
-    markdown = "[https://example.com/foo\_bar](https://example.com/foo\_bar)"
+    markdown = r"[https://example.com/foo\_bar](https://example.com/foo\_bar)"
     result = _fix_escaped_underscores_in_urls(markdown)
     assert result == "[https://example.com/foo_bar](https://example.com/foo_bar)"
 

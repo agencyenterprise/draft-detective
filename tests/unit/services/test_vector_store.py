@@ -1,5 +1,9 @@
 """Unit tests for vector_store chunking and line-range computation."""
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from lib.config.database import async_engine as shared_async_engine
 from lib.services.vector_store import (
     VectorStoreService,
@@ -146,3 +150,23 @@ class TestVectorStoreServiceSharedEngine:
         a = VectorStoreService("test-key-a")
         b = VectorStoreService("test-key-b")
         assert a.async_engine is b.async_engine is shared_async_engine
+
+
+class TestVectorStoreServiceErrorLogging:
+    @pytest.mark.asyncio
+    async def test_error_log_carries_the_run_ids(self):
+        service = VectorStoreService(
+            "test-key", workflow_run_id="run-1", project_id="proj-1"
+        )
+        service._rate_limiter = MagicMock(aacquire=AsyncMock())
+        store = MagicMock(asimilarity_search=AsyncMock(side_effect=TimeoutError()))
+
+        with (
+            patch.object(service, "_get_vectorstore", return_value=store),
+            patch("lib.services.vector_store.log_embedding_error") as log_error,
+            pytest.raises(TimeoutError),
+        ):
+            await service.is_collection_indexed("col_abc")
+
+        assert log_error.call_args.kwargs["workflow_run_id"] == "run-1"
+        assert log_error.call_args.kwargs["project_id"] == "proj-1"

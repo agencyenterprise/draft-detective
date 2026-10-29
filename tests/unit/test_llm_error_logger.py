@@ -26,21 +26,8 @@ from lib.config.llm_error_logger import (
     ErrorLoggingCallback,
     log_embedding_error,
 )
-from lib.services.file_artifacts_service.file_artifacts_service_type import (
-    FileArtifactsServiceType,
-)
-from lib.workflows.context import ContextSchema
 
 _LOGGER_NAME = "lib.config.llm_error_logger"
-
-
-def _make_context() -> ContextSchema:
-    """Minimal ContextSchema for tests."""
-    return ContextSchema(
-        project_id="proj-123",
-        workflow_run_id="run-456",
-        file_artifacts_service=MagicMock(spec=FileArtifactsServiceType),
-    )
 
 
 def _make_response(
@@ -289,7 +276,8 @@ def test_log_embedding_error_helper_format(caplog: pytest.LogCaptureFixture) -> 
         model="text-embedding-3-large",
         provider="openai",
         embeddings_client=fake_embeddings,
-        context=_make_context(),
+        workflow_run_id="run-456",
+        project_id="proj-123",
     )
 
     record = _last_log_record(caplog)
@@ -303,10 +291,10 @@ def test_log_embedding_error_helper_format(caplog: pytest.LogCaptureFixture) -> 
     assert "project_id=proj-123" in record.message
 
 
-def test_log_embedding_error_handles_missing_context(
+def test_log_embedding_error_handles_missing_run_ids(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """vector_store doesn't currently hold a ContextSchema — log line should
+    """vector_store doesn't currently know its workflow run — log line should
     still be emitted, with workflow_run_id=- and project_id=- placeholders."""
     caplog.set_level(logging.ERROR, logger=_LOGGER_NAME)
 
@@ -316,7 +304,6 @@ def test_log_embedding_error_handles_missing_context(
         model="text-embedding-3-large",
         provider="openai",
         embeddings_client=None,
-        context=None,
     )
 
     record = _last_log_record(caplog)

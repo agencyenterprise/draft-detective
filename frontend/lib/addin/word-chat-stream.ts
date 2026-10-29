@@ -4,7 +4,7 @@ import { ChatStreamEvent, errorDetail, parseEventStream } from '@/lib/chat/strea
 
 type WordChatTurnOptions = {
   authorization: string;
-  /** The document URL Word reports; empty for a document never saved. */
+  /** The document URL Word reports, or `chatDocumentKey`'s `unsaved:<id>` for a document never saved. */
   url: string;
   message: string;
   /** The id the pane already shows the message under; the backend stores it as given. */

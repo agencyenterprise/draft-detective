@@ -52,7 +52,16 @@ class ReferenceEmbeddingMatcher:
     reducing LLM calls while maintaining accuracy.
     """
 
-    def __init__(self, openai_api_key: str):
+    def __init__(
+        self,
+        openai_api_key: str,
+        *,
+        workflow_run_id: str | None = None,
+        project_id: str | None = None,
+    ):
+        # Only label embedding error logs.
+        self._workflow_run_id = workflow_run_id
+        self._project_id = project_id
         self._embeddings = init_embeddings(api_key=openai_api_key)
         self._rate_limiter = get_rate_limiter(hash_api_key(openai_api_key))
         self._doc_embeddings_normalized: np.ndarray | None = None
@@ -81,6 +90,8 @@ class ReferenceEmbeddingMatcher:
                 model=EMBEDDING_MODEL_LARGE,
                 provider="openai",
                 embeddings_client=self._embeddings,
+                workflow_run_id=self._workflow_run_id,
+                project_id=self._project_id,
             )
             raise
         # We need to pre-normalize during indexing to avoid repeated computation
@@ -115,6 +126,8 @@ class ReferenceEmbeddingMatcher:
                 model=EMBEDDING_MODEL_LARGE,
                 provider="openai",
                 embeddings_client=self._embeddings,
+                workflow_run_id=self._workflow_run_id,
+                project_id=self._project_id,
             )
             raise
         ref_normalized = _normalize(np.array(ref_vectors))

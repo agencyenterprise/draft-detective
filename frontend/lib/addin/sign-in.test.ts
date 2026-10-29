@@ -148,7 +148,7 @@ describe('openSignOutDialog', () => {
 
 describe('dialogSession', () => {
   it('hands back a Microsoft session that names the account', () => {
-    const session = token({ provider: 'microsoft-entra-id', oid: 'oid-ana' });
+    const session = token({ provider: 'microsoft-entra-id', oid: 'oid-ana', tid: 'tid-contoso' });
     expect(dialogSession(session, 'ana@contoso.com')).toEqual({
       accessToken: session,
       email: 'ana@contoso.com',
@@ -158,7 +158,11 @@ describe('dialogSession', () => {
 
   it.each([
     ['a Google session', { provider: 'google' }],
-    ['a Microsoft session from before the object id was carried', { provider: 'microsoft-entra-id' }],
+    [
+      'a Microsoft session from before the object id was carried',
+      { provider: 'microsoft-entra-id', tid: 'tid-contoso' },
+    ],
+    ['a Microsoft session without a tenant', { provider: 'microsoft-entra-id', oid: 'oid-ana' }],
   ])('does not hand back %s, which the API would refuse', (_, claims) => {
     expect(dialogSession(token(claims), 'ana@contoso.com')).toBeNull();
   });

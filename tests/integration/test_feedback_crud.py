@@ -259,11 +259,6 @@ RUN_SCOPED_CALLS: dict[str, RunCall] = {
     "get_feedback": lambda session, run_id, user: feedback_service.get_feedback(
         session=session, workflow_run_id=run_id, entity_path={}, user=user
     ),
-    "get_workflow_feedback": lambda session, run_id, user: (
-        feedback_service.get_workflow_feedback(
-            session=session, workflow_run_id=run_id, user=user
-        )
-    ),
 }
 
 
@@ -286,23 +281,6 @@ async def test_an_unknown_run_is_a_404(call, author):
             await call(session, uuid.uuid4(), author)
 
     assert excinfo.value.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_workflow_feedback_lists_every_row_on_the_run(run, author, issues):
-    issue, _ = issues
-    await _upsert(run, author, FeedbackType.THUMBS_UP, issue_id=issue.id)
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, entity_path=CLAIM_PATH)
-
-    async with get_async_db_session() as session:
-        rows = await feedback_service.get_workflow_feedback(
-            session=session, workflow_run_id=run.id, user=author
-        )
-
-    assert {row.feedback_type for row in rows} == {
-        FeedbackType.THUMBS_UP,
-        FeedbackType.THUMBS_DOWN,
-    }
 
 
 # ---------------------------------------------------------------------------

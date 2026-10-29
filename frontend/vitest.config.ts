@@ -19,5 +19,20 @@ export default defineConfig({
     globals: false,
     include: ['**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/.next/**'],
+    coverage: {
+      provider: 'v8',
+      // Every hand-written module; generated clients, tests and tool configs would skew the numbers.
+      include: ['**/*.{ts,tsx}'],
+      exclude: [
+        '**/node_modules/**',
+        '**/.next/**',
+        '**/*.d.ts',
+        '**/*.test.{ts,tsx}',
+        'lib/generated-api/**',
+        'lib/test-render.tsx',
+        'vitest.config.ts',
+        'openapi-ts.config.ts',
+      ],
+    },
   },
 });

@@ -1,9 +1,9 @@
 """Tests for the Teams messaging endpoint.
 
 The endpoint only maps the outcome of a turn to what the Bot Connector expects. The
-authentication boundary is covered in ``test_teams_bot.py``, where the token validation
-lives, and what the bot does with an activity in ``test_teams_conversation.py`` and
-``test_teams_dispatch.py``.
+authentication boundary is covered in ``services/microsoft/teams/test_bot.py``, where
+the token validation lives, and what the bot does with an activity in
+``services/microsoft/teams/test_conversation.py`` and ``test_dispatch.py`` beside it.
 """
 
 import json

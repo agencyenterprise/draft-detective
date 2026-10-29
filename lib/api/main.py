@@ -20,7 +20,6 @@ from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.routers import (
     about,
     admin_dashboard,
-    analysis,
     annotations,
     chat,
     feedback,
@@ -111,7 +110,6 @@ app.include_router(about.router)
 app.include_router(admin_dashboard.router)
 app.include_router(annotations.router)
 app.include_router(chat.router)
-app.include_router(analysis.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)
 app.include_router(files.router)

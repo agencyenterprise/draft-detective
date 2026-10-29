@@ -2,7 +2,9 @@
 
 The bot can read a document but never write one (see ``lib/models/microsoft_word_handoff``
 for why), so a request for changes is stored here and picked up by the add-in when the
-person who asked opens the document in Word.
+person who asked opens the document in Word. The add-in's own chat stores its
+suggestions here too, tied to its thread (``chat_suggestions.py``): those are left out
+of the pending list, and nothing is posted to Teams about them.
 
 **Places are quotes, not positions.** The bot reviewed the copy SharePoint had when it
 was asked; by the time the add-in runs, the document may have moved on. A paragraph

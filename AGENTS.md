@@ -253,7 +253,7 @@ uv run pytest tests/path/to/test.py -k "name"     # One file or pattern
 - `tests/unit/` has no external dependencies.
 - `tests/integration/` writes to and deletes from a real Postgres (start it with `docker compose up -d db`). The suite always runs against a separate database: the `.env` database's name with `_test` appended (`ai_reviewer_test` locally), or `TEST_DATABASE_URL` when set. The first integration test creates and migrates it, and rebuilds it when it holds a migration from another branch. The tests refuse any database whose name doesn't end in `_test`, so they never touch the dev data. CI runs the whole suite after the unit tests, in the same job, against a Postgres service.
 - Integration tests share that database and run in parallel, so never assume an empty table: create rows with fresh `uuid4` ids and delete them in the fixture's teardown.
-- Shared fixtures and helpers (`data_path`, `create_test_file_document_from_path`, `create_test_context`) are in `tests/conftest.py`. Reuse them before writing new ones.
+- Shared fixtures and helpers (`data_path`, `create_test_file_document_from_path`) are in `tests/conftest.py`. Reuse them before writing new ones.
 - Never call a real LLM in a test. Use LangChain's `GenericFakeChatModel` (see `tests/unit/services/chat/test_thread_state.py`) or patch the call.
 - Mark async tests with `@pytest.mark.asyncio`.
 

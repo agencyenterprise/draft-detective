@@ -149,3 +149,18 @@ async def test_find_candidates_error_is_logged_and_reraised(embeddings):
             await matcher.find_candidates(["ref"])
 
     assert log_error.call_args.kwargs["caller"].endswith(".find_candidates")
+
+
+@pytest.mark.asyncio
+async def test_error_log_carries_the_run_ids(embeddings):
+    matcher = ReferenceEmbeddingMatcher(
+        openai_api_key="sk-test", workflow_run_id="run-1", project_id="proj-1"
+    )
+    embeddings.aembed_documents.side_effect = RuntimeError("rate limited")
+
+    with patch(f"{MODULE}.log_embedding_error") as log_error:
+        with pytest.raises(RuntimeError):
+            await matcher.index_summaries(SUMMARIES)
+
+    assert log_error.call_args.kwargs["workflow_run_id"] == "run-1"
+    assert log_error.call_args.kwargs["project_id"] == "proj-1"

@@ -11,10 +11,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel, Field
 
-from lib.agents.document_summarizer import DocumentSummary
 from lib.config.llm_models import gpt_5_6_terra_model
 from lib.models.agent import LangChainAgent
 from lib.services.references.embedding_matcher import CandidateMatch
+from lib.workflows.document_summarization.state import DocumentSummary
 
 REFERENCES_PER_BATCH = 5
 MAX_CANDIDATES_PER_REF = 15

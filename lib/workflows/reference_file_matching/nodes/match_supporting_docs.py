@@ -36,10 +36,14 @@ MAX_CONCURRENT_BATCHES = 5
 async def _retrieve_candidates(
     reference_texts: list[str],
     summaries: list[FileSummary],
-    openai_api_key: str,
+    context: ContextSchema,
     top_k: int = 15,
 ) -> list[list[CandidateMatch]]:
-    matcher = ReferenceEmbeddingMatcher(openai_api_key)
+    matcher = ReferenceEmbeddingMatcher(
+        context.openai_api_key or "",
+        workflow_run_id=context.workflow_run_id,
+        project_id=context.project_id,
+    )
     await matcher.index_summaries(summaries)
     return await matcher.find_candidates(reference_texts, top_k=top_k)
 
@@ -93,9 +97,7 @@ async def _two_stage_match(
 ) -> list[str | None]:
     """Run two-stage matching and return list of matched file_ids (None if no match)."""
     logger.info("Stage 1: Retrieving candidates via embedding similarity")
-    candidates_per_ref = await _retrieve_candidates(
-        reference_texts, summaries, context.openai_api_key or ""
-    )
+    candidates_per_ref = await _retrieve_candidates(reference_texts, summaries, context)
 
     logger.info(f"Stage 2: LLM verification in batches of {REFERENCES_PER_BATCH}")
     agent = BatchedReferenceMatcherAgent(context)

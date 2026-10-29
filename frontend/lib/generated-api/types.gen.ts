@@ -1098,7 +1098,7 @@ export type BodyStreamTurnApiMicrosoftWordChatThreadStreamPost = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
   /**
@@ -3065,38 +3065,6 @@ export type PendingHandoffs = {
 };
 
 /**
- * PreflightRequest
- *
- * Request context for preflight validation.
- */
-export type PreflightRequest = {
-  /**
-   * Openai Api Key
-   *
-   * User-provided OpenAI API key to validate
-   */
-  openai_api_key?: string | null;
-};
-
-/**
- * PreflightResult
- *
- * Result of running all preflight validators.
- */
-export type PreflightResult = {
-  /**
-   * Valid
-   *
-   * True if no errors (warnings allowed)
-   */
-  valid: boolean;
-  /**
-   * Issues
-   */
-  issues?: Array<ValidationIssue>;
-};
-
-/**
  * ProgressLevel
  *
  * Level of progress tracking.
@@ -4709,54 +4677,13 @@ export type ValidationError = {
 };
 
 /**
- * ValidationIssue
- *
- * A single validation issue found during preflight check.
- */
-export type ValidationIssue = {
-  /**
-   * Code
-   *
-   * Machine-readable issue code
-   */
-  code: string;
-  /**
-   * Message
-   *
-   * Human-readable description
-   */
-  message: string;
-  severity?: ValidationSeverity;
-  /**
-   * Details
-   */
-  details?: {
-    [key: string]: unknown;
-  } | null;
-};
-
-/**
- * ValidationSeverity
- *
- * Severity level of a validation issue.
- */
-export const ValidationSeverity = { Error: 'error', Warning: 'warning' } as const;
-
-/**
- * ValidationSeverity
- *
- * Severity level of a validation issue.
- */
-export type ValidationSeverity = (typeof ValidationSeverity)[keyof typeof ValidationSeverity];
-
-/**
  * WordChatClearRequest
  */
 export type WordChatClearRequest = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
 };
@@ -4794,7 +4721,7 @@ export type WordChatResumeRequest = {
   /**
    * Url
    *
-   * The document URL Word reports; empty when unsaved
+   * The document URL Word reports, or `unsaved:<id>` for a document never saved
    */
   url: string;
 };
@@ -6275,33 +6202,6 @@ export type ExtractAttachmentTextApiChatExtractPostResponses = {
 export type ExtractAttachmentTextApiChatExtractPostResponse =
   ExtractAttachmentTextApiChatExtractPostResponses[keyof ExtractAttachmentTextApiChatExtractPostResponses];
 
-export type CheckPreflightApiPreflightPostData = {
-  body: PreflightRequest;
-  path?: never;
-  query?: never;
-  url: '/api/preflight';
-};
-
-export type CheckPreflightApiPreflightPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type CheckPreflightApiPreflightPostError =
-  CheckPreflightApiPreflightPostErrors[keyof CheckPreflightApiPreflightPostErrors];
-
-export type CheckPreflightApiPreflightPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: PreflightResult;
-};
-
-export type CheckPreflightApiPreflightPostResponse =
-  CheckPreflightApiPreflightPostResponses[keyof CheckPreflightApiPreflightPostResponses];
-
 export type StartWorkflowApiWorkflowsStartPostData = {
   /**
    * Request
@@ -6696,40 +6596,6 @@ export type SubmitFeedbackApiFeedbackPostResponses = {
 export type SubmitFeedbackApiFeedbackPostResponse =
   SubmitFeedbackApiFeedbackPostResponses[keyof SubmitFeedbackApiFeedbackPostResponses];
 
-export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetData = {
-  body?: never;
-  path: {
-    /**
-     * Workflow Run Id
-     */
-    workflow_run_id: string;
-  };
-  query?: never;
-  url: '/api/feedback/workflow/{workflow_run_id}';
-};
-
-export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetError =
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors[keyof GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetErrors];
-
-export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses = {
-  /**
-   * Response Get Workflow Feedback Api Feedback Workflow  Workflow Run Id  Get
-   *
-   * Successful Response
-   */
-  200: Array<FeedbackResponse>;
-};
-
-export type GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponse =
-  GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses[keyof GetWorkflowFeedbackApiFeedbackWorkflowWorkflowRunIdGetResponses];
-
 export type GetProjectFeedbackApiFeedbackProjectProjectIdGetData = {
   body?: never;
   path: {
@@ -7025,38 +6891,6 @@ export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses = {
 
 export type UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponse =
   UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses[keyof UnresolveIssueEndpointApiIssuesIssueIdUnresolvePostResponses];
-
-export type GetIssueEndpointApiIssuesIssueIdGetData = {
-  body?: never;
-  path: {
-    /**
-     * Issue Id
-     */
-    issue_id: string;
-  };
-  query?: never;
-  url: '/api/issues/{issue_id}';
-};
-
-export type GetIssueEndpointApiIssuesIssueIdGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type GetIssueEndpointApiIssuesIssueIdGetError =
-  GetIssueEndpointApiIssuesIssueIdGetErrors[keyof GetIssueEndpointApiIssuesIssueIdGetErrors];
-
-export type GetIssueEndpointApiIssuesIssueIdGetResponses = {
-  /**
-   * Successful Response
-   */
-  200: IssueResponse;
-};
-
-export type GetIssueEndpointApiIssuesIssueIdGetResponse =
-  GetIssueEndpointApiIssuesIssueIdGetResponses[keyof GetIssueEndpointApiIssuesIssueIdGetResponses];
 
 export type ListProjectsEndpointApiProjectsGetData = {
   body?: never;
@@ -8364,7 +8198,7 @@ export type GetThreadApiMicrosoftWordChatThreadGetData = {
     /**
      * Url
      *
-     * The document URL Word reports
+     * The document URL Word reports, or `unsaved:<id>` for a document never saved
      */
     url: string;
   };

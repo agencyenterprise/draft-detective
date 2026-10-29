@@ -6,15 +6,12 @@ the bibliography is introduced.
 """
 
 from datetime import date
-from typing import TYPE_CHECKING
 
 from lib.agents.formatting_utils import format_bibliography
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.workflows.simple_deep_agent.state import SimpleDeepAgentState
-
-if TYPE_CHECKING:
-    from lib.services.file_artifacts_service.file_artifacts_service_type import (
-        FileArtifactsServiceType,
-    )
 
 _INPUTS_TEMPLATE = """\
 
@@ -34,7 +31,7 @@ _INPUTS_TEMPLATE = """\
 
 async def bibliography_inputs(
     state: SimpleDeepAgentState,
-    service: "FileArtifactsServiceType",
+    service: FileArtifactsServiceType,
     bibliography_heading: str,
 ) -> str:
     """The publication date (today when unset) and the extracted bibliography."""

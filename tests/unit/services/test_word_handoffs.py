@@ -2,15 +2,17 @@
 
 Two things carry the weight. The add-in recognises a document only by the URL Word
 reports, which takes different forms in different clients, so ``keys_for_url`` and
-``document_keys`` must meet on at least one key for every form. And a handoff is
-released only to the person who asked, once: ``finish`` is a single conditional UPDATE
-scoped to their address.
+``document_keys`` must meet on at least one key for every form. And the report posted
+into Teams is built from the stored items, never from text the add-in sends.
+
+Who a handoff is released to, and that each step happens once, is decided by SQL:
+``tests/integration/test_word_handoffs.py`` runs it on Postgres.
 """
 
 import uuid
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -26,7 +28,6 @@ from lib.services.microsoft.word.handoffs import (
     InvalidResults,
     ItemOutcome,
     ItemResult,
-    Requester,
 )
 
 GUID = "546F3FAE-D9FB-457F-A563-D25549EB3601"
@@ -42,21 +43,6 @@ ITEM: dict[str, Any] = {
     ),
     "parentReference": {"driveId": "b!x", "path": "/drives/b!x/root:/Reports"},
 }
-
-
-def session_returning(first: Any = None) -> Any:
-    result = MagicMock()
-    result.first.return_value = first
-    session = MagicMock()
-    session.execute = AsyncMock(return_value=result)
-    session.commit = AsyncMock()
-    session.__aenter__ = AsyncMock(return_value=session)
-    session.__aexit__ = AsyncMock(return_value=False)
-    return session
-
-
-def statements(session: Any) -> list[str]:
-    return [str(call[0][0]).lower() for call in session.execute.await_args_list]
 
 
 def stored(keys: list[str]) -> MicrosoftWordHandoff:
@@ -82,24 +68,6 @@ ITEMS = HandoffItems(
 )
 
 
-class TestWhoOwnsAHandoff:
-    """The condition every lookup and update is scoped by."""
-
-    def sql(self, account: Account) -> str:
-        return str(
-            handoffs.owned_by(account).compile(compile_kwargs={"literal_binds": True})
-        )
-
-    def test_the_object_id_must_match(self) -> None:
-        assert "requested_by_oid = 'oid-ana'" in self.sql(Account(oid="oid-ana"))
-
-    def test_with_a_tenant_both_must_match(self) -> None:
-        sql = self.sql(ANA)
-        assert "requested_by_oid = 'oid-ana'" in sql
-        assert "requested_by_tid = 'tid-contoso'" in sql
-        assert " AND " in sql
-
-
 class TestRecognisingTheDocument:
     def test_a_viewer_link_is_known_by_its_unique_id(self) -> None:
         assert handoffs.keys_for_url(ITEM["webUrl"]) == {f"guid:{GUID.lower()}"}
@@ -118,6 +86,9 @@ class TestRecognisingTheDocument:
             handoffs.keys_for_url("https://contoso.sharepoint.com/:w:/s/Policy/EWabc")
             == set()
         )
+
+    def test_a_url_with_no_host_identifies_nothing(self) -> None:
+        assert handoffs.keys_for_url("not a url") == set()
 
     def test_the_stored_keys_meet_every_form_word_reports(self) -> None:
         keys = set(handoffs.document_keys(ITEM, LIBRARY))
@@ -149,88 +120,6 @@ class TestSplittingByDocument:
         assert [view.id for view in here] == [mine.id]
         assert [view.id for view in elsewhere] == [other.id]
         assert here[0].items.comments[0].quote == "the words"
-
-
-class TestStoring:
-    @pytest.mark.asyncio
-    async def test_storing_also_sweeps_old_handoffs(self) -> None:
-        session = session_returning()
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            await handoffs.create(
-                requester=Requester(
-                    oid="oid-ana", tid="tid-contoso", upn="ana@contoso.com"
-                ),
-                document_name="Draft v3.docx",
-                document_url=ITEM["webUrl"],
-                keys=["guid:x"],
-                items=HandoffItems(comments=[HandoffComment(quote="abc", comment="c")]),
-                reference={"serviceUrl": "https://smba"},
-            )
-
-        sql = statements(session)
-        assert sql[0].startswith("insert into microsoft_word_handoffs")
-        assert sql[1].startswith("delete from microsoft_word_handoffs")
-        session.commit.assert_awaited_once()
-        values = session.execute.await_args_list[0][0][0].compile().params
-        assert values["requested_by_oid"] == "oid-ana"
-        assert values["requested_by_tid"] == "tid-contoso"
-        assert values["requested_by_upn"] == "ana@contoso.com"
-
-
-class TestListing:
-    @pytest.mark.asyncio
-    async def test_pending_handoffs_are_looked_up_by_account(self) -> None:
-        row = stored(["guid:x"])
-        result = MagicMock()
-        result.scalars.return_value.all.return_value = [row]
-        session = session_returning()
-        session.execute = AsyncMock(return_value=result)
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            found = await handoffs.pending_for(ANA)
-
-        assert found == [row]
-        sweep, sql = statements(session)
-        # Expired handoffs are deleted first, and skipped even if the sweep misses one.
-        assert sweep.startswith("delete") and "created_at" in sweep
-        assert (
-            "requested_by_oid" in sql and "requested_by_tid" in sql and "status" in sql
-        )
-        assert "created_at >=" in sql
-
-    def test_a_url_with_no_host_identifies_nothing(self) -> None:
-        assert handoffs.keys_for_url("not a url") == set()
-
-
-class TestFinishing:
-    @pytest.mark.asyncio
-    async def test_it_is_one_update_scoped_to_the_asker_and_still_pending(self) -> None:
-        session = session_returning(
-            first=(
-                "Draft v3.docx",
-                {"serviceUrl": "https://smba"},
-                ITEMS.model_dump(mode="json"),
-            )
-        )
-        outcome = HandoffOutcome(
-            items=[ItemOutcome(kind="edit", quote="abc", applied=True)]
-        )
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            finished = await handoffs.finish(uuid.uuid4(), ANA, "applied", outcome)
-
-        (sql,) = statements(session)
-        assert sql.startswith("update microsoft_word_handoffs")
-        assert "requested_by_oid" in sql and "requested_by_tid" in sql
-        assert "status" in sql and "returning" in sql
-        assert finished is not None and finished.document_name == "Draft v3.docx"
-
-    @pytest.mark.asyncio
-    async def test_someone_elses_or_a_closed_handoff_is_none(self) -> None:
-        session = session_returning(first=None)
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            assert (
-                await handoffs.finish(uuid.uuid4(), Account(oid="oid-eve"), "dismissed")
-                is None
-            )
 
 
 class TestTheItems:
@@ -300,25 +189,6 @@ class TestBuildingTheOutcome:
             handoffs.outcome_from(ITEMS, results)
 
 
-class TestStarting:
-    @pytest.mark.asyncio
-    async def test_only_a_pending_handoff_of_theirs_is_claimed(self) -> None:
-        session = session_returning(first=(uuid.uuid4(),))
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            assert await handoffs.start(uuid.uuid4(), ANA) is True
-
-        (sql,) = statements(session)
-        assert sql.startswith("update microsoft_word_handoffs")
-        assert "requested_by_oid" in sql and "status" in sql
-
-    @pytest.mark.asyncio
-    async def test_anything_else_is_not_claimed(self) -> None:
-        with patch.object(
-            handoffs, "get_async_db_session", return_value=session_returning(first=None)
-        ):
-            assert await handoffs.start(uuid.uuid4(), ANA) is False
-
-
 class TestReportingApplied:
     @pytest.mark.asyncio
     async def test_the_report_posted_is_built_from_the_stored_items(self) -> None:
@@ -383,17 +253,6 @@ class TestReportingApplied:
 
 
 class TestHandoffsFromTheChat:
-    @pytest.mark.asyncio
-    async def test_the_teams_list_leaves_out_the_chats_suggestions(self) -> None:
-        result = MagicMock()
-        result.scalars.return_value.all.return_value = []
-        session = session_returning()
-        session.execute = AsyncMock(return_value=result)
-        with patch.object(handoffs, "get_async_db_session", return_value=session):
-            await handoffs.pending_for(ANA)
-
-        assert "chat_thread_id is null" in statements(session)[1]
-
     @pytest.mark.asyncio
     async def test_applying_one_posts_nothing_to_teams(self) -> None:
         finished = FinishedHandoff(

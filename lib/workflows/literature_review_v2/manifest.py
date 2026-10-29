@@ -1,14 +1,10 @@
-from typing import TYPE_CHECKING
-
+from lib.services.file_artifacts_service.file_artifacts_service_type import (
+    FileArtifactsServiceType,
+)
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.simple_deep_agent.bibliography_inputs import bibliography_inputs
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
 from lib.workflows.simple_deep_agent.state import SimpleDeepAgentState
-
-if TYPE_CHECKING:
-    from lib.services.file_artifacts_service.file_artifacts_service_type import (
-        FileArtifactsServiceType,
-    )
 
 # The literature-review *procedure* is the portable `literature-review` skill
 # (the single source of truth). This system prompt carries only the
@@ -67,7 +63,7 @@ class LiteratureReviewV2Manifest(SimpleDeepAgentManifest):
     llm_timeout = 600
 
     async def prompt_inputs(
-        self, state: SimpleDeepAgentState, service: "FileArtifactsServiceType"
+        self, state: SimpleDeepAgentState, service: FileArtifactsServiceType
     ) -> str:
         return await bibliography_inputs(
             state,

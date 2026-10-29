@@ -9,7 +9,7 @@ _URL_ESCAPED_UNDERSCORE_RE = re.compile(r"(https?://\S+)")
 
 
 def _fix_escaped_underscores_in_urls(markdown: str) -> str:
-    """Markitdown escapes underscores inside URLs (e.g. foo\_bar). Restore them."""
+    r"""Markitdown escapes underscores inside URLs (e.g. foo\_bar). Restore them."""
 
     def _unescape(match: re.Match) -> str:
         return match.group(0).replace(r"\_", "_")

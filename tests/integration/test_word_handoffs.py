@@ -1,9 +1,9 @@
 """Integration tests for handoffs from Teams, on real Postgres.
 
-The unit tests read the SQL these functions send; these run it. What is pinned: a
-handoff is released only to the account that asked for it (its object id, and its
-tenant when both sides know one), each step happens once however often the add-in
-repeats it, so Teams hears about an Apply once, and a handoff past its week is gone.
+What is pinned: a handoff is released only to the account that asked for it (its
+object id, and its tenant when both sides know one), each step happens once however
+often the add-in repeats it, so Teams hears about an Apply once, and a handoff past its
+week is gone: skipped by every read, and deleted whenever one is stored or listed.
 
 Each test uses fresh Entra object ids and deletes what they own afterwards.
 """
@@ -73,6 +73,18 @@ async def listed(account: Account) -> dict[uuid.UUID, str]:
     return {row.id: row.status for row in await handoffs.pending_for(account)}
 
 
+async def age(handoff_id: uuid.UUID, by: timedelta) -> None:
+    """Move a handoff's creation back by ``by``."""
+
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(MicrosoftWordHandoff)
+            .where(col(MicrosoftWordHandoff.id) == handoff_id)
+            .values(created_at=datetime.now(UTC) - by)
+        )
+        await session.commit()
+
+
 async def stored(handoff_id: uuid.UUID) -> MicrosoftWordHandoff | None:
     async with get_async_db_session() as session:
         return (
@@ -96,6 +108,28 @@ async def test_only_the_account_that_asked_can_see_or_close_it(ana: Account) -> 
         assert await handoffs.finish(handoff_id, stranger, "dismissed") is None
 
     assert await listed(ana) == {handoff_id: "pending"}
+
+
+@pytest.mark.asyncio
+async def test_a_handoff_is_stored_under_whoever_asked(ana: Account) -> None:
+    row = await stored(await ask(ana))
+
+    assert row is not None
+    assert (row.requested_by_oid, row.requested_by_tid, row.requested_by_upn) == (
+        ana.oid,
+        ana.tid,
+        "ana@contoso.com",
+    )
+    assert row.status == "pending" and row.chat_thread_id is None
+
+
+@pytest.mark.asyncio
+async def test_the_newest_handoff_is_listed_first(ana: Account) -> None:
+    older = await ask(ana)
+    await age(older, timedelta(hours=1))
+    newer = await ask(ana)
+
+    assert [row.id for row in await handoffs.pending_for(ana)] == [newer, older]
 
 
 @pytest.mark.asyncio
@@ -165,6 +199,7 @@ async def test_a_dismissed_handoff_is_closed_without_an_outcome(ana: Account) ->
     finished = await handoffs.finish(handoff_id, ana, "dismissed")
 
     assert finished is not None and finished.items == ITEMS
+    assert finished.document_name == "Draft.docx"
     assert await handoffs.start(handoff_id, ana) is False
     row = await stored(handoff_id)
     assert row is not None and row.status == "dismissed" and row.outcome is None
@@ -173,19 +208,60 @@ async def test_a_dismissed_handoff_is_closed_without_an_outcome(ana: Account) ->
 
 @pytest.mark.asyncio
 async def test_a_handoff_past_its_week_is_unusable_and_swept(ana: Account) -> None:
+    # Its week is an hour in this process only. Other tests' sweeps keep the real week,
+    # so nothing but the calls below can skip or delete this two-hour-old handoff.
     handoff_id = await ask(ana)
+    await age(handoff_id, timedelta(hours=2))
+
+    with patch.object(handoffs, "KEPT_FOR", timedelta(hours=1)):
+        assert await handoffs.start(handoff_id, ana) is False
+        assert await handoffs.finish(handoff_id, ana, "dismissed") is None
+        # Skipped even when the sweep has not removed it yet.
+        with patch.object(handoffs, "_sweep", AsyncMock()):
+            assert await listed(ana) == {}
+        assert await stored(handoff_id) is not None
+
+        assert await listed(ana) == {}
+    assert await stored(handoff_id) is None
+
+
+@pytest.mark.asyncio
+async def test_storing_a_handoff_sweeps(ana: Account) -> None:
+    with patch.object(handoffs, "_sweep", wraps=handoffs._sweep) as sweep:
+        await ask(ana)
+
+    sweep.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_the_sweep_deletes_anyones_past_their_week_and_nothing_else() -> None:
+    """Run inside one uncommitted transaction, which no other test's sweep can see."""
+
+    def handoff(age: timedelta) -> MicrosoftWordHandoff:
+        return MicrosoftWordHandoff(
+            id=uuid.uuid4(),
+            requested_by_oid=f"oid-{uuid.uuid4()}",
+            requested_by_upn="someone@contoso.com",
+            document_name="Draft.docx",
+            document_url=URL,
+            document_keys=[],
+            items=ITEMS.model_dump(mode="json"),
+            status="pending",
+            created_at=datetime.now(UTC) - age,
+        )
+
+    expired = handoff(handoffs.KEPT_FOR + timedelta(days=1))
+    current = handoff(handoffs.KEPT_FOR - timedelta(days=1))
     async with get_async_db_session() as session:
-        await session.execute(
-            update(MicrosoftWordHandoff)
-            .where(col(MicrosoftWordHandoff.id) == handoff_id)
-            .values(
-                created_at=datetime.now(UTC) - handoffs.KEPT_FOR - timedelta(days=1)
+        session.add_all([expired, current])
+        await session.flush()
+
+        await handoffs._sweep(session)
+
+        left = await session.execute(
+            select(col(MicrosoftWordHandoff.id)).where(
+                col(MicrosoftWordHandoff.id).in_([expired.id, current.id])
             )
         )
-        await session.commit()
-
-    assert await handoffs.start(handoff_id, ana) is False
-    assert await handoffs.finish(handoff_id, ana, "dismissed") is None
-
-    assert await listed(ana) == {}
-    assert await stored(handoff_id) is None
+        assert set(left.scalars()) == {current.id}
+        await session.rollback()

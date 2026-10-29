@@ -183,8 +183,9 @@ async def release(thread_id: uuid.UUID, token: datetime) -> None:
 async def begin_turn(thread_id: uuid.UUID) -> datetime | None:
     """Stamp a new turn, and return when the previous one began.
 
-    Suggestions settled since then are news to the agent. A new thread's "previous
-    turn" is its creation, so nothing counts as news on its first message.
+    The stamp puts the thread first among the account's threads for the document
+    (``current``). What counts as news to the agent is not decided by time: each settled
+    suggestion is told once, by ``heard_at`` (``chat_suggestions.unheard``).
     """
 
     async with get_async_db_session() as session:

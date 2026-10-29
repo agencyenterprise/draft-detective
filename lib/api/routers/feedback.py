@@ -159,21 +159,6 @@ async def get_feedback(
         return None
 
 
-@router.get(
-    "/api/feedback/workflow/{workflow_run_id}", response_model=list[FeedbackResponse]
-)
-async def get_workflow_feedback(
-    workflow_run_id: UUID, current_user: User = Depends(get_current_user)
-) -> list[FeedbackResponse]:
-    """Get all feedback for a workflow run"""
-    async with get_async_db_session() as session:
-        feedbacks = await feedback_service.get_workflow_feedback(
-            session=session, workflow_run_id=workflow_run_id, user=current_user
-        )
-
-        return [FeedbackResponse.from_model(f) for f in feedbacks]
-
-
 @router.get("/api/feedback/project/{project_id}", response_model=list[FeedbackResponse])
 async def get_project_feedback(
     project_id: UUID, current_user: User = Depends(get_current_user)
