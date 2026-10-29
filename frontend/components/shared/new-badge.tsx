@@ -19,7 +19,10 @@ export function NewBadge({ feature, tooltip = 'Released recently.' }: NewBadgePr
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge className="h-5 gap-1 border-violet-500/20 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 px-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">
+        <Badge
+          variant="outline"
+          className="h-5 gap-1 border-violet-500/20 bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 px-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300"
+        >
           <Sparkles aria-hidden className="size-3" />
           New
         </Badge>
