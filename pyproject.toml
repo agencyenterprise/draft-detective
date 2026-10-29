@@ -1,6 +1,6 @@
 [project]
 name = "draft-detective"
-version = "2.3.2"
+version = "2.3.3"
 description = "AI-powered peer-review document analysis"
 requires-python = ">=3.13"
 dependencies = [

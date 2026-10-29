@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.3.3] - 2026-10-29
+
+### Added
+- Added workflow run and project identifiers to embedding error logs.
+
+### Fixed
+- Refused Word add-in dialog sessions that lack a tenant ID.
+
+### Security
+- Updated FastMCP, Authlib, langgraph-checkpoint-postgres, and dnspython to address dependency advisories.
+
+### Removed
+- Removed unused `POST /api/preflight`, `GET /api/issues/{issue_id}`, and `GET /api/feedback/workflow/{workflow_run_id}` routes.
+
+
 ## [v2.3.2] - 2026-10-23
 
 ### Fixed
