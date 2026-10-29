@@ -14,10 +14,14 @@ from evals_inspectai.common.issue_judge import JudgeCriterion
 from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.concision_precision.criteria import no_added_passive
 
-# A sentence end inside the quoted text: terminal punctuation, an optional closing
-# quote or bracket, whitespace, any Markdown markup opening the next sentence
-# (emphasis, a link, code), then the capital or digit that starts it.
-_SENTENCE_BREAK_RE = re.compile(r"[.!?][\"”’)\]]?\s+[*_\[`]*[A-Z0-9“\"]")
+# A sentence end inside the quoted text: terminal punctuation, any closing quotes,
+# brackets or Markdown emphasis, whitespace, then the start of the next sentence:
+# opening markup (emphasis, a link, code, a quote) before a capital or digit, or an
+# opening parenthesis before a capital. A parenthesis before a digit is a citation
+# year ("et al. (2024)"), not a new sentence.
+_SENTENCE_BREAK_RE = re.compile(
+    r"[.!?][\"”’)\]*_`]*\s+(?:[*_\[`“\"]*[A-Z0-9]|\(+[*_`“\"]*[A-Z])"
+)
 
 
 def one_sentence(edit: ProposedEdit) -> bool:
