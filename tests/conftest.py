@@ -3,18 +3,36 @@
 This module provides reusable utilities that work across all agent test suites:
 - Path resolution
 - Document loading
+- A small DOCX with Word equations
 """
 
 import os
 import shutil
 from pathlib import Path
 
+from docx import Document
+from lxml import etree  # type: ignore[import-untyped]
 from xxhash import xxh128
 
 from lib.config.env import config
 from lib.services.files.document import create_file_document_from_path
 
 TESTS_DIR = Path(__file__).parent
+
+_OMML_NS = (
+    'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
+    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+)
+# x subscript i: MarkItDown converts this to LaTeX.
+_OMML_SUBSCRIPT = (
+    f"<m:oMath {_OMML_NS}><m:sSub><m:e><m:r><m:t>x</m:t></m:r></m:e>"
+    "<m:sub><m:r><m:t>i</m:t></m:r></m:sub></m:sSub></m:oMath>"
+)
+# ln(N): MarkItDown 0.1.5 raises "Not support func ln".
+_OMML_NATURAL_LOG = (
+    f"<m:oMath {_OMML_NS}><m:func><m:fName><m:r><m:t>ln</m:t></m:r></m:fName>"
+    "<m:e><m:r><m:t>N</m:t></m:r></m:e></m:func></m:oMath>"
+)
 
 
 def data_path(path: str) -> str:
@@ -79,3 +97,21 @@ async def create_test_file_document_from_path(path: str):
         original_file_name=original_file_name,
         markdown_convert=True,
     )
+
+
+def write_docx_with_equations(path: Path) -> str:
+    """Write a DOCX with a convertible inline equation, an ``ln`` one that
+    MarkItDown cannot convert, and a display equation. Returns its path."""
+    doc = Document()
+    for before, omath, after in (
+        ("where ", _OMML_SUBSCRIPT, " is the score for item i."),
+        ("The entropy uses ", _OMML_NATURAL_LOG, " for the base."),
+    ):
+        paragraph = doc.add_paragraph(before)
+        paragraph._element.append(etree.fromstring(omath))
+        paragraph.add_run(after)
+    display = f"<m:oMathPara {_OMML_NS}>{_OMML_SUBSCRIPT}</m:oMathPara>"
+    doc.add_paragraph()._element.append(etree.fromstring(display))
+    doc.add_paragraph("After the display equation.")
+    doc.save(str(path))
+    return str(path)
