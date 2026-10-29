@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.4.0] - 2026-10-29
+
+### Added
+- Added the Sentence Structure Writing Style Review check with evaluations and tracked-change rewrite suggestions where applicable.
+- Added a “New” badge for newly released workflows in the assessment picker.
+
+### Changed
+- Released the Citations & Reference List check from alpha for all users.
+- Updated langgraph-sdk from 0.4.4 to 0.4.6.
+
+### Fixed
+- Preserved Word equations during DOCX conversion when an individual equation cannot be converted.
+
+
 ## [v2.3.3] - 2026-10-29
 
 ### Added
