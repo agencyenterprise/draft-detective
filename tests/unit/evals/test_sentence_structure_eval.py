@@ -93,6 +93,7 @@ def test_one_sentence_rejects_an_edit_that_spans_two_sentences():
     assert one_sentence(_edit("training them")), "a phrase inside one sentence"
     assert not one_sentence(_edit("Costs rose. (Most sites agreed.)"))
     assert not one_sentence(_edit("**Costs rose.** Most sites agreed."))
+    assert not one_sentence(_edit("Staff called it 'effective.' Most sites agreed."))
     assert one_sentence(_edit("As Smith et al. (2024) found, costs rose.")), (
         "a citation year after a period is not a new sentence"
     )

@@ -20,7 +20,7 @@ from evals_inspectai.e2e.concision_precision.criteria import no_added_passive
 # opening parenthesis before a capital. A parenthesis before a digit is a citation
 # year ("et al. (2024)"), not a new sentence.
 _SENTENCE_BREAK_RE = re.compile(
-    r"[.!?][\"”’)\]*_`]*\s+(?:[*_\[`“\"]*[A-Z0-9]|\(+[*_`“\"]*[A-Z])"
+    r"[.!?][\"'”’)\]*_`]*\s+(?:[*_\[`“‘\"]*[A-Z0-9]|\(+[*_`“‘\"]*[A-Z])"
 )
 
 
