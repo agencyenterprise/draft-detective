@@ -88,3 +88,6 @@ def test_one_sentence_rejects_an_edit_that_spans_two_sentences():
         )
     )
     assert not one_sentence(_edit('Staff said "it worked." Most sites agreed.'))
+    assert not one_sentence(_edit("Costs rose. *Most* sites agreed."))
+    assert not one_sentence(_edit("Costs rose. [Table 2](#t2) shows why."))
+    assert one_sentence(_edit("training them")), "a phrase inside one sentence"

@@ -15,14 +15,17 @@ from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.concision_precision.criteria import no_added_passive
 
 # A sentence end inside the quoted text: terminal punctuation, an optional closing
-# quote or bracket, whitespace, then the capital or digit that opens the next sentence.
-_SENTENCE_BREAK_RE = re.compile(r"[.!?][\"”’)\]]?\s+[A-Z0-9“\"]")
+# quote or bracket, whitespace, any Markdown markup opening the next sentence
+# (emphasis, a link, code), then the capital or digit that starts it.
+_SENTENCE_BREAK_RE = re.compile(r"[.!?][\"”’)\]]?\s+[*_\[`]*[A-Z0-9“\"]")
 
 
 def one_sentence(edit: ProposedEdit) -> bool:
-    """The edit quotes a single sentence: one that spans two can merge them,
-    which the skill forbids. Abbreviations followed by a capital ("U.S. Army")
-    read as a break, so a dataset avoids them in sentences it expects edits on."""
+    """The edit stays within one sentence: one that spans two can merge them,
+    which the skill forbids. A phrase inside a sentence passes; the check is
+    about crossing a sentence break, not about quoting the whole sentence.
+    Abbreviations followed by a capital ("U.S. Army") read as a break, so a
+    dataset avoids them in sentences it expects edits on."""
     return _SENTENCE_BREAK_RE.search(edit.original_text.strip()) is None
 
 
@@ -31,7 +34,7 @@ EXTRA_EDIT_CHECKS = {
     "no_added_passive": no_added_passive,
 }
 EXTRA_EDIT_DESCRIPTIONS = {
-    "edit_one_sentence": "Share of edits whose quoted text is a single sentence (no sentence break inside it).",
+    "edit_one_sentence": "Share of edits whose quoted text stays within one sentence (no sentence break inside it; a phrase passes).",
     "edit_no_added_passive": (
         "Share of edits whose replacement has no more be-plus-participle constructions than the original "
         "(regex heuristic); deletions are not scored."
