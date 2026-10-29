@@ -250,24 +250,19 @@ class FileArtifactsService(FileArtifactsServiceType):
         state = await self._get_state(DocumentProcessingState)
         return state.file
 
-    async def get_project_files(
-        self, roles: list[FileRole], revision: int | None = None
-    ) -> list[FileDocument]:
+    async def get_project_files(self, roles: list[FileRole]) -> list[FileDocument]:
         """Return the project's files for the given roles, with markdown content.
 
-        Defaults to the service's revision; pass ``revision`` to read a
-        different revision's files. Prefers DB cached markdown and converts a
-        file's markdown on demand when it has not been cached yet (e.g. a file
-        of an earlier revision, which the document pipeline never converted).
+        Reads the service's revision. Prefers DB cached markdown and converts a
+        file's markdown on demand when it has not been cached yet.
         """
-        rev = revision if revision is not None else self.revision
         role_labels = ", ".join(r.value for r in roles)
         files = await self._try_load(
             f"project files ({role_labels}) for {self.project_id}",
             lambda: get_files_by_project_id(
                 self.project_id,
                 roles=roles,
-                revision=rev,
+                revision=self.revision,
             ),
         )
         if not files:

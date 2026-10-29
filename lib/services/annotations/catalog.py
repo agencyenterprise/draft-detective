@@ -17,6 +17,7 @@ from lib.services.annotations.sets.methodological_alignment import (
 )
 from lib.services.annotations.sets.narrative_synthesis import NARRATIVE_SYNTHESIS
 from lib.services.annotations.sets.recommendation_check import RECOMMENDATION_CHECK
+from lib.services.annotations.sets.sentence_structure import SENTENCE_STRUCTURE
 from lib.services.annotations.sets.writing_consistency import WRITING_CONSISTENCY
 
 ANNOTATION_SETS: list[AnnotationSetSpec] = [
@@ -26,6 +27,7 @@ ANNOTATION_SETS: list[AnnotationSetSpec] = [
     CONCISION_PRECISION,
     HEADERS_SKIMMABILITY,
     NARRATIVE_SYNTHESIS,
+    SENTENCE_STRUCTURE,
     WRITING_CONSISTENCY,
     INFERENCE_VALIDATION,
     METHODOLOGICAL_ALIGNMENT,

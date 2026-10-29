@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { RAIL_ITEM_IDLE } from '@/lib/rail-style';
 import { WorkflowGate, WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { Badge } from '../ui/badge';
+import { NewBadge } from '../shared/new-badge';
 import { Checkbox } from '../ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { formatEstimatedDuration } from './utils';
@@ -179,6 +180,7 @@ export function WorkflowTypeCheckbox({
             description and the badges read as qualifiers of the name. */}
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="truncate text-sm font-medium leading-tight">{workflowType.name}</span>
+          <NewBadge feature={`workflow:${workflowType.type}`} tooltip="This assessment was released recently." />
           {running && (
             <Badge variant="secondary" className="h-5 gap-1 px-1.5 text-[11px] font-normal">
               <Loader2 aria-hidden className="text-primary size-3 animate-spin" />

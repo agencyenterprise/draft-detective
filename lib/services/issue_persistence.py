@@ -123,18 +123,15 @@ async def persist_workflow_issues(
 async def get_project_issues(
     project_id: uuid.UUID,
     revision: int,
-    include_archived: bool = False,
     workflow_types: list[WorkflowRunType] | None = None,
 ) -> Sequence[Issue]:
-    """Get issues for a project and revision."""
+    """Get a project's unarchived issues for a revision."""
     async with get_async_db_session() as session:
         stmt = select(Issue).where(
             col(Issue.project_id) == project_id,
             col(Issue.revision) == revision,
+            col(Issue.status) != IssueStatus.ARCHIVED,
         )
-
-        if not include_archived:
-            stmt = stmt.where(col(Issue.status) != IssueStatus.ARCHIVED)
 
         if workflow_types:
             type_values = [t.value for t in workflow_types]

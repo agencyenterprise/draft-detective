@@ -33,6 +33,7 @@ evals_inspectai/
 │   ├── reviewer_coverage_report/
 │   ├── reviewer_response_memos/
 │   ├── revision_planning_summary/
+│   ├── sentence_structure/
 │   └── writing_consistency/
 └── files/                             # Shared fixtures (source documents, figures, peer-review scenarios)
 ```
@@ -73,6 +74,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/reviewer_coverage_report` | Review Assistant: the coverage report on how a revised draft answers each reviewer point. |
 | `e2e/reviewer_response_memos` | Review Assistant: the author's response memo to each reviewer. |
 | `e2e/revision_planning_summary` | Review Assistant: the revision-planning summary of a draft's reviewer memos. |
+| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions, faulty parallelism and indirect summary sentences, with restructured rewrites. |
 | `e2e/writing_consistency` | Checks terms, spellings, tenses, tone and house-style compounds are consistent across the document. |
 
 ## Running Evals

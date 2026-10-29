@@ -6,7 +6,7 @@ metadata:
     title: Citations & Reference List
     description: Do your citations and your reference list agree? Checks that every citation resolves to a reference entry, that a References list holds only cited works, and that citations are formatted consistently, with a proposed fix for each malformed one. Works from the document alone, with no web access.
     category: citation_check
-    experimental: true
+    experimental: false
     icon: quote
     propose_edits: true
 ---

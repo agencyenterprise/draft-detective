@@ -16,7 +16,7 @@ from lib.api.services.workflow_runner import WorkflowGateRequiredError
 from lib.workflows.models import SeverityEnum
 from lib.workflows.reference_file_matching.state import MatchSource, ReferenceFileMatch
 
-# Patch auth factory before importing the MCP module (see test_mcp_server.py).
+# Patch auth factory before importing the MCP module (see test_server.py).
 _orig = _mcp_auth_mod.create_mcp_auth
 _mcp_auth_mod.create_mcp_auth = lambda: None
 
