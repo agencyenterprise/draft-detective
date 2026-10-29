@@ -15,9 +15,10 @@ Two concerns live here, and a third next door:
   message the user typed, with chips, rather than the pointer note.
 - **Reading state back** lives in ``thread_state``: it goes through the compiled
   graph, because the checkpointed channels hold deltas, not the full state.
-- **Serialising for the page.** LangChain messages become the subset of
-  ``LangChainMessage`` that ``@assistant-ui/react-langgraph`` renders. Reasoning
-  is rewritten from the ``v1`` block layout the model streams in to the
+- **Serialising for the page** (/chat, and the Word add-in's chat pane through
+  ``lib/api/routers/microsoft/word_chat.py``). LangChain messages become the
+  subset of ``LangChainMessage`` that ``@assistant-ui/react-langgraph`` renders.
+  Reasoning is rewritten from the ``v1`` block layout the model streams in to the
   ``summary`` layout the converter understands, and hosted web search becomes an
   ordinary tool call with a result.
 """

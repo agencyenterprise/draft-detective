@@ -42,9 +42,9 @@ logger = logging.getLogger(__name__)
 # enough that a parked message is not kept for days.
 ABANDONED_AFTER = timedelta(hours=1)
 
-# Rows are keyed by this prefix and the id the sign-in card carries. Kept from when the
-# table also held the Agents SDK's own entries: a card posted before a deploy still
-# carries a bare id, and its question was stored under the prefixed key.
+# Rows are keyed by this prefix and the id the sign-in card carries. The prefix dates
+# from when the table also held the Agents SDK's own entries and no longer separates
+# anything; dropping it would only strand the questions parked under it at deploy time.
 _KEY_PREFIX = "pending-question/"
 
 

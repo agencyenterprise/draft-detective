@@ -1,13 +1,14 @@
-"""LangGraph stream output, mapped to the events the /chat page renders.
+"""LangGraph stream output, mapped to the events the chat pages render.
 
-The page understands these events: ``message`` and ``message_end`` marking an
-assistant message and carrying the id it is checkpointed under, ``text`` and
-``reasoning`` deltas, a ``tool`` call with its complete arguments, a
-``tool_result`` (with the id of the stored tool message), and an ``error``. The
-ids matter: the page shows a turn from these events while it streams and from
-the checkpointer afterwards, and the same ids are what stop assistant-ui from
-treating the two as different messages. This module produces them from a graph
-streamed with ``stream_mode=["messages", "updates"]``:
+Two pages read them, /chat and the Word add-in's chat pane; ``ChatStreamEvent`` in
+``frontend/lib/chat/stream.ts`` is the other side of this contract. The events:
+``message`` and ``message_end`` marking an assistant message and carrying the id it
+is checkpointed under, ``text`` and ``reasoning`` deltas, a ``tool`` call with its
+complete arguments, a ``tool_result`` (with the id of the stored tool message), an
+``interrupt`` and an ``error``. The ids matter: the page shows a turn from these
+events while it streams and from the checkpointer afterwards, and the same ids are
+what stop assistant-ui from treating the two as different messages. This module
+produces them from a graph streamed with ``stream_mode=["messages", "updates"]``:
 
 - ``messages`` carries the model's token stream. Text and reasoning deltas come
   from there, read off the ``v1`` content blocks (see ``build_llm``).
