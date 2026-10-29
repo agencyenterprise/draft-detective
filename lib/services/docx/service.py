@@ -122,7 +122,7 @@ async def generate_docx(
         )
 
         # Query persisted issues directly from DB (faster than computing from workflow states)
-        # get_project_issues excludes archived issues by default
+        # get_project_issues excludes archived issues
         all_issues = list(
             await get_project_issues(
                 project_id=uuid.UUID(project_id),

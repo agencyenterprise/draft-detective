@@ -107,7 +107,6 @@ async def run_tasks(
 def convert_exceptions_to_workflow_errors(
     task_name: str,
     exceptions: list[Exception | None],
-    chunk_indices: list[int] | None = None,
     workflow_run_id: str | None = None,
 ) -> list[WorkflowError]:
     """
@@ -116,29 +115,12 @@ def convert_exceptions_to_workflow_errors(
     Args:
         task_name: The name of the task that caused the errors.
         exceptions: List of exceptions (None for successful tasks).
-        chunk_indices: Optional list of chunk indices corresponding to each exception.
-                      If None, no chunk_index is set on errors.
-                      If provided, must be same length as exceptions.
         workflow_run_id: Optional workflow run ID to tag errors with.
-
-    Raises:
-        ValueError: If chunk_indices is provided but has different length than exceptions.
     """
-    if chunk_indices is not None and len(chunk_indices) != len(exceptions):
-        raise ValueError(
-            f"chunk_indices length ({len(chunk_indices)}) must match "
-            f"exceptions length ({len(exceptions)})"
+    return [
+        build_workflow_error(
+            task_name=task_name, exc=exception, workflow_run_id=workflow_run_id
         )
-
-    errors: list[WorkflowError] = []
-    for i, exception in enumerate(exceptions):
-        if exception is not None:
-            errors.append(
-                build_workflow_error(
-                    task_name=task_name,
-                    exc=exception,
-                    chunk_index=chunk_indices[i] if chunk_indices else None,
-                    workflow_run_id=workflow_run_id,
-                )
-            )
-    return errors
+        for exception in exceptions
+        if exception is not None
+    ]
