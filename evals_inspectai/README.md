@@ -28,12 +28,12 @@ evals_inspectai/
 │   ├── reference_downloader/
 │   ├── reference_text_extractor/
 │   ├── reference_validation_v2/
-│   ├── sentence_structure/
 │   ├── results_extraction/
 │   ├── reviewer_2/
 │   ├── reviewer_coverage_report/
 │   ├── reviewer_response_memos/
 │   ├── revision_planning_summary/
+│   ├── sentence_structure/
 │   └── writing_consistency/
 └── files/                             # Shared fixtures (source documents, figures, peer-review scenarios)
 ```
@@ -69,12 +69,12 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/reference_downloader` | Searches for and downloads the full text of a reference. |
 | `e2e/reference_text_extractor` | Extracts bibliographic reference entries, run via the full workflow. |
 | `e2e/reference_validation_v2` | Reference Error Checker — verifies each citation exists online and matches public sources. |
-| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions, faulty parallelism and indirect summary sentences, with restructured rewrites. |
 | `e2e/results_extraction` | Reproducibility Check — extracts main results and classifies each by reproducibility. |
 | `e2e/reviewer_2` | Produces a senior-reviewer-style critique and a devil's-advocate rebuttal. |
 | `e2e/reviewer_coverage_report` | Review Assistant: the coverage report on how a revised draft answers each reviewer point. |
 | `e2e/reviewer_response_memos` | Review Assistant: the author's response memo to each reviewer. |
 | `e2e/revision_planning_summary` | Review Assistant: the revision-planning summary of a draft's reviewer memos. |
+| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions, faulty parallelism and indirect summary sentences, with restructured rewrites. |
 | `e2e/writing_consistency` | Checks terms, spellings, tenses, tone and house-style compounds are consistent across the document. |
 
 ## Running Evals

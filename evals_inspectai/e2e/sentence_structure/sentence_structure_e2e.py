@@ -11,7 +11,9 @@ alone, one ``no_fp_<reason>`` metric per exclusion the skill states
 lead-ins, long sentences that parse, quoted wording, and problems another
 Writing Style check owns).
 
-Scorers: the reusable ``issue_checks`` (detection and edit hygiene) and
+Scorers: the reusable ``issue_checks`` (detection and edit hygiene, paired
+one to one, since the skill reports one issue per sentence and several
+expected sentences can share a paragraph line) and
 ``decoy_checks``, this workflow's own deterministic edit check (no passive
 introduced), and two judged criteria on Inspect's model-grading protocol
 (``criteria.py``).
@@ -71,7 +73,7 @@ def sentence_structure_e2e(timeout_s: float = 1200, judge_calls: int = 1) -> Tas
         timeout_s: How long to wait for one workflow run through the API.
         judge_calls: Grader calls per graded edit; the median grade is kept.
     """
-    suite = InventorySuite.load(DATASET)
+    suite = InventorySuite.load(DATASET, pairing="one_to_one")
     return Task(
         dataset=suite.dataset(),
         metadata=suite.metadata(GROUND_TRUTH, OWN_METRICS),

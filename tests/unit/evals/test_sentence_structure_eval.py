@@ -54,6 +54,10 @@ def test_long_report_plants_a_pattern_in_its_last_chapter():
 def test_task_composes_the_inventory_scorers_and_its_own_checks():
     t = sentence_structure_e2e()
     assert len(t.dataset) == 14 and len(t.scorer) == 4
+    # One issue per sentence: a report on a shared paragraph line covers only one expected sentence.
+    assert all(
+        s.metadata["inventory"]["policy"]["pairing"] == "one_to_one" for s in t.dataset
+    )
     assert set(EXTRA_EDIT_CHECKS) == {"no_added_passive"}
     assert {c.key for c in JUDGE_CRITERIA} == {
         "edit_meaning_preserved",
