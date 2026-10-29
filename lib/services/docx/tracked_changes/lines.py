@@ -25,6 +25,11 @@ from lib.services.text.markdown_rendering import render_line_text
 # make a line and its own paragraph look like different passages.
 _FOOTNOTE_REFERENCE = re.compile(r"\[\[\d+\]\]\(#footnote-[^)]*\)|\[\^\d+\]")
 
+# An equation as the converter writes it: `$$...$$` for a display block,
+# `$...$` inline. Word carries an equation as math markup, never as paragraph
+# text, so the LaTeX is on the line and nowhere in the paragraph.
+_EQUATION = re.compile(r"\$\$[^$]+\$\$|\$[^$\n]+\$")
+
 # How alike a line and a paragraph must be to be the same passage, and how
 # long both have to be before likeness is worth measuring at all.
 _MIN_SIMILARITY = 0.9
@@ -79,6 +84,10 @@ def line_belongs_to_paragraph(line: str | None, paragraph_text: str) -> bool:
        whole text rather than a shared opening is what keeps a nested block or
        a content control that merely repeats the paragraph's first words out:
        boilerplate at the front no longer buys it the paragraph.
+    5. A line that fails all of that is compared once more with its equations
+       dropped, since the LaTeX of a sentence dense with symbols can be most of
+       its difference from the paragraph. Only as a second try: a line whose
+       ``$`` signs are prices keeps them, as the paragraph does.
 
     The length floor on the last two rules is the same one, and it is already
     more than a table row (``| Metric | Value |``) can share with prose.
@@ -86,8 +95,14 @@ def line_belongs_to_paragraph(line: str | None, paragraph_text: str) -> bool:
     """
     if line is None:
         return False
-    line_text = _rendered_line(line)
     para_text = normalize_whitespace(paragraph_text)
+    return _same_passage(_rendered_line(line), para_text) or _same_passage(
+        _rendered_line(_EQUATION.sub("", line)), para_text
+    )
+
+
+def _same_passage(line_text: str, para_text: str) -> bool:
+    """Rules 2 to 4 of `line_belongs_to_paragraph`, on texts already rendered."""
     if not line_text or not para_text:
         return False
     if line_text == para_text:
