@@ -128,19 +128,15 @@
     title: Faulty Parallelism
     anchor: Residents receive a stipend, tuition support, and mentors meet with them weekly.
   - id: not_only_but
-    title: Faulty Parallelism
     anchor: not only retention in the district but residents' classroom performance
-    edit_expected: true
-    edit:
-      must_include:
-      - but also
+    required: false
   decoys:
   - anchor: Both residents and mentors completed surveys
     reason: correct_correlative
   - anchor: Residents valued the stipend, the cohort model, and the weekly coaching.
     reason: parallel_series
   notes: The stipend sentence can be fixed as a noun series or as two clauses, so neither an edit nor its wording is
-    scored.
+    scored. "Not only X but Y" without "also" is accepted usage, so reporting it is optional.
 - input: |
     # Food Bank Distribution Study
 
@@ -249,13 +245,6 @@
       - Table 4
       must_not_include:
       - It is in Table 4
-  - id: what_the_analysis_showed
-    title: Indirect Summary Sentence
-    anchor: What the analysis showed across the four counties
-    edit_expected: true
-    edit:
-      must_not_include:
-      - What the analysis showed
   - id: conclusions_arose
     title: Indirect Summary Sentence
     anchor: A number of conclusions arose from comparing
@@ -264,8 +253,51 @@
       must_not_include:
       - arose
   decoys:
+  - anchor: What the analysis showed across the four counties
+    reason: other_check
   - anchor: Missed court dates fell from 21 percent to 14 percent in the first year.
     reason: direct_leadin
+  notes: The pseudo-cleft "What the analysis showed... was" is a placeholder lead-in, which Concision owns.
+
+- input: |
+    # Regional Transit Fare Study
+
+    ## Findings
+
+    If we assume that fares rose by 10 percent, it is possible to estimate the effect on ridership for each of the four routes. A summary of the ridership changes for each route is shown in Figure 3. This summary suggests that the express routes would lose the most riders unless the authority adds off-peak service. These numbers are reflective of two patterns in the data. The section below contains several tables to illustrate the changes by route.
+
+    ## Conclusions
+
+    It is in Table 5 that the cost of each option is compared. Several lessons emerged from the authority's ridership counts and rider surveys. The first concerns off-peak service.
+  expected_issues:
+  - id: cleft_table_5
+    title: Indirect Summary Sentence
+    anchor: It is in Table 5 that the cost of each option is compared.
+    edit_expected: true
+    edit:
+      must_not_include:
+      - It is in Table 5
+  - id: lessons_emerged_authority
+    title: Indirect Summary Sentence
+    anchor: Several lessons emerged from the authority's ridership counts
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  decoys:
+  - anchor: it is possible to estimate the effect on ridership
+    reason: other_check
+  - anchor: A summary of the ridership changes for each route is shown in Figure 3.
+    reason: other_check
+  - anchor: This summary suggests that the express routes would lose the most riders
+    reason: hedged_summary
+  - anchor: These numbers are reflective of two patterns in the data.
+    reason: other_check
+  - anchor: The section below contains several tables to illustrate the changes by route.
+    reason: direct_leadin
+  notes: Lead-ins that tripped the check on real RAND drafts. Only the cleft and the misattributed "emerged" are this
+    check's; the placeholder and wordy lead-ins are Concision's, the passive figure lead-in is Active Voice's, and the
+    hedged "suggests" sentence must not be merged with the sentence before it into "Figure 3 shows...".
 
 # ---- clean documents -----------------------------------------------------------------------
 - input: |
@@ -460,7 +492,7 @@
     reason: other_check
   - anchor: reflects both the time that was needed to build up referral relationships and the disruption
     reason: correct_correlative
-  - anchor: both overall and by hub. Overall, participants were predominantly male
+  - anchor: both overall and by hub
     reason: correct_correlative
   - anchor: reflecting both the types of jobs that were available in the area and the smaller share
     reason: correct_correlative

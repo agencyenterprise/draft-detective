@@ -2,17 +2,36 @@
 
 The generic inventory scorer checks that expected issues were detected and that
 edits keep the text intact. This module adds what a restructuring edit must do
-on top: not introduce a passive the original lacked (deterministic, shared with
-Concision & Precision), preserve every claim and qualifier while fixing the
+on top: cover a single sentence and not introduce a passive the original lacked
+(deterministic; the passive check is shared with Concision & Precision), preserve every claim and qualifier while fixing the
 structure (graded), and leave a sentence that parses and reads well in place
 (graded).
 """
 
+import re
+
 from evals_inspectai.common.issue_judge import JudgeCriterion
+from evals_inspectai.common.simple_deep_agent_types import ProposedEdit
 from evals_inspectai.e2e.concision_precision.criteria import no_added_passive
 
-EXTRA_EDIT_CHECKS = {"no_added_passive": no_added_passive}
+# A sentence end inside the quoted text: terminal punctuation, an optional closing
+# quote or bracket, whitespace, then the capital or digit that opens the next sentence.
+_SENTENCE_BREAK_RE = re.compile(r"[.!?][\"”’)\]]?\s+[A-Z0-9“\"]")
+
+
+def one_sentence(edit: ProposedEdit) -> bool:
+    """The edit quotes a single sentence: one that spans two can merge them,
+    which the skill forbids. Abbreviations followed by a capital ("U.S. Army")
+    read as a break, so a dataset avoids them in sentences it expects edits on."""
+    return _SENTENCE_BREAK_RE.search(edit.original_text.strip()) is None
+
+
+EXTRA_EDIT_CHECKS = {
+    "one_sentence": one_sentence,
+    "no_added_passive": no_added_passive,
+}
 EXTRA_EDIT_DESCRIPTIONS = {
+    "edit_one_sentence": "Share of edits whose quoted text is a single sentence (no sentence break inside it).",
     "edit_no_added_passive": (
         "Share of edits whose replacement has no more be-plus-participle constructions than the original "
         "(regex heuristic); deletions are not scored."
@@ -53,6 +72,7 @@ JUDGE_CRITERIA = [
 ]
 
 SCORE_LABELS = {
+    "edit_one_sentence": "One sentence",
     "edit_no_added_passive": "No new passive",
     "edit_meaning_preserved": "Meaning",
     "edit_reads_well": "Reads well",

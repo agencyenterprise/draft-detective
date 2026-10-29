@@ -14,8 +14,8 @@ Writing Style check owns).
 Scorers: the reusable ``issue_checks`` (detection and edit hygiene, paired
 one to one, since the skill reports one issue per sentence and several
 expected sentences can share a paragraph line) and
-``decoy_checks``, this workflow's own deterministic edit check (no passive
-introduced), and two judged criteria on Inspect's model-grading protocol
+``decoy_checks``, this workflow's own deterministic edit checks (one sentence
+per edit, no passive introduced), and two judged criteria on Inspect's model-grading protocol
 (``criteria.py``).
 
 Run (backend must be running)::
@@ -57,7 +57,7 @@ OWN_METRICS = {
 
 @scorer(metrics=PER_KEY_METRICS)
 def sentence_structure_edit_checks() -> Scorer:
-    """This workflow's own deterministic edit check: no passive introduced."""
+    """This workflow's own deterministic edit checks: one sentence, no passive introduced."""
     return deterministic_scorer(
         lambda issues, inventory: extra_edit_scores(
             issues, inventory, EXTRA_EDIT_CHECKS

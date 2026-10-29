@@ -13,7 +13,7 @@ The check flags sentences whose structure trips the reader:
 - **Incomplete sentences:** a body sentence missing a word it needs, such as its verb (*The research questions summarized in Table 2.*), a dropped preposition, or a *because* clause with no main clause.
 - **Broken shared constructions:** two verbs or prepositions sharing one object that fits only one of them (*raised the profile of and normalized apprenticeships*, *as good or better than*, *interested and committed to*).
 - **Faulty parallelism:** a pair or series built in different forms (*both X, as well as Y*; *to recruit, training, and to place*; *not only X but Y*).
-- **Indirect summary sentences:** a sentence introducing a table, findings or recommendations that buries what it introduces (*Several recommendations emerged from the analysis*, *It is in Table 4 that the costs are presented*).
+- **Indirect summary sentences:** only two lead-ins: the authors' own recommendations, conclusions or lessons said to *emerge* or *arise* (*Several recommendations emerged from the analysis*), and *It is in Table 4 that the costs are presented*.
 
 It leaves these alone:
 
@@ -21,6 +21,7 @@ It leaves these alone:
 - Correct pairs and series (*both X and Y*), and *as well as* on its own.
 - Bullet points, captions and table cells written as phrases.
 - Themes or patterns that emerge from data, and lead-ins that already lead with the table or content (*Table 2 summarizes...*).
+- Placeholder or wordy lead-ins (*It is possible to estimate...*, *These numbers are reflective of...*), which Concision & Precision covers.
 - Long sentences that parse, quoted wording, and sentences whose only problem is passive voice, wordiness or tense, which other checks cover.
 """,
     questions=[should_flag_question()],
@@ -35,5 +36,6 @@ It leaves these alone:
         "long_parses": "it is long, but it parses",
         "quoted": "it is quoted wording",
         "other_check": "its only problem belongs to another Writing Style check",
+        "hedged_summary": "it keeps its hedge, and the sentence before it is a separate sentence",
     },
 )
