@@ -41,11 +41,9 @@ export const UploadSection = ({
       compact
     />
 
-    {files.length > 0 && (
+    {files[0] && (
       <div className="space-y-1 overflow-y-auto max-h-54">
-        {files.map((file) => (
-          <FileListItem key="single" file={file} type={fileType} onRemove={onRemoveFile} />
-        ))}
+        <FileListItem file={files[0]} type={fileType} onRemove={onRemoveFile} />
       </div>
     )}
   </div>
