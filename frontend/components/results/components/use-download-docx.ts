@@ -16,9 +16,9 @@ export interface DownloadDocxRequest {
   shareToken?: string | null;
   severities?: SeverityEnum[];
   workflowTypes?: WorkflowRunType[];
-  docxType?: DocxType;
+  docxType: DocxType;
   includePassing?: boolean;
-  includeEdits?: boolean;
+  includeEdits: boolean;
   /**
    * Which revision to export. The app can have an earlier revision open, and
    * the file, its issues and the counts the dialog showed have to agree, so
@@ -28,9 +28,8 @@ export interface DownloadDocxRequest {
   revision?: number;
 }
 
-/** The same request, except `docxType` and `includeEdits` are only defaults here:
- *  `download()` takes either of them per call. */
-type UseDownloadDocxOptions = DownloadDocxRequest;
+/** The same request, less `docxType` and `includeEdits`, which `download()` takes per call. */
+type UseDownloadDocxOptions = Omit<DownloadDocxRequest, 'docxType' | 'includeEdits'>;
 
 export async function downloadDocxFile({
   projectId,
@@ -39,7 +38,7 @@ export async function downloadDocxFile({
   workflowTypes,
   docxType,
   includePassing,
-  includeEdits = true,
+  includeEdits,
   revision,
 }: DownloadDocxRequest): Promise<void> {
   // 'fields' rather than the SDK's 'data', for the response headers: the backend
@@ -51,7 +50,7 @@ export async function downloadDocxFile({
       share_token: shareToken,
       severities: severities,
       workflow_types: workflowTypes,
-      docx_type: docxType ?? 'original',
+      docx_type: docxType,
       include_passing: includePassing ?? false,
       include_edits: includeEdits,
       revision: revision,
@@ -78,18 +77,14 @@ export function useDownloadDocx({
   workflowTypes,
   includePassing,
   revision,
-  docxType: initialDocxType,
-  includeEdits: initialIncludeEdits = true,
 }: UseDownloadDocxOptions) {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const download = async (docxType?: DocxType, includeEdits?: boolean) => {
+  const download = async (docxType: DocxType, includeEdits: boolean) => {
     setIsDownloading(true);
 
-    const dType = docxType ?? initialDocxType ?? 'original';
-    const withEdits = includeEdits ?? initialIncludeEdits;
     const loadingMessage =
-      dType === 'comments-with-links' ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
+      docxType === 'comments-with-links' ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
 
     const toastId = toast.loading(loadingMessage, {
       description: 'This may take a few moments',
@@ -101,9 +96,9 @@ export function useDownloadDocx({
         shareToken,
         severities,
         workflowTypes,
-        docxType: dType,
+        docxType,
         includePassing,
-        includeEdits: withEdits,
+        includeEdits,
         revision,
       });
       toast.success('DOCX file downloaded successfully', { id: toastId, description: null });

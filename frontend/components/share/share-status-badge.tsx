@@ -2,20 +2,14 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 import { Link } from 'lucide-react';
 
 interface ShareStatusBadgeProps {
   isEnabled: boolean;
   onClick?: () => void;
-  /**
-   * Drops the label on narrow screens, leaving the link icon, the way the
-   * buttons beside it in the header shed their labels.
-   */
-  compact?: boolean;
 }
 
-export function ShareStatusBadge({ isEnabled, onClick, compact = false }: ShareStatusBadgeProps) {
+export function ShareStatusBadge({ isEnabled, onClick }: ShareStatusBadgeProps) {
   if (!isEnabled) return null;
 
   return (
@@ -28,7 +22,9 @@ export function ShareStatusBadge({ isEnabled, onClick, compact = false }: ShareS
           aria-label="Sharing enabled"
         >
           <Link className="h-3 w-3" />
-          <span className={cn(compact && 'hidden sm:inline')}>Sharing enabled</span>
+          {/* The label drops on narrow screens, leaving the link icon, the way the
+              buttons beside it in the header shed their labels. */}
+          <span className="hidden sm:inline">Sharing enabled</span>
         </Badge>
       </TooltipTrigger>
       <TooltipContent>
