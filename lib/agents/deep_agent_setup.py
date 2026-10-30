@@ -6,8 +6,9 @@ with our additions, so they live in one place rather than at every call site.
 The agents that talk to a user (the chat, the Word add-in's chat and the Teams agent)
 also take their model from ``build_llm`` and their skills from ``build_skill_files``.
 Workflow agents get theirs elsewhere: the model from ``LangChainAgent``
-(``lib/models/agent.py``) and the skills with their document, from
-``FileArtifactsService.get_deepagent_backend_files``.
+(``lib/models/agent.py``), and the skills and document from the workflow itself --
+most mount them with ``FileArtifactsService.get_deepagent_backend_files``, while
+Reviewer 2 puts its skill in the system prompt and the document in the message.
 
 ``/main.md`` is the document path shared by
 ``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
