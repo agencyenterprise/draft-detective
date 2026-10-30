@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.5.0] - 2026-10-30
+
+Added
+- Added Structural Checks (GER), a combined assessment for required report sections, preface content, and author biographies.
+
+Changed
+- Structural Checks (GER) reports required sections, preface elements, and author biography rules in a single assessment.
+- Updated structural-check behavior for missing sections, author issues, explicit preface requirements, and “Executive Summary” headings.
+- Updated documentation and capabilities listings to feature Structural Checks (GER) in place of the retired checks.
+
+Fixed
+- Fixed Word for the web comment and tracked-edit placement when paragraphs contain multiple items by writing comments first and applying edits from the end of each paragraph.
+
+Deprecated
+- Retired About This (GER) and Document Contents from the picker while retaining them for existing runs.
+
+
 ## [v2.4.0] - 2026-10-29
 
 ### Added
