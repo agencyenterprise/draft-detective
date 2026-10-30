@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { NOT_WRITTEN, outcomesOf, signed } from './apply-handoff';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { applyHandoff, NOT_WRITTEN, outcomesOf, signed } from './apply-handoff';
 import { NOT_FOUND, planHandoff, resultsOf } from './handoff-plan';
+import { fakeWord } from './word-web-fake';
 
 const PARAGRAPHS = ['Introduction', 'We recieve funding and this is the only option.', 'Funding is discussed below.'];
 
@@ -48,6 +49,71 @@ describe('resultsOf', () => {
       { index: 0, applied: true, reason: null },
       { index: 1, applied: false, reason: 'withheld' },
       { index: 2, applied: false, reason: 'refused' },
+    ]);
+  });
+});
+
+describe('applyHandoff', () => {
+  const PARAGRAPH = 'The structures were developed, for the most part, before a multitude of difficulties arose.';
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Apply to a Word for the web that never moves a range, and say what each write landed on. */
+  async function apply(
+    comments: { quote: string; comment: string }[],
+    edits: { quote: string; replacement: string }[],
+  ) {
+    const fake = fakeWord([PARAGRAPH]);
+    vi.stubGlobal('Word', fake.word);
+    vi.stubGlobal('Office', fake.office);
+    const outcomes = await applyHandoff({ items: { comments, edits } });
+    return { outcomes, writes: fake.writes.map(({ kind, words, text }) => [kind, words, text]) };
+  }
+
+  it('writes two edits in one paragraph on their own words, the later one first', async () => {
+    const { outcomes, writes } = await apply(
+      [],
+      [
+        { quote: 'for the most part', replacement: 'largely' },
+        { quote: 'a multitude of difficulties', replacement: 'many difficulties' },
+      ],
+    );
+
+    expect(outcomes.every((outcome) => outcome.applied)).toBe(true);
+    expect(writes).toEqual([
+      ['edit', 'a multitude of difficulties', 'many difficulties'],
+      ['edit', 'for the most part', 'largely'],
+    ]);
+  });
+
+  it('puts a comment after an edit in its paragraph on the comment’s own words', async () => {
+    const { outcomes, writes } = await apply(
+      [{ quote: 'a multitude of difficulties', comment: 'Vague.' }],
+      [{ quote: 'for the most part', replacement: 'largely' }],
+    );
+
+    expect(outcomes.every((outcome) => outcome.applied)).toBe(true);
+    expect(writes).toEqual([
+      ['comment', 'a multitude of difficulties', 'Draft Detective: Vague.'],
+      ['edit', 'for the most part', 'largely'],
+    ]);
+  });
+
+  it('keeps a comment on words an edit replaces, or that overlap them', async () => {
+    const { writes } = await apply(
+      [
+        { quote: 'developed, for the most', comment: 'Overlaps.' },
+        { quote: 'for the most part', comment: 'Same words.' },
+      ],
+      [{ quote: 'for the most part', replacement: 'largely' }],
+    );
+
+    expect(writes).toEqual([
+      ['comment', 'developed, for the most', 'Draft Detective: Overlaps.'],
+      ['comment', 'for the most part', 'Draft Detective: Same words.'],
+      ['edit', 'for the most part', 'largely'],
     ]);
   });
 });

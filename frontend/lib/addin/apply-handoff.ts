@@ -1,6 +1,6 @@
 import { HandoffComment, HandoffEdit, HandoffView } from '@/lib/generated-api';
 import { AppliedItem, HandoffPlan, normalize, planHandoff } from './handoff-plan';
-import { Lookup, lookup } from './quote-search';
+import { Lookup, lookup, rawSpan } from './quote-search';
 
 /**
  * Write a handoff's comments and tracked changes into the open document with Word's own
@@ -49,7 +49,7 @@ function canWrite(): boolean {
 }
 
 type Run = { plan: HandoffPlan; written: Set<number> };
-type Item = { index: number; quote: string; paragraph: Word.Paragraph; text: string };
+type Item = { index: number; quote: string; paragraph: Word.Paragraph; text: string; at: number };
 type Found = { item: Item; lookup: Lookup; hits: Word.RangeCollection };
 type Long = { item: Item; head: Word.Range; tails: Word.RangeCollection; tailNth: number };
 
@@ -65,7 +65,7 @@ async function write(comments: HandoffComment[], edits: HandoffEdit[]): Promise<
     if (!canWrite()) return { plan, written };
 
     const items: Item[] = [...plan.paragraphs.entries()].flatMap(([at, work]) => {
-      const where = { paragraph: paragraphs.items[at], text: texts[at] };
+      const where = { paragraph: paragraphs.items[at], text: texts[at], at };
       return [
         ...work.edits.map(({ index, edit }) => ({ index, quote: edit.quote, ...where })),
         ...work.comments.map(({ index, comment }) => ({ index, quote: comment.quote, ...where })),
@@ -76,18 +76,36 @@ async function write(comments: HandoffComment[], edits: HandoffEdit[]): Promise<
     const notes = new Map(comments.map((comment, i) => [i, comment.comment]));
 
     await withTracking(context, async () => {
-      // Edits first: a comment's words an edit replaced are still there, as a tracked deletion.
-      for (const [index, replacement] of replacements) {
+      for (const { index } of writeOrder(items, replacements)) {
         const range = ranges.get(index);
-        if (range && (await wrote(context, () => replace(range, replacement)))) written.add(index);
-      }
-      for (const [index, comment] of notes) {
-        const range = ranges.get(index);
-        if (range && (await wrote(context, () => range.insertComment(signed(comment))))) written.add(index);
+        if (!range) continue;
+        const replacement = replacements.get(index);
+        const queue =
+          replacement === undefined
+            ? () => range.insertComment(signed(notes.get(index) ?? ''))
+            : () => replace(range, replacement);
+        if (await wrote(context, queue)) written.add(index);
       }
     });
     return { plan, written };
   });
+}
+
+/**
+ * Comments first, then edits from the end of each paragraph back to its start.
+ *
+ * Word for the web keeps a range on the characters it was found at: an edit earlier in
+ * the same paragraph does not move it, so a range written after such an edit lands on
+ * other words, off by the text the edit added or took away. A comment changes no text,
+ * so every range is still right after the comments;
+ * an edit only moves text after its own start, so no edit lands after one already made.
+ * A comment on words an edit replaces stays on them, as a tracked deletion.
+ */
+function writeOrder(items: Item[], replacements: Map<number, string>): Item[] {
+  const start = (item: Item) => rawSpan(item.text, item.quote)?.start ?? 0;
+  const comments = items.filter((item) => !replacements.has(item.index));
+  const edits = items.filter((item) => replacements.has(item.index));
+  return [...comments, ...edits.sort((a, b) => b.at - a.at || start(b) - start(a))];
 }
 
 function replace(range: Word.Range, replacement: string): void {
