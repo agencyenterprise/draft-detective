@@ -1,11 +1,13 @@
 """Shared construction for our deep agents.
 
-The agents differ in their prompts, their tools and what they return, but they are
-built the same way -- same model construction, same rate limiter, same skills mounted
-into the same virtual filesystem -- and that construction lives here.
-
 Every deep agent we run is built with ``build_deep_agent``: ``create_deep_agent``
 with our additions, so they live in one place rather than at every call site.
+
+The agents that talk to a user (the chat, the Word add-in's chat and the Teams agent)
+also take their model from ``build_llm`` and their skills from ``build_skill_files``.
+Workflow agents get theirs elsewhere: the model from ``LangChainAgent``
+(``lib/models/agent.py``) and the skills with their document, from
+``FileArtifactsService.get_deepagent_backend_files``.
 
 ``/main.md`` is the document path shared by
 ``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
@@ -172,13 +174,18 @@ def build_llm(
     reasoning: ReasoningDict = REASONING,
     output_version: str | None = None,
 ) -> BaseChatModel:
-    """Same construction LangChainAgent uses, including the shared rate limiter.
+    """The construction LangChainAgent uses for an OpenAI model, including the shared
+    rate limiter.
+
+    OpenAI only: ``reasoning`` is passed in OpenAI's terms, where LangChainAgent
+    translates it for Claude.
 
     ``output_version`` selects how langchain-openai lays out the message content.
-    The chat agent asks for ``"v1"``: under the default layout, streamed reasoning
-    summaries and hosted web-search calls do not reach ``stream_mode="messages"``
-    consumers, while ``v1`` surfaces them as ``reasoning`` and ``server_tool_call``
-    content blocks. Batch agents keep the default and never read them.
+    The web and Word chat agents ask for ``"v1"``: under the default layout, streamed
+    reasoning summaries and hosted web-search calls do not reach
+    ``stream_mode="messages"`` consumers, while ``v1`` surfaces them as ``reasoning``
+    and ``server_tool_call`` content blocks. The Teams agent keeps the default and
+    never reads them.
     """
 
     resolved = api_key
