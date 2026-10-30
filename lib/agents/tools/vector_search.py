@@ -1,4 +1,4 @@
-"""Vector search tool for claim verification agent."""
+"""Vector search tool for the citation validator, over a supporting document."""
 
 import logging
 

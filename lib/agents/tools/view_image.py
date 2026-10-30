@@ -40,7 +40,7 @@ _NOT_FOUND = (
 
 # Appended to the system prompt of every agent that binds `view_image`, so the
 # instructions always travel with the tool. Skills stay environment-agnostic
-# (see CLAUDE.md, "Skill Files"): this runtime-specific wiring lives here, next
+# (see AGENTS.md, "Skill Files"): this runtime-specific wiring lives here, next
 # to the tool, and each skill only says *when* a look is worth taking.
 VIEW_IMAGE_PROMPT = """
 
