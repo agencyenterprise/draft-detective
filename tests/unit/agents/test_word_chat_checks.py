@@ -35,7 +35,7 @@ def test_each_check_is_named_and_described_like_the_workflow_picker() -> None:
     assert len({check.name for check in checks}) == len(checks), "names are unique"
     for check in checks:
         assert check.description
-        assert check.name in names or check.skill.startswith("about-this-")
+        assert check.name in names
 
 
 def test_stable_checks_come_before_experimental_ones() -> None:
@@ -44,11 +44,11 @@ def test_stable_checks_come_before_experimental_ones() -> None:
     assert flags == sorted(flags)
 
 
-def test_the_two_about_this_checks_each_say_what_they_check() -> None:
-    """They share one workflow, whose description covers both."""
+def test_retired_checks_are_left_out() -> None:
+    """Structural Checks (GER) replaced the About This and Document Contents checks."""
 
-    checks = {check.skill: check for check in pane_checks()}
-    authors, preface = checks["about-this-authors"], checks["about-this-preface"]
+    checks = listed()
 
-    assert authors.description != preface.description
-    assert "bio" in authors.description and "preface" in preface.description
+    assert "structural-checks-ger" in checks
+    for skill in ("about-this-authors", "about-this-preface", "document-contents"):
+        assert skill not in checks, skill

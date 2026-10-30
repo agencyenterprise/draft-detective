@@ -111,9 +111,8 @@ Analyses are grouped by category (shown here in app order). See the in-app **Abo
 
 **Editorial & Style Review**
 - **Abbreviation Scan** — verifies each abbreviation is defined at first use and listed in an Abbreviations section.
-- **About This** — checks the preface meets publication requirements (context, objectives, audience, funding, author bios).
-- **Document Contents** — checks that required sections are present (About This, Acknowledgements, Methods, Results, Conclusion, References, Appendix).
 - **Figures & Tables Check** — verifies every figure and table is titled, consistently numbered, cited in the body, and that all body-text references resolve.
+- **Structural Checks (GER)** — checks that required sections are present (About This, About the Authors, Acknowledgements, Methods, Results, Conclusion, References, Appendix when referenced), that the preface covers its required elements, and that each author bio meets the requirements.
 
 **Language**
 - **Advocacy & Tone** — flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice.

@@ -20,22 +20,6 @@ from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS, manifest_for_skill
 from lib.skills import list_skill_summaries
 from lib.workflows.registry import get_all_manifests
 
-# Two skills share the About This (GER) workflow, whose name and description cover both,
-# so each is listed as its own check.
-OWN_LISTING = {
-    "about-this-authors": (
-        "About the Authors",
-        "Do the author bios meet publication requirements? Checks each bio's length, "
-        "position and affiliation, research focus, and highest degree.",
-    ),
-    "about-this-preface": (
-        "About This (Preface)",
-        "Does the preface meet publication requirements? Checks that it sets the "
-        "context, states the objectives and audience, and defines the contribution "
-        "and scope.",
-    ),
-}
-
 NEEDS_SOURCES = frozenset({"citation-support"})
 
 
@@ -55,14 +39,11 @@ def pane_checks() -> list[PaneCheck]:
         manifest = manifest_for_skill(skill.name, manifests)
         if manifest is None or manifest.needs_web_search or manifest.is_internal:
             continue
-        name, description = OWN_LISTING.get(
-            skill.name, (manifest.name, manifest.description)
-        )
         checks.append(
             PaneCheck(
                 skill=skill.name,
-                name=name,
-                description=description,
+                name=manifest.name,
+                description=manifest.description,
                 experimental=manifest.is_experimental,
             )
         )

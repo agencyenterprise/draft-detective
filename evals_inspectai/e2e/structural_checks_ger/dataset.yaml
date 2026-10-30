@@ -1,0 +1,1756 @@
+# Eval samples for the structural_checks_ger workflow, in inventory form (see
+# evals_inspectai/common/issue_inventory.py). The check has three parts, and the samples come from the two
+# suites it replaces, each completed so the parts it did not test pass:
+#
+# - Required sections. A missing section is about something absent, so its expected issue has no anchor and
+#   is matched on its "Missing Section: <name>" title, severity high. The exception is an appendix the body
+#   refers to but the document lacks: the skill places that issue on the referring sentence, so it is
+#   anchored there.
+# - About This. A missing preface element has no anchor either and is matched on its "Preface: <rule>
+#   Missing" title, severity medium. With no preface, only "Missing Section: About This" is expected.
+# - About the Authors. An author issue is anchored on the bio it is about and matched on the stable "Author
+#   Bio Issue" part of its title, since the skill puts the author's name after it as written in the bio (with
+#   or without "Dr."), severity medium. The skill asks for one issue per author listing every failed rule.
+#   With no biographies, only "Missing Section: About the Authors" is expected. Decoys are bios a correct run
+#   leaves alone, tagged with the rule that would misfire.
+#
+# The required-sections samples (the first group) had a short preface and no biographies: each preface was
+# extended with sentences covering the elements it lacked, keeping the sample's own sentences and traps, and
+# two passing bios were added. The About This and authors samples (the second group) lacked Acknowledgements,
+# a Conclusion and References, which were added; two "Data" headings became "Data and Methods". On the two
+# published reports, the preface elements a careful reader could judge either way are optional
+# (required: false). The skill proposes no edits.
+
+
+# ---- required sections: main headings, the real reports, a sparse brief ------------------------------------
+
+- input: |
+    # Research Report on Climate Adaptation
+
+    ## About This Report
+
+    This report examines climate adaptation strategies across coastal communities. It was produced by the Research Institute for Environmental Studies to inform policy decisions. Coastal flooding has grown more frequent, yet local governments have little comparable evidence on which adaptation measures work. It aims to identify which adaptation measures most reduce flood-related disruption. It is intended for coastal planners and for state and federal adaptation funders. It builds on the IPCC's Sixth Assessment Report and on recent work on coastal resilience metrics (Jones and Smith, 2022). Its contribution is a comparison of communities with and without adaptation plans that draws on both sea-level data and interviews. It covers 12 coastal communities and does not examine inland or riverine flooding.
+
+    ## Acknowledgements
+
+    The authors thank the many researchers, government officials, and community members who contributed their time and expertise to this work. Funding was provided by the National Science Foundation.
+
+    ## Methods
+
+    We conducted a mixed-methods study combining quantitative analysis of sea-level data with qualitative interviews across 12 coastal communities. Data were collected between January and June 2024.
+
+    ## Results
+
+    Findings indicate that communities with dedicated adaptation plans experienced 40% fewer flood-related disruptions than those without. Early warning systems were the single most cost-effective intervention identified.
+
+    ## Conclusion
+
+    Coastal communities that invest in proactive adaptation measures are significantly better positioned to withstand climate shocks. Policymakers should prioritise funding for community-led adaptation planning.
+
+    ## References
+
+    1. IPCC, 2023. *Sixth Assessment Report: Impacts, Adaptation and Vulnerability*. Geneva: IPCC.
+    2. Jones, A., & Smith, B. (2022). Coastal resilience metrics. *Journal of Climate Policy*, 18(3), 45–67.
+
+    ## About the Authors
+
+    Dr. Maya Patel is a senior researcher at the Research Institute for Environmental Studies. Her research focuses on coastal flood risk and adaptation planning. She holds a Ph.D. in environmental science from the University of Miami.
+
+    Owen Clarke is a policy analyst at the Research Institute for Environmental Studies. His research focuses on local climate adaptation finance. He holds an M.P.P. from Duke University.
+  expected_issues: []
+  notes: >-
+    Clean. Every required section is present under its main heading, and no appendix is referenced. The
+    preface covers all six elements and both author bios pass.
+- input: |
+    # Policy Brief on Urban Transport
+
+    ## Methods
+
+    We reviewed transport data from 20 cities and conducted stakeholder interviews with municipal planners.
+
+    ## Conclusion
+
+    Investing in public transit yields significant reductions in urban congestion and carbon emissions.
+
+    ## About the Authors
+
+    Dr. Sara Lindgren is a senior transport researcher at the Urban Mobility Institute. Her research focuses on public transit investment and urban congestion. She holds a Ph.D. in civil engineering from the University of Michigan.
+
+    Tom Reyes is a policy analyst at the Urban Mobility Institute. His research focuses on municipal transport planning. He holds an M.A. in urban planning from the University of Toronto.
+  expected_issues:
+  - id: "about_this"
+    title: "Missing Section: About This"
+    severity: "high"
+  - id: "acknowledgements"
+    title: "Missing Section: Acknowledgements"
+    severity: "high"
+  - id: "results"
+    title: "Missing Section: Results"
+    severity: "high"
+  - id: "references"
+    title: "Missing Section: References"
+    severity: "high"
+  notes: >-
+    Only Methods and Conclusion are present, so About This, Acknowledgements, Results and References are each
+    missing. Both author bios pass; with no preface, no preface element is evaluated.
+- input: |
+    # Evaluation of Early Childhood Education Programmes
+
+    ## About This Report
+
+    This evaluation assesses the effectiveness of three early childhood education programmes funded by the European Commission. Public spending on early childhood education has grown across Europe, but evidence comparing programme models remains scarce. It aims to determine which of the three programmes most improves school readiness. It is intended for programme funders at the European Commission and for national education ministries. It builds on Heckman's (2006) work on early skill formation and on the OECD's Starting Strong reviews. Its contribution is a three-year comparison of the programmes against a matched control group. It covers children aged three to five in the three funded programmes and does not examine outcomes after school entry.
+
+    ## Acknowledgements
+
+    We thank the programme coordinators and participating families for their cooperation throughout the data collection phase.
+
+    ## Methods
+
+    A quasi-experimental design compared outcomes for 1,200 children enrolled in the programmes against a matched control group over three years.
+
+    ## Results
+
+    Children in all three programmes showed significantly higher school-readiness scores compared to the control group. Programme C showed the largest effect size (d = 0.72).
+
+    Full statistical breakdowns are presented in Appendix A.
+
+    ## Conclusion
+
+    All three programmes demonstrated positive outcomes. Programme C should be prioritised for scale-up given its superior effect sizes.
+
+    ## References
+
+    1. Heckman, J. J. (2006). Skill formation and the economics of investing in disadvantaged children. *Science*, 312(5782), 1900–1902.
+    2. OECD (2021). *Starting Strong: Supporting Families and Children*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Elise Martin is a senior evaluator at the Centre for Early Education Research. Her research focuses on early childhood programme evaluation. She holds a Ph.D. in education from the University of Amsterdam.
+
+    Jonas Weber is a research analyst at the Centre for Early Education Research. His research focuses on school readiness measurement. He holds an M.Sc. in psychology from Leiden University.
+  expected_issues:
+  - id: "appendix"
+    title: "Missing Section: Appendix"
+    anchor: "Full statistical breakdowns are presented in Appendix A."
+    severity: "high"
+  notes: >-
+    Every other required section is present, and the Results section refers to Appendix A, which the document
+    does not contain, so Appendix is missing. The preface covers all six elements and both author bios pass.
+- input: file://files/RAND_RRA4036-1.md
+  expected_issues:
+  - id: "literature"
+    title: "Preface: Situates Within Literature Missing"
+    severity: "medium"
+    required: false
+  - id: "contribution"
+    title: "Preface: States Contribution Missing"
+    severity: "medium"
+    required: false
+  - id: "scope"
+    title: "Preface: Defines Scope Missing"
+    severity: "medium"
+    required: false
+  notes: >-
+    Clean. A published report with no heading literally called Results: its Summary presents the analysis
+    results, including Table S.1, which is a section presenting the key findings as the skill defines it.
+    About This Report, Acknowledgments, the analysis chapters, the Conclusion and the Bibliography cover the
+    rest. About This Report gives the context (emerging evidence on three threat scenarios), the goal and the
+    intended readers; whether it situates the work in the literature ("discussed elsewhere"), states a
+    contribution ("initial frameworks") or defines scope ("not precise or conclusive") is a judgment call, so
+    those three are optional. All seven bios under About the Authors are three sentences with a position, an
+    affiliation, a research focus and a named degree.
+- input: file://files/RAND_RRA4636-1.md
+  expected_issues:
+  - id: "about_the_authors"
+    title: "Missing Section: About the Authors"
+    severity: "high"
+  - id: "audience"
+    title: "Preface: Identifies Audience Missing"
+    severity: "medium"
+    required: false
+  - id: "literature"
+    title: "Preface: Situates Within Literature Missing"
+    severity: "medium"
+    required: false
+  - id: "contribution"
+    title: "Preface: States Contribution Missing"
+    severity: "medium"
+    required: false
+  - id: "scope"
+    title: "Preface: Defines Scope Missing"
+    severity: "medium"
+    required: false
+  notes: >-
+    Clean. A published report with no heading literally called Results: it opens with a key-findings box whose
+    headings state the findings, and its analysis chapters are titled by what they find, which together
+    present the key findings as the skill defines them. The Introduction, Acknowledgements, Methodology,
+    Conclusion and References cover the rest. The authors are listed on the title page with their affiliations
+    only, and the report has no biographies, so About the Authors is missing. The conversion lost the Preface
+    heading, so a run may read the unheaded preface paragraph or the Introduction as the preface; both state
+    the context and the aims, and which of the other elements they cover depends on that choice, so those four
+    are optional.
+
+# ---- required sections: alternative headings, all sections present -----------------------------------------
+
+- input: |
+    # Teacher Retention in Rural School Districts
+
+    ## Preface
+
+    This report examines why teachers leave rural districts in the state and what districts have tried in response. It was written for the state education department and district superintendents. Rural districts in the state have struggled to keep teachers for a decade, and some have lost a fifth of their staff in a single year. It aims to identify the main reasons teachers leave and which district responses keep them. It builds on Ingersoll's (2021) national work on rural teacher turnover. Its contribution is the first account to pair the state's personnel records with interviews of teachers who left. It covers 14 rural districts from 2018 to 2024 and does not examine urban or suburban districts.
+
+    ## Acknowledgments
+
+    We thank the superintendents of the 14 participating districts and the teachers who took part in interviews. The study was funded by the Hollis Family Foundation.
+
+    ## Research Design
+
+    We combined state personnel records for 2018–2024 with 62 semi-structured interviews with current and former teachers. Retention was measured as the share of teachers who returned to the same district the following year.
+
+    ## Key Findings
+
+    Retention in rural districts averaged 81 percent, eight points below the state average. Former teachers most often cited housing costs and isolation, not pay, as the reason they left.
+
+    ## Discussion
+
+    Housing support may matter more than salary increases for rural retention. Districts that offered subsidised housing kept 88 percent of their teachers.
+
+    ## Works Cited
+
+    1. Ingersoll, R. (2021). *Teacher turnover in rural America*. Philadelphia: CPRE.
+    2. Morales, L. (2023). Housing and the rural teacher labor market. *Education Finance and Policy*, 18(2), 201–224.
+
+    ## About the Authors
+
+    Dr. Laura Nguyen is a senior researcher at the State Education Policy Center. Her research focuses on the rural teacher labor market. She holds a Ph.D. in education policy from Vanderbilt University.
+
+    Caleb Ford is a research associate at the State Education Policy Center. His research focuses on teacher housing and compensation. He holds an M.Ed. from the University of Kansas.
+  expected_issues: []
+  notes: >-
+    Clean. Every section is present under a heading the skill lists as an alternative (Preface,
+    Acknowledgments, Research Design, Key Findings, Discussion, Works Cited). The preface covers all six
+    elements and both author bios pass.
+- input: |
+    # Community Health Worker Programs and Emergency Visits
+
+    ## Foreword
+
+    Community health worker programs have spread quickly, but evidence on whether they reduce emergency visits is thin. This report reviews one county's program to help other counties decide whether to adopt it. It aims to estimate whether the county's program reduced emergency visits among the residents it enrolled. It is intended for county health officials and hospital systems weighing similar programs. It builds on earlier studies of community health workers and acute care use (Rivera and Chen, 2022). Its contribution is a matched comparison of enrollees with similar residents over 18 months. It covers one county's program from 2021 to 2023 and does not examine program costs or patient satisfaction.
+
+    ## Thanks
+
+    The county health department shared program records, and the regional hospital system provided visit data. Their staff answered many questions.
+
+    ## Data and Methods
+
+    We matched 3,400 program enrollees to 3,400 similar residents who did not enroll, using age, diagnosis and prior visits, and compared emergency visits over 18 months.
+
+    ## Outcomes
+
+    Enrollees made 23 percent fewer emergency visits than the matched group. The gap was largest for residents with diabetes and smallest for residents with asthma.
+
+    ## Recommendations
+
+    Counties considering a program should target residents with chronic conditions that need regular follow-up, such as diabetes, where the program's effect was largest.
+
+    ## Sources
+
+    - County Health Department, *Community Health Worker Program Records, 2021–2023*.
+    - Rivera, P., and Chen, M. (2022). Community health workers and acute care use. *Health Affairs*, 41(6), 812–820.
+
+    ## About the Authors
+
+    Dr. Rosa Alvarez is a senior health services researcher at the County Health Research Institute. Her research focuses on community health worker programs and acute care use. She holds a Ph.D. in health policy from the University of North Carolina.
+
+    Peter Lin is a biostatistician at the County Health Research Institute. His research focuses on matched comparison designs for program evaluation. He holds an M.S. in biostatistics from Emory University.
+  expected_issues: []
+  notes: >-
+    Clean. Every section is present under another listed alternative (Foreword, Thanks, Data and Methods,
+    Outcomes, Recommendations, Sources). The preface covers all six elements and both author bios pass.
+- input: |
+    # Broadband Subsidies and Small Business Sales
+
+    #### Introduction
+
+    This report asks whether a state broadband subsidy raised online sales for small businesses in rural counties. Many rural small businesses still lack fast internet, and the state has spent heavily on subsidies to close that gap. It is intended for state economic development officials and broadband offices. It builds on Kim's (2022) work on rural broadband and firm growth. Its contribution is the first business-level estimate of the subsidy's effect on sales. It covers small businesses in rural counties and does not examine urban businesses or employment.
+
+    #### Approach
+
+    We compared sales tax records for 1,150 businesses in subsidised and unsubsidised counties before and after the program began.
+
+    #### Findings
+
+    Online sales grew 14 percent faster in subsidised counties. Businesses that had no website before the program saw the largest gains.
+
+    #### Conclusions
+
+    Subsidies helped most where businesses had not yet moved online, which suggests pairing them with help building a first website.
+
+    **Acknowledgements.** We are grateful to the state revenue department for access to anonymised sales tax records and to the rural development office for program data.
+
+    **References.** Kim, S. (2022). Rural broadband and firm growth. *Regional Science Review*, 30(4), 55–71. State Broadband Office (2023). *Program Report, Year Two*.
+
+    #### About the Authors
+
+    Dr. Hannah Brooks is a senior economist at the Rural Economy Research Center. Her research focuses on rural broadband and small business growth. She holds a Ph.D. in economics from Iowa State University.
+
+    Victor Osei is a research analyst at the Rural Economy Research Center. His research focuses on state tax data and firm performance. He holds an M.A. in economics from the University of Nebraska.
+  expected_issues: []
+  notes: >-
+    Clean. Sections are fourth-level headings, and Acknowledgements and References are bold-labelled
+    paragraphs rather than headings, which the skill accepts as a clearly labelled block. The preface covers
+    all six elements and both author bios pass.
+
+# ---- required sections: one section missing ----------------------------------------------------------------
+
+- input: |
+    # Evaluation of a Summer Reading Program
+
+    ## About This Report
+
+    This report evaluates the city library's summer reading program for children aged 6 to 10. In this report we briefly describe our methods before turning to what we found. Children often lose reading skills over the summer break, and the library started its program to limit that loss. It aims to find out whether participants lose less reading ground than other children. It is intended for library administrators and the city council, which funds the program. It builds on research on the summer learning gap (Alexander, Entwisle and Olson, 2007). Its contribution is the first evaluation of the program since it began. It covers the 2024 summer program and does not examine children outside the 6-to-10 age range.
+
+    ## Acknowledgements
+
+    We thank the library's youth services staff and the families who took part.
+
+    ## Results
+
+    Participants lost less reading ground over the summer than non-participants: their spring-to-fall scores fell by 2 points on average, against 7 points for children who did not take part. The results were similar for boys and girls.
+
+    ## Conclusion
+
+    The program appears to limit summer reading loss, and the library should consider expanding it to more branches.
+
+    ## References
+
+    1. Alexander, K., Entwisle, D., and Olson, L. (2007). Lasting consequences of the summer learning gap. *American Sociological Review*, 72(2), 167–180.
+
+    ## About the Authors
+
+    Dr. Amy Chen is a senior evaluator at the City Library Research Office. Her research focuses on children's literacy programs. She holds a Ph.D. in education from the University of Wisconsin.
+
+    Mark Davies is a research analyst at the City Library Research Office. His research focuses on library program participation. He holds an M.L.I.S. from the University of Illinois.
+  expected_issues:
+  - id: "methods"
+    title: "Missing Section: Methods"
+    severity: "high"
+  notes: >-
+    Methods is missing. The introduction says "we briefly describe our methods", but no section or labelled
+    block describes the data or analysis, so the mention does not satisfy the requirement. The preface covers
+    all six elements and both author bios pass.
+- input: |
+    # Transit Fare Changes and Ridership
+
+    ## About This Report
+
+    This report examines how the regional transit agency's 2024 fare changes affected ridership. The agency raised cash fares in 2024 to speed boarding and cut cash-handling costs, and riders' groups worried that low-income riders would ride less. It aims to estimate how ridership and payment choices changed after the fare change. It is intended for the agency's board and staff and for riders' advocates. It builds on research on fare policy and equity (Taylor, 2020). Its contribution is the first account of ridership by payment type since the change. It covers weekday trips in the six months after the change and does not examine paratransit.
+
+    ## Acknowledgements
+
+    The transit agency provided fare-card data and answered our questions about the fare policy.
+
+    ## Methods of Payment
+
+    Riders can pay with a reloadable fare card, a mobile ticket, or cash on board. Since 2024, cash fares cost 50 cents more than card fares, and transfers are free only with a card or mobile ticket.
+
+    ## Findings
+
+    Weekday ridership fell 3 percent in the six months after the change, while the share of trips paid in cash fell from 18 to 9 percent.
+
+    ## Conclusion
+
+    The fare changes moved many riders from cash to cards at the cost of a small ridership decline. The agency should monitor whether riders without bank accounts are among those lost.
+
+    ## References
+
+    1. Regional Transit Agency (2024). *Fare Policy Update*.
+    2. Taylor, B. (2020). Fare policy and equity. *Transport Policy*, 95, 1–9.
+
+    ## About the Authors
+
+    Dr. Kara Singh is a senior transportation researcher at the Regional Mobility Research Center. Her research focuses on transit fare policy and equity. She holds a Ph.D. in urban planning from UCLA.
+
+    Ben Howard is a data analyst at the Regional Mobility Research Center. His research focuses on fare-card data and ridership measurement. He holds an M.S. in transportation engineering from Georgia Tech.
+  expected_issues:
+  - id: "methods"
+    title: "Missing Section: Methods"
+    severity: "high"
+  notes: >-
+    Methods is missing. "Methods of Payment" describes how riders pay, the subject of the report, not the
+    research methodology; nothing says how ridership was measured or analysed. The preface covers all six
+    elements and both author bios pass.
+- input: |
+    # Wildfire Smoke and School Attendance
+
+    ## Introduction
+
+    This report asks how wildfire smoke days affect school attendance in the western part of the state. Wildfire smoke days have become more common in the state, and schools have little guidance on how they affect attendance. It is intended for state education officials and school district leaders. It builds on research on behavioural responses to wildfire smoke (Burke et al., 2022). Its contribution is a school-level estimate for the western part of the state. It covers 210 schools from 2019 to 2023 and does not examine learning outcomes.
+
+    ## Acknowledgements
+
+    We thank the state education agency for attendance records and the air quality district for daily monitor data.
+
+    ## Methods
+
+    We linked daily attendance for 210 schools to the nearest air quality monitor for the 2019–2023 school years and compared attendance on smoke days with other days at the same school.
+
+    ## Results
+
+    Attendance fell by 1.8 percentage points on smoke days and by 3.1 points on days with the highest particulate readings. Elementary schools saw larger drops than high schools.
+
+    ## References
+
+    1. Burke, M., et al. (2022). Exposures and behavioural responses to wildfire smoke. *Nature Human Behaviour*, 6, 1351–1361.
+
+    ## About the Authors
+
+    Dr. Lena Park is a senior epidemiologist at the Western Environmental Health Institute. Her research focuses on air pollution and children's health. She holds a Ph.D. in environmental health from the University of Washington.
+
+    Diego Morales is a research associate at the Western Environmental Health Institute. His research focuses on school attendance data. He holds an M.P.H. from Oregon Health & Science University.
+  expected_issues:
+  - id: "conclusion"
+    title: "Missing Section: Conclusion"
+    severity: "high"
+  notes: >-
+    Conclusion is missing: the report ends after its results and references with no section drawing
+    conclusions, implications or recommendations. The preface covers all six elements and both author bios
+    pass.
+- input: |
+    # Food Bank Demand After Benefit Reductions
+
+    ## About This Report
+
+    This report examines how demand at the county's food banks changed after emergency food benefits ended in March 2023. When emergency food benefits ended, food bank directors warned they could not meet the demand that would follow. It aims to measure how much visits rose and who the new visitors were. It is intended for county officials and food bank funders. It builds on Hartman and Liu's (2021) work on measuring food bank use. Its contribution is the first county-wide count of visits across all 11 food banks. It covers 2022 to 2024 and does not examine other food assistance programs.
+
+    ## Methods
+
+    We analysed monthly visit logs from 11 food banks for 2022–2024 and interviewed their directors. Visit counts follow Hartman and Liu (2021), and the benefit timeline follows the state social services department (2023).
+
+    ## Results
+
+    Visits rose 34 percent in the six months after benefits ended, and first-time visitors made up almost half of the increase. Directors reported running short of fresh produce most weeks.
+
+    ## Conclusion
+
+    The end of emergency benefits sharply raised demand, and food banks will need more fresh food supply to meet it.
+
+    ## About the Authors
+
+    Dr. Nora Kim is a senior researcher at the County Social Policy Institute. Her research focuses on food insecurity and benefit programs. She holds a Ph.D. in social work from Washington University in St. Louis.
+
+    Isaac Turner is a policy analyst at the County Social Policy Institute. His research focuses on the emergency food system. He holds an M.P.P. from the University of Minnesota.
+  expected_issues:
+  - id: "acknowledgements"
+    title: "Missing Section: Acknowledgements"
+    severity: "high"
+  - id: "references"
+    title: "Missing Section: References"
+    severity: "high"
+  notes: >-
+    Acknowledgements and References are missing. The Methods section cites two sources in the text, so a
+    reference list is needed and absent. The preface covers all six elements and both author bios pass.
+- input: |
+    # Heat Pump Adoption in Older Homes
+
+    ## Methods
+
+    We surveyed 1,020 owners of homes built before 1960 who applied for the state heat pump rebate between 2021 and 2024, and compared installation rates with applicants' home characteristics.
+
+    ## Acknowledgements
+
+    The state energy office shared rebate application data and helped us contact applicants.
+
+    ## Results
+
+    Sixty-two percent of applicants installed a heat pump within a year. Owners who also received a free energy audit installed at a higher rate (74 percent) than those who did not (55 percent).
+
+    ## Summary
+
+    Free energy audits appear to raise follow-through on heat pump rebates in older homes, and the energy office should consider offering them to every applicant.
+
+    ## References
+
+    1. State Energy Office (2024). *Heat Pump Rebate Program Report*.
+
+    ## About the Authors
+
+    Dr. Clara Hughes is a senior researcher at the State Energy Research Center. Her research focuses on residential energy efficiency programs. She holds a Ph.D. in public policy from the University of Massachusetts.
+
+    Ryan Baker is a research analyst at the State Energy Research Center. His research focuses on home heating technologies. He holds an M.S. in mechanical engineering from Northeastern University.
+  expected_issues:
+  - id: "about_this"
+    title: "Missing Section: About This"
+    severity: "high"
+  notes: >-
+    About This is missing: the report starts directly with Methods, with no preface, foreword or introduction
+    explaining its purpose. "Summary" at the end satisfies Conclusion. Both author bios pass; with no preface,
+    no preface element is evaluated.
+- input: |
+    # Evaluating a Guaranteed Income Pilot: Interim Report
+
+    ## About This Report
+
+    This interim report describes the design of the city's guaranteed income pilot, which pays 500 families $750 a month for two years. Results of the evaluation are expected in 2027. Guaranteed income pilots have spread across the country, but few have tested payments to families at this scale. It aims to set out the pilot's design and how the evaluation will judge it. It is intended for city officials, funders and other cities planning similar pilots. It builds on the evaluation of Stockton's guaranteed income demonstration (West et al., 2021). Its contribution is a lottery-based design that lets the evaluation attribute outcomes to the payments. It covers the pilot's design and enrolment and does not report outcomes, which the final report will present.
+
+    ## Acknowledgements
+
+    The pilot is funded by the city and the Larkin Foundation. We thank the families who agreed to take part.
+
+    ## Methods
+
+    Families were chosen by lottery from 4,100 applicants, and 500 families who applied but were not chosen form the comparison group. Both groups complete a survey every six months on employment, housing and health.
+
+    ## Conclusion
+
+    The lottery design will let the evaluation attribute differences between the groups to the payments themselves. The final report will compare the groups on each survey measure.
+
+    ## References
+
+    1. West, S., et al. (2021). *Preliminary Analysis: SEED's First Year*. Stockton Economic Empowerment Demonstration.
+
+    ## About the Authors
+
+    Dr. Imani Wright is a senior researcher at the City Economic Mobility Lab. Her research focuses on cash transfer programs and family well-being. She holds a Ph.D. in economics from the University of Chicago.
+
+    Paul Novak is a evaluation specialist at the City Economic Mobility Lab. His research focuses on randomized program evaluation. He holds an M.P.A. from New York University.
+  expected_issues:
+  - id: "results"
+    title: "Missing Section: Results"
+    severity: "high"
+  notes: >-
+    Results is missing: the report describes the pilot's design and says "Results of the evaluation are
+    expected in 2027", but no section presents findings. The word "Results" in the introduction does not
+    satisfy the requirement. The preface covers all six elements and both author bios pass.
+
+# ---- required sections: the conditional appendix -----------------------------------------------------------
+
+- input: |
+    # Apprenticeship Completion in the Construction Trades
+
+    ## About This Report
+
+    This report looks at why apprentices in the construction trades do or do not finish their programs. Fewer than two thirds of construction apprentices in the state finish their programs, and contractors report shortages of journey-level workers. It aims to identify which program features predict completion. It is intended for the state apprenticeship council, trade unions and contractors. It builds on Kuehn's (2019) national study of apprenticeship completion. Its contribution is the first study to follow a full cohort of the state's construction apprentices. It covers apprentices who started in 2018 and does not examine other trades.
+
+    ## Acknowledgements
+
+    We thank the state apprenticeship council and the four trade unions that shared program records.
+
+    ## Methods
+
+    We followed 2,300 apprentices who started programs in 2018 and surveyed 410 of them. The survey instrument is reproduced in Appendix B.
+
+    ## Results
+
+    Fifty-eight percent finished within six years. Apprentices who had a mentor on their first job site were 1.6 times as likely to finish.
+
+    ## Conclusion
+
+    Assigning a mentor on the first job site is a low-cost way to raise completion.
+
+    ## References
+
+    1. Kuehn, D. (2019). Registered apprenticeship completion. *Industrial Relations*, 58(3), 402–431.
+
+    ## About the Authors
+
+    Dr. Erin Walsh is a senior researcher at the State Workforce Research Institute. Her research focuses on apprenticeship and workforce training. She holds a Ph.D. in labor economics from Cornell University.
+
+    Andre Silva is a research analyst at the State Workforce Research Institute. His research focuses on construction labor markets. He holds an M.A. in sociology from the University of Pittsburgh.
+
+    ## Appendix B: Survey Instrument
+
+    Q1. How many job sites have you worked on since starting your apprenticeship? Q2. Did someone on your first job site help you learn the trade?
+  expected_issues: []
+  notes: >-
+    Clean. The body refers to Appendix B, and Appendix B is present. The preface covers all six elements and
+    both author bios pass.
+- input: |
+    # Library Wi-Fi Hotspot Lending
+
+    ## About This Report
+
+    This report reviews the first year of the library system's program lending mobile Wi-Fi hotspots. Many households in the library system's area have no home internet, and the library began lending hotspots to fill that gap. It aims to measure how often hotspots are borrowed and what borrowers use them for. It is intended for library administrators and the county board. It builds on the Public Library Association's (2023) survey of digital equity programs. Its contribution is the first year of lending and borrower data for the program. It covers all 600 hotspots in the program's first year and does not examine other digital equity services.
+
+    ## Acknowledgements
+
+    Branch managers across the library system collected the lending data for this report.
+
+    ## Methods
+
+    We analysed lending records for all 600 hotspots and surveyed 250 borrowers when they returned a device.
+
+    ## Results
+
+    Hotspots were checked out 91 percent of the time. Most borrowers used them for schoolwork or job applications.
+
+    ## Conclusion
+
+    Demand exceeds supply, and the library should add hotspots at the branches with the longest waiting lists.
+
+    ## References
+
+    1. Public Library Association (2023). *Digital Equity Programs Survey*.
+
+    ## About the Authors
+
+    Dr. Julia Ross is a research manager at the Library System Research Office. Her research focuses on digital equity and library services. She holds a Ph.D. in information science from the University of Maryland.
+
+    Sam Okafor is a data analyst at the Library System Research Office. His research focuses on library lending data. He holds an M.L.S. from Indiana University.
+
+    ## Appendix: Borrower Survey Questions
+
+    Q1. What did you mainly use the hotspot for? Q2. Would you have had internet access at home without it?
+  expected_issues: []
+  notes: >-
+    Clean. An appendix is present, but the body never refers to it; the skill checks the appendix only when
+    the body mentions one, and a present appendix is never an issue. The preface covers all six elements and
+    both author bios pass.
+- input: |
+    # Medicaid Renewal Outreach
+
+    ## About This Report
+
+    This report evaluates text-message reminders the state sent to Medicaid enrollees before their coverage renewal date. Many Medicaid enrollees lose coverage at renewal because they miss paperwork deadlines, not because they are no longer eligible. It aims to estimate whether the reminders raised on-time renewal. It is intended for state Medicaid officials and enrollment assisters. It builds on research on Medicaid churning (Sommers, 2020). Its contribution is a comparison of counties that sent reminders with counties that had not yet started. It covers 48,000 enrollees and does not examine other outreach methods.
+
+    ## Acknowledgements
+
+    The state Medicaid agency provided enrollment records and message logs.
+
+    ## Methods
+
+    We compared renewal rates for 48,000 enrollees who received reminders with those of similar enrollees in counties that had not yet started sending them. Detailed regression tables are provided in the appendix.
+
+    ## Results
+
+    Enrollees who received reminders were 6 percentage points more likely to renew on time.
+
+    ## Conclusion
+
+    Text reminders are an inexpensive way to reduce coverage loss at renewal, and the state should send them in every county.
+
+    ## References
+
+    1. Sommers, B. (2020). Medicaid churning. *Health Affairs*, 39(1), 1–8.
+
+    ## About the Authors
+
+    Dr. Megan Cole is a senior health policy researcher at the State Health Policy Institute. Her research focuses on Medicaid enrollment and coverage continuity. She holds a Ph.D. in health economics from Boston University.
+
+    Luis Ortega is a research analyst at the State Health Policy Institute. His research focuses on administrative burden in public programs. He holds an M.P.H. from Columbia University.
+  expected_issues:
+  - id: "appendix"
+    title: "Missing Section: Appendix"
+    anchor: "Detailed regression tables are provided in the appendix."
+    severity: "high"
+  notes: >-
+    The body says "Detailed regression tables are provided in the appendix", lowercase and unnumbered, but the
+    document has no appendix, so Appendix is missing. The preface covers all six elements and both author bios
+    pass.
+- input: |
+    # Road Salt and Stream Chloride
+
+    ## About This Report
+
+    This report measures how winter road salt affects chloride levels in the county's streams. Chloride levels in the county's streams have risen for two decades, and road salt is the suspected cause. It aims to measure how much salt applied on nearby roads raises stream chloride. It is intended for the county highway department and watershed managers. It builds on research on freshwater salinization (Kaushal, 2018). Its contribution is four years of monthly readings matched to salt application records. It covers 18 streams from 2021 to 2024 and does not examine groundwater.
+
+    ## Acknowledgements
+
+    The county highway department shared salt application records, and volunteers from the watershed council collected water samples.
+
+    ## Methods
+
+    We sampled 18 streams monthly from 2021 to 2024 and matched chloride readings to salt applied on nearby roads. Monitoring site coordinates are listed in Appendix A.
+
+    ## Results
+
+    Chloride levels in streams near major roads exceeded the chronic toxicity threshold in 9 of 12 winter months, against 1 of 12 for streams away from roads.
+
+    ## Conclusion
+
+    Reducing salt on roads near streams would do the most to lower chloride levels.
+
+    ## References
+
+    1. Kaushal, S. (2018). Freshwater salinization syndrome. *PNAS*, 115(4), E574–E583.
+
+    ## About the Authors
+
+    Dr. Anna Fischer is a senior hydrologist at the County Watershed Research Center. Her research focuses on road salt and freshwater salinization. She holds a Ph.D. in hydrology from the University of Arizona.
+
+    Kevin Doyle is a field scientist at the County Watershed Research Center. His research focuses on stream monitoring and water chemistry. He holds an M.S. in environmental science from Michigan State University.
+
+    ## Supplementary Material
+
+    | Site | Latitude | Longitude |
+    |---|---|---|
+    | S1 | 42.31 | -83.72 |
+    | S2 | 42.28 | -83.69 |
+  expected_issues: []
+  notes: >-
+    Clean. The body refers to Appendix A and the monitoring sites are given under "Supplementary Material", a
+    heading the skill lists for the appendix. The preface covers all six elements and both author bios pass.
+- input: |
+    # Recycling Contamination in Curbside Collection
+
+    ## About This Report
+
+    This report looks at how much non-recyclable material ends up in the city's curbside recycling bins and why. Contaminated loads raise the city's recycling costs, and the sorting facility has rejected more of them each year. It aims to measure how much non-recyclable material reaches curbside bins and which items cause it. It is intended for the city's solid waste division and council. It builds on research on household sorting errors (Nguyen, 2021) and on the city's 2022 waste characterization study. Its contribution is a bin-level audit across eight neighbourhoods. It covers curbside bins in 2024 and does not examine commercial recycling.
+
+    ## Acknowledgements
+
+    The city's solid waste division provided audit data, and the regional sorting facility let us observe its lines.
+
+    ## Methods
+
+    We audited 400 bins across eight neighbourhoods in spring and fall 2024, sorting each bin's contents by material.
+
+    ## Results
+
+    One bin in five contained enough non-recyclable material to contaminate a load. Plastic bags were the most common contaminant.
+
+    ## Conclusion
+
+    Targeted outreach about plastic bags would remove the largest single source of contamination.
+
+    ## References
+
+    1. City Solid Waste Division (2023). *Technical Appendix to the 2022 Waste Characterization Study*.
+    2. Nguyen, T. (2021). Household sorting errors in single-stream recycling. *Waste Management*, 120, 45–53.
+
+    ## About the Authors
+
+    Dr. Rachel Moore is a senior researcher at the City Sustainability Research Office. Her research focuses on household recycling behaviour. She holds a Ph.D. in environmental policy from the University of California, Berkeley.
+
+    Jamal Hassan is a research analyst at the City Sustainability Research Office. His research focuses on waste audits and material recovery. He holds an M.S. in environmental engineering from the University of Washington.
+  expected_issues: []
+  notes: >-
+    Clean. The only mention of an appendix is in the title of a cited work in the reference list, not a
+    reference from the body text to an appendix of this report, so the appendix check does not apply. The
+    preface covers all six elements and both author bios pass.
+
+# ---- About This and the authors: the seed report and its ablations, each breaking one rule -----------------
+
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues: []
+  notes: >-
+    Clean seed. The preface establishes context, states objectives, names its audience, cites prior work,
+    states its contribution and defines its scope; both bios are three sentences with a position, an
+    affiliation, a research focus and a Ph.D. Acknowledgements, Conclusion and References are present, so
+    every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "establishes_context"
+    title: "Preface: Establishes Context Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its context sentence: nothing says why the study was undertaken. The other five elements
+    and both bios pass. Acknowledgements, Conclusion and References are present, so every required section
+    passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "explains_objectives"
+    title: "Preface: Explains Objectives Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its objectives sentence: no aim or research question is stated. The other five elements
+    and both bios pass. Acknowledgements, Conclusion and References are present, so every required section
+    passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "identifies_audience"
+    title: "Preface: Identifies Audience Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its audience sentence: no readership is named or described. The other five elements and
+    both bios pass. Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Coastal Policy Institute (2023). *Municipal Flood-Defence Expenditure Database, 2010–2022*.
+    2. National Oceanic and Atmospheric Administration (2022). *Sea Level Rise Technical Report*.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "situates_within_literature"
+    title: "Preface: Situates Within Literature Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its literature sentence: no prior work or research landscape is mentioned. The other five
+    elements and both bios pass. Acknowledgements, Conclusion and References are present, so every required
+    section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "states_contribution"
+    title: "Preface: States Contribution Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its contribution sentence: no new finding, method or advance is claimed. The other five
+    elements and both bios pass. Acknowledgements, Conclusion and References are present, so every required
+    section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "defines_scope"
+    title: "Preface: Defines Scope Missing"
+    severity: "medium"
+  notes: >-
+    The seed without its scope sentence: no boundaries, limits or exclusions are stated. The other five
+    elements and both bios pass. Acknowledgements, Conclusion and References are present, so every required
+    section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "about_this"
+    title: "Missing Section: About This"
+    severity: "high"
+  notes: >-
+    The seed with no preface, introduction or About This section: the title leads straight into
+    Acknowledgements and Methodology. The check reports only 'Missing Section: About This' and evaluates no
+    preface element. Both bios pass. Acknowledgements, Conclusion and References are present, so every
+    required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She also serves on the editorial board of the Journal of Climate Policy. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "smith_sentence_count"
+    title: "Author Bio Issue"
+    anchor: "She also serves on the editorial board"
+    severity: "medium"
+  notes: >-
+    Jane Smith's bio has four sentences (an extra one on an editorial board); it states position, affiliation,
+    research focus and a Ph.D., so only the sentence count fails. John Doe's bio and the preface pass.
+    Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Jane Smith works on a wide range of climate-related topics. Her work focuses on climate adaptation and infrastructure financing. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "smith_position_affiliation"
+    title: "Author Bio Issue"
+    anchor: "Jane Smith works on a wide range of climate-related topics"
+    severity: "medium"
+  notes: >-
+    Jane Smith's bio says she 'works on a wide range of climate-related topics' but names no position or
+    institution, so Rule 2 fails; it is three sentences with a research focus and a Ph.D. The preface and John
+    Doe's bio pass. Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Dr. Jane Smith is a senior researcher at the Coastal Policy Institute. She has authored numerous publications and policy briefs over the past decade. She holds a Ph.D. in environmental economics from the University of Edinburgh.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "smith_research_focus"
+    title: "Author Bio Issue"
+    anchor: "She has authored numerous publications and policy briefs"
+    severity: "medium"
+  notes: >-
+    Jane Smith's bio replaces her research focus with a count of publications, so Rule 3 fails; position,
+    affiliation, three sentences and a Ph.D. are present. The preface and John Doe's bio pass.
+    Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+
+    ## About the Authors
+
+    Jane Smith is a senior researcher at the Coastal Policy Institute. Her work focuses on climate adaptation and infrastructure financing. She has authored more than thirty publications on coastal adaptation policy.
+
+    Dr. John Doe is a principal economist at the Global Risk Centre. His research interests centre on disaster risk modelling and resilience metrics. He earned his Ph.D. in applied mathematics from MIT.
+  expected_issues:
+  - id: "smith_degree"
+    title: "Author Bio Issue"
+    anchor: "She has authored more than thirty publications"
+    severity: "medium"
+  notes: >-
+    Jane Smith's bio names no degree and carries no 'Dr.', so Rule 4 fails; position, affiliation, research
+    focus and three sentences are present. The preface and John Doe's bio pass. Acknowledgements, Conclusion
+    and References are present, so every required section passes.
+- input: |
+    # Coastal Adaptation Cost-Effectiveness Study
+
+    ## About This Report
+
+    This report responds to growing concern that municipal flood-defence budgets are being allocated without comparable evidence on which interventions actually reduce losses. It aims to compare the cost-effectiveness of seawall, managed-retreat, and hybrid green-infrastructure adaptation approaches. It is intended for municipal planners, infrastructure funders, and adaptation policy advisors. It builds on the comparative cost-benefit framework introduced by Adger et al. (2018) and follows the methodological line of recent OECD coastal-adaptation reviews. This report contributes a normalised cost-effectiveness ratio that allows direct comparison across mixed adaptation portfolios. The analysis covers five case-study cities, with physical and financial outcomes measured through 2040 only, and excludes social-equity outcomes and inland flooding scenarios.
+
+    ## Acknowledgements
+
+    We thank the planning departments of the five case-study cities for sharing project cost and flood-loss records.
+
+    ## Methodology
+
+    The study used a comparative cost-benefit framework applied to five case-study cities.
+
+    ## Findings
+
+    Hybrid green infrastructure delivered the highest normalised cost-effectiveness across all five sites.
+
+    ## Conclusion
+
+    Hybrid green infrastructure offered the best value per avoided loss in every case-study city, ahead of seawalls and managed retreat.
+
+    ## References
+
+    1. Adger, W. N., Brown, I., and Surminski, S. (2018). Advances in risk assessment for climate change adaptation policy. *Philosophical Transactions of the Royal Society A*, 376(2121), 20180106.
+    2. OECD (2019). *Responding to Rising Seas: OECD Country Approaches to Tackling Coastal Risks*. Paris: OECD Publishing.
+  expected_issues:
+  - id: "about_the_authors"
+    title: "Missing Section: About the Authors"
+    severity: "high"
+  notes: >-
+    The seed with no author biography section under any heading the skill lists. The check reports only
+    'Missing Section: About the Authors' and evaluates no bio rule. The preface passes. Acknowledgements,
+    Conclusion and References are present, so every required section passes.
+
+# ---- About This and the authors: reports of their own ------------------------------------------------------
+
+- input: |
+    # Groundwater Pricing and Farm Water Use in the Central Valley
+
+    ## Preface
+
+    Groundwater levels in California's Central Valley have fallen sharply over the past two decades, and the state's 2014 groundwater law now requires local agencies to bring basins into balance. This report sets out to estimate how farmers would change their pumping if agencies charged a per-acre-foot fee, and to identify fee levels that would meet sustainability targets. It builds on earlier work by Bruno and Jessoe (2021), who estimated the price elasticity of agricultural water demand from electricity records, and on the Public Policy Institute of California's basin-level assessments. Its main contribution is a field-level demand model that links pumping records to crop choices, which earlier studies could only approximate at the district level.
+
+    ## Acknowledgements
+
+    We thank the three groundwater sustainability agencies for metered pumping records and their staff for answering questions about local allocation rules.
+
+    ## Data and Methods
+
+    We combined metered pumping records for 1,840 fields in three groundwater sustainability agencies with satellite crop maps for 2016–2023. A discrete-continuous choice model estimates how crop mix and irrigation intensity respond to the marginal cost of water.
+
+    ## Findings
+
+    A fee of $60 per acre-foot would reduce pumping by an estimated 14 percent, mostly by shifting fields from alfalfa to fallow or to less water-intensive crops. Permanent crops such as almonds responded little in the short run.
+
+    ## Conclusion
+
+    A per-acre-foot fee can cut pumping substantially within a few years, but agencies that rely on one should expect little response where permanent crops dominate.
+
+    ## References
+
+    1. Bruno, E. M., and Jessoe, K. (2021). Missing markets: Evidence on agricultural groundwater demand from volumetric pricing. *Journal of Public Economics*, 196, 104374.
+    2. Public Policy Institute of California (2019). *Water and the Future of the San Joaquin Valley*. San Francisco: PPIC.
+
+    ## About the Authors
+
+    Dr. Luis Herrera is a senior economist at the Western Water Policy Center. His research focuses on agricultural water markets and groundwater regulation. He holds a Ph.D. in agricultural and resource economics from the University of California, Davis.
+
+    Megan Ishikawa is a policy analyst at the Western Water Policy Center. Her work centres on how local agencies design and enforce groundwater allocations. She received an M.A. in public policy from the University of Chicago.
+  expected_issues:
+  - id: "audience"
+    title: "Preface: Identifies Audience Missing"
+    severity: "medium"
+  - id: "scope"
+    title: "Preface: Defines Scope Missing"
+    severity: "medium"
+  notes: >-
+    Two preface elements fail at once, under the "Preface" heading. The preface gives the context (falling
+    groundwater, the 2014 law), the objectives, prior work (Bruno and Jessoe, PPIC) and the contribution (a
+    field-level model), but names no readership and states no boundary or exclusion; the three agencies and
+    the study years appear only in Data and Methods, not in the preface. Both bios pass. Acknowledgements,
+    Conclusion and References are present, so every required section passes.
+- input: |
+    # Hospital Price Transparency Compliance, 2021–2024
+
+    ## Introduction
+
+    Federal rules have required hospitals to post their negotiated prices online since January 2021, yet early audits found that many hospitals posted incomplete or unusable files. This report assesses how far hospital compliance has improved and whether posted prices can support comparison shopping by patients. It is written for federal and state regulators, health plan benefit designers and patient advocates who rely on these files. It extends the compliance audits published by Turquoise Health and by Jiang et al. (2023), which examined only the first year of the rule. The report's contribution is the first four-year panel of compliance scores, built with a scoring method that separates missing files from files that are present but unusable. The analysis covers general acute-care hospitals in the 20 most populous states and does not assess price accuracy, critical-access hospitals or ambulatory surgery centres.
+
+    ## Acknowledgements
+
+    We thank the state hospital associations that answered our questions about file formats.
+
+    ## Approach
+
+    We downloaded each hospital's machine-readable file every six months and scored it against the rule's required data elements.
+
+    ## Results
+
+    Full compliance rose from 21 percent of hospitals in 2021 to 58 percent in 2024. Files that were present but unusable remained common among hospitals in large systems.
+
+    ## Conclusion
+
+    Compliance has improved but remains incomplete, and regulators should judge hospitals on whether their files can be used, not only on whether a file is posted.
+
+    ## References
+
+    1. Jiang, J. X., Polsky, D., Littlejohn, J., Wang, Y., Zare, H., and Bai, G. (2023). Patterns of hospital price transparency compliance. *JAMA Health Forum*, 4(5), e231187.
+    2. Turquoise Health (2022). *Price Transparency Impact Report*.
+
+    ## Contributors
+
+    Dr. Rachel Adeyemi is a health economist at the Northgate Health Policy Institute. Her research examines hospital pricing and insurer–provider bargaining. She holds a Ph.D. in health policy from Harvard University.
+
+    Kevin Marsh is a research associate at the Northgate Health Policy Institute, where he studies price transparency regulation. He built the compliance scoring tool used in this report.
+
+    Sofia Lindqvist is a data scientist at the Northgate Health Policy Institute. Her work focuses on large-scale collection and cleaning of health care price data. She earned an M.S. in statistics from the University of Washington.
+  expected_issues:
+  - id: "marsh_bio"
+    title: "Author Bio Issue"
+    anchor: "Kevin Marsh is a research associate"
+    severity: "medium"
+  notes: >-
+    One author fails two rules, under the "Introduction" and "Contributors" headings. Kevin Marsh's bio has
+    two sentences (position, affiliation and research focus all sit in the first) and names no degree, so the
+    sentence count and the highest degree both fail; the skill asks for one issue per author listing every
+    failed rule, and the judged bio action must name both. The preface and the other two bios pass.
+    Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Eviction Filings After the End of Pandemic Protections
+
+    ## About This Report
+
+    When federal and state eviction moratoria expired in 2021 and 2022, housing advocates warned of a surge in filings, but courts in different states reported sharply different trends. This report aims to measure how eviction filings changed after the moratoria ended and which local policies were associated with smaller increases. It is intended for state and local housing officials, court administrators and legal aid organizations. It draws on the Eviction Lab's national filing series and on earlier evaluations of right-to-counsel programmes in New York City and San Francisco. The report contributes new court-record data for 38 counties that had no public filing series before 2023. It covers residential eviction filings from January 2019 through December 2024 and does not examine informal evictions or commercial tenancies.
+
+    ## Acknowledgements
+
+    We thank the clerks of the 38 county courts who provided docket records.
+
+    ## Data and Methods
+
+    We collected docket-level filing records from 38 county courts and matched them to local policy changes.
+
+    ## Findings
+
+    Filings returned to 85 percent of their prepandemic level by 2024. Counties with emergency rental assistance or right-to-counsel programmes saw smaller rebounds.
+
+    ## Conclusion
+
+    Rental assistance and right-to-counsel programmes were associated with smaller rebounds in filings, and states planning for future housing shocks should weigh them first.
+
+    ## References
+
+    1. Eviction Lab (2024). *Eviction Tracking System*. Princeton, NJ: Princeton University.
+    2. Ellen, I. G., O'Regan, K., House, S., and Brenner, R. (2021). Do lawyers matter? Early evidence on eviction patterns after the rollout of universal access to counsel in New York City. *Housing Policy Debate*, 31(3–5), 540–561.
+
+    ## About the Authors
+
+    Dr. Aisha Rahman is a senior policy researcher at the Urban Housing Research Center. Her research focuses on housing instability, eviction and emergency rental assistance. She holds a Ph.D. in sociology from Princeton University.
+
+    Daniel Kowalski is a staff attorney and senior fellow at the Urban Housing Research Center. He studies how procedural rules in housing courts, e.g., notice periods and mediation requirements, shape case outcomes. He holds a J.D. from Georgetown University Law Center.
+
+    Grace Liu is an associate policy researcher at the Urban Housing Research Center. She has contributed to several of the center's reports and presented at national conferences. She received an M.P.P. from the University of Michigan.
+
+    Dr. Tomás Ferreira is a senior statistician at the Urban Housing Research Center. His expertise lies in record linkage and small-area estimation for administrative court data. He earned a Ph.D. in biostatistics from Johns Hopkins University.
+  expected_issues:
+  - id: "liu_research_focus"
+    title: "Author Bio Issue"
+    anchor: "She has contributed to several of the center's reports"
+    severity: "medium"
+  decoys:
+  - title: "Author Bio Issue"
+    anchor: "He studies how procedural rules in housing courts"
+    reason: "abbreviation_periods"
+  notes: >-
+    Four authors, the third failing. Grace Liu's bio gives a position, an affiliation, three sentences and an
+    M.P.P., but says only that she contributed to reports and presented at conferences, with no research
+    focus, so Rule 3 fails. Daniel Kowalski's bio is three sentences once "e.g.," and "J.D." are not taken as
+    sentence ends. The other bios and the preface pass. Acknowledgements, Conclusion and References are
+    present, so every required section passes.
+- input: |
+    # Four-Day School Weeks in Rural Missouri
+
+    ## About This Publication
+
+    Over the past decade, more than a quarter of Missouri's school districts have moved to a four-day week, most citing tight budgets and difficulty recruiting teachers. This publication aims to estimate how the switch affected student achievement, teacher retention and district spending. It is written for school board members, state education officials and legislators weighing limits on the practice. Its contribution is a comparison of districts that adopted the four-day week with similar districts that did not, using six years of data from before and after adoption. The analysis is limited to rural districts that switched between 2017 and 2021 and does not address urban or suburban districts or effects on families' child-care costs.
+
+    ## Acknowledgements
+
+    We thank the Missouri Department of Elementary and Secondary Education for district-level enrollment, staffing and finance data.
+
+    ## Method
+
+    We matched 61 adopting districts to 122 comparison districts on enrollment, spending and prior test scores and compared their trends.
+
+    ## Results
+
+    Achievement growth in mathematics was slightly slower in adopting districts, while teacher turnover fell by four percentage points. Spending savings averaged less than 2 percent.
+
+    ## Conclusion
+
+    The four-day week saved districts little and slowed mathematics growth slightly, while it helped districts keep their teachers; legislators should weigh both before limiting the practice.
+
+    ## References
+
+    1. Missouri Department of Elementary and Secondary Education (2023). *Four-Day School Week Districts, 2010–2023*.
+    2. Missouri Department of Elementary and Secondary Education (2024). *Annual Performance Report Data Files*.
+
+    ## About the Author
+
+    Nathan Brooks is a policy researcher at the Heartland Education Policy Institute. His research focuses on school finance and the rural teacher labor market. He holds an M.P.P. from the Harris School of Public Policy at the University of Chicago.
+  expected_issues:
+  - id: "literature"
+    title: "Preface: Situates Within Literature Missing"
+    severity: "medium"
+  decoys:
+  - title: "Author Bio Issue"
+    anchor: "Nathan Brooks is a policy researcher"
+    reason: "professional_degree"
+  notes: >-
+    A single author under "About the Author", and a preface under "About This Publication" that states
+    context, objectives, audience, contribution and scope but mentions no prior study or research landscape,
+    so Rule 4 of the preface fails. Nathan Brooks's bio passes; an M.P.P. is his highest degree, and the skill
+    asks for the highest academic degree, not a doctorate. Acknowledgements, Conclusion and References are
+    present, so every required section passes.
+- input: |
+    # Wildfire Smoke and Outdoor Worker Health in Oregon
+
+    ## Executive Summary
+
+    Wildfire smoke now reaches hazardous levels in Oregon for several weeks most summers, and the state adopted a permanent smoke-exposure rule for outdoor workers in 2022. This report aims to assess whether that rule reduced smoke-related illness among farm and construction workers during its first two fire seasons. It is intended for occupational safety regulators, employers of outdoor workers and worker advocacy groups. It builds on California's evaluations of its 2019 emergency smoke standard and on the epidemiological literature linking fine particulate matter to acute respiratory illness. The report provides the first estimate of the rule's effect on workers' compensation claims and emergency visits, using claims linked to daily smoke forecasts. It covers the 2022 and 2023 fire seasons and agricultural and construction workers only, and it does not assess indoor workers or long-term health effects.
+
+    ## Acknowledgements
+
+    We thank the Oregon Department of Consumer and Business Services for workers' compensation claims data.
+
+    ## Methods
+
+    We linked workers' compensation claims and emergency department visits to county-level daily air quality readings and compared smoke days before and after the rule took effect.
+
+    ## Findings
+
+    Smoke-related respiratory claims on hazardous air days fell by roughly a third after the rule took effect. Compliance with respirator provision was lowest among small agricultural employers.
+
+    ## Conclusion
+
+    The smoke rule appears to have reduced respiratory illness among outdoor workers, and regulators should direct compliance assistance to small agricultural employers.
+
+    ## References
+
+    1. California Division of Occupational Safety and Health (2021). *Evaluation of the Emergency Wildfire Smoke Standard*.
+    2. Reid, C. E., Brauer, M., Johnston, F. H., Jerrett, M., Balmes, J. R., and Elliott, C. T. (2016). Critical review of health impacts of wildfire smoke exposure. *Environmental Health Perspectives*, 124(9), 1334–1343.
+
+    ## Author Biographies
+
+    Dr. Hannah Okoro is an occupational epidemiologist at the Pacific Northwest Environmental Health Institute. Her research covers heat and smoke exposure among outdoor workers, e.g., farmworkers and wildland firefighters. She holds an M.P.H. from Emory University and a Ph.D. in epidemiology from the University of Washington.
+
+    Marcus Bell is a senior policy analyst at the Pacific Northwest Environmental Health Institute, where he works with Dr. Okoro on workplace safety standards. His work focuses on the design and enforcement of occupational safety regulation, i.e., how rules are written, inspected and penalised. He received a B.A. in economics from Reed College and an M.A. in public policy from Oregon State University.
+
+    Dr. Yuki Tanaka is an assistant professor of environmental health at Oregon State University. She studies how low-cost sensors and satellite estimates can improve air pollution exposure assessment. She earned her Ph.D. in environmental engineering from Stanford University.
+  expected_issues: []
+  decoys:
+  - title: "Author Bio Issue"
+    anchor: "Dr. Hannah Okoro is an occupational epidemiologist"
+    reason: "abbreviation_periods"
+  - title: "Author Bio Issue"
+    anchor: "Marcus Bell is a senior policy analyst"
+    reason: "abbreviation_periods"
+  notes: >-
+    Clean, under the "Executive Summary" and "Author Biographies" headings. Each bio is three sentences once
+    the abbreviations are read as the skill says (Dr., e.g., i.e., M.P.H., Ph.D., B.A., M.A.); "Dr. Okoro"
+    inside Marcus Bell's first sentence is followed by a capital and is still no sentence end. The preface
+    states all six elements. Acknowledgements, Conclusion and References are present, so every required
+    section passes.
+- input: |
+    # Broadband Subsidies and Rural Telehealth Use
+
+    ## About This Report
+
+    Rural hospitals and clinics expanded telehealth rapidly during the pandemic, but many patients in their service areas lacked a home broadband connection fast enough for video visits. This report aims to estimate whether the federal Affordable Connectivity Program increased telehealth use among rural Medicare beneficiaries. It is intended for federal broadband and health officials, rural health networks and state broadband offices deciding whether to fund successor programs. It builds on the Federal Communications Commission's broadband deployment reports and on prior studies of the digital divide in telehealth, such as Chen and Wu (2022). The report contributes the first link between program enrollment by zip code and Medicare telehealth claims. It covers rural zip codes in 12 states from 2021 through 2023 and does not examine audio-only visits or private insurance claims.
+
+    ## Acknowledgements
+
+    We thank the Centers for Medicare & Medicaid Services for access to claims data.
+
+    ## Methods
+
+    We compared changes in telehealth claims across zip codes with high and low program enrollment, controlling for provider availability.
+
+    ## Findings
+
+    Zip codes in the top quartile of enrollment saw telehealth video visits rise 11 percent faster than those in the bottom quartile. Effects were largest for behavioral health visits.
+
+    ## Conclusion
+
+    Broadband subsidies raised telehealth use in rural areas, most of all for behavioral health, which supports funding a successor program.
+
+    ## References
+
+    1. Chen, J., and Wu, Y. (2022). The digital divide in telehealth use among rural Medicare beneficiaries. *Health Affairs*, 41(4), 560–568.
+    2. Federal Communications Commission (2023). *Broadband Deployment Report*. Washington, DC: FCC.
+
+    ## About the Authors
+
+    Dr. Olivia Grant is a senior health services researcher at the Rural Health Policy Center. Her research focuses on access to care in rural areas and the adoption of telehealth. She holds a Ph.D. in health services research from the University of Minnesota.
+
+    Ethan Cole is a policy analyst at the Rural Health Policy Center. His work centres on broadband policy and federal subsidy programs. He holds an M.P.A. from Syracuse University.
+
+    Priya Nair provided research assistance.
+  expected_issues: []
+  decoys:
+  - title: "Author Bio Issue"
+    anchor: "Priya Nair provided research assistance"
+    reason: "short_paragraph"
+  notes: >-
+    Clean. The author section ends with a 39-character line crediting a research assistant; the skill says to
+    ignore paragraphs shorter than about 50 characters, so it is no bio and gets no issue. Both real bios and
+    the preface pass (an M.P.A. is Ethan Cole's highest degree). Acknowledgements, Conclusion and References
+    are present, so every required section passes.
+- input: |
+    # Container Port Congestion and Retail Prices
+
+    ## About This Report
+
+    In 2021 and 2022, backlogs at the ports of Los Angeles and Long Beach left hundreds of container ships waiting offshore, and retailers warned that shipping delays would push up shelf prices. This report aims to measure how much of the rise in retail goods prices during that period can be attributed to port congestion. It is written for trade and transportation policymakers, port authorities and economists who study inflation. It builds on the Federal Reserve Bank of New York's Global Supply Chain Pressure Index and on recent studies of shipping costs and import prices. The report contributes estimates at the product level, linking container dwell times to price changes for 240 imported goods. It covers goods imported through West Coast ports between 2019 and 2023 and does not address air freight or services prices.
+
+    ## Acknowledgements
+
+    We thank U.S. Customs and Border Protection for access to import records.
+
+    ## Approach
+
+    We matched vessel-level dwell times to customs records and scanner price data for imported consumer goods.
+
+    ## Findings
+
+    Port congestion accounts for roughly one-fifth of the increase in prices of imported durable goods in 2021. Its effect faded within six months of backlogs clearing.
+
+    ## Conclusion
+
+    Port congestion explains a modest and short-lived share of the 2021 rise in durable goods prices, so port investment alone would do little to prevent a similar spike.
+
+    ## References
+
+    1. Benigno, G., di Giovanni, J., Groen, J. J. J., and Noble, A. I. (2022). *The GSCPI: A New Barometer of Global Supply Chain Pressures*. Federal Reserve Bank of New York Staff Reports, No. 1017.
+    2. Carrière-Swallow, Y., Deb, P., Furceri, D., Jiménez, D., and Ostry, J. D. (2023). Shipping costs and inflation. *Journal of International Money and Finance*, 130, 102771.
+
+    ## About the Authors
+
+    Dr. Samuel Osei is a senior fellow at the Center for Trade and Logistics Research. His research focuses on maritime shipping, port operations and supply chain resilience. He previously advised the federal Maritime Administration on port investment priorities.
+
+    Laura Jensen is an economist at the Center for Trade and Logistics Research. She studies import prices and the pass-through of shipping costs to consumers. She holds an M.S. in economics from the London School of Economics.
+  expected_issues:
+  - id: "osei_degree"
+    title: "Author Bio Issue"
+    anchor: "Dr. Samuel Osei is a senior fellow"
+    severity: "medium"
+  notes: >-
+    Samuel Osei is styled "Dr." but his bio names no degree. Rule 4 asks the bio to mention the highest
+    academic degree, with named degrees as examples (Ph.D., M.A., M.D.); the skill lists "Dr." only among
+    abbreviations that do not end a sentence, and the title does not say which doctorate he holds, so Rule 4
+    fails. Laura Jensen's bio and the preface pass. Acknowledgements, Conclusion and References are present,
+    so every required section passes.
+- input: |
+    # Congestion Pricing and Transit Ridership in Stockholm and London
+
+    ## Preface
+
+    New York City began charging vehicles to enter lower Manhattan in January 2025, and other large cities are considering similar charges, yet evidence on how congestion pricing affects public transit comes mostly from the first years of European schemes. This report aims to estimate how transit ridership changed in Stockholm and London in the decade after each city introduced congestion charges, and what drove those changes. It is intended for city transportation officials, transit agency planners and state legislators considering congestion pricing. It builds on Eliasson's (2014) evaluation of the Stockholm trial and on Transport for London's annual monitoring reports, which cover only the first years of each scheme. The report's contribution is a consistent ten-year comparison of the two cities that separates the effect of the charge from fare changes and service expansions. It covers bus and rail ridership within each charging zone and does not examine air quality, retail sales or equity effects.
+
+    ## Acknowledgements
+
+    We thank Transport for London and Region Stockholm for ridership data by line.
+
+    ## Methods
+
+    We assembled monthly ridership by line for both cities and used synthetic control methods to estimate ridership without the charge.
+
+    ## Findings
+
+    Transit ridership into the charging zones was 6 to 9 percent higher after ten years than the synthetic controls predicted. About half of the gain in London came from bus service added with charge revenue.
+
+    ## Conclusion
+
+    Congestion charges raised transit ridership in both cities over a decade, and cities adopting one should plan to put part of the revenue into transit service.
+
+    ## References
+
+    1. Eliasson, J. (2014). *The Stockholm Congestion Charges: An Overview*. CTS Working Paper 2014:7. Stockholm: Centre for Transport Studies.
+    2. Transport for London (2008). *Central London Congestion Charging: Impacts Monitoring, Sixth Annual Report*. London: TfL.
+
+    ## The Authors
+
+    Dr. Ingrid Svensson is a professor of transport economics at the Nordic Institute for Urban Studies. Her research focuses on road pricing, public transit demand and the evaluation of urban transport policy. She holds a Ph.D. in economics from the Stockholm School of Economics.
+
+    James Whitfield is a senior transport planner at the Metropolitan Mobility Research Group in London. His work centres on transit service planning and the use of congestion charge revenue. He earned an M.Sc. in transport planning from University College London.
+  expected_issues: []
+  notes: >-
+    Clean, on a different topic, under the "Preface" and "The Authors" headings. The preface states context,
+    objectives, audience, prior work, contribution and scope; both bios are three sentences with a position,
+    an affiliation, a research focus and a named degree. Acknowledgements, Conclusion and References are
+    present, so every required section passes.
+- input: |
+    # School Meal Participation After Universal Free Meals in Maine
+
+    ## Introduction
+
+    Maine became one of the first states to offer free school breakfast and lunch to every student regardless of income in 2022, after federal pandemic waivers expired. Advocates argued that removing means testing would reduce stigma and paperwork, while critics questioned the cost. This report is intended for state education and agriculture officials, school nutrition directors and legislators in states considering similar programs. It builds on evaluations of the federal Community Eligibility Provision, which found that universal meals raised participation in high-poverty schools. Its contribution is the first statewide analysis covering every district, including the low-poverty districts that community eligibility never reached. It covers the 2019–20 through 2023–24 school years and does not examine meal quality or student health outcomes.
+
+    ## Acknowledgements
+
+    We thank the child nutrition staff of the Maine Department of Education for monthly meal counts.
+
+    ## Data and Methods
+
+    We used monthly meal counts reported by every Maine school food authority, linked to enrollment and district poverty rates.
+
+    ## Results
+
+    Lunch participation rose from 51 percent to 69 percent of enrolled students, with the largest gains in districts where fewer than 30 percent of students had previously qualified for free meals.
+
+    ## Conclusion
+
+    Universal free meals raised participation most where few students had qualified before, and states considering the policy should expect their largest gains in low-poverty districts.
+
+    ## References
+
+    1. Schwartz, A. E., and Rothbart, M. W. (2020). Let them eat lunch: The impact of universal free meals on student performance. *Journal of Policy Analysis and Management*, 39(2), 376–410.
+    2. Maine Department of Education (2024). *School Nutrition Program Participation Data*.
+  expected_issues:
+  - id: "objectives"
+    title: "Preface: Explains Objectives Missing"
+    severity: "medium"
+  - id: "about_the_authors"
+    title: "Missing Section: About the Authors"
+    severity: "high"
+  notes: >-
+    Two parts fail. The "Introduction" preface gives context, audience, prior work, contribution and scope,
+    but states no aim, goal or research question, so the objectives element fails. The report has no author
+    biography section, so the check reports 'Missing Section: About the Authors' and evaluates no bio rule.
+    Acknowledgements, Conclusion and References are present, so every required section passes.
+- input: |
+    # Community College Dual Enrollment in Texas
+
+    ## About This Report
+
+    This report aims to estimate whether taking community college courses in high school raises the chance that Texas students complete a college credential within six years. It is intended for state higher education officials, school district leaders and community college administrators who set dual-enrollment policy. It builds on An's (2013) national estimates of dual-enrollment effects and on the Community College Research Center's studies of dual-enrollment pathways. The report contributes separate estimates for students from low-income families and for students in rural districts. It covers students who graduated from Texas public high schools between 2012 and 2016 and does not examine career and technical education courses taken outside a college.
+
+    ## Acknowledgements
+
+    We thank the Texas Education Agency and the Texas Higher Education Coordinating Board for linked student records.
+
+    ## Methods
+
+    We followed each graduating cohort for six years using linked state education and workforce records and compared dual-enrollment students with similar classmates.
+
+    ## Findings
+
+    Dual-enrollment students were 9 percentage points more likely to earn a credential within six years, and the gap was largest for low-income students.
+
+    ## Conclusion
+
+    Dual enrollment raised credential completion, most of all for low-income students, and the state should widen access to it.
+
+    ## References
+
+    1. An, B. P. (2013). The impact of dual enrollment on college degree attainment: Do low-SES students benefit? *Educational Evaluation and Policy Analysis*, 35(1), 57–75.
+    2. Community College Research Center (2017). *What Happens to Students Who Take Community College Dual Enrollment Courses in High School?* New York: CCRC.
+
+    ## About the Authors
+
+    Dr. Elena Vasquez is a senior policy researcher at the Texas Education Research Consortium. Her research focuses on college access and the transition from high school to college. She holds a Ph.D. in education policy from the University of Texas at Austin.
+
+    Brian Holloway is a senior economist with more than fifteen years of experience in education research. His work examines the returns to community college credentials and workforce training. He holds a Ph.D. in labor economics from Texas A&M University.
+
+    Nadia Farouk is a research analyst at the Texas Education Research Consortium. She studies how school districts partner with community colleges to deliver dual-enrollment courses. She earned an M.A. in sociology from Rice University.
+  expected_issues:
+  - id: "context"
+    title: "Preface: Establishes Context Missing"
+    severity: "medium"
+  - id: "holloway_affiliation"
+    title: "Author Bio Issue"
+    anchor: "Brian Holloway is a senior economist"
+    severity: "medium"
+  notes: >-
+    Both validators fail. The preface opens with its aim and never says why the study was undertaken (no
+    problem, gap or situation), so Rule 1 fails. Brian Holloway's bio names a position (senior economist) but
+    no institution; Texas A&M is where he took his degree, not an affiliation, and the skill asks for both, so
+    Rule 2 fails. The other two bios pass. Acknowledgements, Conclusion and References are present, so every
+    required section passes.
+- input: |
+    # State Data Breach Notification Laws and Consumer Harm
+
+    ## About This Report
+
+    Every state now requires companies to notify consumers after a data breach, but the laws differ widely in their deadlines, their definitions of personal information and whether they require notice to a state regulator. This report aims to assess whether stricter notification requirements are associated with lower rates of identity theft after breaches. It is intended for state legislators, attorneys general and privacy regulators revising their breach laws. It builds on Romanosky, Telang and Acquisti's (2011) study of breach laws and identity theft and on the National Conference of State Legislatures' compilations of state statutes. The report contributes a new index of statutory strictness that codes 14 provisions of each state's law as amended through 2024. It covers breaches reported between 2015 and 2024 and does not examine federal sector-specific rules such as those for health or financial data.
+
+    ## Acknowledgements
+
+    We thank the Federal Trade Commission for identity theft report data.
+
+    ## Methods
+
+    We coded each state's statute and linked the index to identity theft reports filed with the Federal Trade Commission.
+
+    ## Findings
+
+    States in the strictest third of the index had 12 percent fewer identity theft reports per breached record than states in the most lenient third. Short notification deadlines mattered more than notice to regulators.
+
+    ## Conclusion
+
+    Stricter notification laws, short deadlines above all, were associated with less identity theft, and legislators revising their laws should start with the deadline.
+
+    ## References
+
+    1. Romanosky, S., Telang, R., and Acquisti, A. (2011). Do data breach disclosure laws reduce identity theft? *Journal of Policy Analysis and Management*, 30(2), 256–286.
+    2. National Conference of State Legislatures (2022). *Security Breach Notification Laws*.
+
+    ## About the Author
+
+    Caroline Mercer is a senior policy fellow at the Center for Technology and Law. Her research focuses on consumer privacy law and state regulation of data security. She holds a J.D. from Yale Law School.
+  expected_issues: []
+  decoys:
+  - title: "Author Bio Issue"
+    anchor: "Caroline Mercer is a senior policy fellow"
+    reason: "professional_degree"
+  notes: >-
+    Clean, a single author under "About the Author". Caroline Mercer's bio is three sentences with a position,
+    an affiliation, a research focus and a J.D., her highest degree; "J.D." ends the last sentence and is no
+    extra break. The preface states all six elements. Acknowledgements, Conclusion and References are present,
+    so every required section passes.

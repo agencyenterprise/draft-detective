@@ -5215,6 +5215,7 @@ export const WorkflowRunType = {
   HeadersSkimmability: 'headers_skimmability',
   NarrativeSynthesis: 'narrative_synthesis',
   SentenceStructure: 'sentence_structure',
+  StructuralChecksGer: 'structural_checks_ger',
   WritingConsistency: 'writing_consistency',
 } as const;
 
