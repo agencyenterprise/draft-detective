@@ -155,9 +155,7 @@ export function ReferenceValidationV2Results({ workflowDetail }: ReferenceValida
             <ValidationResultsBoxV2
               key={validation.reference_id || index}
               validation={validation}
-              showReference
               referenceLabel={`Reference #${validations.indexOf(validation) + 1}`}
-              size="default"
             />
           ))
         )}

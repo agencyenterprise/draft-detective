@@ -30,8 +30,6 @@ export interface StartWorkflowButtonProps {
   projectId: string;
   workflow?: WorkflowRun;
   onConfirm: (values: WorkflowConfigFormValues) => Promise<unknown>;
-  /** Match the button to the toolbar it sits in. */
-  size?: 'sm' | 'xs';
   /** Overrides the idle label, e.g. "Re-run Abbreviation Scan". */
   startLabel?: ReactNode;
   /** Shown on hover while the button is idle. */
@@ -43,7 +41,6 @@ export function StartWorkflowButton({
   projectId,
   workflow,
   onConfirm,
-  size = 'sm',
   startLabel,
   tooltip,
 }: StartWorkflowButtonProps) {
@@ -89,7 +86,7 @@ export function StartWorkflowButton({
 
   const startButton = (
     <Button
-      size={size}
+      size="xs"
       variant="outline"
       onClick={() => setIsConfigDialogOpen(true)}
       disabled={startWorkflowMutation.isPending || isActive}
@@ -153,7 +150,7 @@ export function StartWorkflowButton({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                size={size}
+                size="xs"
                 variant="ghost"
                 onClick={() => setIsCancelDialogOpen(true)}
                 disabled={cancelWorkflowMutation.isPending}
