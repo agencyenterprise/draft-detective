@@ -16,9 +16,12 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
+from lib.agents import chat_agent
 from lib.agents.deep_agent_setup import agent_input
 from lib.services.chat import thread_state
 from lib.services.chat.history import thread_config
+
+CHAT = chat_agent.chat_reader
 
 
 class _FakeModel(GenericFakeChatModel):
@@ -38,7 +41,7 @@ def _patched(saver: InMemorySaver):
 
     return (
         patch.object(thread_state, "get_checkpointer", get_checkpointer),
-        patch.object(thread_state, "build_chat_agent", build_chat_agent),
+        patch.object(chat_agent, "build_chat_agent", build_chat_agent),
     )
 
 
@@ -62,9 +65,13 @@ async def test_a_thread_of_several_turns_reads_back_whole() -> None:
     await _run_turns(saver, "t-1")
     reader, graph = _patched(saver)
     with reader, graph:
-        messages = await thread_state.load_thread_messages("t-1")
-        attachment = await thread_state.read_thread_file("t-1", "/attachments/a.md")
-        missing = await thread_state.read_thread_file("t-1", "/attachments/missing.md")
+        messages = await thread_state.load_thread_messages("t-1", reader=CHAT)
+        attachment = await thread_state.read_thread_file(
+            "t-1", "/attachments/a.md", reader=CHAT
+        )
+        missing = await thread_state.read_thread_file(
+            "t-1", "/attachments/missing.md", reader=CHAT
+        )
     assert [m.text for m in messages] == ["first", "one", "second", "two"]
     assert attachment == "one\ntwo"
     assert missing is None
@@ -74,7 +81,7 @@ async def test_a_thread_of_several_turns_reads_back_whole() -> None:
 async def test_a_thread_never_run_has_no_messages() -> None:
     reader, graph = _patched(InMemorySaver())
     with reader, graph:
-        assert await thread_state.load_thread_messages("t-new") == []
+        assert await thread_state.load_thread_messages("t-new", reader=CHAT) == []
 
 
 @pytest.mark.asyncio
@@ -84,4 +91,4 @@ async def test_deleting_a_thread_deletes_its_checkpoints() -> None:
     reader, graph = _patched(saver)
     with reader, graph:
         await thread_state.delete_thread_state("t-1")
-        assert await thread_state.load_thread_messages("t-1") == []
+        assert await thread_state.load_thread_messages("t-1", reader=CHAT) == []

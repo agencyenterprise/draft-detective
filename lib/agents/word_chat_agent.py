@@ -51,6 +51,7 @@ from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.services.chat.events import ChatEvent, stream_chat_events
 from lib.services.chat.history import thread_config
+from lib.services.chat.thread_state import READER_API_KEY, load_thread_snapshot
 from lib.services.microsoft.graph.documents import LoadedDocument
 
 COMMENTS_PATH = comments_path(DOCUMENT_PATH)
@@ -177,16 +178,16 @@ async def run_word_chat_turn(
             yield event
 
 
-# Reading state builds the graph, and building the model wants a key it never uses.
-_READER_API_KEY = "unused-state-reader"
+def word_chat_reader(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
+    """This agent's graph, for reading its threads back (``thread_state``)."""
+
+    return build_word_chat_agent(checkpointer, None, api_key=READER_API_KEY)
 
 
 async def pending_suggestion(thread_id: uuid.UUID) -> uuid.UUID | None:
     """The card a paused conversation is waiting on (``ask_to_apply``), if any."""
 
-    async with get_checkpointer() as saver:
-        reader = build_word_chat_agent(saver, None, api_key=_READER_API_KEY)
-        snapshot = await reader.aget_state(thread_config(str(thread_id)))
+    snapshot = await load_thread_snapshot(str(thread_id), reader=word_chat_reader)
     for paused in snapshot.interrupts:
         value = paused.value if isinstance(paused.value, dict) else {}
         try:
