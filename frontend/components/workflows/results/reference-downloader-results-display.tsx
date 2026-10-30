@@ -13,17 +13,11 @@ import * as React from 'react';
 interface ReferenceDownloaderResultsDisplayProps {
   results: ReferenceFetchResult[];
   projectId: string | null | undefined;
-  /** Display a title above the results. Defaults to "Results". Set to null to hide. */
-  title?: string | null;
 }
 
 type FilterType = 'all' | 'found' | 'found-but-not-accessible' | 'not-found' | 'pending';
 
-export function ReferenceDownloaderResultsDisplay({
-  results,
-  projectId,
-  title = 'Results',
-}: ReferenceDownloaderResultsDisplayProps) {
+export function ReferenceDownloaderResultsDisplay({ results, projectId }: ReferenceDownloaderResultsDisplayProps) {
   const [filter, setFilter] = React.useState<FilterType>('all');
   const hasDownloadedReferences = results.some((item) => item.result?.file_id != null);
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [FileRole.Support]);
@@ -78,7 +72,6 @@ export function ReferenceDownloaderResultsDisplay({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {title && <h3 className="text-lg font-semibold">{title}</h3>}
           <Badge variant="secondary">
             {filteredResults.length} Reference{filteredResults.length !== 1 ? 's' : ''}
             {filter !== 'all' && ` of ${results.length}`}

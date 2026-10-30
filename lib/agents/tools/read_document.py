@@ -1,4 +1,4 @@
-"""Read tool for main document content by line range."""
+"""Read tool for any project document, by file id and line range."""
 
 from langchain.tools import ToolRuntime, tool
 

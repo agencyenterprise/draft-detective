@@ -48,6 +48,7 @@ from lib.config.llm_models import (
 from lib.models.agent import ReasoningDict
 from lib.services.chat.events import ChatEvent, stream_chat_events
 from lib.services.chat.history import ChatAttachment, build_user_turn, thread_config
+from lib.services.chat.thread_state import READER_API_KEY
 from lib.skills import SkillSummary, list_skill_summaries
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import WorkflowRunType
@@ -239,6 +240,12 @@ def build_chat_agent(
         system_prompt=SYSTEM_PROMPT,
         checkpointer=checkpointer,
     )
+
+
+def chat_reader(checkpointer: BaseCheckpointSaver) -> CompiledStateGraph:
+    """This agent's graph, for reading its threads back (``thread_state``)."""
+
+    return build_chat_agent(DEFAULT_CHAT_MODEL, READER_API_KEY, checkpointer)
 
 
 def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, Any]:

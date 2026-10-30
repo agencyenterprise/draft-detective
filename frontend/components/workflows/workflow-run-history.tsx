@@ -19,8 +19,6 @@ interface WorkflowRunHistoryProps {
   historyData?: WorkflowRunSummary[];
   /** Why the history could not be loaded, if it failed. */
   historyError?: unknown;
-  /** Match the button to the toolbar it sits in. */
-  size?: 'sm' | 'xs';
   /** Shown on hover. */
   tooltip?: React.ReactNode;
 }
@@ -30,7 +28,6 @@ export function WorkflowRunHistory({
   onSelectRun,
   historyData,
   historyError,
-  size = 'sm',
   tooltip,
 }: WorkflowRunHistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +44,8 @@ export function WorkflowRunHistory({
 
   const trigger = (
     <PopoverTrigger asChild>
-      <Button variant="ghost" size={size} className="gap-1.5">
-        <History className={size === 'xs' ? 'size-3' : 'h-4 w-4'} />
+      <Button variant="ghost" size="xs" className="gap-1.5">
+        <History className="size-3" />
         History
         {runCount > 1 && <span className="text-muted-foreground">({runCount})</span>}
       </Button>
