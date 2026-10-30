@@ -42,6 +42,7 @@ from lib.agents.word_chat_agent import (
     pending_suggestion,
     run_word_chat_resume,
     run_word_chat_turn,
+    word_chat_reader,
 )
 from lib.agents.word_chat_checks import PaneCheck, pane_checks
 from lib.api.addin_auth import AddinIdentity, get_addin_identity
@@ -114,7 +115,9 @@ async def get_thread(
     thread = await chat_threads.current(_account(caller), url)
     if thread is None:
         return WordChatHistory()
-    messages = to_ui_messages(await load_thread_messages(str(thread.id)))
+    messages = to_ui_messages(
+        await load_thread_messages(str(thread.id), reader=word_chat_reader)
+    )
     return WordChatHistory(
         thread_id=thread.id,
         messages=messages,
@@ -282,7 +285,9 @@ async def _swap_images(thread_id: UUID, loaded: LoadedDocument) -> None:
     are added first, so a file they share with a pruned row is still in use.
     """
 
-    stored = await read_thread_file(str(thread_id), DOCUMENT_PATH)
+    stored = await read_thread_file(
+        str(thread_id), DOCUMENT_PATH, reader=word_chat_reader
+    )
     await file_images.add_conversation_images(thread_id, loaded.images)
     keep = file_images.referenced_images(stored or "") | {i.id for i in loaded.images}
     await file_images.prune_conversation_images(thread_id, keep=keep)
@@ -314,7 +319,10 @@ class _ClaimedStream(StreamingResponse):
 
 
 async def _has_document(thread_id: UUID) -> bool:
-    return await read_thread_file(str(thread_id), DOCUMENT_PATH) is not None
+    return (
+        await read_thread_file(str(thread_id), DOCUMENT_PATH, reader=word_chat_reader)
+        is not None
+    )
 
 
 async def _read_document(
