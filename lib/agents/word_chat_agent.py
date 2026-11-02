@@ -31,10 +31,9 @@ from lib.agents.chat_agent import CHAT_REASONING, EXCLUDED_CHAT_SKILLS
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
-    RECURSION_LIMIT,
     build_deep_agent,
     build_llm,
-    build_skill_files,
+    conversation_run_config,
     general_purpose_subagent,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
@@ -47,12 +46,10 @@ from lib.agents.tools.word_suggestions import (
     suggest_changes_for,
 )
 from lib.agents.word_chat_prompt import SYSTEM_PROMPT
-from lib.config.langfuse import langfuse_handler
-from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.services.chat.events import ChatEvent, stream_chat_events
-from lib.services.chat.history import thread_config
 from lib.services.chat.thread_state import READER_API_KEY, load_thread_snapshot
 from lib.services.microsoft.graph.documents import LoadedDocument
+from lib.skills import skill_backend_files
 
 COMMENTS_PATH = comments_path(DOCUMENT_PATH)
 
@@ -140,7 +137,7 @@ def turn_input(turn: WordChatTurn) -> dict[str, Any]:
     document from an earlier turn stays until a newer copy replaces it.
     """
 
-    files = build_skill_files(exclude=EXCLUDED_CHAT_SKILLS)
+    files = skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
     if turn.document is not None:
         files.update(document_files(turn.document, DOCUMENT_PATH))
     return {"files": files, "messages": [turn_message(turn)]}
@@ -149,17 +146,12 @@ def turn_input(turn: WordChatTurn) -> dict[str, Any]:
 def run_config(thread_id: uuid.UUID, account_oid: str) -> RunnableConfig:
     """Tracing keyed as the other agents are: one thread, one Langfuse session."""
 
-    return {
-        **thread_config(str(thread_id)),
-        "run_name": "word_chat_agent",
-        "recursion_limit": RECURSION_LIMIT,
-        "callbacks": [langfuse_handler, ErrorLoggingCallback()],
-        "metadata": {
-            "langfuse_tags": ["word-chat"],
-            "langfuse_session_id": str(thread_id),
-            "langfuse_user_id": account_oid,
-        },
-    }
+    return conversation_run_config(
+        str(thread_id),
+        run_name="word_chat_agent",
+        tags=["word-chat"],
+        user_id=account_oid,
+    )
 
 
 async def run_word_chat_turn(

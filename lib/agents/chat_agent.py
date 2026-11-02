@@ -31,13 +31,10 @@ from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
-    RECURSION_LIMIT,
     build_deep_agent,
     build_llm,
-    build_skill_files,
+    conversation_run_config,
 )
-from lib.config.langfuse import langfuse_handler
-from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import (
     LLMModel,
     gpt_5_6_luna_model,
@@ -47,9 +44,9 @@ from lib.config.llm_models import (
 )
 from lib.models.agent import ReasoningDict
 from lib.services.chat.events import ChatEvent, stream_chat_events
-from lib.services.chat.history import ChatAttachment, build_user_turn, thread_config
+from lib.services.chat.history import ChatAttachment, build_user_turn
 from lib.services.chat.thread_state import READER_API_KEY
-from lib.skills import SkillSummary, list_skill_summaries
+from lib.skills import SkillSummary, list_skill_summaries, skill_backend_files
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_all_manifests
@@ -257,7 +254,7 @@ def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, 
 
     return {
         "files": {
-            **build_skill_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS),
+            **skill_backend_files(interactive=True, exclude=EXCLUDED_CHAT_SKILLS),
             **files,
         },
         "messages": [message],
@@ -265,19 +262,11 @@ def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, 
 
 
 def chat_run_config(thread_id: str, user_id: str) -> RunnableConfig:
-    """Tracing keyed the same way the Teams agent is: one thread, one session."""
+    """Tracing keyed as the other conversation agents are: one thread, one session."""
 
-    return {
-        **thread_config(thread_id),
-        "run_name": "chat_agent",
-        "recursion_limit": RECURSION_LIMIT,
-        "callbacks": [langfuse_handler, ErrorLoggingCallback()],
-        "metadata": {
-            "langfuse_tags": ["chat"],
-            "langfuse_session_id": thread_id,
-            "langfuse_user_id": user_id,
-        },
-    }
+    return conversation_run_config(
+        thread_id, run_name="chat_agent", tags=["chat"], user_id=user_id
+    )
 
 
 async def run_chat_turn(

@@ -23,6 +23,7 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from lib.agents import word_chat_agent
+from lib.agents.deep_agent_setup import RECURSION_LIMIT
 from lib.agents.tools import word_suggestions
 from lib.agents.tools.word_suggestions import SuggestionTarget
 from lib.agents.word_chat_agent import (
@@ -30,6 +31,7 @@ from lib.agents.word_chat_agent import (
     DOCUMENT_PATH,
     MAX_SELECTION_CHARS,
     WordChatTurn,
+    run_config,
     run_word_chat_turn,
     turn_input,
     turn_message,
@@ -118,6 +120,18 @@ class TestMounting:
         assert any(path.startswith("/skills/reviewer-2/") for path in files)
         assert not any(path.startswith("/skills/literature-review/") for path in files)
         assert DOCUMENT_PATH not in files
+
+
+def test_the_run_is_keyed_and_traced_per_thread() -> None:
+    config = run_config(THREAD, "oid-ana")
+    assert config["configurable"] == {"thread_id": str(THREAD)}
+    assert config["run_name"] == "word_chat_agent"
+    assert config["recursion_limit"] == RECURSION_LIMIT
+    assert config["metadata"] == {
+        "langfuse_tags": ["word-chat"],
+        "langfuse_session_id": str(THREAD),
+        "langfuse_user_id": "oid-ana",
+    }
 
 
 @pytest.fixture

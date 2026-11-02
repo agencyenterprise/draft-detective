@@ -1,8 +1,9 @@
 """Tests for the construction our deep agents share.
 
 What they cover is what would break silently for every agent at once: the reasoning summary that makes
-a wrong answer inspectable in Langfuse, the shared rate limiter, and the mounting of
-the document and skills at the paths every skill's line numbers are defined against.
+a wrong answer inspectable in Langfuse, the shared rate limiter, and the run config that
+keys a conversation's checkpoint and its Langfuse session by one id. Mounting the skills
+is covered with the rest of ``lib/skills.py`` in ``tests/unit/test_skills.py``.
 """
 
 from typing import Any
@@ -10,12 +11,15 @@ from unittest.mock import patch
 
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
+    RECURSION_LIMIT,
     _with_our_additions,
     build_llm,
-    build_skill_files,
+    conversation_run_config,
     general_purpose_subagent,
     tool_names,
 )
+from lib.config.langfuse import langfuse_handler
+from lib.config.llm_error_logger import ErrorLoggingCallback
 
 
 class TestModelConstruction:
@@ -48,35 +52,49 @@ class TestModelConstruction:
         assert kwargs["api_key"] == "sk-test"
 
 
-class TestAgentFiles:
-    def test_skills_alone_mount_no_document(self) -> None:
-        """What the Teams agent mounts: it opens its own document mid-run."""
+class TestConversationRunConfig:
+    def test_one_id_keys_the_checkpoint_and_the_langfuse_session(self) -> None:
+        config = conversation_run_config("t-1", run_name="agent", tags=["a", "b"])
+        assert config["configurable"] == {"thread_id": "t-1"}
+        assert config["run_name"] == "agent"
+        assert config["recursion_limit"] == RECURSION_LIMIT
+        assert config["metadata"] == {
+            "langfuse_tags": ["a", "b"],
+            "langfuse_session_id": "t-1",
+        }
 
-        files = build_skill_files()
-        assert "/main.md" not in files
-        assert any(path.startswith("/skills/") for path in files)
+    def test_traces_go_to_langfuse_and_errors_are_logged(self) -> None:
+        callbacks = conversation_run_config("t-1", run_name="agent", tags=[])[
+            "callbacks"
+        ]
+        assert isinstance(callbacks, list)
+        assert callbacks[0] is langfuse_handler
+        assert isinstance(callbacks[1], ErrorLoggingCallback)
 
-    def test_mounted_skills_drop_the_web_search_consent_step(self) -> None:
-        """Nobody is there to answer, and consent was settled before the run."""
+    def test_extra_fields_cannot_replace_the_reserved_ones(self) -> None:
+        config = conversation_run_config(
+            "t-1",
+            run_name="agent",
+            tags=["a"],
+            metadata={"langfuse_tags": "x", "langfuse_session_id": "other"},
+        )
+        assert config["metadata"]["langfuse_tags"] == ["a"]
+        assert config["metadata"]["langfuse_session_id"] == "t-1"
 
-        files = build_skill_files()
-        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
-        assert "interactive-only" not in mounted
-        assert "Do you consent" not in mounted
-        assert "# Reference Validation" in mounted
-
-    def test_interactive_agents_keep_the_consent_step_without_its_markers(self) -> None:
-        """The chat has a user to ask, so the section applies; the markers are noise."""
-
-        files = build_skill_files(interactive=True)
-        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
-        assert "Do you consent" in mounted
-        assert "interactive-only" not in mounted
-
-    def test_skills_can_be_left_out_of_the_mount(self) -> None:
-        files = build_skill_files(exclude={"literature-review"})
-        assert not any(path.startswith("/skills/literature-review/") for path in files)
-        assert "/skills/reference-validation/SKILL.md" in files
+    def test_the_user_and_extra_fields_join_the_trace(self) -> None:
+        config = conversation_run_config(
+            "t-1",
+            run_name="agent",
+            tags=["a"],
+            user_id="u-1",
+            metadata={"links_found": "2"},
+        )
+        assert config["metadata"] == {
+            "langfuse_tags": ["a"],
+            "links_found": "2",
+            "langfuse_session_id": "t-1",
+            "langfuse_user_id": "u-1",
+        }
 
 
 class TestToolNames:

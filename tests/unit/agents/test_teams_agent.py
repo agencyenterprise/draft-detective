@@ -25,6 +25,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
+from lib.agents.deep_agent_setup import RECURSION_LIMIT
 from lib.agents.teams_agent import (
     SYSTEM_PROMPT,
     answer_question,
@@ -351,6 +352,44 @@ class TestContinuingAConversation:
         config = agent.ainvoke.call_args.kwargs["config"]
         assert config["configurable"]["thread_id"] == THREAD
         assert config["metadata"]["langfuse_session_id"] == THREAD
+
+    @pytest.mark.asyncio
+    async def test_the_run_is_traced_under_the_asker_and_the_links_found(self) -> None:
+        agent = agent_returning("an answer")
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
+        ):
+            await answer_question(
+                "compare these",
+                graph_token=TOKEN,
+                thread_id=THREAD,
+                document_urls=["https://a", "https://b"],
+                user_id="u-1",
+            )
+
+        config = agent.ainvoke.call_args.kwargs["config"]
+        assert config["run_name"] == "teams_agent"
+        assert config["recursion_limit"] == RECURSION_LIMIT
+        assert config["metadata"] == {
+            "langfuse_tags": ["teams-agent", "document-question"],
+            "links_found": "2",
+            "langfuse_session_id": THREAD,
+            "langfuse_user_id": "u-1",
+        }
+
+    @pytest.mark.asyncio
+    async def test_without_a_user_the_trace_names_none(self) -> None:
+        agent = agent_returning("an answer")
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
+        ):
+            await answer_question("hello", graph_token=TOKEN, thread_id=THREAD)
+
+        metadata = agent.ainvoke.call_args.kwargs["config"]["metadata"]
+        assert "langfuse_user_id" not in metadata
+        assert metadata["links_found"] == "0"
 
     @pytest.mark.asyncio
     async def test_a_checkpointer_is_given_to_the_agent(self) -> None:
