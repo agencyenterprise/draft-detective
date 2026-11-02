@@ -2,7 +2,7 @@
 
 The chat agent stores its comments and tracked changes as handoffs
 (``lib/services/microsoft/word/handoffs.py``), so they are claimed, applied and
-reported exactly like the ones from Teams. Two things are particular to the chat:
+reported exactly like the ones from Teams. Three things are particular to the chat:
 
 - **The card reads one by id**, whatever its status, so a suggestion already applied or
   dismissed still shows what became of it when the conversation is reloaded.

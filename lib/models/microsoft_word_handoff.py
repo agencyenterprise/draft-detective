@@ -88,7 +88,7 @@ class MicrosoftWordHandoff(SQLModel, table=True):
     )
     status: str = Field(
         sa_column=Column(String, nullable=False, default="pending"),
-        description="pending, applied or dismissed",
+        description="pending, applying, applied or dismissed",
     )
     outcome: dict[str, Any] | None = Field(
         default=None,
