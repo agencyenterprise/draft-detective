@@ -454,7 +454,11 @@ async def report_applied(
 
 
 def report(finished: FinishedHandoff, outcome: HandoffOutcome) -> str:
-    """The message posted into Teams once the add-in has applied a handoff."""
+    """The message posted into Teams once the add-in has applied a handoff.
+
+    The add-in's chat agent is told the same text about its own suggestions
+    (``chat_suggestions.settled_summary``), so it is written for both readers.
+    """
 
     total = len(outcome.items)
     lines = [

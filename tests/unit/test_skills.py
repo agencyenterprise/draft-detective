@@ -141,7 +141,7 @@ def test_interactive_only_markers_are_balanced(skill_file: Path):
 
 
 # Skills are also installed standalone (Claude apps, other agent runtimes), so
-# they must stay environment-agnostic (see CLAUDE.md, "Skill Files"): never
+# they must stay environment-agnostic (see AGENTS.md, "Skill Files"): never
 # reference this repo's workflow-agent tool wiring. Extend as wiring grows.
 _RUNTIME_SPECIFIC_STRINGS = ["view_image", "draftdetective://"]
 
@@ -155,7 +155,7 @@ def test_skills_do_not_reference_runtime_specific_tooling(skill_file: Path):
         assert needle not in content, (
             f"{skill_file.parent.name}: skills must stay environment-agnostic; "
             f"{needle!r} is workflow-agent wiring and belongs in the agent's "
-            "system prompt (see CLAUDE.md, 'Skill Files')"
+            "system prompt (see AGENTS.md, 'Skill Files')"
         )
 
 

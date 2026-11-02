@@ -64,8 +64,8 @@ class MicrosoftWordChatThread(SQLModel, table=True):
         default=None,
         sa_column=Column(DateTime(timezone=True), nullable=True),
         description=(
-            "When the turn running now began, if one is: a second one waits for it "
-            "(``chat_threads.claim``)"
+            "When the turn running now began, if one is: a second one is refused "
+            "while it runs (``chat_threads.claim``)"
         ),
     )
     cleared_at: datetime | None = Field(
