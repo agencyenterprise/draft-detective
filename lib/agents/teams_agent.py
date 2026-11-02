@@ -40,7 +40,6 @@ from typing import Any
 
 import httpx
 from langchain_core.messages import BaseMessage, HumanMessage
-from langchain_core.runnables import RunnableConfig
 from langfuse import propagate_attributes
 from pydantic import BaseModel, Field
 
@@ -48,11 +47,10 @@ from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
 from lib.agents.checkpointer import get_checkpointer
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
-    RECURSION_LIMIT,
     agent_input,
     build_deep_agent,
     build_llm,
-    build_skill_files,
+    conversation_run_config,
     has_deployment_key,
     tool_names,
 )
@@ -61,13 +59,12 @@ from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
 from lib.config.env import config
-from lib.config.langfuse import langfuse_handler
-from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
 from lib.services import conversations, users
 from lib.services.microsoft import linked_users
 from lib.services.microsoft.graph import client as graph_client
 from lib.services.microsoft.graph.client import GraphError
+from lib.skills import skill_backend_files
 
 logger = logging.getLogger(__name__)
 
@@ -313,28 +310,14 @@ async def answer_question(
     say anything.
     """
 
-    # Langfuse discards propagated metadata that is not a string, so these are
-    # stringified rather than silently going missing from the trace.
     urls = list(document_urls or [])
-    metadata: dict[str, Any] = {
-        "langfuse_tags": ["teams-agent", "document-question"],
-        "links_found": str(len(urls)),
-        # The same id the checkpoint is keyed by, so a conversation can be found in the
-        # trace view under what it is stored as.
-        "langfuse_session_id": thread_id,
-    }
-    if user_id:
-        metadata["langfuse_user_id"] = user_id
-
-    run_config: RunnableConfig = {
-        "run_name": "teams_agent",
-        "recursion_limit": RECURSION_LIMIT,
-        "callbacks": [langfuse_handler, ErrorLoggingCallback()],
-        "metadata": metadata,
-        # The checkpointer and this are a pair: LangGraph refuses a checkpointer with no
-        # ``configurable`` to key it by.
-        "configurable": {"thread_id": thread_id},
-    }
+    run_config = conversation_run_config(
+        thread_id,
+        run_name="teams_agent",
+        tags=["teams-agent", "document-question"],
+        user_id=user_id,
+        metadata={"links_found": str(len(urls))},
+    )
 
     try:
         # Whoever asks this time, not whoever started the conversation: in a channel
@@ -374,7 +357,7 @@ async def answer_question(
                         # Skills only. Documents arrive through the tool and stay in the
                         # thread's own files; skills have to be mounted up front because
                         # a tool cannot add them later.
-                        files=build_skill_files(exclude=EXCLUDED_CHAT_SKILLS),
+                        files=skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS),
                         messages=[HumanMessage(content=prompt)],
                     ),
                     config=run_config,

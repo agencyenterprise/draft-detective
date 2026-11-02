@@ -30,9 +30,9 @@ from lib.agents.chat_agent import (
     resolve_chat_model,
     run_chat_turn,
 )
-from lib.agents.deep_agent_setup import RECURSION_LIMIT, SKILLS_DIR
+from lib.agents.deep_agent_setup import RECURSION_LIMIT
 from lib.services.chat.history import ChatAttachment
-from lib.skills import INTERACTIVE_ONLY_START, read_skill_frontmatter
+from lib.skills import _SKILLS_DIR, INTERACTIVE_ONLY_START, read_skill_frontmatter
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_all_manifests
 
@@ -103,9 +103,12 @@ class TestBuildChatAgent:
         config = chat_run_config(thread_id="t-1", user_id="u-1")
         assert config["configurable"] == {"thread_id": "t-1"}
         assert config["recursion_limit"] == RECURSION_LIMIT
-        assert config["metadata"]["langfuse_session_id"] == "t-1"
-        assert config["metadata"]["langfuse_user_id"] == "u-1"
-        assert "chat" in config["metadata"]["langfuse_tags"]
+        assert config["run_name"] == "chat_agent"
+        assert config["metadata"] == {
+            "langfuse_tags": ["chat"],
+            "langfuse_session_id": "t-1",
+            "langfuse_user_id": "u-1",
+        }
 
 
 class TestRunChatTurn:
@@ -159,7 +162,7 @@ class TestSkillCatalogue:
     def test_every_mapped_skill_exists_and_has_a_registered_workflow(self) -> None:
         manifests = get_all_manifests()
         for skill, workflow_type in SKILL_WORKFLOWS.items():
-            assert (SKILLS_DIR / skill / "SKILL.md").is_file(), skill
+            assert (_SKILLS_DIR / skill / "SKILL.md").is_file(), skill
             assert workflow_type in manifests, skill
 
     def test_descriptions_come_from_the_manifest_when_there_is_one(self) -> None:
@@ -187,7 +190,7 @@ class TestSkillCatalogue:
             == manifests[WorkflowRunType("active_voice")].description
         )
         frontmatter = (
-            read_skill_frontmatter(SKILLS_DIR / "active-voice" / "SKILL.md") or {}
+            read_skill_frontmatter(_SKILLS_DIR / "active-voice" / "SKILL.md") or {}
         )
         assert by_name["active-voice"] != frontmatter["description"]
 
@@ -196,11 +199,11 @@ class TestSkillCatalogue:
             by_name = {
                 skill.name: skill.description for skill in chat_skill_catalogue()
             }
-        own = (SKILLS_DIR / "reviewer-2" / "SKILL.md").read_text()
+        own = (_SKILLS_DIR / "reviewer-2" / "SKILL.md").read_text()
         assert by_name["reviewer-2"]
         assert by_name["reviewer-2"][:40] in own.replace("\n  ", " ").replace("\n", " ")
 
     def test_excluded_skills_exist_on_disk(self) -> None:
         """The exclusion list names real skills; a typo would silently exclude nothing."""
         for skill in EXCLUDED_CHAT_SKILLS:
-            assert Path(SKILLS_DIR / skill / "SKILL.md").is_file(), skill
+            assert Path(_SKILLS_DIR / skill / "SKILL.md").is_file(), skill

@@ -20,6 +20,7 @@ from lib.skills import (
     _strip_frontmatter,
     list_skill_summaries,
     load_skill_prompt,
+    skill_backend_files,
     strip_interactive_only,
 )
 
@@ -208,3 +209,34 @@ def test_list_skill_summaries_skips_what_it_cannot_describe(tmp_path, monkeypatc
         ("good", "Fine.")
     ]
     assert list_skill_summaries(exclude={"good"}) == []
+
+
+class TestSkillBackendFiles:
+    def test_skills_alone_mount_no_document(self) -> None:
+        """What the Teams agent mounts: it opens its own document mid-run."""
+
+        files = skill_backend_files()
+        assert "/main.md" not in files
+        assert any(path.startswith("/skills/") for path in files)
+
+    def test_mounted_skills_drop_the_web_search_consent_step(self) -> None:
+        """Nobody is there to answer, and consent was settled before the run."""
+
+        files = skill_backend_files()
+        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
+        assert "interactive-only" not in mounted
+        assert "Do you consent" not in mounted
+        assert "# Reference Validation" in mounted
+
+    def test_interactive_agents_keep_the_consent_step_without_its_markers(self) -> None:
+        """The chat has a user to ask, so the section applies; the markers are noise."""
+
+        files = skill_backend_files(interactive=True)
+        mounted = str(files["/skills/reference-validation/SKILL.md"]["content"])
+        assert "Do you consent" in mounted
+        assert "interactive-only" not in mounted
+
+    def test_skills_can_be_left_out_of_the_mount(self) -> None:
+        files = skill_backend_files(exclude={"literature-review"})
+        assert not any(path.startswith("/skills/literature-review/") for path in files)
+        assert "/skills/reference-validation/SKILL.md" in files
