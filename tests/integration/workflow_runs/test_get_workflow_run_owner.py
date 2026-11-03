@@ -6,6 +6,7 @@ callers), every run is returned, project or not.
 """
 
 import uuid
+from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
@@ -55,21 +56,21 @@ def _run(project_id: uuid.UUID | None) -> WorkflowRun:
 
 
 @pytest_asyncio.fixture
-async def owner():
+async def owner() -> AsyncIterator[User]:
     user = await _make_user()
     yield user
     await _delete(User, user.id)
 
 
 @pytest_asyncio.fixture
-async def stranger():
+async def stranger() -> AsyncIterator[User]:
     user = await _make_user()
     yield user
     await _delete(User, user.id)
 
 
 @pytest_asyncio.fixture
-async def owned_run(owner):
+async def owned_run(owner: User) -> AsyncIterator[WorkflowRun]:
     project = Project(id=uuid.uuid4(), title="Owned Project", user_id=owner.id)
     await _add(project)
     run = _run(project.id)
@@ -80,7 +81,7 @@ async def owned_run(owner):
 
 
 @pytest_asyncio.fixture
-async def projectless_run():
+async def projectless_run() -> AsyncIterator[WorkflowRun]:
     run = _run(None)
     await _add(run)
     yield run
@@ -88,26 +89,32 @@ async def projectless_run():
 
 
 @pytest.mark.asyncio
-async def test_owner_gets_their_run(owner, owned_run):
+async def test_owner_gets_their_run(owner: User, owned_run: WorkflowRun) -> None:
     run = await get_workflow_run(str(owned_run.id), user=owner)
     assert run.id == owned_run.id
 
 
 @pytest.mark.asyncio
-async def test_stranger_is_refused_someone_elses_run(stranger, owned_run):
+async def test_stranger_is_refused_someone_elses_run(
+    stranger: User, owned_run: WorkflowRun
+) -> None:
     with pytest.raises(HTTPException) as exc:
         await get_workflow_run(str(owned_run.id), user=stranger)
     assert exc.value.status_code == 403
 
 
 @pytest.mark.asyncio
-async def test_user_is_refused_a_run_without_a_project(stranger, projectless_run):
+async def test_user_is_refused_a_run_without_a_project(
+    stranger: User, projectless_run: WorkflowRun
+) -> None:
     with pytest.raises(HTTPException) as exc:
         await get_workflow_run(str(projectless_run.id), user=stranger)
     assert exc.value.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_internal_caller_still_gets_a_run_without_a_project(projectless_run):
+async def test_internal_caller_still_gets_a_run_without_a_project(
+    projectless_run: WorkflowRun,
+) -> None:
     run = await get_workflow_run(str(projectless_run.id))
     assert run.id == projectless_run.id
