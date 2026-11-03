@@ -78,7 +78,10 @@ async def initialize_references(
 
     # Rely on the merge_fetch_results reducer so prior results for references NOT in this run
     # (e.g. when fetching a single reference) are preserved.
-    return {"fetched_references": pending_results}
+    return {
+        "fetched_references": pending_results,
+        "run_reference_ids": [ref.reference_id for ref in references],
+    }
 
 
 async def _load_unmatched_references(

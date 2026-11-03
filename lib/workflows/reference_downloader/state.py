@@ -96,3 +96,10 @@ class ReferenceDownloaderState(BaseWorkflowState):
             description="The response from the reference fetcher agent",
         )
     )
+    run_reference_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs of the references this run fetches. `fetched_references` also "
+            "holds earlier runs' results, which this run must not report on."
+        ),
+    )

@@ -44,14 +44,11 @@ def fetch_errors(
 def _fetched_this_run(state: ReferenceDownloaderState) -> list[ReferenceFetchResult]:
     """The results of the references this run fetched.
 
-    `fetched_references` carries earlier runs' results forward. A run given an
-    explicit list fetches only those, so an older failure outside it must not
-    be reported again. A run without one fetches every reference that has no
-    matched file, which covers every earlier failure.
+    `fetched_references` carries earlier runs' results forward. Those must
+    neither be reported again nor count as this run's output, or a run where
+    every fetch failed would read as a partial success.
     """
-    if state.config.references is None:
-        return state.fetched_references
-    requested = {ref.reference_id for ref in state.config.references}
+    requested = set(state.run_reference_ids)
     return [item for item in state.fetched_references if item.reference_id in requested]
 
 

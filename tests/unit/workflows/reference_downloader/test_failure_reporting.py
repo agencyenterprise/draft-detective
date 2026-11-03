@@ -3,7 +3,8 @@
 A failed fetch costs one reference, not the run, so it is reported as a warning
 while other references got an answer. When none did, the run must not read as
 a clean completion, so the failures escalate to errors. References carried
-forward from an earlier run but not fetched in this one are not reported again.
+forward from an earlier run but not fetched in this one neither are reported
+again nor count as this run's output.
 """
 
 from __future__ import annotations
@@ -40,21 +41,18 @@ def _item(
 
 
 def _state(
-    *items: ReferenceFetchResult, only: list[str] | None = None
+    *items: ReferenceFetchResult, run: list[str] | None = None
 ) -> ReferenceDownloaderState:
-    references = (
-        [ReferenceDownloaderInputItem(reference_id=i, text=REFERENCE) for i in only]
-        if only is not None
-        else None
-    )
+    """A state whose run fetched `run`, or every item when not given."""
     return ReferenceDownloaderState(
         type=WorkflowRunType.REFERENCE_DOWNLOADER,
         config=ReferenceDownloaderWorkflowConfig(
-            type=WorkflowRunType.REFERENCE_DOWNLOADER,
-            project_id="project-1",
-            references=references,
+            type=WorkflowRunType.REFERENCE_DOWNLOADER, project_id="project-1"
         ),
         fetched_references=list(items),
+        run_reference_ids=(
+            run if run is not None else [item.reference_id for item in items]
+        ),
     )
 
 
@@ -143,11 +141,45 @@ async def test_failures_carried_from_an_earlier_run_are_not_reported_again():
         _state(
             _item("ref-1", ReferenceFetchStatus.COMPLETED),
             _item("ref-2", ReferenceFetchStatus.ERROR, "old failure"),
-            only=["ref-1"],
+            run=["ref-1"],
         )
     )
 
     assert result["errors"] == []
+
+
+@pytest.mark.asyncio
+async def test_completions_carried_from_an_earlier_run_do_not_downgrade_failures():
+    """A run where every fetch failed is a failed run, whatever came before."""
+    result = await _cleanup(
+        _state(
+            _item("ref-1", ReferenceFetchStatus.COMPLETED),
+            _item("ref-2", ReferenceFetchStatus.ERROR, "timed out"),
+            run=["ref-2"],
+        )
+    )
+
+    assert [e.severity for e in result["errors"]] == [WorkflowErrorSeverity.ERROR]
+
+
+@pytest.mark.asyncio
+async def test_initialize_records_the_references_this_run_fetches():
+    state = ReferenceDownloaderState(
+        type=WorkflowRunType.REFERENCE_DOWNLOADER,
+        config=ReferenceDownloaderWorkflowConfig(
+            type=WorkflowRunType.REFERENCE_DOWNLOADER,
+            project_id="project-1",
+            references=[
+                ReferenceDownloaderInputItem(reference_id="ref-2", text=REFERENCE)
+            ],
+        ),
+        fetched_references=[_item("ref-1", ReferenceFetchStatus.ERROR, "old")],
+    )
+    runtime = SimpleNamespace(context=SimpleNamespace(project_id="project-1"))
+
+    result = await fetch_references.initialize_references.__wrapped__(state, runtime)
+
+    assert result["run_reference_ids"] == ["ref-2"]
 
 
 @pytest.mark.asyncio

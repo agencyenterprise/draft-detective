@@ -3436,6 +3436,12 @@ export type ReferenceDownloaderState = {
    * The response from the reference fetcher agent
    */
   fetched_references?: Array<ReferenceFetchResult>;
+  /**
+   * Run Reference Ids
+   *
+   * IDs of the references this run fetches. `fetched_references` also holds earlier runs' results, which this run must not report on.
+   */
+  run_reference_ids?: Array<string>;
 };
 
 /**
