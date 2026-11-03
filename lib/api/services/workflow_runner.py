@@ -11,7 +11,6 @@ from lib.config.llm_models import LLMModel
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import (
-    TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRun,
     WorkflowRunStatus,
     WorkflowRunType,
@@ -524,8 +523,9 @@ async def start_workflow_run(
     ):
         # Someone else moved the row first. Never schedule the same run twice.
         status = await get_workflow_run_status(str(awaiting_run.id))
-        if status is not None and status not in TERMINAL_WORKFLOW_RUN_STATUSES:
-            # A concurrent approve_project_gate released and scheduled it.
+        if status is not None and status != WorkflowRunStatus.CANCELLED:
+            # A concurrent approve_project_gate released and scheduled it; it
+            # may even have finished already. Either way, this start is served.
             return str(awaiting_run.id)
         # It was cancelled or deleted meanwhile: start a fresh run instead.
         awaiting_run = None

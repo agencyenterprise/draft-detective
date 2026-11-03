@@ -700,11 +700,22 @@ async def test_single_start_releases_the_awaiting_run_once_its_gate_is_approved(
 
 
 @pytest.mark.asyncio
-async def test_single_start_never_schedules_a_run_a_concurrent_approval_released():
+@pytest.mark.parametrize(
+    "status",
+    [
+        WorkflowRunStatus.PENDING,
+        WorkflowRunStatus.RUNNING,
+        WorkflowRunStatus.COMPLETED,
+        WorkflowRunStatus.FAILED,
+    ],
+)
+async def test_single_start_never_schedules_a_run_a_concurrent_approval_released(
+    status: WorkflowRunStatus,
+):
     awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
     harness = Harness(existing={CLAIM: awaiting})
     harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = WorkflowRunStatus.PENDING
+    harness.run_statuses[str(awaiting.id)] = status
 
     created, background_tasks, run_id = await _start_single_run([], harness)
 
