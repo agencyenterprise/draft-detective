@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lib.agents.tools.search_document import (
+    CONTEXT_LINES,
     MAX_CHARS_PER_MATCH,
     MAX_MATCHES,
     search_content,
@@ -238,15 +239,20 @@ class TestSearchContentMaxMatches:
         assert result.count("\n--\n") == MAX_MATCHES - 1
         assert f"match line {MAX_MATCHES}" not in result
 
-    def test_consecutive_matches_beyond_limit_are_all_shown(self):
-        """Matches that merge into few blocks are all shown, so nothing claims a cut."""
-        lines = [f"match line {i}" for i in range(MAX_MATCHES + 20)]
+    def test_consecutive_matches_beyond_limit_are_bounded(self):
+        """Matches that merge into one block are still capped, and the count is exact.
+
+        The first MAX_MATCHES matches get context, which shows CONTEXT_LINES more.
+        """
+        lines = [f"match line {i}" for i in range(MAX_MATCHES * 10)]
 
         result = search_content("\n".join(lines), "match")
 
-        assert f"Found {MAX_MATCHES + 20} matches for pattern" in result
-        assert "showing" not in result
-        assert f"{MAX_MATCHES + 20}:match line {MAX_MATCHES + 19}" in result
+        shown = MAX_MATCHES + CONTEXT_LINES
+        assert f"Found {MAX_MATCHES * 10} matches (showing the first {shown})" in result
+        assert len(result.split("\n\n", 1)[1].splitlines()) == shown
+        assert f"{shown}:match line {shown - 1}" in result
+        assert f"match line {shown}\n" not in result
 
     def test_shows_all_when_under_limit(self):
         """Test that all matches shown when under limit."""

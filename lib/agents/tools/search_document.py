@@ -6,8 +6,9 @@ from langchain.tools import ToolRuntime, tool
 
 from lib.workflows.context import ContextSchema
 
-# Maximum number of blocks to return, to avoid token overflow. A block is a run of
-# matches whose contexts overlap or touch, so more matched lines than this can be shown.
+# Only the first this many matches get a block, to avoid token overflow: at most
+# MAX_MATCHES * (2 * CONTEXT_LINES + 1) lines are returned. A later match can still show
+# as context of an earlier one, and counts as shown.
 MAX_MATCHES = 50
 
 # Number of context lines before and after each match
@@ -72,7 +73,7 @@ def search_content(content: str, pattern: str) -> str:
     if not matched:
         return f"No matches found for pattern: {pattern}"
 
-    blocks = _blocks(sorted(matched), len(lines))[:MAX_MATCHES]
+    blocks = _blocks(sorted(matched)[:MAX_MATCHES], len(lines))
     shown = sum(1 for start, end in blocks for i in range(start, end) if i in matched)
 
     result_header = f"Found {len(matched)} matches"
