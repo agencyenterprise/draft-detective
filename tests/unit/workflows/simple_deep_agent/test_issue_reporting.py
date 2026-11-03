@@ -625,4 +625,4 @@ def test_tool_description_tells_the_agent_when_not_to_propose_an_edit():
     description = " ".join(_tools(reporter)["report_issue"].description.split())
     assert "Propose an edit only when the fix is fully determined" in description
     assert "must not cross a line break" in description
-    assert "Set `suggested_action` as well" in description
+    assert "omit it when the edits carry the whole fix" in description
