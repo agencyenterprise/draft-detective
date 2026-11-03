@@ -7,11 +7,13 @@ callers), every run is returned, project or not.
 
 import uuid
 from collections.abc import AsyncIterator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 
+from lib.api.routers.workflows import cancel_workflow_run_endpoint
 from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User, UserRole
@@ -118,3 +120,19 @@ async def test_internal_caller_still_gets_a_run_without_a_project(
 ) -> None:
     run = await get_workflow_run(str(projectless_run.id))
     assert run.id == projectless_run.id
+
+
+@pytest.mark.asyncio
+async def test_cancel_endpoint_refuses_a_run_without_a_project(
+    stranger: User, projectless_run: WorkflowRun
+) -> None:
+    """The route passes the caller to the lookup, so the check above guards it."""
+    with patch(
+        "lib.api.routers.workflows.cancel_workflow_run", new=AsyncMock()
+    ) as cancel:
+        with pytest.raises(HTTPException) as exc:
+            await cancel_workflow_run_endpoint(
+                str(projectless_run.id), current_user=stranger
+            )
+    assert exc.value.status_code == 404
+    cancel.assert_not_awaited()
