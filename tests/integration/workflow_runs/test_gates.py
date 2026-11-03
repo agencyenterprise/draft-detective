@@ -21,6 +21,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs.gates import (
     _gates_satisfied,
     approve_gate,
+    claim_run_awaiting_approval,
     get_approved_gates,
     get_effective_gates,
     get_unsatisfied_gates,
@@ -337,6 +338,56 @@ async def test_release_is_a_no_op_when_run_twice(seeder):
     assert second == []
 
 
+@pytest.mark.asyncio
+async def test_claim_moves_one_awaiting_run_to_pending_exactly_once(seeder):
+    user = await seeder.user()
+    project = await seeder.project(user)
+    (awaiting_id,) = await seeder.runs(
+        project,
+        [
+            (
+                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+                1,
+                WorkflowRunStatus.AWAITING_APPROVAL,
+            )
+        ],
+    )
+
+    assert await claim_run_awaiting_approval(str(awaiting_id)) is True
+    assert await _status_of(awaiting_id) == WorkflowRunStatus.PENDING
+    # A second claimant (or a batch release) finds nothing left to move.
+    assert await claim_run_awaiting_approval(str(awaiting_id)) is False
+    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
+    assert await release_runs_awaiting_approval(str(project.id), 1) == []
+
+
+@pytest.mark.asyncio
+async def test_claim_loses_to_a_batch_release_and_to_a_cancel(seeder):
+    user = await seeder.user()
+    project = await seeder.project(user)
+    released_id, cancelled_id = await seeder.runs(
+        project,
+        [
+            (
+                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+                1,
+                WorkflowRunStatus.AWAITING_APPROVAL,
+            ),
+            (
+                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+                1,
+                WorkflowRunStatus.CANCELLED,
+            ),
+        ],
+    )
+    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
+    await release_runs_awaiting_approval(str(project.id), 1)
+
+    assert await claim_run_awaiting_approval(str(released_id)) is False
+    assert await claim_run_awaiting_approval(str(cancelled_id)) is False
+    assert await _status_of(cancelled_id) == WorkflowRunStatus.CANCELLED
+
+
 # ---------------------------------------------------------------------------
 # A released run gets a fresh reaper window
 # ---------------------------------------------------------------------------
@@ -390,6 +441,21 @@ async def test_in_place_release_is_not_reaped_as_a_stale_pending_run(seeder):
     await update_workflow_run_status(str(run_id), WorkflowRunStatus.PENDING)
 
     assert await _status_of(run_id) == WorkflowRunStatus.PENDING
+    assert run_id not in {
+        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
+    }
+
+
+@pytest.mark.asyncio
+async def test_claimed_run_is_not_reaped_as_a_stale_pending_run(seeder):
+    """The single-start release path (claim_run_awaiting_approval) must also
+    hand the run a fresh reaper window."""
+    user = await seeder.user()
+    project = await seeder.project(user)
+    run_id = await _park_long_ago(seeder, project)
+
+    assert await claim_run_awaiting_approval(str(run_id)) is True
+
     assert run_id not in {
         r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
     }
