@@ -2,7 +2,7 @@
 
 import { Thread, type ThreadComponents } from '@/components/assistant-ui/elements/thread.aui';
 import { ThreadList } from '@/components/assistant-ui/thread-list';
-import { DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
+import { attachmentLabel, DocumentAttachmentAdapter } from '@/components/chat/document-attachment-adapter';
 import { ReasoningSteps } from '@/components/assistant-ui/reasoning-steps';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { DocumentPanel } from '@/components/chat/document-panel';
@@ -40,9 +40,6 @@ const THREAD_COMPONENTS: ThreadComponents = { Welcome: ChatWelcome, ReasoningGro
 export const threadMessagesQueryKey = (threadId: string | undefined) =>
   ['chat', 'thread', threadId, 'messages'] as const;
 
-// The attachment adapter stores extracted text as `Attached document "<name>":\n\n<text>`.
-const ATTACHMENT_PREFIX = /^Attached document "[^"]*":\n\n/;
-
 async function fetchThreadMessages(threadId: string): Promise<ChatMessage[]> {
   return (await listMessagesApiChatThreadsThreadIdMessagesGet({ path: { thread_id: threadId } })) as ChatMessage[];
 }
@@ -55,10 +52,9 @@ type TurnAttachment = ChatAttachmentMeta & { text: string };
 
 function messageAttachments(message: AppendMessage): TurnAttachment[] {
   return (message.attachments ?? []).flatMap((attachment): TurnAttachment[] => {
-    const text = attachment.content
-      .map((part) => (part.type === 'text' ? part.text : ''))
-      .join('')
-      .replace(ATTACHMENT_PREFIX, '');
+    const labelled = attachment.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
+    const label = attachmentLabel(attachment.name);
+    const text = labelled.startsWith(label) ? labelled.slice(label.length) : labelled;
     return text ? [{ name: attachment.name, text }] : [];
   });
 }

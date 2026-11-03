@@ -162,9 +162,7 @@ describe('ChatAssistant, one turn of a new thread', () => {
     expect(stream.mock.calls[0][0].attachments).toEqual([{ name: 'notes.md', text: '# Notes\nBody' }]);
   });
 
-  // Bug: ATTACHMENT_PREFIX in chat-assistant.tsx stops at the first `"`, so a file
-  // name with a quote keeps the adapter's label in the text sent to the backend.
-  it.fails('removes the label from a document whose name has a quote in it', async () => {
+  it('removes the label from a document whose name has a quote in it', async () => {
     await mount();
     serve([]);
     const attachment = await attach('Smith "final".docx', '# Notes\nBody');
