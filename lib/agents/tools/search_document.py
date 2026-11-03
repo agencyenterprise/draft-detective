@@ -6,13 +6,15 @@ from langchain.tools import ToolRuntime, tool
 
 from lib.workflows.context import ContextSchema
 
-# Maximum number of matches to return to avoid token overflow
+# Maximum number of blocks to return, to avoid token overflow. A block is a match with
+# its context, and also holds any later match that falls inside that context, so more
+# matched lines than this can be shown.
 MAX_MATCHES = 50
 
 # Number of context lines before and after each match
 CONTEXT_LINES = 2
 
-# Maximum characters per match result
+# Longer lines in a result, matched or context, are cut to this many characters
 MAX_CHARS_PER_MATCH = 500
 
 
