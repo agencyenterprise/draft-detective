@@ -58,7 +58,12 @@ async def test_cancel_marks_run_cancelled():
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
-    mock_update.assert_any_await(str(run.id), WorkflowRunStatus.CANCELLED)
+    mock_update.assert_any_await(
+        str(run.id),
+        WorkflowRunStatus.CANCELLED,
+        failure_reason=None,
+        failure_message=None,
+    )
 
 
 @pytest.mark.asyncio

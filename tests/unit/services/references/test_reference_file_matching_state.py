@@ -33,9 +33,14 @@ def _make_run(state_json: dict | None) -> MagicMock:
 def svc() -> Iterator[SimpleNamespace]:
     """Patch every collaborator of the state loader; tests set return values."""
     target = "lib.services.references.service"
+    runs = "lib.services.workflow_runs.service"
+    get_run = AsyncMock()
     with (
-        patch(f"{target}.get_project_workflow_run_by_type", new=AsyncMock()) as get_run,
-        patch(f"{target}.read_workflow_run_state", new=AsyncMock()) as read_state,
+        # The loader reads the run through the shared run service; the seeding
+        # path looks it up again from the references service.
+        patch(f"{target}.get_project_workflow_run_by_type", new=get_run),
+        patch(f"{runs}.get_project_workflow_run_by_type", new=get_run),
+        patch(f"{runs}.read_workflow_run_state", new=AsyncMock()) as read_state,
         patch(
             f"{target}.get_main_file_id", new=AsyncMock(return_value=MAIN_FILE_ID)
         ) as main_file,

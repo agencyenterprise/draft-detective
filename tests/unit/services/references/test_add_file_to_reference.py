@@ -67,7 +67,7 @@ def _patch_states(
             new=AsyncMock(return_value=matching),
         ),
         patch(
-            "lib.services.references.service._get_extraction_workflow_state",
+            "lib.services.references.service.get_project_workflow_run_with_state",
             new=AsyncMock(return_value=(_make_run(), extraction)),
         ),
     )
