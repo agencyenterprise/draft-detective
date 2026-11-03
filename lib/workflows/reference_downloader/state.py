@@ -4,7 +4,12 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from lib.workflows.agent_messages import AgentMessages
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    ErrorDetails,
+    WorkflowRunType,
+)
 from lib.workflows.reducers import Reducer, upsert_by
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchItem,
@@ -34,6 +39,10 @@ class ReferenceFetchResult(BaseModel):
     )
     error: str | None = Field(
         default=None, description="Error message, present on failure"
+    )
+    error_details: ErrorDetails | None = Field(
+        default=None,
+        description="Traceback and raw model output behind `error`, for debugging",
     )
     messages: AgentMessages = Field(
         default_factory=list,

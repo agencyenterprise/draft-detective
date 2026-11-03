@@ -8,6 +8,7 @@ from lib.workflows.agent_messages import AgentMessages
 from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
+    ErrorDetails,
     ProposedEdit,
     WorkflowRunType,
 )
@@ -47,6 +48,10 @@ class ReferenceValidationV2Item(BaseModel):
     error: str | None = Field(
         default=None,
         description="Error message, present on failure.",
+    )
+    error_details: ErrorDetails | None = Field(
+        default=None,
+        description="Traceback and raw model output behind `error`, for debugging.",
     )
     edits: list[ProposedEdit] = Field(
         default_factory=list,

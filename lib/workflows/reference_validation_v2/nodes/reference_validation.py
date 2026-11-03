@@ -10,7 +10,13 @@ from lib.agents.reference_validator_v2 import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
-from lib.workflows.models import ProposedEdit
+from lib.workflows.error_details import capture_error_details
+from lib.workflows.models import (
+    ErrorDetails,
+    ProposedEdit,
+    WorkflowError,
+    WorkflowErrorSeverity,
+)
 from lib.workflows.reference_validation_v2.edits import build_reference_edits
 from lib.workflows.reference_validation_v2.state import (
     ReferenceValidationV2Item,
@@ -20,6 +26,9 @@ from lib.workflows.reference_validation_v2.state import (
 from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
 
 logger = logging.getLogger(__name__)
+
+# How much of a reference's text names it in a user-facing error.
+MAX_REFERENCE_LABEL_CHARS = 120
 
 
 @register_node("Initialize validations")
@@ -76,6 +85,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
 
     validation_result = None
     error = None
+    error_details: ErrorDetails | None = None
     status = ReferenceValidationV2Status.COMPLETED
     agent_messages: list[BaseMessage] = []
 
@@ -89,6 +99,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
         )
         status = ReferenceValidationV2Status.ERROR
         error = str(e)
+        error_details = capture_error_details(e)
 
     edits: list[ProposedEdit] = []
     if validation_result is not None:
@@ -109,6 +120,7 @@ async def validate_single_reference(state: dict, runtime: Runtime[ContextSchema]
                 status=status,
                 validation_result=validation_result,
                 error=error,
+                error_details=error_details,
                 edits=edits,
                 messages=agent_messages,
             )
@@ -133,9 +145,45 @@ async def _reference_edits(
     )
 
 
+def _reference_error_message(item: ReferenceValidationV2Item) -> str:
+    """State what the reader lost; the exception itself stays on `details`."""
+    reference = item.input_reference
+    if len(reference) > MAX_REFERENCE_LABEL_CHARS:
+        reference = reference[:MAX_REFERENCE_LABEL_CHARS] + "..."
+    return (
+        f'Reference "{reference}" could not be validated. It is missing from '
+        f"these results. {item.error or 'Unknown error'}"
+    )
+
+
 @register_node("Finalize validations")
 async def finalize_validations(
     state: ReferenceValidationV2State, runtime: Runtime[ContextSchema]
 ):
-    """Finalize validation results after all parallel validations complete."""
-    return {}
+    """Report every reference that failed as a run-level error.
+
+    A failed reference costs one entry, not the run, so it is a warning while
+    other references were validated. When none were, an empty result would
+    read as an all-clear, so the failures escalate to errors.
+    """
+    produced_results = any(
+        item.status == ReferenceValidationV2Status.COMPLETED
+        for item in state.reference_validations
+    )
+    severity = (
+        WorkflowErrorSeverity.WARNING
+        if produced_results
+        else WorkflowErrorSeverity.ERROR
+    )
+    errors = [
+        WorkflowError(
+            task_name="validate_single_reference",
+            error=_reference_error_message(item),
+            workflow_run_id=runtime.context.workflow_run_id,
+            severity=severity,
+            details=item.error_details,
+        )
+        for item in state.reference_validations
+        if item.status == ReferenceValidationV2Status.ERROR
+    ]
+    return {"errors": errors}

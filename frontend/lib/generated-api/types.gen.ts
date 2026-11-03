@@ -3645,6 +3645,10 @@ export type ReferenceFetchResult = {
    */
   error?: string | null;
   /**
+   * Traceback and raw model output behind `error`, for debugging
+   */
+  error_details?: ErrorDetails | null;
+  /**
    * Messages
    *
    * LLM conversation messages from the reference fetcher agent invocation.
@@ -3817,6 +3821,10 @@ export type ReferenceValidationV2Item = {
    * Error message, present on failure.
    */
   error?: string | null;
+  /**
+   * Traceback and raw model output behind `error`, for debugging.
+   */
+  error_details?: ErrorDetails | null;
   /**
    * Edits
    *

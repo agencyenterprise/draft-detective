@@ -16,11 +16,14 @@ from lib.services.files.service import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
+from lib.workflows.error_details import capture_error_details
+from lib.workflows.models import ErrorDetails
 from lib.workflows.reference_downloader.agents.reference_fetcher import (
     ReferenceFetchConclusion,
     ReferenceFetcherAgent,
     ReferenceFetcherAgentInput,
 )
+from lib.workflows.reference_downloader.fetch_errors import fetch_errors
 from lib.workflows.reference_downloader.fetch_logging import (
     log_fetch_outcome,
     log_run_summary,
@@ -121,6 +124,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
     project_id = runtime.context.project_id
     result = None
     error = None
+    error_details: ErrorDetails | None = None
     status = ReferenceFetchStatus.COMPLETED
     messages: list[BaseMessage] = []
 
@@ -176,6 +180,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
         )
         status = ReferenceFetchStatus.ERROR
         error = str(e)
+        error_details = capture_error_details(e)
 
     return {
         "fetched_references": [
@@ -185,6 +190,7 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
                 status=status,
                 result=result,
                 error=error,
+                error_details=error_details,
                 messages=messages,
             )
         ]
@@ -195,7 +201,8 @@ async def fetch_single_reference(state: dict, runtime: Runtime[ContextSchema]):
 async def cleanup_failed_resources(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
-    """Clean up files for failed references and promote successful ones."""
+    """Clean up files for failed references, promote successful ones, and
+    report the references that failed as run errors."""
     project_id = runtime.context.project_id
     fetched_references = state.fetched_references
 
@@ -243,7 +250,7 @@ async def cleanup_failed_resources(
             f"Promoted {len(files_to_promote)} reference files to SUPPORT for project {project_id}"
         )
 
-    return {}
+    return {"errors": fetch_errors(state, runtime.context.workflow_run_id)}
 
 
 async def _update_reference_file_matching(
