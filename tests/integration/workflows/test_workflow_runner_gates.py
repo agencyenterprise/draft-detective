@@ -32,6 +32,7 @@ from lib.workflows.claim_reference_validation_v2.state import (
 )
 from lib.workflows.models import WorkflowGate
 from lib.workflows.registry import get_config_type
+from lib.workflows.workflow_types import WorkflowConfig
 
 CLAIM = WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2
 
@@ -616,9 +617,19 @@ async def test_approve_project_gate_with_nothing_awaiting_schedules_nothing():
 
 async def _start_single(
     unsatisfied: list[WorkflowGate],
+    harness: Harness | None = None,
 ) -> tuple[list[dict], BackgroundTasks]:
-    harness = Harness()
-    config = ClaimReferenceValidationV2Config(
+    created, background_tasks, _ = await _start_single_run(unsatisfied, harness)
+    return created, background_tasks
+
+
+async def _start_single_run(
+    unsatisfied: list[WorkflowGate],
+    harness: Harness | None = None,
+    config: WorkflowConfig | None = None,
+) -> tuple[list[dict], BackgroundTasks, str]:
+    harness = harness or Harness()
+    config = config or ClaimReferenceValidationV2Config(
         type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
         project_id=str(harness.project.id),
     )
@@ -630,8 +641,8 @@ async def _start_single(
             new=AsyncMock(return_value=unsatisfied),
         ),
     ):
-        await start_workflow_run(config, harness.user, background_tasks)
-    return harness.created, background_tasks
+        run_id = await start_workflow_run(config, harness.user, background_tasks)
+    return harness.created, background_tasks, run_id
 
 
 @pytest.mark.asyncio
@@ -649,3 +660,67 @@ async def test_single_start_schedules_the_workflow_once_its_gate_is_approved():
     assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
     assert len(background_tasks.tasks) == 1
     assert background_tasks.tasks[0].kwargs["workflow_run_id"]
+
+
+@pytest.mark.asyncio
+async def test_single_start_again_returns_the_awaiting_run():
+    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
+    harness = Harness(existing={CLAIM: awaiting})
+
+    created, background_tasks, run_id = await _start_single_run(
+        [WorkflowGate.REFERENCE_REVIEW], harness
+    )
+
+    assert run_id == str(awaiting.id)
+    assert created == []
+    assert background_tasks.tasks == []
+
+
+@pytest.mark.asyncio
+async def test_single_start_releases_the_awaiting_run_once_its_gate_is_approved():
+    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
+    awaiting.model = "openai:gpt-5.6-sol"
+    harness = Harness(existing={CLAIM: awaiting})
+
+    created, background_tasks, run_id = await _start_single_run([], harness)
+
+    assert run_id == str(awaiting.id)
+    assert created == []
+    harness.update_status.assert_awaited_once_with(
+        str(awaiting.id), WorkflowRunStatus.PENDING
+    )
+    (task,) = background_tasks.tasks
+    assert task.kwargs["workflow_run_id"] == str(awaiting.id)
+    assert task.kwargs["thread_id"] == awaiting.langgraph_thread_id
+    assert task.kwargs["config"].model == "openai:gpt-5.6-sol"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "status", [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
+)
+async def test_single_start_still_queues_a_new_run_behind_an_active_one(
+    status: WorkflowRunStatus,
+):
+    active = _run(uuid4(), CLAIM, status)
+    harness = Harness(existing={CLAIM: active})
+
+    created, background_tasks, run_id = await _start_single_run([], harness)
+
+    assert run_id != str(active.id)
+    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
+    assert len(background_tasks.tasks) == 1
+
+
+@pytest.mark.asyncio
+async def test_single_start_of_an_independent_run_never_reuses_an_awaiting_one():
+    review_assistant = WorkflowRunType.REVIEW_ASSISTANT
+    awaiting = _run(uuid4(), review_assistant, WorkflowRunStatus.AWAITING_APPROVAL)
+    harness = Harness(existing={review_assistant: awaiting})
+    config = get_config_type(review_assistant)(project_id=str(harness.project.id))
+
+    created, _, run_id = await _start_single_run([], harness, config)
+
+    assert run_id != str(awaiting.id)
+    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
+    harness.update_status.assert_not_awaited()
