@@ -252,8 +252,14 @@ async def get_workflow_run(
 
     run, project = result.tuple()
 
-    if user is not None and project is not None and project.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if user is not None:
+        # A run without a project has no owner to match, so a user is refused it
+        # as if it did not exist, like the inner-joined ownership checks do.
+        # Internal callers (no user) still get project-less runs.
+        if project is None:
+            raise HTTPException(status_code=404, detail="Workflow run not found")
+        if project.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     return run
 
