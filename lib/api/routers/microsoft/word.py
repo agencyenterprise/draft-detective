@@ -107,7 +107,7 @@ async def report_applied(
     report: HandoffReport,
     caller: AddinIdentity = Depends(get_addin_identity),
 ) -> None:
-    """Close a handoff the add-in has written, and say how it went in Teams."""
+    """Close a handoff the add-in has written and, for a Teams handoff, say how it went there."""
 
     try:
         reported = await handoffs.report_applied(
