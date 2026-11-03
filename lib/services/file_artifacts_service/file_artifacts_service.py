@@ -21,8 +21,7 @@ from lib.services.files.service import (
     update_file_artifacts,
 )
 from lib.services.workflow_runs.service import (
-    get_project_workflow_run_by_type,
-    read_workflow_run_state,
+    get_project_workflow_run_with_state,
 )
 from lib.skills import skill_backend_files
 from lib.workflows.document_processing.state import DocumentProcessingState
@@ -36,7 +35,7 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionState,
 )
 from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
-from lib.workflows.util import as_state_type, run_type_of
+from lib.workflows.util import run_type_of
 
 logger = logging.getLogger(__name__)
 
@@ -112,24 +111,16 @@ class FileArtifactsService(FileArtifactsServiceType):
             ValueError: If no workflow run or state is found for the given type
                 and project ID.
         """
-        run_type = run_type_of(state_type)
-        workflow_run = await get_project_workflow_run_by_type(
-            self.project_id, run_type, revision=self.revision, include_state=True
+        workflow_run, state = await get_project_workflow_run_with_state(
+            self.project_id, state_type, self.revision
         )
-        if not workflow_run:
-            if raise_exception:
-                raise ValueError(
-                    f"No workflow run found for type {run_type} and project {self.project_id}"
-                )
-            return None
-
-        state = await read_workflow_run_state(workflow_run)
-        if not state and raise_exception:
+        if raise_exception and state is None:
+            what = "workflow run" if workflow_run is None else "state"
             raise ValueError(
-                f"No state found for type {run_type} and project {self.project_id}"
+                f"No {what} found for type {run_type_of(state_type)} "
+                f"and project {self.project_id}"
             )
-
-        return as_state_type(state, state_type) if state is not None else None
+        return state
 
     async def _try_load[T](
         self,
