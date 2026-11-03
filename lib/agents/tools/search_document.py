@@ -6,9 +6,8 @@ from langchain.tools import ToolRuntime, tool
 
 from lib.workflows.context import ContextSchema
 
-# Maximum number of blocks to return, to avoid token overflow. A block is a match with
-# its context, and also holds any later match that falls inside that context, so more
-# matched lines than this can be shown.
+# Maximum number of blocks to return, to avoid token overflow. A block is a run of
+# matches whose contexts overlap or touch, so more matched lines than this can be shown.
 MAX_MATCHES = 50
 
 # Number of context lines before and after each match
@@ -69,53 +68,46 @@ def search_content(content: str, pattern: str) -> str:
         return f"Invalid regex pattern: {e}"
 
     lines = content.split("\n")
-    matches: list[str] = []
-    matched_line_indices: set[int] = set()
-
-    # Find all matching lines
-    for i, line in enumerate(lines):
-        if regex.search(line):
-            matched_line_indices.add(i)
-
-    if not matched_line_indices:
+    matched = {i for i, line in enumerate(lines) if regex.search(line)}
+    if not matched:
         return f"No matches found for pattern: {pattern}"
 
-    # Build results with context
-    processed_ranges = set()
+    blocks = _blocks(sorted(matched), len(lines))[:MAX_MATCHES]
+    shown = sum(1 for start, end in blocks for i in range(start, end) if i in matched)
 
-    for match_idx in sorted(matched_line_indices):
-        if match_idx in processed_ranges:
-            continue
-
-        start = max(0, match_idx - CONTEXT_LINES)
-        end = min(len(lines), match_idx + CONTEXT_LINES + 1)
-
-        # Mark this range as processed
-        for i in range(start, end):
-            processed_ranges.add(i)
-
-        # Build the match block
-        match_block = []
-        for i in range(start, end):
-            line_num = i + 1  # 1-indexed line numbers
-            line_content = lines[i]
-
-            # Truncate long lines
-            if len(line_content) > MAX_CHARS_PER_MATCH:
-                line_content = line_content[:MAX_CHARS_PER_MATCH] + "..."
-
-            # Mark matching lines with ":" and context lines with "-"
-            separator = ":" if i in matched_line_indices else "-"
-            match_block.append(f"{line_num}{separator}{line_content}")
-
-        matches.append("\n".join(match_block))
-
-        if len(matches) >= MAX_MATCHES:
-            break
-
-    result_header = f"Found {len(matched_line_indices)} matches"
-    if len(matched_line_indices) > MAX_MATCHES:
-        result_header += f" (showing first {MAX_MATCHES})"
+    result_header = f"Found {len(matched)} matches"
+    if shown < len(matched):
+        result_header += f" (showing the first {shown})"
     result_header += f" for pattern: {pattern}\n\n"
 
-    return result_header + "\n--\n".join(matches)
+    return result_header + "\n--\n".join(
+        _format_block(lines, start, end, matched) for start, end in blocks
+    )
+
+
+def _blocks(match_indices: list[int], total_lines: int) -> list[tuple[int, int]]:
+    """Each match's line range with its context, overlapping or adjacent ones merged.
+
+    Merged like ``grep -C``, so no line is printed twice.
+    """
+    blocks: list[tuple[int, int]] = []
+    for i in match_indices:
+        start = max(0, i - CONTEXT_LINES)
+        end = min(total_lines, i + CONTEXT_LINES + 1)
+        if blocks and start <= blocks[-1][1]:
+            blocks[-1] = (blocks[-1][0], end)
+        else:
+            blocks.append((start, end))
+    return blocks
+
+
+def _format_block(lines: list[str], start: int, end: int, matched: set[int]) -> str:
+    """One block, as ``line:text`` for matches and ``line-text`` for context."""
+    formatted = []
+    for i in range(start, end):
+        text = lines[i]
+        if len(text) > MAX_CHARS_PER_MATCH:
+            text = text[:MAX_CHARS_PER_MATCH] + "..."
+        separator = ":" if i in matched else "-"
+        formatted.append(f"{i + 1}{separator}{text}")
+    return "\n".join(formatted)

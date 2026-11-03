@@ -89,7 +89,7 @@ class TestReadContentEdgeCases:
         content = "Line one\nLine two\nLine three"
         result = read_content(content, 3, 2)
 
-        assert "Error: end_line must be greater than start_line" in result
+        assert "Error: end_line must not be less than start_line" in result
 
     def test_end_line_equal_to_start_line_is_valid(self):
         """Test that end_line equal to start_line reads one line."""

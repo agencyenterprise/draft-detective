@@ -69,7 +69,7 @@ def read_content(content: str, start_line: int, end_line: int) -> str:
         return f"Error: start_line {start_line} is beyond document length ({total_lines} lines)"
 
     if end_idx <= start_idx:
-        return "Error: end_line must be greater than start_line"
+        return "Error: end_line must not be less than start_line"
 
     # Check MAX_LINES limit
     requested_lines = end_idx - start_idx
