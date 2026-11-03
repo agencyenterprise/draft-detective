@@ -5,6 +5,11 @@ import { ApiError } from '@/lib/api-error';
 const PDF_TYPE = 'application/pdf';
 const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
+/** The line `send()` puts before a document's text, which the chat runtime strips before sending a turn. */
+export function attachmentLabel(name: string): string {
+  return `Attached document "${name}":\n\n`;
+}
+
 /**
  * Attachment adapter for PDF and DOCX documents.
  *
@@ -45,7 +50,7 @@ export class DocumentAttachmentAdapter implements AttachmentAdapter {
       content: [
         {
           type: 'text',
-          text: `Attached document "${attachment.name}":\n\n${text}`,
+          text: `${attachmentLabel(attachment.name)}${text}`,
         },
       ],
       status: { type: 'complete' },

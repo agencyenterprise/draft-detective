@@ -5,11 +5,13 @@ import { streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
 import type { ChatMessage } from '@/lib/chat/turn';
 import {
   createThreadApiChatThreadsPost,
+  extractAttachmentTextApiChatExtractPost,
   listMessagesApiChatThreadsThreadIdMessagesGet,
   listThreadsApiChatThreadsGet,
 } from '@/lib/generated-api';
 import { flush, renderInto, Rendered, testQueryClient, withQueryClient } from '@/lib/test-render';
 import { ChatAssistant } from './chat-assistant';
+import { DocumentAttachmentAdapter } from './document-attachment-adapter';
 
 type Aui = ReturnType<typeof useAui>;
 const seen: { aui?: Aui } = {};
@@ -39,12 +41,14 @@ vi.mock('@/lib/chat/stream', () => ({ streamChatTurn: vi.fn() }));
 vi.mock('@/lib/generated-api', async (original) => ({
   ...(await original<typeof import('@/lib/generated-api')>()),
   createThreadApiChatThreadsPost: vi.fn(),
+  extractAttachmentTextApiChatExtractPost: vi.fn(),
   listThreadsApiChatThreadsGet: vi.fn(),
   listMessagesApiChatThreadsThreadIdMessagesGet: vi.fn(),
 }));
 
 const stream = vi.mocked(streamChatTurn);
 const createThread = vi.mocked(createThreadApiChatThreadsPost);
+const extract = vi.mocked(extractAttachmentTextApiChatExtractPost);
 const listThreads = vi.mocked(listThreadsApiChatThreadsGet);
 const listMessages = vi.mocked(listMessagesApiChatThreadsThreadIdMessagesGet);
 
@@ -74,6 +78,13 @@ function serveUntilAborted(events: ChatStreamEvent[]) {
       options.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))),
     );
   });
+}
+
+/** An attachment as the composer's adapter completes it, with `text` as the backend's extraction. */
+async function attach(name: string, text: string): Promise<CompleteAttachment> {
+  extract.mockResolvedValueOnce({ text } as never);
+  const adapter = new DocumentAttachmentAdapter();
+  return adapter.send(await adapter.add({ file: new File(['binary'], name) }));
 }
 
 async function send(text: string, attachments: CompleteAttachment[] = []): Promise<void> {
@@ -144,18 +155,20 @@ describe('ChatAssistant, one turn of a new thread', () => {
   it('sends attachments as plain text, without the label the attachment adapter adds', async () => {
     await mount();
     serve([]);
-    const attachment: CompleteAttachment = {
-      id: 'att-1',
-      type: 'document',
-      name: 'notes.md',
-      contentType: 'text/markdown',
-      status: { type: 'complete' },
-      content: [{ type: 'text', text: 'Attached document "notes.md":\n\n# Notes\nBody' }],
-    };
+    const attachment = await attach('notes.md', '# Notes\nBody');
     const empty: CompleteAttachment = { ...attachment, id: 'att-2', name: 'empty.md', content: [] };
     await send('Read this', [attachment, empty]);
 
     expect(stream.mock.calls[0][0].attachments).toEqual([{ name: 'notes.md', text: '# Notes\nBody' }]);
+  });
+
+  it('removes the label from a document whose name has a quote in it', async () => {
+    await mount();
+    serve([]);
+    const attachment = await attach('Smith "final".docx', '# Notes\nBody');
+    await send('Read this', [attachment]);
+
+    expect(stream.mock.calls[0][0].attachments).toEqual([{ name: 'Smith "final".docx', text: '# Notes\nBody' }]);
   });
 
   it('once the turn is over, shows the stored copy in place of the streamed one', async () => {
