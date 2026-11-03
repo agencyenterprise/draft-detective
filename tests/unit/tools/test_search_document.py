@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from lib.agents.tools.search_document import (
+    CONTEXT_LINES,
     MAX_CHARS_PER_MATCH,
     MAX_MATCHES,
     search_content,
@@ -108,6 +109,25 @@ class TestSearchContent:
         assert "2:match A" in result
         assert "4:match B" in result
 
+    def test_nearby_matches_print_each_line_once(self):
+        """Matches whose contexts overlap share one block instead of repeating lines."""
+        content = "x\nx\nhit\ny\ny\ny\nhit\nz\nz\nz"
+
+        result = search_content(content, "hit")
+
+        body = result.split("\n\n", 1)[1]
+        assert body.splitlines() == [
+            "1-x",
+            "2-x",
+            "3:hit",
+            "4-y",
+            "5-y",
+            "6-y",
+            "7:hit",
+            "8-z",
+            "9-z",
+        ]
+
     def test_line_truncation(self):
         """Long lines should be truncated."""
         long_line = "x" * (MAX_CHARS_PER_MATCH + 100)
@@ -148,7 +168,8 @@ class TestSearchContent:
             "\n"
             "1:error: connection failed\n"
             "2-info: connected\n"
-            "3:warning: low memory"
+            "3:warning: low memory\n"
+            "4-debug: verbose"
         )
         assert result == expected
 
@@ -204,15 +225,34 @@ class TestSearchContentMaxMatches:
     """Tests for MAX_MATCHES limit behavior."""
 
     def test_respects_max_matches_limit(self):
-        """Test that results are limited to MAX_MATCHES."""
-        # Create content with more matches than MAX_MATCHES
-        lines = [f"match line {i}" for i in range(MAX_MATCHES + 20)]
-        content = "\n".join(lines)
+        """Separate blocks past MAX_MATCHES are cut, and the header says how many show."""
+        lines = ["filler"] * ((MAX_MATCHES + 20) * 10)
+        for block in range(MAX_MATCHES + 20):
+            lines[block * 10] = f"match line {block}"
 
-        result = search_content(content, "match")
+        result = search_content("\n".join(lines), "match")
 
-        assert f"Found {MAX_MATCHES + 20} matches" in result
-        assert f"showing first {MAX_MATCHES}" in result
+        assert (
+            f"Found {MAX_MATCHES + 20} matches (showing the first {MAX_MATCHES})"
+            in result
+        )
+        assert result.count("\n--\n") == MAX_MATCHES - 1
+        assert f"match line {MAX_MATCHES}" not in result
+
+    def test_consecutive_matches_beyond_limit_are_bounded(self):
+        """Matches that merge into one block are still capped, and the count is exact.
+
+        The first MAX_MATCHES matches get context, which shows CONTEXT_LINES more.
+        """
+        lines = [f"match line {i}" for i in range(MAX_MATCHES * 10)]
+
+        result = search_content("\n".join(lines), "match")
+
+        shown = MAX_MATCHES + CONTEXT_LINES
+        assert f"Found {MAX_MATCHES * 10} matches (showing the first {shown})" in result
+        assert len(result.split("\n\n", 1)[1].splitlines()) == shown
+        assert f"{shown}:match line {shown - 1}" in result
+        assert f"match line {shown}\n" not in result
 
     def test_shows_all_when_under_limit(self):
         """Test that all matches shown when under limit."""

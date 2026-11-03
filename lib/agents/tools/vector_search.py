@@ -35,7 +35,7 @@ async def vector_search(
     Args:
         file_id: The ID of the supporting file to search (from the citation-to-file mapping).
         query: A natural language query describing the evidence to search for.
-        top_k: Maximum number of passages to retrieve (recommended: 10).
+        top_k: Maximum number of passages to retrieve, from 1 to 50 (recommended: 10).
 
     Returns:
         Matched passages with line numbers and surrounding context from the document,

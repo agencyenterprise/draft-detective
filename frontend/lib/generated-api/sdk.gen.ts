@@ -2363,7 +2363,7 @@ export const startApiMicrosoftWordHandoffsHandoffIdStartedPost = <ThrowOnError e
 /**
  * Report Applied
  *
- * Close a handoff the add-in has written, and say how it went in Teams.
+ * Close a handoff the add-in has written and, for a Teams handoff, say how it went there.
  */
 export const reportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPost = <ThrowOnError extends boolean = true>(
   options: Options<ReportAppliedApiMicrosoftWordHandoffsHandoffIdAppliedPostData, ThrowOnError>,
