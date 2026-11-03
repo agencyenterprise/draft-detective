@@ -34,6 +34,7 @@ from lib.services.workflow_runs.service import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.error_details import build_workflow_error
+from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import (
     BaseWorkflowConfig,
     DependencyWaitTimeoutError,
@@ -253,9 +254,9 @@ async def run_workflow(
         logger.info(
             f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
         )
-        if manifest:
-            updated_state = await manifest.on_cancel(updated_state)
-            await persist_workflow_run_state(workflow_run_id, updated_state)
+        updated_state = await _run_on_cancel_hook(
+            manifest, workflow_run_id, updated_state
+        )
         # Status is already CANCELLED in DB; CANCELLED-guard in
         # update_workflow_run_status keeps it that way.
 
@@ -264,11 +265,11 @@ async def run_workflow(
             f"Workflow {workflow_type} for project {project_id} exceeded "
             f"max_duration={max_duration}s — marking FAILED"
         )
-        if manifest:
-            # on_cancel is the right place for abnormal-teardown cleanup
-            # (per-item statuses stuck in 'pending' would remain otherwise).
-            updated_state = await manifest.on_cancel(updated_state)
-            await persist_workflow_run_state(workflow_run_id, updated_state)
+        # on_cancel is the right place for abnormal-teardown cleanup
+        # (per-item statuses stuck in 'pending' would remain otherwise).
+        updated_state = await _run_on_cancel_hook(
+            manifest, workflow_run_id, updated_state
+        )
         await fail_workflow_run(
             workflow_run_id,
             project_id,
@@ -302,6 +303,32 @@ async def run_workflow(
     )
 
     return updated_state
+
+
+async def _run_on_cancel_hook(
+    manifest: WorkflowManifest | None,
+    workflow_run_id: str,
+    state: WorkflowState,
+) -> WorkflowState:
+    """Best-effort cleanup on cancel or timeout: run on_cancel and persist its state.
+
+    A failing hook or persist is logged and never propagated, so the caller
+    still records the run's real outcome (CANCELLED stays, a timeout becomes
+    FAILED with reason TIMEOUT). Returns the cleaned state, or ``state``
+    unchanged when there is no manifest or the hook itself fails.
+    """
+    if manifest is None:
+        return state
+    cleaned = state
+    try:
+        cleaned = await manifest.on_cancel(state)
+        await persist_workflow_run_state(workflow_run_id, cleaned)
+    except Exception as e:
+        logger.error(
+            f"on_cancel cleanup failed for workflow run {workflow_run_id}: {e}",
+            exc_info=True,
+        )
+    return cleaned
 
 
 def _merge_stream_chunk(

@@ -9,6 +9,7 @@ branch with a mocked graph so the behavior contract is locked in even though we
 don't spin up real LangGraph.
 """
 
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -27,6 +28,7 @@ from lib.workflows.runner import (
     run_workflow_from_config,
     run_workflow_with_dependency_check,
 )
+from lib.workflows.workflow_types import WorkflowState
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -435,3 +437,82 @@ async def test_run_workflow_from_config_skips_seeding_on_resume():
 
     get_latest.assert_not_awaited()
     assert create_state.await_args.kwargs["prior_self_state"] is None
+
+
+# ---------------------------------------------------------------------------
+# run_workflow — a failing on_cancel hook is best-effort cleanup
+# ---------------------------------------------------------------------------
+
+
+def _raising_astream(exc: BaseException):
+    async def astream(*_args, **_kwargs):
+        raise exc
+        yield  # pragma: no cover
+
+    return astream
+
+
+async def _run_with_failing_teardown(
+    exc: BaseException, *, failing: str
+) -> tuple[AsyncMock, MagicMock]:
+    """Run a workflow whose stream raises ``exc`` while its teardown fails.
+
+    ``failing`` names the step that raises: ``"hook"`` (on_cancel) or
+    ``"persist"`` (the persist of the hook's returned state).
+    """
+    workflow_run_id = str(uuid4())
+    project_id = str(uuid4())
+    fail = AsyncMock()
+    manifest = MagicMock()
+    manifest.max_duration_seconds = 60
+    if failing == "hook":
+        manifest.on_cancel = AsyncMock(side_effect=RuntimeError("hook broke"))
+        persist = AsyncMock()
+    else:
+        manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
+        persist = AsyncMock(side_effect=RuntimeError("db down"))
+
+    with (
+        patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
+        patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
+        patch("lib.workflows.runner.fail_workflow_run", new=fail),
+        patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
+    ):
+        await run_workflow(
+            workflow_run_id=workflow_run_id,
+            workflow_type=WorkflowRunType.DOCUMENT_PROCESSING,
+            graph=_build_graph(_build_app_with_astream(_raising_astream(exc))),
+            state=cast(WorkflowState, BaseWorkflowState()),
+            context=_make_context(project_id, workflow_run_id),
+            thread_id=str(uuid4()),
+        )
+    return fail, manifest
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failing", ["hook", "persist"])
+async def test_run_workflow_timeout_still_marks_timeout_when_teardown_fails(
+    failing: str,
+):
+    """A failing on_cancel (or its persist) must not turn TIMEOUT into UNHANDLED_EXCEPTION."""
+    fail, manifest = await _run_with_failing_teardown(TimeoutError(), failing=failing)
+
+    manifest.on_cancel.assert_awaited_once()
+    fail.assert_awaited_once()
+    assert fail.await_args is not None
+    assert fail.await_args.kwargs["failure_reason"] == WorkflowRunFailureReason.TIMEOUT
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failing", ["hook", "persist"])
+async def test_run_workflow_cancel_does_not_fail_run_when_teardown_fails(
+    failing: str,
+):
+    """A failing on_cancel on the cancel path is logged; the run is not marked FAILED."""
+    fail, manifest = await _run_with_failing_teardown(
+        WorkflowCancelledError("user cancelled"), failing=failing
+    )
+
+    manifest.on_cancel.assert_awaited_once()
+    fail.assert_not_awaited()
