@@ -39,8 +39,8 @@ Nothing in your final message is used as the report or issue list.\
 class LiteratureReviewV2Manifest(SimpleDeepAgentManifest):
     """Literature review implemented with the simple deep-agent pattern.
 
-    Same goal as v1 (surface relevant academic sources the document may have
-    missed, both supporting and conflicting): the agent reads the document from
+    Surfaces relevant academic sources the document may have missed, both
+    supporting and conflicting: the agent reads the document from
     `/main.md`, searches the web, writes its markdown report to `/report.md` and
     reports each recommended source as an issue. Its user prompt is the
     `literature-review` skill plus the document's extracted bibliography and
