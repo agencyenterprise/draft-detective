@@ -7,11 +7,10 @@ from mcp.types import ToolAnnotations
 
 from lib.api.mcp import helpers
 from lib.api.mcp.instance import mcp
-from lib.models.file import File as FileModel
 from lib.models.file import FileRole
 from lib.models.project import AccessLevel
 from lib.services.files.finalization import finalize_file
-from lib.services.files.service import get_files_by_project_id
+from lib.services.projects.revisions import list_project_revisions
 from lib.services.projects.service import create_new_revision, get_project_access
 
 
@@ -102,27 +101,15 @@ async def list_revisions(
         project_id, user=user, required_level=AccessLevel.READ
     )
 
-    main_files = await get_files_by_project_id(project.id, roles=[FileRole.MAIN])
-    main_by_revision: dict[int, FileModel] = {}
-    for f in main_files:
-        if f.revision is not None:
-            main_by_revision[f.revision] = f
-
-    revisions = []
-    for rev in range(1, project.current_revision + 1):
-        main_file = main_by_revision.get(rev)
-        revisions.append(
+    return json.dumps(
+        [
             {
-                "revision": rev,
-                "is_current": rev == project.current_revision,
-                "main_file_name": main_file.file_name if main_file else None,
-                "main_file_id": str(main_file.id) if main_file else None,
-                "created_at": (
-                    main_file.created_at.isoformat()
-                    if main_file and main_file.created_at
-                    else None
-                ),
+                "revision": item.revision,
+                "is_current": item.revision == project.current_revision,
+                "main_file_name": item.main_file_name,
+                "main_file_id": item.main_file_id,
+                "created_at": item.created_at.isoformat() if item.created_at else None,
             }
-        )
-
-    return json.dumps(revisions)
+            for item in await list_project_revisions(project)
+        ]
+    )

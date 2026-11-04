@@ -11,6 +11,7 @@ from lib.api.mcp.instance import mcp
 from lib.models.file import FileRole
 from lib.services.files.finalization import finalize_file
 from lib.services.projects import content as project_content
+from lib.services.projects.revisions import resolve_revision
 from lib.services.projects.service import create_project as create_project_record
 from lib.services.projects.service import get_project_access, get_user_projects
 
@@ -187,7 +188,7 @@ async def get_project_references(
     """
     user = await helpers.resolve_user(token)
     project, _ = await get_project_access(project_id, user=user)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     references = await project_content.get_project_references(
         str(project.id), resolved_revision
     )

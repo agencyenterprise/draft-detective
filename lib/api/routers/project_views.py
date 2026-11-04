@@ -27,6 +27,7 @@ from lib.services.projects.overview import (
     get_project_overview,
     get_workflow_run_summaries_by_type,
 )
+from lib.services.projects.revisions import resolve_revision
 from lib.services.projects.service import get_project_access
 
 router = APIRouter(tags=["projects"])
@@ -64,7 +65,7 @@ async def get_project_document_endpoint(
 ):
     """The main document's markdown, title and authors for a revision."""
     project, _ = await get_project_access(project_id, current_user, share_token)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     return await get_project_document(str(project.id), resolved_revision)
 
 
@@ -77,7 +78,7 @@ async def get_project_issues_endpoint(
 ):
     """The persisted issues of a project revision, archived ones excluded."""
     project, _ = await get_project_access(project_id, current_user, share_token)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     return list(
         await get_project_issues(uuid.UUID(str(project.id)), revision=resolved_revision)
     )
@@ -92,7 +93,7 @@ async def get_project_references_endpoint(
 ):
     """Extracted references, their file matches and web fetch outcomes."""
     project, _ = await get_project_access(project_id, current_user, share_token)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     return await get_project_references(str(project.id), resolved_revision)
 
 
@@ -118,7 +119,7 @@ async def get_project_workflow_runs_by_type_endpoint(
     """
 
     project, _ = await get_project_access(project_id, current_user, share_token)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     return await get_workflow_run_summaries_by_type(
         project_id, workflow_type, revision=resolved_revision
     )
