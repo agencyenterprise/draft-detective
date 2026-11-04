@@ -56,6 +56,13 @@ def test_a_link_keeps_its_destination():
     )
 
 
+def test_an_image_reads_as_its_alt_text_and_source():
+    text = "see ![Figure 1](files/fig.png) here"
+    assert (
+        "".join(s.text for s in segments(text)) == "see Figure 1 (files/fig.png) here"
+    )
+
+
 def test_code_is_quoted_literally():
     assert [(s.text, s.bold) for s in segments("Keep `**name**` literally")] == [
         ("Keep ", False),

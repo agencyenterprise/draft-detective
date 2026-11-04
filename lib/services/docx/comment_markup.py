@@ -42,7 +42,8 @@ def segments(text: str) -> list[Segment]:
 
     Bold and italic nest (`**a *term* here**`); code is taken literally, so
     asterisks inside it stay text. A link keeps its destination after its
-    label, since a comment cannot link: see `_link_target`.
+    label, since a comment cannot link (see `_link_target`), and an image
+    becomes its alt text and source.
     """
     if not text:
         return []
@@ -58,6 +59,11 @@ def segments(text: str) -> list[Segment]:
             label = "".join(segment.text for segment in out[start:])
             if target := _link_target(href, label):
                 out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
+        elif token.type == "image":
+            # An image reads like a link: its alt text, then its source.
+            src = str(token.attrs.get("src", ""))
+            image = token.content + (_link_target(src, token.content) or "")
+            out.append(Segment(text=image, bold=bold > 0, italic=italic > 0))
         elif token.type == "strong_open":
             bold += 1
         elif token.type == "strong_close":
