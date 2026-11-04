@@ -33,6 +33,15 @@ INSERTS_AT_FOOTNOTE = (
     "to anchor the insertion to"
 )
 
+AMBIGUOUS_LABEL = (
+    "a footnote reference's number also appears as text in the quote, so the "
+    "reference cannot be told apart from it"
+)
+SPACE_AROUND_FOOTNOTE = (
+    "it changes the spacing at a footnote reference that has spaces on both "
+    "sides, and the export cannot tell which side of the reference they sit on"
+)
+
 
 class FootnotePiece(BaseModel):
     """One redline of a footnote-carrying edit: a paragraph span and its text."""
@@ -165,6 +174,37 @@ def _differs(quoted: str, replacement: str) -> bool:
     )
 
 
+def _labels_unambiguous(texts: list[str], markers: list[str]) -> bool:
+    """Whether each marker's rendered label occurs only where a marker is.
+
+    A literal citation can read like a reference: ``See [1][[1]](#footnote-2)``
+    renders as ``See [1][1]``, and cutting at the first ``[1]`` would put the
+    boundary on the citation, so a redline would cross the real reference.
+    """
+    return all(
+        text.count(label) == markers.count(label)
+        for text in texts
+        for label in set(markers)
+    )
+
+
+def _grows_across_mark(quoted: list[str], replaced: list[str], index: int) -> bool:
+    """Whether stretch `index` would take whitespace that may lie past a mark.
+
+    Word keeps no character for a reference, so ``Alpha [1] beta`` is one run
+    of whitespace in the paragraph with the mark somewhere inside it. A stretch
+    deleting its own space next to the mark would grow over the whole run, and
+    the redline would cross the mark. Only when the stretch across the mark has
+    no whitespace on that side is the run all its own.
+    """
+    old, new = quoted[index], replaced[index]
+    leading = index > 0 and old[:1].isspace() and not new[:1].isspace()
+    trailing = index < len(quoted) - 1 and old[-1:].isspace() and not new[-1:].isspace()
+    return (leading and quoted[index - 1][-1:].isspace()) or (
+        trailing and quoted[index + 1][:1].isspace()
+    )
+
+
 def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlacement:
     """The redlines for a quote whose footnote references the paragraph lacks.
 
@@ -177,6 +217,8 @@ def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlac
     if raw != footnote_references(edit.replacement_text):
         return FootnotePlacement(detail=FOOTNOTES_CHANGED)
     markers = [render_line_text(marker) for marker in raw]
+    if not _labels_unambiguous([edit.display_text, edit.display_replacement], markers):
+        return FootnotePlacement(detail=AMBIGUOUS_LABEL)
     quoted = _quoted_pieces(edit, markers)
     replaced = _split_at(edit.display_replacement, markers)
     if quoted is None or replaced is None:
@@ -199,6 +241,8 @@ def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlac
     located = [(index, span) for index in changed if (span := spans[index])]
     if len(located) != len(changed):
         return FootnotePlacement(detail=INSERTS_AT_FOOTNOTE)
+    if any(_grows_across_mark(quoted, replaced, index) for index in changed):
+        return FootnotePlacement(detail=SPACE_AROUND_FOOTNOTE)
     pieces: list[FootnotePiece] = []
     floor = 0
     for index, span in located:

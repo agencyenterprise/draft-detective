@@ -19,8 +19,10 @@ from docx.oxml.ns import qn
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.tracked_changes import apply_tracked_changes
 from lib.services.docx.tracked_changes.footnotes import (
+    AMBIGUOUS_LABEL,
     FOOTNOTES_CHANGED,
     INSERTS_AT_FOOTNOTE,
+    SPACE_AROUND_FOOTNOTE,
     place_around_footnotes,
 )
 from lib.services.docx.tracked_changes.models import PlannedEdit
@@ -240,20 +242,50 @@ class TestPlacingAroundFootnotes:
         assert [paragraph[slice(*p.span)] for p in placed.pieces] == ["Output rose"]
         assert [p.replace_with for p in placed.pieces] == ["Output climbed"]
 
-    def test_neighbouring_redlines_never_share_the_space_between_them(self):
-        paragraph = "Alpha beta gamma."
+    def test_dropping_the_space_after_a_mark_is_part_of_the_redline(self):
+        paragraph = "Alpha beta."
         edit = _edit_row(
-            "Alpha [1] beta gamma.",
-            "One[1]two gamma.",
-            f"Alpha {_MARK} beta gamma.",
-            f"One{_MARK}two gamma.",
+            "Alpha[1] beta.",
+            "One[1]beta.",
+            f"Alpha{_MARK} beta.",
+            f"One{_MARK}beta.",
         )
 
         placed = place_around_footnotes(edit, paragraph)
 
-        spans = [p.span for p in placed.pieces]
-        assert len(spans) == 2
-        assert spans[0][1] <= spans[1][0]
+        assert [(paragraph[slice(*p.span)], p.replace_with) for p in placed.pieces] == [
+            ("Alpha", "One"),
+            (" beta.", "beta."),
+        ]
+
+    def test_a_space_change_at_a_mark_spaced_on_both_sides_is_reported(self):
+        # Word keeps one run of whitespace for "Alpha [1] beta", with the mark
+        # somewhere inside it: deleting the space after the mark could take the
+        # one before it too, and the redline would cross the mark.
+        edit = _edit_row(
+            "Alpha [1] beta gamma.",
+            "One [1]two gamma.",
+            f"Alpha {_MARK} beta gamma.",
+            f"One {_MARK}two gamma.",
+        )
+
+        placed = place_around_footnotes(edit, "Alpha  beta gamma.")
+
+        assert placed.pieces == []
+        assert placed.detail == SPACE_AROUND_FOOTNOTE
+
+    def test_a_citation_reading_like_the_reference_is_reported(self):
+        edit = _edit_row(
+            "See [1][1] evidence.",
+            "See [1][1] findings.",
+            f"See [1]{_MARK} evidence.",
+            f"See [1]{_MARK} findings.",
+        )
+
+        placed = place_around_footnotes(edit, "See [1] evidence.")
+
+        assert placed.pieces == []
+        assert placed.detail == AMBIGUOUS_LABEL
 
 
 class TestOverlapsOfAnEditPlacedInPieces:
