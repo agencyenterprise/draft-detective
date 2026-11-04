@@ -14,6 +14,7 @@ from lib.services.docx.service import DocxManipulatorType, generate_docx
 from lib.services.files.service import (
     get_project_files_list_items,
 )
+from lib.services.projects.revisions import resolve_revision
 from lib.services.projects.service import (
     delete_project_file_with_cleanup,
     get_project_access,
@@ -115,7 +116,7 @@ async def list_project_files(
         project_id, user=user, required_level=AccessLevel.READ
     )
 
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     files = await get_project_files_list_items(project.id)
     matches = await get_file_reference_matches(project_id, revision=resolved_revision)
     file_to_reference = {m.file_id: m.reference_id for m in matches}

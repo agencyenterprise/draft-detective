@@ -3,7 +3,6 @@ import logging
 import uuid
 from contextlib import asynccontextmanager
 from functools import lru_cache
-from typing import cast
 
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.files.service import (
@@ -13,8 +12,8 @@ from lib.services.files.service import (
 from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
+    get_project_workflow_run_with_state,
     persist_workflow_run_state,
-    read_workflow_run_state,
 )
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.reference_downloader.state import ReferenceDownloaderState
@@ -69,19 +68,11 @@ async def _get_file_matching_workflow_state(
         Tuple of (workflow_run, state) or (run, None) if the revision has no
         main file to construct a default state from
     """
-    run = await get_project_workflow_run_by_type(
-        project_id,
-        WorkflowRunType.REFERENCE_FILE_MATCHING,
-        revision=revision,
-        include_state=True,
+    run, state = await get_project_workflow_run_with_state(
+        project_id, ReferenceFileMatchingState, revision
     )
-
-    state = None
-    if run is not None:
-        state = await read_workflow_run_state(run)
-
     if state is not None:
-        return run, cast(ReferenceFileMatchingState, state)
+        return run, state
 
     # State doesn't exist - construct a default one from the file table
     logger.info(
@@ -127,40 +118,13 @@ async def _get_file_matching_workflow_state(
         logger.info(f"Created new file matching workflow run for project {project_id}")
     elif run.state_json is None:
         # Existing run whose row has no persisted state yet — seed the default.
-        # Guard on `state_json IS NULL` (loaded via include_state=True above),
-        # NOT on "read_workflow_run_state returned None": the latter is also true
+        # Guard on `state_json IS NULL` (the loader above loads it with the run),
+        # NOT on "the loader returned no state": the latter is also true
         # when state_json is present but fails to hydrate (schema drift), and we
         # must not clobber that existing payload with an empty default.
         await persist_workflow_run_state(str(run.id), default_state)
 
     return run, default_state
-
-
-async def _get_extraction_workflow_state(
-    project_id: str,
-    revision: int,
-) -> tuple[WorkflowRun | None, ReferenceExtractionState | None]:
-    """
-    Get the ReferenceExtraction workflow run and state for a project.
-    """
-    run = await get_project_workflow_run_by_type(
-        project_id,
-        WorkflowRunType.REFERENCE_EXTRACTION,
-        revision=revision,
-        include_state=True,
-    )
-
-    if run is None:
-        logger.info(f"No ReferenceExtraction workflow found for project {project_id}")
-        return None, None
-
-    state = await read_workflow_run_state(run)
-
-    if state is None:
-        logger.info(f"No extraction state found in workflow for project {project_id}")
-        return run, None
-
-    return run, cast(ReferenceExtractionState, state)
 
 
 async def get_file_reference_matches(
@@ -217,24 +181,6 @@ async def remove_file_from_references(
         return removed_reference_ids
 
 
-async def _get_downloader_workflow_state(
-    project_id: str,
-    revision: int,
-) -> tuple[WorkflowRun | None, ReferenceDownloaderState | None]:
-    """Get the ReferenceDownloader workflow run and state for a project."""
-    run = await get_project_workflow_run_by_type(
-        project_id,
-        WorkflowRunType.REFERENCE_DOWNLOADER,
-        revision=revision,
-        include_state=True,
-    )
-    if run is None:
-        return None, None
-
-    state = await read_workflow_run_state(run)
-    return run, cast(ReferenceDownloaderState | None, state)
-
-
 async def remove_fetch_result_for_file(
     project_id: str, file_id: str, revision: int
 ) -> int:
@@ -247,7 +193,9 @@ async def remove_fetch_result_for_file(
     Returns the number of fetch_references entries that were removed.
     """
     async with _project_lock(project_id):
-        run, state = await _get_downloader_workflow_state(project_id, revision)
+        run, state = await get_project_workflow_run_with_state(
+            project_id, ReferenceDownloaderState, revision
+        )
         if run is None or state is None or not state.fetched_references:
             return 0
 
@@ -299,7 +247,9 @@ async def add_file_to_reference(
             )
             return False
 
-        _, extraction_state = await _get_extraction_workflow_state(project_id, revision)
+        _, extraction_state = await get_project_workflow_run_with_state(
+            project_id, ReferenceExtractionState, revision
+        )
         if extraction_state is None:
             logger.warning(f"No extraction state found for project {project_id}")
             return False

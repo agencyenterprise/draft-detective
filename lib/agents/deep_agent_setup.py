@@ -1,11 +1,16 @@
 """Shared construction for our deep agents.
 
-The agents differ in their prompts, their tools and what they return, but they are
-built the same way -- same model construction, same rate limiter, same skills mounted
-into the same virtual filesystem -- and that construction lives here.
-
 Every deep agent we run is built with ``build_deep_agent``: ``create_deep_agent``
 with our additions, so they live in one place rather than at every call site.
+
+The agents that talk to a user (the chat, the Word add-in's chat and the Teams agent)
+also take their model from ``build_llm``, their run config from
+``conversation_run_config`` and their skills from ``lib.skills.skill_backend_files``.
+Workflow agents get theirs elsewhere: the model from ``LangChainAgent``
+(``lib/models/agent.py``), and the skills and document from the workflow itself --
+most mount them with ``FileArtifactsService.get_deepagent_backend_files``, the
+review assistant mounts its own files beside ``lib.skills.skill_backend_files``, and
+Reviewer 2 puts its skill in the system prompt and the document in the message.
 
 ``/main.md`` is the document path shared by
 ``FileArtifactsService.get_deepagent_backend_files`` and the workflow prompts.
@@ -15,12 +20,10 @@ requiring a particular document path.
 """
 
 import logging
-from collections.abc import Callable, Collection, Mapping, Sequence
-from pathlib import Path
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ParamSpec, TypeVar, cast
 
 from deepagents import create_deep_agent
-from deepagents.backends.utils import create_file_data
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT, SubAgent
 from langchain.agents.middleware import (
     AgentMiddleware,
@@ -29,18 +32,18 @@ from langchain.agents.middleware import (
 )
 from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.messages import BaseMessage
+from langchain_core.runnables import RunnableConfig
 
 from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
 from lib.config.env import config, get_model_api_key
+from lib.config.langfuse import langfuse_handler
+from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.models.agent import ReasoningDict
-from lib.skills import strip_interactive_markers, strip_interactive_only
+from lib.services.chat.history import thread_config
 
 logger = logging.getLogger(__name__)
-
-PROJECT_ROOT = Path(__file__).parents[2]
-SKILLS_DIR = PROJECT_ROOT / "skills"
 
 DEFAULT_MODEL = gpt_5_6_terra_model
 RECURSION_LIMIT = 60
@@ -52,30 +55,35 @@ REQUEST_TIMEOUT = 120
 REASONING: ReasoningDict = {"effort": "medium", "summary": "auto"}
 
 
-def build_skill_files(
-    *, interactive: bool = False, exclude: Collection[str] = ()
-) -> dict[str, Any]:
-    """Mount the project's skills into the agent's filesystem.
+def conversation_run_config(
+    thread_id: str,
+    *,
+    run_name: str,
+    tags: Sequence[str],
+    user_id: str | None = None,
+    metadata: Mapping[str, str] | None = None,
+) -> RunnableConfig:
+    """The run config for one turn of a conversation agent (chat, Word, Teams).
 
-    Separate from the document because skills can only be mounted before the run:
-    the skills middleware reads them once and skips thereafter, so an agent that
-    opens its document mid-run still needs these up front.
-
-    Interactive-only sections (e.g. asking the user for web-search consent)
-    address an agent driven by a user. A backend run has its consent already and
-    nobody to ask, so by default they are removed; an agent that talks to a user
-    passes ``interactive=True`` to keep them, minus the marker comments.
-    ``exclude`` names skill directories to leave out of the mount entirely.
+    One id keys both the checkpoint and the Langfuse session, so a conversation is
+    found in the trace view under what it is stored as. ``metadata`` adds the
+    caller's own trace fields; Langfuse drops propagated values that are not strings.
     """
 
-    clean = strip_interactive_markers if interactive else strip_interactive_only
-    files: dict[str, Any] = {}
-    for path in sorted(SKILLS_DIR.rglob("*")):
-        if not path.is_file() or path.relative_to(SKILLS_DIR).parts[0] in exclude:
-            continue
-        virtual_path = "/" + path.relative_to(PROJECT_ROOT).as_posix()
-        files[virtual_path] = create_file_data(clean(path.read_text(encoding="utf-8")))
-    return files
+    trace: dict[str, Any] = {
+        **(metadata or {}),
+        "langfuse_tags": list(tags),
+        "langfuse_session_id": thread_id,
+    }
+    if user_id:
+        trace["langfuse_user_id"] = user_id
+    return {
+        **thread_config(thread_id),
+        "run_name": run_name,
+        "recursion_limit": RECURSION_LIMIT,
+        "callbacks": [langfuse_handler, ErrorLoggingCallback()],
+        "metadata": trace,
+    }
 
 
 def agent_input(
@@ -172,13 +180,18 @@ def build_llm(
     reasoning: ReasoningDict = REASONING,
     output_version: str | None = None,
 ) -> BaseChatModel:
-    """Same construction LangChainAgent uses, including the shared rate limiter.
+    """The construction LangChainAgent uses for an OpenAI model, including the shared
+    rate limiter.
+
+    OpenAI only: ``reasoning`` is passed in OpenAI's terms, where LangChainAgent
+    translates it for Claude.
 
     ``output_version`` selects how langchain-openai lays out the message content.
-    The chat agent asks for ``"v1"``: under the default layout, streamed reasoning
-    summaries and hosted web-search calls do not reach ``stream_mode="messages"``
-    consumers, while ``v1`` surfaces them as ``reasoning`` and ``server_tool_call``
-    content blocks. Batch agents keep the default and never read them.
+    The web and Word chat agents ask for ``"v1"``: under the default layout, streamed
+    reasoning summaries and hosted web-search calls do not reach
+    ``stream_mode="messages"`` consumers, while ``v1`` surfaces them as ``reasoning``
+    and ``server_tool_call`` content blocks. The Teams agent keeps the default and
+    never reads them.
     """
 
     resolved = api_key

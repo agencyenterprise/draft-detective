@@ -28,26 +28,13 @@ function humanizeLabel(value: string): string {
 
 export interface ValidationResultsBoxV2Props {
   validation: ReferenceValidationV2Item;
-  /** Whether to show the reference text in the header. */
-  showReference?: boolean;
-  /** Label for the reference text when showReference is true. */
-  referenceLabel?: string;
-  /** Size variant controlling padding. */
-  size?: 'sm' | 'default';
+  /** Label for the reference text shown in the header. */
+  referenceLabel: string;
 }
 
-const sizeClasses = {
-  sm: 'py-1 px-2',
-  default: 'py-3 px-4',
-} as const;
+const paddingClass = 'py-3 px-4';
 
-export function ValidationResultsBoxV2({
-  validation,
-  showReference = false,
-  referenceLabel = 'Reference',
-  size = 'sm',
-}: ValidationResultsBoxV2Props) {
-  const paddingClass = sizeClasses[size];
+export function ValidationResultsBoxV2({ validation, referenceLabel }: ValidationResultsBoxV2Props) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = React.useState(false);
 
@@ -83,7 +70,7 @@ export function ValidationResultsBoxV2({
             Validating...
           </span>
         </div>
-        {showReference && validation.input_reference && (
+        {validation.input_reference && (
           <div className="pt-2 mt-2 border-t border-current/10">
             <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
             <div className="text-sm mt-1 break-words">
@@ -114,7 +101,7 @@ export function ValidationResultsBoxV2({
             {isExpanded ? 'Hide details' : 'Show details'}
           </Button>
         </div>
-        {showReference && validation.input_reference && (
+        {validation.input_reference && (
           <div className="pt-2 mt-2 border-t border-current/10">
             <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
             <div className="text-sm mt-1 break-words">
@@ -195,7 +182,7 @@ export function ValidationResultsBoxV2({
         </div>
       </div>
 
-      {showReference && validation.input_reference && (
+      {validation.input_reference && (
         <div className="pt-2 mt-2 border-t border-current/10">
           <span className="text-xs font-medium text-muted-foreground">{referenceLabel}:</span>
           <div className="text-sm mt-1 break-words">
@@ -289,7 +276,7 @@ export function ValidationResultsBoxV2({
           messages={validation.messages!}
           open={isMessagesOpen}
           onOpenChange={setIsMessagesOpen}
-          title={showReference && referenceLabel ? `Messages — ${referenceLabel}` : undefined}
+          title={`Messages — ${referenceLabel}`}
         />
       )}
     </div>

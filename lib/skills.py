@@ -88,19 +88,33 @@ def strip_interactive_markers(content: str) -> str:
     return _INTERACTIVE_MARKER_RE.sub("", content)
 
 
-def skill_backend_files() -> dict[str, Any]:
-    """Every skill under ``skills/``, keyed by its path on the agent filesystem."""
+def skill_backend_files(
+    *, interactive: bool = False, exclude: Collection[str] = ()
+) -> dict[str, Any]:
+    """Every skill under ``skills/``, keyed by its path on the agent filesystem.
+
+    Mounted separately from the document because skills can only be mounted before
+    the run: the skills middleware reads them once and skips thereafter, so an agent
+    that opens its document mid-run still needs these up front.
+
+    Interactive-only sections (e.g. asking the user for web-search consent)
+    address an agent driven by a user. A backend run has its consent already and
+    nobody to ask, so by default they are removed; an agent that talks to a user
+    passes ``interactive=True`` to keep them, minus the marker comments.
+    ``exclude`` names skill directories to leave out of the mount entirely.
+    """
+    clean = strip_interactive_markers if interactive else strip_interactive_only
     project_root = _SKILLS_DIR.parent
     files: dict[str, Any] = {}
     for skill_file in sorted(_SKILLS_DIR.rglob("*")):
-        if skill_file.is_file():
-            virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
-            # Interactive-only sections (e.g. asking the user for web-search
-            # consent) are for agents driven by a user; a backend run has its
-            # consent already and nobody to ask.
-            files[virtual_path] = create_file_data(
-                strip_interactive_only(skill_file.read_text())
-            )
+        if not skill_file.is_file():
+            continue
+        if skill_file.relative_to(_SKILLS_DIR).parts[0] in exclude:
+            continue
+        virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
+        files[virtual_path] = create_file_data(
+            clean(skill_file.read_text(encoding="utf-8"))
+        )
     return files
 
 

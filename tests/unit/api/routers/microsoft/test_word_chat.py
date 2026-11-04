@@ -98,7 +98,7 @@ class TestHistory:
         ):
             history = await word_chat.get_thread(url=URL, caller=caller())
 
-        load.assert_awaited_once_with(str(thread.id))
+        load.assert_awaited_once_with(str(thread.id), reader=word_chat.word_chat_reader)
         assert history.thread_id == thread.id
 
 

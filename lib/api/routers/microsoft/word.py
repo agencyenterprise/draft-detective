@@ -1,13 +1,15 @@
 """Every route the Word add-in calls, under ``/word``.
 
 The add-in's chat with Draft Detective lives in ``word_chat.py`` and is mounted here,
-under ``/word/chat``. The routes in this file are the add-in's side of changes asked for
-in Teams, under ``/handoffs``.
+under ``/word/chat``. The routes in this file are ``/features``, and the add-in's side
+of stored changes under ``/handoffs``.
 
 The Teams bot cannot write a document, so it stores the comments and edits it was asked
 for (``lib/services/microsoft/word/handoffs``). The add-in collects them, writes them
 with Word's own API, and reports what landed, which the bot posts back into the Teams
-thread. A handoff is released only to the Microsoft account that asked for it.
+thread. The chat's suggestion cards are handoffs too: they are claimed, reported and
+dismissed through the same routes, but never listed by ``GET /handoffs`` and never
+posted to Teams. A handoff is released only to the Microsoft account that asked for it.
 
 Every route here is called by the add-in, signed in as a Microsoft account (see
 ``lib/api/addin_auth.py``), not with an ordinary Draft Detective session.
@@ -105,7 +107,7 @@ async def report_applied(
     report: HandoffReport,
     caller: AddinIdentity = Depends(get_addin_identity),
 ) -> None:
-    """Close a handoff the add-in has written, and say how it went in Teams."""
+    """Close a handoff the add-in has written and, for a Teams handoff, say how it went there."""
 
     try:
         reported = await handoffs.report_applied(

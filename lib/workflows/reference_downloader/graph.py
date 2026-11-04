@@ -16,6 +16,7 @@ def build_reference_downloader_graph():
     The workflow uses a fan-out pattern:
     1. initialize_references: Creates all entries with PENDING status
     2. distribute_references: Fans out to parallel fetch operations via Send
+       (the router of a conditional edge, not a node)
     3. fetch_single_reference: Processes one reference (runs in parallel)
     4. cleanup_failed_resources: Cleans up after all fetches complete
 
@@ -25,7 +26,6 @@ def build_reference_downloader_graph():
 
     # Add nodes
     graph.add_node("initialize_references", initialize_references)
-    graph.add_node("distribute_references", distribute_references)
     graph.add_node("fetch_single_reference", fetch_single_reference)
     graph.add_node("cleanup_failed_resources", cleanup_failed_resources)
 

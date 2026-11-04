@@ -183,9 +183,6 @@ export function ProjectShell({
                   selectedRevision={selectedRevision}
                   onRevisionChange={onRevisionChange}
                   onRevisionCreated={onRevisionCreated}
-                  downloadLabel="Export"
-                  downloadVariant="outline"
-                  compact
                 />
               </div>
             </header>

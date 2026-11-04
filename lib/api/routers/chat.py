@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from lib.agents.chat_agent import (
     CHAT_MODELS,
     DEFAULT_CHAT_MODEL,
+    chat_reader,
     chat_skill_catalogue,
     resolve_chat_model,
     run_chat_turn,
@@ -178,7 +179,9 @@ async def list_messages(
     """The thread's messages from the checkpointer, in the shape the page renders."""
 
     await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
-    return to_ui_messages(await load_thread_messages(str(thread_id)))
+    return to_ui_messages(
+        await load_thread_messages(str(thread_id), reader=chat_reader)
+    )
 
 
 @router.get("/threads/{thread_id}/files", response_model=ThreadFileResponse)
@@ -200,7 +203,7 @@ async def read_thread_file_content(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
         )
     await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
-    content = await read_thread_file(str(thread_id), path)
+    content = await read_thread_file(str(thread_id), path, reader=chat_reader)
     if content is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found"

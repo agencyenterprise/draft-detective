@@ -42,9 +42,9 @@ issue list.\
 class LiveReportsV2Manifest(SimpleDeepAgentManifest):
     """Live Reports implemented with the simple deep-agent pattern.
 
-    Same goal as v1 (find sources published after the document's publication
-    date that update or challenge its claims, and produce an addendum): the
-    agent reads the document from `/main.md`, searches the web, writes the
+    Finds sources published after the document's publication date that update
+    or challenge its claims, and produces an addendum: the agent reads the
+    document from `/main.md`, searches the web, writes the
     addendum to `/report.md` and reports each update as an issue. Its user
     prompt is the `live-reports` skill plus the document's extracted
     bibliography and publication date.

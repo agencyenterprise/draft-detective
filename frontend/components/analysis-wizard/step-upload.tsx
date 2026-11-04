@@ -72,9 +72,7 @@ export function StepUpload({ onComplete }: StepUploadProps) {
         <UploadSection
           title="Your document"
           description="Drop your file here — we support Word (.docx) and PDF formats. Word is recommended for best results."
-          required
           onFilesChange={handleDocumentChange}
-          multiple={false}
           files={mainDocument ? [mainDocument] : []}
           fileType={FileRole.Main}
           onRemoveFile={() => handleDocumentChange([])}

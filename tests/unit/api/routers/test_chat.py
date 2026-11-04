@@ -246,7 +246,7 @@ class TestHistory:
                 "tool_calls": [],
             },
         ]
-        load.assert_awaited_once_with(str(THREAD_ID))
+        load.assert_awaited_once_with(str(THREAD_ID), reader=chat.chat_reader)
 
     def test_only_attachments_are_served(self) -> None:
         """The same filesystem holds the mounted skills; those are not the page's to read."""

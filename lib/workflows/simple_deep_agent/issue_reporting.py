@@ -342,8 +342,10 @@ class IssueReporter:
                     leave those to `suggested_action` alone. Keep each
                     `original_text` short (a phrase or one sentence) and within
                     one line of the document -- it must not cross a line break.
-                    Set `suggested_action` as well; an edit is its structured
-                    form, not its replacement.
+                    Edits carry their part of the fix, so `suggested_action`
+                    covers only what they do not (a passage with no edit, a
+                    question for the author, a caveat to check); omit it when
+                    the edits carry the whole fix.
 
             Returns:
                 A confirmation containing the recorded issue identifier, or a

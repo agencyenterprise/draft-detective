@@ -66,7 +66,7 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     # LIVE_REPORTS_V2) are deliberately absent. Draft Detective is positioned as a
     # suite of checks that review a draft the author already has; these instead go
     # looking for new literature, which is a different product, so they are kept
-    # out of the assessment picker. As with the peer-review workflows they stay
+    # out of the assessment picker. Like the workflows above, they stay
     # registered: existing runs still list and render, and the API, MCP, and eval
     # suites can still start them by type.
 ]

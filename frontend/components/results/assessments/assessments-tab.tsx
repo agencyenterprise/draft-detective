@@ -141,7 +141,6 @@ export function AssessmentsTab({
                 onSelectRun={handleSelectRun}
                 historyData={historyData}
                 historyError={historyError}
-                size="xs"
                 tooltip="Every time this assessment has run. Pick one to read its results."
               />
             )}
@@ -151,7 +150,6 @@ export function AssessmentsTab({
                 type={selectedWorkflowRun.run.type}
                 projectId={projectId}
                 workflow={selectedWorkflowRun.run}
-                size="xs"
                 startLabel={
                   selectedWorkflowRun.run.started_at ? (
                     <>

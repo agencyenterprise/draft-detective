@@ -10,12 +10,17 @@ from lib.config.env import config as env_config
 from lib.config.llm_models import LLMModel
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.models.workflow_run import (
+    WorkflowRun,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
 from lib.services.files.service import assert_project_has_main_file
 from lib.services.projects.service import get_project_access
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.workflow_runs.gates import (
     approve_gate,
+    claim_run_awaiting_approval,
     get_approved_gates,
     get_effective_gates,
     get_unsatisfied_gates,
@@ -420,11 +425,57 @@ async def _prepare_workflow_items(
     )
 
 
+async def _get_awaiting_run(
+    config: WorkflowConfig, revision: int
+) -> WorkflowRun | None:
+    """The run of this type already waiting on a gate for the revision, if any.
+
+    Independent-run workflows deliberately run side by side, so they never
+    reuse one.
+    """
+    if get_workflow_manifest(config.type).independent_runs:
+        return None
+    existing_run = await get_project_workflow_run_by_type(
+        config.project_id, config.type, revision=revision
+    )
+    if (
+        existing_run is None
+        or existing_run.status != WorkflowRunStatus.AWAITING_APPROVAL
+    ):
+        return None
+    return existing_run
+
+
+async def _create_pending_run(config: WorkflowConfig, revision: int) -> tuple[str, str]:
+    """Create a PENDING run for the config and return (thread_id, run_id).
+
+    Each run gets a fresh thread id; accumulating workflows carry prior state
+    forward via prior_self_state (read at execution time in the runner) instead
+    of thread reuse.
+    """
+    thread_id = str(uuid.uuid4())
+    workflow_run_id = await create_workflow_run(
+        project_id=config.project_id,
+        status=WorkflowRunStatus.PENDING,
+        type=config.type,
+        thread_id=thread_id,
+        revision=revision,
+        model=config.model,
+    )
+    return thread_id, workflow_run_id
+
+
 async def start_workflow_run(
     config: WorkflowConfig, user: User, background_tasks: BackgroundTasks
 ):
     """
     Start a workflow run, by creating a workflow run object, setting it to PENDING and adding a background task to run the workflow with dependency check.
+
+    A run of the same type already awaiting approval on this revision is reused
+    rather than duplicated: it is returned as is while its gate is unapproved,
+    and released and scheduled once the gate is approved. A PENDING or RUNNING
+    run doesn't stop a new one, which queues behind it on the same-type lock.
+    Independent-run workflows always get a new run.
 
     Args:
         config: The workflow config to run
@@ -445,35 +496,49 @@ async def start_workflow_run(
     # clients don't supply a revision when starting workflows.
     revision = project.current_revision
 
-    # Each run gets a fresh thread id; accumulating workflows carry prior state
-    # forward via prior_self_state (read at execution time in the runner) instead
-    # of thread reuse.
-    thread_id = str(uuid.uuid4())
-
     unsatisfied_gates = await get_unsatisfied_gates(
         config.project_id, revision, config.type
     )
-
-    # Create new workflow run record
-    workflow_run_id = await create_workflow_run(
-        project_id=config.project_id,
-        status=(
-            WorkflowRunStatus.AWAITING_APPROVAL
-            if unsatisfied_gates
-            else WorkflowRunStatus.PENDING
-        ),
-        type=config.type,
-        thread_id=thread_id,
-        revision=revision,
-        model=config.model,
-    )
+    awaiting_run = await _get_awaiting_run(config, revision)
 
     if unsatisfied_gates:
         logger.info(
             f"{config.type.value} awaiting approval - waiting on "
             f"{[g.value for g in unsatisfied_gates]}"
         )
-        return workflow_run_id
+        if awaiting_run is not None:
+            # Already waiting on the same gate; don't create a second copy.
+            return str(awaiting_run.id)
+        return await create_workflow_run(
+            project_id=config.project_id,
+            status=WorkflowRunStatus.AWAITING_APPROVAL,
+            type=config.type,
+            thread_id=str(uuid.uuid4()),
+            revision=revision,
+            model=config.model,
+        )
+
+    if awaiting_run is not None and not await claim_run_awaiting_approval(
+        str(awaiting_run.id)
+    ):
+        # Someone else moved the row first. Never schedule the same run twice.
+        status = await get_workflow_run_status(str(awaiting_run.id))
+        if status is not None and status != WorkflowRunStatus.CANCELLED:
+            # A concurrent approve_project_gate released and scheduled it; it
+            # may even have finished already. Either way, this start is served.
+            return str(awaiting_run.id)
+        # It was cancelled or deleted meanwhile: start a fresh run instead.
+        awaiting_run = None
+
+    if awaiting_run is not None:
+        # Its gate was approved while it waited: release this row rather than
+        # create a second run of the same type. It keeps the model its row
+        # records, as it does when approve_project_gate releases it.
+        config = config.model_copy(update={"model": awaiting_run.model})
+        thread_id = awaiting_run.langgraph_thread_id
+        workflow_run_id = str(awaiting_run.id)
+    else:
+        thread_id, workflow_run_id = await _create_pending_run(config, revision)
 
     background_tasks.add_task(
         run_workflow_with_dependency_check,

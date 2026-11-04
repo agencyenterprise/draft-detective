@@ -23,6 +23,7 @@ from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from lib.agents import word_chat_agent
+from lib.agents.deep_agent_setup import RECURSION_LIMIT
 from lib.agents.tools import word_suggestions
 from lib.agents.tools.word_suggestions import SuggestionTarget
 from lib.agents.word_chat_agent import (
@@ -30,6 +31,7 @@ from lib.agents.word_chat_agent import (
     DOCUMENT_PATH,
     MAX_SELECTION_CHARS,
     WordChatTurn,
+    run_config,
     run_word_chat_turn,
     turn_input,
     turn_message,
@@ -120,6 +122,18 @@ class TestMounting:
         assert DOCUMENT_PATH not in files
 
 
+def test_the_run_is_keyed_and_traced_per_thread() -> None:
+    config = run_config(THREAD, "oid-ana")
+    assert config["configurable"] == {"thread_id": str(THREAD)}
+    assert config["run_name"] == "word_chat_agent"
+    assert config["recursion_limit"] == RECURSION_LIMIT
+    assert config["metadata"] == {
+        "langfuse_tags": ["word-chat"],
+        "langfuse_session_id": str(THREAD),
+        "langfuse_user_id": "oid-ana",
+    }
+
+
 @pytest.fixture
 def saver() -> Iterator[InMemorySaver]:
     memory = InMemorySaver()
@@ -128,7 +142,10 @@ def saver() -> Iterator[InMemorySaver]:
     async def get_checkpointer() -> Any:
         yield memory
 
-    with patch.object(word_chat_agent, "get_checkpointer", get_checkpointer):
+    with (
+        patch.object(word_chat_agent, "get_checkpointer", get_checkpointer),
+        patch.object(thread_state, "get_checkpointer", get_checkpointer),
+    ):
         yield memory
 
 
@@ -200,22 +217,20 @@ class TestATurn:
 
 
 @pytest.mark.asyncio
-async def test_the_pane_reads_the_conversation_back_like_chat_does(
+async def test_the_pane_reads_the_conversation_back_through_this_graph(
     saver: InMemorySaver,
 ) -> None:
-    """The route reads history through ``thread_state``, which replays it with the
-    /chat agent's graph: the two must agree on the state a thread holds."""
+    """The route reads history through ``thread_state`` with ``word_chat_reader``:
+    the graph that wrote the thread is the one that replays it."""
 
     with scripted(AIMessage(content="one")):
         await run(turn("first", document=DOCUMENT))
 
-    @asynccontextmanager
-    async def get_checkpointer() -> Any:
-        yield saver
-
-    with patch.object(thread_state, "get_checkpointer", get_checkpointer):
-        messages = await thread_state.load_thread_messages(str(THREAD))
-        document = await thread_state.read_thread_file(str(THREAD), DOCUMENT_PATH)
+    reader = word_chat_agent.word_chat_reader
+    messages = await thread_state.load_thread_messages(str(THREAD), reader=reader)
+    document = await thread_state.read_thread_file(
+        str(THREAD), DOCUMENT_PATH, reader=reader
+    )
 
     assert [m.type for m in messages] == ["human", "ai"]
     assert document == DOCUMENT.markdown

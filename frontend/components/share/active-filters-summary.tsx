@@ -103,8 +103,7 @@ function FilterBadges({ filters }: { filters: ActiveFilters }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className="text-sm text-muted-foreground">Matching the current filters:</span>
-      {partialSeverity &&
-        filters.severity.map((severity) => <SeverityBadge key={severity} severity={severity} hideIcon />)}
+      {partialSeverity && filters.severity.map((severity) => <SeverityBadge key={severity} severity={severity} />)}
       {filters.workflowType.map((type) => (
         <Badge key={type} variant="secondary" className="font-normal">
           {getWorkflowTypeName(type)}

@@ -1,37 +1,49 @@
 """What a Word comment says about the proposed edits of its issue.
 
-Every edit the export considered is written into the issue's comment, whether
-or not it became a redline: an author reading the comment has to be able to see
-the fix that was proposed, why, and -- when it is not in the margin as a
-tracked change -- why not. A rejected edit is left out entirely; it was already
-turned down.
+Every edit the export considered is noted in the issue's comment, whether or not
+it became a redline. An applied edit is in the text as a tracked change, so its
+note only points at the words that changed. One that is not in the text keeps
+the whole fix, since the comment is then the only place it is, and says why it
+is missing. A rejected edit is left out entirely; it was already turned down.
 """
 
 import uuid
 from collections.abc import Mapping, Sequence
+from typing import Literal
+
+from pydantic import BaseModel
 
 from lib.models.issue_edit import IssueEdit
+from lib.services.docx.edit_pointer import edit_fix, edit_pointer
 from lib.services.docx.tracked_changes import EditOutcome
 
-_APPLIED = "Applied below as a tracked change."
-_SKIPPED = (
-    "Not applied as a tracked change: tracked changes were not requested "
-    "for this export."
-)
-_UNMATCHED = (
-    "Not applied as a tracked change: the quoted text could not be matched "
-    "in this paragraph."
-)
+EditNoteStatus = Literal["applied", "skipped", "not_applied"]
+
+_SKIPPED = "tracked changes were not requested for this export"
+_UNMATCHED = "the quoted text could not be matched in this paragraph"
 
 
-def _unsupported_line(detail: str | None) -> str:
+class EditNote(BaseModel):
+    """What a comment says about one proposed edit."""
+
+    # "skipped": the export was asked for comments only, so no edit is applied.
+    status: EditNoteStatus
+    # The changed words, to match the comment to its redline.
+    pointer: str
+    # The whole edit, for a comment that is the only place it appears.
+    fix: str
+    rationale: str
+    # Why the edit is not in the text as a tracked change; None when it is.
+    reason: str | None = None
+
+
+def _unsupported_reason(detail: str | None) -> str:
     """Why a replacement has no redline of its own to offer."""
-    reason = "the replacement cannot be represented in Word"
     aside = f" ({detail})" if detail else ""
-    return f"Not applied as a tracked change: {reason}{aside}."
+    return f"the replacement cannot be represented in Word{aside}"
 
 
-def _conflict_line(outcome: EditOutcome, winner_name: str | None) -> str:
+def _conflict_reason(outcome: EditOutcome, winner_name: str | None) -> str:
     """Where the edit it lost to sits: its own line, or the Word paragraph.
 
     A conflict the pre-flight decided names the winning edit, so it is the
@@ -40,68 +52,66 @@ def _conflict_line(outcome: EditOutcome, winner_name: str | None) -> str:
     """
     if winner_name:
         where = "in this paragraph" if outcome.winner_id else "on this line"
-        return (
-            "Not applied as a tracked change: overlaps another proposed edit "
-            f"{where} ({winner_name})."
-        )
-    return (
-        "Not applied as a tracked change: overlaps another proposed edit "
-        "in the same paragraph."
-    )
+        return f"overlaps another proposed edit {where} ({winner_name})"
+    return "overlaps another proposed edit in the same paragraph"
 
 
-def _failed_line(detail: str | None) -> str:
-    """Why an edit that could be placed still has no redline.
+def _reason(outcome: EditOutcome, winner_name: str | None) -> str | None:
+    """Why the edit is not a redline, or None when it is one.
 
-    Distinct from the unmatched sentence on purpose: the quote was found, and
-    what went wrong was the writing of the change.
+    A failed write is told apart from an unmatched quote on purpose: the quote
+    was found, and what went wrong was the writing of the change.
     """
-    reason = detail or "writing the change to Word failed"
-    return f"Not applied as a tracked change: {reason}."
-
-
-def _status_line(outcome: EditOutcome, winner_name: str | None) -> str:
     if outcome.status == "applied":
-        return _APPLIED
+        return None
     if outcome.status == "conflict":
-        return _conflict_line(outcome, winner_name)
+        return _conflict_reason(outcome, winner_name)
     if outcome.status == "unsupported":
-        return _unsupported_line(outcome.detail)
+        return _unsupported_reason(outcome.detail)
     if outcome.status == "failed":
-        return _failed_line(outcome.detail)
+        return outcome.detail or "writing the change to Word failed"
     if outcome.status == "skipped":
         return _SKIPPED
     return _UNMATCHED
 
 
-def _headline(edit: IssueEdit) -> str:
-    if not edit.replacement_text:
-        return f'Proposed deletion: "{edit.original_text}"'
-    return f'Proposed edit: "{edit.original_text}" → "{edit.replacement_text}"'
+def _status(outcome: EditOutcome) -> EditNoteStatus:
+    if outcome.status == "applied":
+        return "applied"
+    if outcome.status == "skipped":
+        return "skipped"
+    return "not_applied"
 
 
 def build_edit_notes(
     edits: Sequence[IssueEdit],
     outcomes: Mapping[uuid.UUID, EditOutcome],
     conflict_winner_names: Mapping[uuid.UUID, str],
-) -> list[str]:
-    """One comment block per edit of an issue, in the order proposed.
+) -> list[EditNote]:
+    """One note per edit of an issue, in the order proposed.
 
     `outcomes` is keyed by edit id; an edit with no outcome -- a rejected one,
     or one the export never considered -- contributes nothing.
     `conflict_winner_names` maps a losing edit's id to the display name of the
     workflow whose edit won, so the note can name what it lost to.
     """
-    notes: list[str] = []
+    notes: list[EditNote] = []
     for edit in edits:
         outcome = outcomes.get(edit.id)
         if outcome is None:
             continue
-        lines = [
-            _headline(edit),
-            edit.rationale,
-            _status_line(outcome, conflict_winner_names.get(edit.id)),
-        ]
-        # A rationale may be empty when the issue's description already says why.
-        notes.append("\n".join(line for line in lines if line))
+        notes.append(
+            EditNote(
+                status=_status(outcome),
+                pointer=edit_pointer(edit.original_text, edit.replacement_text),
+                fix=edit_fix(
+                    edit.original_text,
+                    edit.replacement_text,
+                    edit.display_text,
+                    edit.display_replacement,
+                ),
+                rationale=edit.rationale,
+                reason=_reason(outcome, conflict_winner_names.get(edit.id)),
+            )
+        )
     return notes

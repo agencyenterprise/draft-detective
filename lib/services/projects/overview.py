@@ -24,6 +24,7 @@ from lib.models.issue import Issue, IssueStatus
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
 from lib.services.files.service import get_project_files_list_items
+from lib.services.projects.revisions import resolve_revision
 from lib.services.projects.share_links import ShareStatusResponse, get_share_status
 from lib.services.workflow_runs.service import latest_run_per_type_stmt
 from lib.workflows.models import WorkflowError, WorkflowRunType
@@ -175,7 +176,7 @@ async def get_project_overview(
     revision: int | None = None,
 ) -> ProjectOverview:
     """The overview of one revision; defaults to the project's current one."""
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     # Runs first, issues after. A finishing run commits its issues before it
     # marks itself completed, so reading in this order means a completed run
     # always comes with an issues_version that includes its findings. Read in

@@ -141,15 +141,6 @@ class CreateRevisionResponse(BaseModel):
     previous_workflow_types: list[WorkflowRunType]
 
 
-class RevisionListItem(BaseModel):
-    """Summary of a single project revision."""
-
-    revision: int
-    main_file_name: str | None = None
-    main_file_id: str | None = None
-    created_at: datetime | None = None
-
-
 class CreateProjectRequest(BaseModel):
     """Request body for creating a project."""
 

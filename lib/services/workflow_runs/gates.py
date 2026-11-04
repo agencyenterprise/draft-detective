@@ -136,6 +136,37 @@ async def get_runs_awaiting_approval(
         return list((await session.execute(stmt)).scalars().all())
 
 
+async def claim_run_awaiting_approval(run_id: str) -> bool:
+    """Move one run from AWAITING_APPROVAL to PENDING, if it is still waiting.
+
+    Returns whether this call moved it. False means a concurrent approval
+    already released it (and scheduled it), or it was cancelled meanwhile; the
+    caller must not schedule it then.
+    """
+    return bool(await _move_awaiting_runs_to_pending([uuid.UUID(run_id)]))
+
+
+async def _move_awaiting_runs_to_pending(run_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+    """Conditionally move runs to PENDING and return the ids this call moved."""
+    async with get_async_db_session() as session:
+        stmt = (
+            update(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.id).in_(run_ids),
+                    # Only release runs that are still waiting: a concurrent
+                    # cancel or release must win.
+                    col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
+                )
+            )
+            .values(status=WorkflowRunStatus.PENDING)
+            .returning(col(WorkflowRun.id))
+        )
+        moved_ids = list((await session.execute(stmt)).scalars().all())
+        await session.commit()
+    return moved_ids
+
+
 async def release_runs_awaiting_approval(
     project_id: str, revision: int
 ) -> list[WorkflowRun]:
@@ -153,22 +184,7 @@ async def release_runs_awaiting_approval(
     if not candidates:
         return []
 
-    async with get_async_db_session() as session:
-        stmt = (
-            update(WorkflowRun)
-            .where(
-                and_(
-                    col(WorkflowRun.id).in_(list(candidates)),
-                    # Only release runs that are still waiting; a concurrent
-                    # cancel must win.
-                    col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
-                )
-            )
-            .values(status=WorkflowRunStatus.PENDING)
-            .returning(col(WorkflowRun.id))
-        )
-        released_ids = list((await session.execute(stmt)).scalars().all())
-        await session.commit()
+    released_ids = await _move_awaiting_runs_to_pending(list(candidates))
 
     released: list[WorkflowRun] = []
     for run_id in released_ids:

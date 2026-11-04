@@ -19,14 +19,14 @@ def build_claim_reference_validation_v2_graph():
 
     Fan-out pattern:
     1. prepare_sections: Split document into sections, create PENDING items
-    2. distribute_sections: Fan out via Send, one per section
+    2. distribute_sections: Fan out via Send, one per section (the router of a
+       conditional edge, not a node)
     3. validate_section: Agent validates citations in one section (runs in parallel)
     4. finalize_results: Flatten all section issues
     """
     graph = StateGraph(ClaimReferenceValidationV2State, context_schema=ContextSchema)
 
     graph.add_node("prepare_sections", prepare_sections)
-    graph.add_node("distribute_sections", distribute_sections)
     graph.add_node("validate_section", validate_section)
     graph.add_node("finalize_results", finalize_results)
 

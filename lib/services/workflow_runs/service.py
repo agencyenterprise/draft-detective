@@ -29,8 +29,9 @@ from lib.services.workflow_runs.cost.extractor import walk_state_for_usage
 from lib.services.workflow_runs.cost.pricing import compute_cost
 from lib.services.workflow_runs.progress import cancel_workflow_progress
 from lib.workflows.dependency_resolver import get_required_dependents
-from lib.workflows.models import is_user_visible_workflow
+from lib.workflows.models import BaseWorkflowState, is_user_visible_workflow
 from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
+from lib.workflows.util import as_state_type, run_type_of
 from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -251,8 +252,14 @@ async def get_workflow_run(
 
     run, project = result.tuple()
 
-    if user is not None and project is not None and project.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
+    if user is not None:
+        # A run without a project has no owner to match, so a user is refused it
+        # as if it did not exist, like the inner-joined ownership checks do.
+        # Internal callers (no user) still get project-less runs.
+        if project is None:
+            raise HTTPException(status_code=404, detail="Workflow run not found")
+        if project.user_id != user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
 
     return run
 
@@ -377,14 +384,7 @@ async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
     Only cascades through required_dependencies — optional dependents are left running
     since they handle missing data by design.
     """
-    run = await get_workflow_run(workflow_run_id)
-    if run.project_id is None:
-        raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
-    await cancel_workflow_progress(
-        run.project_id, run.type, only_run_id=_own_progress_only(run)
-    )
-    await update_workflow_run_status(workflow_run_id, WorkflowRunStatus.CANCELLED)
-    await _cascade_cancel_dependents(run.type, project_id, run.revision)
+    await _end_workflow_run(workflow_run_id, project_id, WorkflowRunStatus.CANCELLED)
 
 
 async def fail_workflow_run(
@@ -400,6 +400,23 @@ async def fail_workflow_run(
     parent is equivalent to a cancelled one — there is no salvageable output —
     so we cascade to CANCELLED rather than FAILED.
     """
+    await _end_workflow_run(
+        workflow_run_id,
+        project_id,
+        WorkflowRunStatus.FAILED,
+        failure_reason=failure_reason,
+        failure_message=failure_message,
+    )
+
+
+async def _end_workflow_run(
+    workflow_run_id: str,
+    project_id: str,
+    status: WorkflowRunStatus,
+    failure_reason: WorkflowRunFailureReason | None = None,
+    failure_message: str | None = None,
+) -> None:
+    """Clear the run's progress, set its final status and cancel its dependents."""
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
@@ -408,7 +425,7 @@ async def fail_workflow_run(
     )
     await update_workflow_run_status(
         workflow_run_id,
-        WorkflowRunStatus.FAILED,
+        status,
         failure_reason=failure_reason,
         failure_message=failure_message,
     )
@@ -496,6 +513,24 @@ async def get_project_workflow_run_by_type(
         if include_state:
             stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def get_project_workflow_run_with_state[StateType: BaseWorkflowState](
+    project_id: str, state_type: type[StateType], revision: int
+) -> tuple[WorkflowRun | None, StateType | None]:
+    """The run ``get_project_workflow_run_by_type`` picks for the type
+    ``state_type`` pins, with its state as that class.
+
+    The run is None when there is none; the state is None when there is no run
+    or the run holds no state.
+    """
+    run = await get_project_workflow_run_by_type(
+        project_id, run_type_of(state_type), revision=revision, include_state=True
+    )
+    if run is None:
+        return None, None
+    state = await read_workflow_run_state(run)
+    return run, as_state_type(state, state_type) if state is not None else None
 
 
 async def get_latest_workflow_run_state_by_type(

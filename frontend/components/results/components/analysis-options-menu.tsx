@@ -15,7 +15,6 @@ import { useShareStatus } from '@/hooks/use-share-status';
 import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
 import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
 import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
-import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/api-error';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
@@ -33,15 +32,6 @@ export interface AnalysisOptionsMenuProps {
   selectedRevision?: number;
   onRevisionChange?: (revision: number) => void;
   onRevisionCreated?: () => void;
-  /** Label for the download button. */
-  downloadLabel?: string;
-  /** Drops the download button to secondary where another action leads the row. */
-  downloadVariant?: 'default' | 'outline';
-  /**
-   * Labels give way to icons on narrow screens. For headers that carry other
-   * controls beside this one and would otherwise run off a phone screen.
-   */
-  compact?: boolean;
 }
 
 export function AnalysisOptionsMenu({
@@ -50,9 +40,6 @@ export function AnalysisOptionsMenu({
   selectedRevision,
   onRevisionChange,
   onRevisionCreated,
-  downloadLabel = 'Download DOCX',
-  downloadVariant = 'default',
-  compact = false,
 }: AnalysisOptionsMenuProps) {
   const filter = useProjectExplorerFilter();
   const { project } = overview;
@@ -154,29 +141,22 @@ export function AnalysisOptionsMenu({
     <>
       <div className="flex items-center gap-1">
         <div className="flex items-center gap-2">
-          {!readOnly && (
-            <ShareStatusBadge
-              isEnabled={share.isEnabled}
-              onClick={() => share.setIsDialogOpen(true)}
-              compact={compact}
-            />
-          )}
+          {!readOnly && <ShareStatusBadge isEnabled={share.isEnabled} onClick={() => share.setIsDialogOpen(true)} />}
 
           <Tooltip>
             <TooltipTrigger asChild>
               {/* Wrapper span so the tooltip still fires while the button is disabled */}
               <span tabIndex={0}>
                 <Button
-                  variant={downloadVariant}
+                  variant="outline"
                   size="xs"
                   onClick={handleDownloadClick}
                   disabled={!hasDocx || isDownloading}
-                  aria-label={downloadLabel}
+                  aria-label="Export"
                 >
                   <Download />
-                  <span className={cn(compact && 'hidden sm:inline')}>
-                    {isDownloading ? 'Downloading...' : downloadLabel}
-                  </span>
+                  {/* Labels give way to icons on narrow screens, where the header carries other controls. */}
+                  <span className="hidden sm:inline">{isDownloading ? 'Downloading...' : 'Export'}</span>
                 </Button>
               </span>
             </TooltipTrigger>
@@ -194,7 +174,6 @@ export function AnalysisOptionsMenu({
               selectedRevision={selectedRevision}
               onRevisionChange={onRevisionChange}
               onCreateRevision={readOnly ? undefined : () => setIsReplaceDialogOpen(true)}
-              compact={compact}
             />
           )}
         </div>

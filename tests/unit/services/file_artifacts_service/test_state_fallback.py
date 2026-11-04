@@ -26,7 +26,7 @@ from lib.workflows.reference_extraction.state import (
 )
 from lib.workflows.workflow_types import WorkflowState
 
-MODULE = "lib.services.file_artifacts_service.file_artifacts_service"
+RUNS = "lib.services.workflow_runs.service"
 PROJECT_ID = "project-1"
 
 
@@ -59,8 +59,8 @@ def _patch_runs(
         return states[run]
 
     return (
-        patch(f"{MODULE}.get_project_workflow_run_by_type", side_effect=run_by_type),
-        patch(f"{MODULE}.read_workflow_run_state", side_effect=read_state),
+        patch(f"{RUNS}.get_project_workflow_run_by_type", side_effect=run_by_type),
+        patch(f"{RUNS}.read_workflow_run_state", side_effect=read_state),
     )
 
 

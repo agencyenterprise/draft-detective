@@ -18,5 +18,5 @@ export function ReferenceDownloaderResults({ workflowDetail }: ReferenceDownload
     return <EmptyState message="No reference download results available." />;
   }
 
-  return <ReferenceDownloaderResultsDisplay results={fetchedReferences} projectId={projectId} title={null} />;
+  return <ReferenceDownloaderResultsDisplay results={fetchedReferences} projectId={projectId} />;
 }

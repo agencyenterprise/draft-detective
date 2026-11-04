@@ -1309,7 +1309,7 @@ async def test_list_revisions_returns_all_revisions():
             new=AsyncMock(return_value=(project, MagicMock())),
         ),
         patch(
-            "lib.api.mcp.tools.revisions.get_files_by_project_id",
+            "lib.services.projects.revisions.get_files_by_project_id",
             new=AsyncMock(return_value=[file_rev1, file_rev2]),
         ),
     ):

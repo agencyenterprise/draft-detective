@@ -10,6 +10,7 @@ import pytest
 
 from lib.models.issue import Issue
 from lib.services.docx.edit_export import EditExport
+from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.manipulator import (
     CommentSeverity,
     DocxComment,
@@ -134,48 +135,47 @@ class TestIssueToComment:
 
         assert comment is not None
         text = comment.comment_text
-        assert "Suggested Action: Update the year to 2021." in text
-        assert "### Field validations" in text
-        assert "2019 → 2021" in text
-        # Order: description → suggested action → long_description
+        assert text.startswith(
+            "**Reference has incorrect fields** · Reference Error Checker\n\n"
+        )
+        assert "**Suggested action:** Update the year to 2021." in text
+        # The markdown heading becomes a bold line a comment can show.
+        assert "**Field validations**" in text
+        assert "###" not in text
         assert (
             text.index("does not match public sources")
-            < text.index("Suggested Action:")
-            < text.index("### Field validations")
+            < text.index("**Suggested action:**")
+            < text.index("**Field validations**")
         )
 
-    def test_edit_notes_sit_between_the_suggested_action_and_the_details(self):
-        """Proposed edits read after the action they carry out."""
+    def test_the_edit_status_comes_before_the_explanation(self):
+        """A reader learns first whether the fix is already in the text."""
         issue = _make_issue(
             title="Reference has incorrect fields",
             description="The publication year does not match public sources.",
-            suggested_action="Update the year to 2021.",
             long_description="### Field validations",
             severity=SeverityEnum.HIGH,
             workflow_type=WorkflowRunType.REFERENCE_VALIDATION_V2,
             start_line=1,
             end_line=3,
         )
-
-        comment = issue_to_comment(
-            issue,
-            {0: (1, 3)},
-            edit_notes=[
-                'Proposed edit: "2019" → "2021"\nthe year is wrong\n'
-                "Applied below as a tracked change."
-            ],
+        note = EditNote(
+            status="applied",
+            pointer="“2019” → “2021”",
+            fix="Replace “2019” with “2021”",
+            rationale="the year is wrong",
         )
+
+        comment = issue_to_comment(issue, {0: (1, 3)}, edit_notes=[note])
 
         assert comment is not None
-        text = comment.comment_text
-        assert "Applied below as a tracked change." in text
-        assert (
-            text.index("Suggested Action:")
-            < text.index("Proposed edit:")
-            < text.index("### Field validations")
-        )
+        heading, blank, status = comment.comment_text.split("\n")[:3]
+        assert blank == ""
+        assert heading == "**Reference has incorrect fields** · Reference Error Checker"
+        assert status == "✎ Tracked change in the text: “2019” → “2021”"
+        assert "Replace “2019”" not in comment.comment_text
 
-    def test_a_comment_without_edit_notes_is_unchanged(self):
+    def test_a_comment_without_edit_notes_ends_with_its_action(self):
         issue = _make_issue(
             title="Unsupported Claim",
             description="This claim lacks evidence",
@@ -189,7 +189,8 @@ class TestIssueToComment:
         comment = issue_to_comment(issue, {0: (1, 3)}, edit_notes=[])
 
         assert comment is not None
-        assert comment.comment_text.endswith("Suggested Action: Cite a source.")
+        assert "✎" not in comment.comment_text
+        assert comment.comment_text.endswith("**Suggested action:** Cite a source.")
 
     def test_omits_long_description_when_absent(self):
         """No trailing separator/content when long_description is None."""

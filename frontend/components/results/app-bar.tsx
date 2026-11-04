@@ -131,7 +131,7 @@ export function AppBar({ title }: AppBarProps) {
         </Button>
 
         {user ? (
-          <ProfileDropdown user={user} size={26} showChevron includeThemeToggle={false} />
+          <ProfileDropdown user={user} />
         ) : !isLoadingUser ? (
           <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-[12.5px]">
             <Link href="/api/auth/signin">

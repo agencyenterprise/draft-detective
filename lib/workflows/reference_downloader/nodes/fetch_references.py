@@ -95,7 +95,7 @@ async def _load_unmatched_references(
 async def distribute_references(
     state: ReferenceDownloaderState, runtime: Runtime[ContextSchema]
 ):
-    """Fan-out node: creates a Send for each reference initialized as PENDING."""
+    """Fan-out router: creates a Send for each reference initialized as PENDING."""
     return [
         Send(
             "fetch_single_reference",

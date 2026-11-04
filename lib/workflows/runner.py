@@ -34,6 +34,7 @@ from lib.services.workflow_runs.service import (
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.error_details import build_workflow_error
+from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import (
     BaseWorkflowConfig,
     DependencyWaitTimeoutError,
@@ -107,9 +108,12 @@ async def run_workflow_with_dependency_check(
         )
 
     except Exception as e:
-        # Errors that escape run_workflow's own handler land here. run_workflow
-        # already marks itself FAILED in that case; this branch covers errors
-        # raised before/after run_workflow runs (e.g. setup failures).
+        # run_workflow records failures raised while the graph runs. This
+        # branch catches the rest: a required dependency with no run at all
+        # (wait_for_dependencies), setup such as create_context finding no API
+        # key or create_state failing, run_workflow's own setup before its try
+        # (marking the run RUNNING, compiling the graph), and errors raised
+        # while its handlers persist state or mark the run failed.
         logger.error(f"Error running workflow: {e}", exc_info=True)
         await fail_workflow_run(
             workflow_run_id,
@@ -253,9 +257,9 @@ async def run_workflow(
         logger.info(
             f"Workflow {workflow_type} for project {project_id} was cancelled — running cleanup"
         )
-        if manifest:
-            updated_state = await manifest.on_cancel(updated_state)
-            await persist_workflow_run_state(workflow_run_id, updated_state)
+        updated_state = await _run_on_cancel_hook(
+            manifest, workflow_run_id, updated_state
+        )
         # Status is already CANCELLED in DB; CANCELLED-guard in
         # update_workflow_run_status keeps it that way.
 
@@ -264,11 +268,11 @@ async def run_workflow(
             f"Workflow {workflow_type} for project {project_id} exceeded "
             f"max_duration={max_duration}s — marking FAILED"
         )
-        if manifest:
-            # on_cancel is the right place for abnormal-teardown cleanup
-            # (per-item statuses stuck in 'pending' would remain otherwise).
-            updated_state = await manifest.on_cancel(updated_state)
-            await persist_workflow_run_state(workflow_run_id, updated_state)
+        # on_cancel is the right place for abnormal-teardown cleanup
+        # (per-item statuses stuck in 'pending' would remain otherwise).
+        updated_state = await _run_on_cancel_hook(
+            manifest, workflow_run_id, updated_state
+        )
         await fail_workflow_run(
             workflow_run_id,
             project_id,
@@ -304,6 +308,32 @@ async def run_workflow(
     return updated_state
 
 
+async def _run_on_cancel_hook(
+    manifest: WorkflowManifest | None,
+    workflow_run_id: str,
+    state: WorkflowState,
+) -> WorkflowState:
+    """Best-effort cleanup on cancel or timeout: run on_cancel and persist its state.
+
+    A failing hook or persist is logged and never propagated, so the caller
+    still records the run's real outcome (CANCELLED stays, a timeout becomes
+    FAILED with reason TIMEOUT). Returns the cleaned state, or ``state``
+    unchanged when there is no manifest or the hook itself fails.
+    """
+    if manifest is None:
+        return state
+    cleaned = state
+    try:
+        cleaned = await manifest.on_cancel(state)
+        await persist_workflow_run_state(workflow_run_id, cleaned)
+    except Exception as e:
+        logger.error(
+            f"on_cancel cleanup failed for workflow run {workflow_run_id}: {e}",
+            exc_info=True,
+        )
+    return cleaned
+
+
 def _merge_stream_chunk(
     state: WorkflowState,
     mode: str,
@@ -337,7 +367,7 @@ def create_context(
     Create workflow context.
 
     Key resolution: per-request key > user's stored key > server env var.
-    Each workflow declares whether it requires an API key via requires_api_key().
+    Each workflow's config class declares whether it requires an API key via requires_api_key().
     Workflows that don't use LLMs (data manipulation only) can return False.
     """
     user_stored_key = get_user_decrypted_api_key(user) if user else None
