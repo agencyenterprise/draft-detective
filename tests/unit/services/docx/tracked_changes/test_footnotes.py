@@ -288,6 +288,18 @@ class TestOverlapsOfAnEditPlacedInPieces:
             (pieced.id, rival.id)
         ]
 
+    @staticmethod
+    def _planned(edit_id: uuid.UUID, span: tuple[int, int]) -> PlannedEdit:
+        return PlannedEdit(
+            edit_id=edit_id,
+            paragraph_ref="P1#x",
+            paragraph_index=0,
+            find="x",
+            replace_with="y",
+            occurrence=0,
+            span=span,
+        )
+
     def test_an_edit_beaten_only_by_a_dropped_edit_loses_to_the_kept_one(self):
         pieced, strong, weak = (
             _edit("a", "b", 1),
@@ -300,26 +312,15 @@ class TestOverlapsOfAnEditPlacedInPieces:
         )
         by_id = {candidate.edit.id: candidate for candidate in candidates}
 
-        def planned(edit_id: uuid.UUID, span: tuple[int, int]) -> PlannedEdit:
-            return PlannedEdit(
-                edit_id=edit_id,
-                paragraph_ref="P1#x",
-                paragraph_index=0,
-                find="x",
-                replace_with="y",
-                occurrence=0,
-                span=span,
-            )
-
         # `pieced` loses its first redline's overlap to `strong` and would win
         # its second against `weak`; deciding the two apart would leave
         # `weak` beaten by an edit that is not in the document.
         kept, losses = _resolve_paragraph_overlaps(
             [
-                planned(pieced.id, (0, 5)),
-                planned(pieced.id, (10, 15)),
-                planned(strong.id, (2, 4)),
-                planned(weak.id, (12, 20)),
+                self._planned(pieced.id, (0, 5)),
+                self._planned(pieced.id, (10, 15)),
+                self._planned(strong.id, (2, 4)),
+                self._planned(weak.id, (12, 20)),
             ],
             by_id,
         )
@@ -329,3 +330,28 @@ class TestOverlapsOfAnEditPlacedInPieces:
             pieced.id: strong.id,
             weak.id: strong.id,
         }
+
+    def test_a_loser_to_a_pieced_edit_that_itself_lost_names_a_kept_winner(self):
+        """Review probe (BOTO-83): B loses to A on A's first piece, A loses to C
+        on its second. Every loss must name an edit that is in the document."""
+        pieced, low, high = _edit("a", "b", 1), _edit("e", "f", 1), _edit("c", "d", 1)
+        candidates = _candidates(
+            [pieced, low, high],
+            [SeverityEnum.MEDIUM, SeverityEnum.LOW, SeverityEnum.HIGH],
+        )
+        by_id = {candidate.edit.id: candidate for candidate in candidates}
+
+        kept, losses = _resolve_paragraph_overlaps(
+            [
+                self._planned(pieced.id, (0, 5)),
+                self._planned(pieced.id, (10, 15)),
+                self._planned(low.id, (2, 4)),
+                self._planned(high.id, (12, 20)),
+            ],
+            by_id,
+        )
+
+        kept_ids = {edit.edit_id for edit in kept}
+        assert kept_ids == {high.id}
+        for loss in losses:
+            assert loss.winner_id in kept_ids, (loss.edit_id, loss.winner_id)
