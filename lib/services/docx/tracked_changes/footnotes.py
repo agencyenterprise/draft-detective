@@ -38,8 +38,8 @@ AMBIGUOUS_LABEL = (
     "reference cannot be told apart from it"
 )
 SPACE_AROUND_FOOTNOTE = (
-    "it changes the spacing at a footnote reference that has spaces on both "
-    "sides, and the export cannot tell which side of the reference they sit on"
+    "it changes the spacing next to a footnote reference, and the export cannot "
+    "tell which side of the reference the space sits on"
 )
 
 
@@ -195,13 +195,19 @@ def _grows_across_mark(quoted: list[str], replaced: list[str], index: int) -> bo
     of whitespace in the paragraph with the mark somewhere inside it. A stretch
     deleting its own space next to the mark would grow over the whole run, and
     the redline would cross the mark. Only when the stretch across the mark has
-    no whitespace on that side is the run all its own.
+    words and no whitespace on that side is the run all its own.
     """
     old, new = quoted[index], replaced[index]
     leading = index > 0 and old[:1].isspace() and not new[:1].isspace()
     trailing = index < len(quoted) - 1 and old[-1:].isspace() and not new[-1:].isspace()
-    return (leading and quoted[index - 1][-1:].isspace()) or (
-        trailing and quoted[index + 1][:1].isspace()
+    before, after = (
+        (quoted[index - 1] if index > 0 else ""),
+        (quoted[index + 1] if index < len(quoted) - 1 else ""),
+    )
+    # An empty neighbour is a quote that starts or ends on the mark: what lies
+    # past it is outside the quote and may be whitespace too.
+    return (leading and (not before or before[-1:].isspace())) or (
+        trailing and (not after or after[:1].isspace())
     )
 
 

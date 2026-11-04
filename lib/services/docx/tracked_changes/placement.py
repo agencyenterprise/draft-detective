@@ -172,19 +172,14 @@ def _locate(
 ) -> list[_Piece] | EditOutcome:
     """The spans to redline and what to write over each, or why there are none.
 
-    A quote is first matched as the document renders it, and is one redline.
-    Only when that fails and the quote carries footnote references -- which
-    Word keeps as marks, not text -- is it matched again around them, as one
+    A quote is matched as the document renders it, and is one redline. A quote
+    carrying footnote references is matched around them instead, as one
     redline per stretch between references that the edit changes (see
-    `footnotes`).
+    `footnotes`). Never as rendered: Word keeps a reference as a mark with no
+    text, so a paragraph showing the rendered ``Claim[1]`` can only be showing a
+    literal citation, never the passage the quote means.
     """
-    span, status, detail = _resolve_span(
-        edit, paragraph_text, paragraph_range, document_lines
-    )
-    if span is not None:
-        span = _with_boundary_whitespace(span, paragraph_text, edit.original_text)
-        return [(span, edit.display_replacement)]
-    if status == "not_found" and carries_footnotes(edit):
+    if carries_footnotes(edit):
         placed = place_around_footnotes(edit, paragraph_text)
         if placed.pieces:
             return [(piece.span, piece.replace_with) for piece in placed.pieces]
@@ -192,7 +187,14 @@ def _locate(
             return EditOutcome(
                 edit_id=edit.id, status="unsupported", detail=placed.detail
             )
-    return EditOutcome(edit_id=edit.id, status=status, detail=detail)
+        return EditOutcome(edit_id=edit.id, status="not_found")
+    span, status, detail = _resolve_span(
+        edit, paragraph_text, paragraph_range, document_lines
+    )
+    if span is None:
+        return EditOutcome(edit_id=edit.id, status=status, detail=detail)
+    span = _with_boundary_whitespace(span, paragraph_text, edit.original_text)
+    return [(span, edit.display_replacement)]
 
 
 def _refusal(

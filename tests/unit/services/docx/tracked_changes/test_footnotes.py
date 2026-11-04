@@ -179,6 +179,19 @@ class TestAQuoteCrossingAFootnote:
         assert _accepted(path) == "Prices rose^1 sharply."
 
     @pytest.mark.asyncio
+    async def test_a_literal_citation_reading_like_the_quote_is_left_alone(
+        self, tmp_path: Path
+    ):
+        before, after = "Claim", " supports it. Later, Claim[1] supports it too."
+        path = _footnoted_docx(tmp_path / "literal.docx", before, after)
+        edit = _edit(f"Claim{_MARK} supports it", f"Claim{_MARK} backs it", 1)
+
+        plan, _ = await _plan_and_apply(path, f"{before}{_MARK}{after}", edit)
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert _accepted(path) == "Claim^1 backs it. Later, Claim[1] supports it too."
+
+    @pytest.mark.asyncio
     async def test_dropping_the_mark_is_reported_not_written(self, tmp_path: Path):
         before, after = "Companies guard research closely,", " and rules vary."
         path = _footnoted_docx(tmp_path / "dropped.docx", before, after)
@@ -270,6 +283,16 @@ class TestPlacingAroundFootnotes:
         )
 
         placed = place_around_footnotes(edit, "Alpha  beta gamma.")
+
+        assert placed.pieces == []
+        assert placed.detail == SPACE_AROUND_FOOTNOTE
+
+    def test_a_space_change_at_a_mark_ending_the_quote_is_reported(self):
+        # The quote stops at the mark, so nothing in it says whether the
+        # paragraph's whitespace run carries on past the mark.
+        edit = _edit_row("foo [1]", "baz[1]", f"foo {_MARK}", f"baz{_MARK}")
+
+        placed = place_around_footnotes(edit, "foo  bar")
 
         assert placed.pieces == []
         assert placed.detail == SPACE_AROUND_FOOTNOTE
