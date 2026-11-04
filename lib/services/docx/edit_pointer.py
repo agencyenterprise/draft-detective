@@ -9,6 +9,7 @@ text has to be given whole, since the comment is then the only place it is.
 import difflib
 
 from lib.services.docx.comment_markup import literal, marked_text, plain_text
+from lib.services.text.markdown_rendering import render_line_text
 
 # A change of at most this many words on either side is quoted as is.
 _SHORT_CHANGE_WORDS = 6
@@ -72,8 +73,10 @@ def _as_shown(raw: str, shown: str | None) -> str:
     span, half of a bold phrase): then the text as the document shows it,
     taken literally.
     """
-    alone = plain_text(raw, targets=False)
-    if shown is not None and alone.split() != shown.split():
+    # `shown` is the document's own rendering: of the whole quote for a
+    # complete span, of the quote in context for a fragment. Rendering the
+    # quote on its own the same way tells the two apart.
+    if shown is not None and render_line_text(raw).split() != shown.split():
         return literal(shown)
     return marked_text(raw)
 

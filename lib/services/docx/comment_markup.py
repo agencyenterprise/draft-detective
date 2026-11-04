@@ -61,14 +61,13 @@ class Segment(BaseModel):
     italic: bool = False
 
 
-def segments(text: str, targets: bool = True) -> list[Segment]:
+def segments(text: str) -> list[Segment]:
     """One line of markdown split into formatted stretches, its marks dropped.
 
     Bold and italic nest (`**a *term* here**`); code is taken literally, so
     asterisks inside it stay text. A link keeps its destination after its
     label, since a comment cannot link (see `_link_target`), and an image
-    becomes its alt text and source; with `targets` off, as a document shows
-    them, both are only their label or alt text.
+    becomes its alt text and source.
     """
     if not text:
         return []
@@ -85,7 +84,7 @@ def segments(text: str, targets: bool = True) -> list[Segment]:
         elif kind == "link_close" and links:
             href, start = links.pop()
             label = "".join(segment.text for segment in out[start:])
-            if targets and (target := _link_target(href, label)):
+            if target := _link_target(href, label):
                 out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
         elif kind == "image":
             # An image reads like a link: its alt text as rendered, then its
@@ -94,8 +93,7 @@ def segments(text: str, targets: bool = True) -> list[Segment]:
                 c.content for c in token.children or [] if c.type in _TEXT_TOKENS
             )
             src = str(token.attrs.get("src", ""))
-            target = _link_target(src, alt) if targets else None
-            image = alt + (target or "")
+            image = alt + (_link_target(src, alt) or "")
             out.append(Segment(text=image, bold=bold > 0, italic=italic > 0))
         elif kind == "strong_open":
             bold += 1
@@ -203,16 +201,11 @@ def marked_text(text: str) -> str:
     return _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub(r"[\1]", text))
 
 
-def plain_text(text: str, targets: bool = True) -> str:
-    """Document text with no marks at all, for quoting it inside a comment.
-
-    With `targets` off, links and images read only as their label or alt
-    text, as the document shows them.
-    """
+def plain_text(text: str) -> str:
+    """Document text with no marks at all, for quoting it inside a comment."""
     text = _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub("", text))
     return "\n".join(
-        "".join(segment.text for segment in segments(line, targets))
-        for line in text.split("\n")
+        "".join(segment.text for segment in segments(line)) for line in text.split("\n")
     )
 
 

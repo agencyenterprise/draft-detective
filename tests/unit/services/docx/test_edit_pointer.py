@@ -173,3 +173,23 @@ def test_a_link_target_with_markup_characters_is_kept():
 def test_an_image_with_formatted_alt_text_keeps_its_source():
     fix = edit_fix("![**Figure**](a.png)", "![**Figure**](b.png)", "Figure", "Figure")
     assert plain_text_of(fix) == "Replace “Figure (a.png)” with “Figure (b.png)”"
+
+
+def test_a_list_item_link_keeps_its_destination():
+    # display_text drops the list marker, as the document shows it.
+    fix = edit_fix(
+        "- [Report](https://x/a)", "- [Report](https://x/b)", "Report", "Report"
+    )
+    assert plain_text_of(fix) == (
+        "Replace “- Report (https://x/a)” with “- Report (https://x/b)”"
+    )
+
+
+def test_a_footnote_beside_a_formatting_change_keeps_the_formatting():
+    fix = edit_fix(
+        "a **term**[[1]](#footnote-2)",
+        "a *term*[[1]](#footnote-2)",
+        "a term[1]",
+        "a term[1]",
+    )
+    assert fix == "Replace “a **term**[1]” with “a *term*[1]”"
