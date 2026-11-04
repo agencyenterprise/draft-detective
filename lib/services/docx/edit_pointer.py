@@ -8,7 +8,12 @@ text has to be given whole, since the comment is then the only place it is.
 
 import difflib
 
-from lib.services.docx.comment_markup import marked_text, plain_text
+from lib.services.docx.comment_markup import (
+    footnote_labels,
+    literal,
+    marked_text,
+    plain_text,
+)
 
 # A change of at most this many words on either side is quoted as is.
 _SHORT_CHANGE_WORDS = 6
@@ -22,7 +27,7 @@ _LEAD_WORDS = 5
 
 
 def _quoted(words: list[str]) -> str:
-    return f"“{' '.join(words)}”"
+    return f"“{literal(' '.join(words))}”"
 
 
 def _change(old: list[str], new: list[str]) -> str:
@@ -53,7 +58,9 @@ def edit_pointer(original: str, replacement: str) -> str:
     small = short and len(changes) <= _MAX_CHANGES and not mostly_changed
     if changes and small:
         return "; ".join(_change(a, b) for a, b in changes)
-    lead = " ".join(old[:_LEAD_WORDS]) + (" …" if len(old) > _LEAD_WORDS else "")
+    lead = literal(" ".join(old[:_LEAD_WORDS])) + (
+        " …" if len(old) > _LEAD_WORDS else ""
+    )
     if not new:
         return f"deletes “{lead}”"
     if not changes:
@@ -66,13 +73,21 @@ def edit_fix(original: str, replacement: str) -> str:
     """The whole edit, for a comment that is the only place it appears.
 
     Quotes drop the document's marks, unless the change lies in them (bold,
-    italics, a footnote link) or the quote is nothing but marks: then both sides
+    italics, a footnote link, also beside a change of words) or the quote is
+    nothing but marks: then both sides
     keep their emphasis, which the comment shows as such, and footnotes read
     "[N]".
     """
     before, after = plain_text(original), plain_text(replacement)
-    if before == after or not before.strip():
+    hidden = (
+        before == after
+        or not before.strip()
+        or footnote_labels(original) != footnote_labels(replacement)
+    )
+    if hidden:
         before, after = marked_text(original), marked_text(replacement)
+    else:
+        before, after = literal(before), literal(after)
     if not replacement:
         return f"Delete “{before}”"
     return f"Replace “{before}” with “{after}”"

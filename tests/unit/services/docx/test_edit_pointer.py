@@ -102,3 +102,15 @@ def test_a_change_of_emphasis_kind_is_still_visible():
 
 def test_deleting_a_footnote_link_names_the_footnote():
     assert edit_fix("[[1]](#footnote-2)", "") == "Delete “[1]”"
+
+
+def test_a_footnote_change_beside_a_word_change_is_kept():
+    assert edit_fix("old[[1]](#footnote-1)", "new[[2]](#footnote-2)") == (
+        "Replace “old[1]” with “new[2]”"
+    )
+
+
+def test_literal_asterisks_in_a_quote_stay_literal():
+    assert edit_fix("Use `a**b**c` here", "Use `a**b**c` there") == (
+        "Replace “`Use a**b**c here`” with “`Use a**b**c there`”"
+    )

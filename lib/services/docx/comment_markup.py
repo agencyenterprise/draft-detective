@@ -67,7 +67,22 @@ def segments(text: str, bold: bool = False, italic: bool = False) -> list[Segmen
 def comment_markdown(text: str) -> str:
     """Issue markdown reduced to what a comment shows: emphasis, code and lines."""
     text = _FOOTNOTE_LINK.sub("", text)
-    return _HEADING.sub(r"**\1**", text)
+    # A heading's own bold marks would nest inside the bold it becomes.
+    return _HEADING.sub(lambda m: f"**{m[1].replace('**', '')}**", text)
+
+
+def footnote_labels(text: str) -> list[str]:
+    """The footnote numbers a text's footnote links show, in order."""
+    return _FOOTNOTE_LINK.findall(text)
+
+
+def literal(text: str) -> str:
+    """`text` marked so that the comment shows it as is.
+
+    Quoted document text has lost its own marks, so any asterisk left in it is
+    literal; inline code keeps it from being read as emphasis again.
+    """
+    return f"`{text}`" if "*" in text and "`" not in text else text
 
 
 def marked_text(text: str) -> str:

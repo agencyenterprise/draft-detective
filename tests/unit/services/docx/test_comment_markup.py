@@ -4,6 +4,7 @@ from docx import Document
 
 from lib.services.docx.comment_markup import (
     comment_markdown,
+    literal,
     plain_text,
     segments,
     write_comment,
@@ -17,6 +18,16 @@ def test_markdown_a_comment_cannot_show_is_reduced():
     assert (
         plain_text(comment_markdown(text)) == "Field validations\nUse decisionmaking."
     )
+
+
+def test_a_bold_heading_is_not_bolded_twice():
+    assert comment_markdown("### **Note** here") == "**Note here**"
+
+
+def test_a_literal_quote_is_shown_as_is():
+    assert [(s.text, s.bold) for s in segments(literal("a**b**c"))] == [
+        ("a**b**c", False)
+    ]
 
 
 def test_nested_emphasis_is_formatted_without_stray_marks():
