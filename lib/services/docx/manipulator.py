@@ -14,6 +14,9 @@ from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.models.issue import Issue
+from lib.services.docx.comment_layout import comment_text
+from lib.services.docx.comment_markup import literal, write_comment
+from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.projects.share_links import build_share_url
 from lib.workflows.models import SeverityEnum
@@ -162,7 +165,7 @@ def issue_to_comment(
     issue: Issue,
     paragraph_line_ranges: dict[int, tuple[int, int]],
     share_token: str | None = None,
-    edit_notes: Sequence[str] = (),
+    edit_notes: Sequence[EditNote] = (),
     show_severity: bool = True,
 ) -> "DocxComment | None":
     """Convert an Issue to DocxComment with optional share link.
@@ -170,9 +173,9 @@ def issue_to_comment(
     Resolves the issue to a paragraph by line-range overlap. Returns None when the
     issue has no resolvable line range or does not overlap any mapped paragraph.
 
-    ``edit_notes`` are the issue's proposed-edit blocks, already formatted by
-    `lib.services.docx.edit_notes`: what each edit changes, why, and whether it
-    reached the document as a tracked change.
+    ``edit_notes`` say what became of the issue's proposed edits (see
+    `lib.services.docx.edit_notes`); `lib.services.docx.comment_layout` lays
+    them out with the rest of the issue.
 
     With ``show_severity`` off (the project doesn't group by severity), a finding's
     comment is authored as plain "Draft Detective" instead of naming a priority.
@@ -194,24 +197,22 @@ def issue_to_comment(
         anchor = _build_issue_anchor(line_range)
         share_link = build_share_url(share_token, anchor)
 
-    workflow_name = _get_workflow_display_name(issue)
-    title = f"{issue.title} ({workflow_name})" if workflow_name else issue.title
-
-    # Include the suggested action and long_description (the "more details" content
-    # shown in the UI) so the Word export carries the full context authors need —
-    # e.g. for Reference Error Checker, which fields are wrong, the suggested action,
-    # and the suggested updated reference.
-    parts = [f"{title}\n\n{issue.description}"]
-    if issue.suggested_action:
-        parts.append(f"Suggested Action: {issue.suggested_action}")
-    parts.extend(edit_notes)
-    if issue.long_description:
-        parts.append(issue.long_description)
-    comment_text = "\n\n".join(parts)
+    # The suggested action and long_description (the "more details" content shown
+    # in the UI) are included so the Word export carries the full context authors
+    # need: for Reference Error Checker, which fields are wrong and the corrected
+    # reference.
+    text = comment_text(
+        title=issue.title,
+        workflow_name=_get_workflow_display_name(issue),
+        description=issue.description,
+        suggested_action=issue.suggested_action,
+        long_description=issue.long_description,
+        notes=edit_notes,
+    )
 
     return DocxComment(
         paragraph_index=paragraph_index,
-        comment_text=comment_text,
+        comment_text=text,
         severity=(
             _map_severity_enum_to_comment_severity(issue.severity)
             if show_severity or issue.severity == SeverityEnum.NONE
@@ -296,7 +297,7 @@ class DocxManipulatorService:
                 full_comment_text = comment.comment_text
                 if comment.share_link:
                     full_comment_text += (
-                        f"\n\n🔗 View in Draft Detective: {comment.share_link}"
+                        f"\n\n🔗 View in Draft Detective: {literal(comment.share_link)}"
                     )
 
                 self._add_comment_to_paragraph(
@@ -327,14 +328,15 @@ class DocxManipulatorService:
         author: str,
         initials: str,
     ):
-        """Add a comment to a paragraph."""
+        """Add a comment to a paragraph, one comment paragraph per line of text."""
         try:
-            doc.add_comment(
+            comment = doc.add_comment(
                 runs=paragraph.runs if paragraph.runs else [paragraph.add_run("")],
-                text=_sanitize_for_xml(comment_text),
+                text="",
                 author=_sanitize_for_xml(author),
                 initials=_sanitize_for_xml(initials),
             )
+            write_comment(comment, _sanitize_for_xml(comment_text))
         except AttributeError as e:
             logger.warning(f"Error inserting comment to docx: {e}")
             raise
