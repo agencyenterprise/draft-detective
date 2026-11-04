@@ -12,7 +12,6 @@ from lib.api.models import (
     CreateRevisionResponse,
     LinkReferenceFileRequest,
     LinkReferenceFileResponse,
-    RevisionListItem,
     WorkflowProgressResponse,
 )
 from lib.models.file import File, FileRole
@@ -21,6 +20,11 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
 from lib.services.docx.service import DocxManipulatorType, generate_docx
 from lib.services.files.service import get_files_by_project_id
+from lib.services.projects.revisions import (
+    RevisionListItem,
+    list_project_revisions,
+    resolve_revision,
+)
 from lib.services.projects.service import (
     MAX_PROJECT_PAGE_SIZE,
     ProjectCreated,
@@ -366,7 +370,7 @@ async def get_project_workflow_progress_endpoint(
     """Get all workflow progress entries for a project."""
 
     project, _ = await get_project_access(project_id, current_user, share_token)
-    resolved_revision = revision if revision is not None else project.current_revision
+    resolved_revision = resolve_revision(project, revision)
     progress_list = await get_project_workflow_progress(
         project.id, revision=resolved_revision
     )
@@ -410,24 +414,4 @@ async def list_revisions_endpoint(
 ):
     """List all revisions for a project with their main file info."""
     project, _ = await get_project_access(project_id, current_user, share_token)
-
-    # Get all MAIN files to build revision list
-    main_files = await get_files_by_project_id(project_id, roles=[FileRole.MAIN])
-    main_file_by_revision: dict[int, File] = {}
-    for f in main_files:
-        if f.revision is not None:
-            main_file_by_revision[f.revision] = f
-
-    revisions = []
-    for rev in range(1, project.current_revision + 1):
-        main_file = main_file_by_revision.get(rev)
-        revisions.append(
-            RevisionListItem(
-                revision=rev,
-                main_file_name=main_file.file_name if main_file else None,
-                main_file_id=str(main_file.id) if main_file else None,
-                created_at=main_file.created_at if main_file else None,
-            )
-        )
-
-    return revisions
+    return await list_project_revisions(project)
