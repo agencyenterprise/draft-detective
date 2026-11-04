@@ -91,3 +91,14 @@ def test_a_formatting_only_fix_keeps_its_formatting():
     assert edit_fix("rose sharply", "rose **sharply**") == (
         "Replace “rose sharply” with “rose **sharply**”"
     )
+
+
+def test_a_change_of_emphasis_kind_is_still_visible():
+    assert (
+        edit_fix("the **term**", "the *term*")
+        == "Replace “the **term**” with “the *term*”"
+    )
+
+
+def test_deleting_a_footnote_link_names_the_footnote():
+    assert edit_fix("[[1]](#footnote-2)", "") == "Delete “[1]”"

@@ -5,6 +5,7 @@ from docx import Document
 from lib.services.docx.comment_markup import (
     comment_markdown,
     plain_text,
+    segments,
     write_comment,
 )
 
@@ -12,7 +13,30 @@ from lib.services.docx.comment_markup import (
 def test_markdown_a_comment_cannot_show_is_reduced():
     text = "### Field validations\nUse `decisionmaking`.[[100]](#footnote-101)"
 
-    assert comment_markdown(text) == "**Field validations**\nUse decisionmaking."
+    assert comment_markdown(text) == "**Field validations**\nUse `decisionmaking`."
+    assert (
+        plain_text(comment_markdown(text)) == "Field validations\nUse decisionmaking."
+    )
+
+
+def test_nested_emphasis_is_formatted_without_stray_marks():
+    assert [
+        (s.text, s.bold, s.italic) for s in segments("***both*** and **a *term* here**")
+    ] == [
+        ("both", True, True),
+        (" and ", False, False),
+        ("a ", True, False),
+        ("term", True, True),
+        (" here", True, False),
+    ]
+
+
+def test_code_is_quoted_literally():
+    assert [(s.text, s.bold) for s in segments("Keep `**name**` literally")] == [
+        ("Keep ", False),
+        ("**name**", False),
+        (" literally", False),
+    ]
 
 
 def test_plain_text_drops_every_mark():
