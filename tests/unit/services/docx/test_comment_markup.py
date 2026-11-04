@@ -177,3 +177,21 @@ def test_a_fence_closes_only_on_a_matching_fence():
         "```",
         "after",
     ]
+
+
+def test_a_fence_with_an_info_string_inside_a_block_is_content():
+    document = Document()
+    paragraph = document.add_paragraph("anchor")
+    comment = document.add_comment(
+        runs=paragraph.runs, text="", author="DD", initials="DD"
+    )
+    text = "**Title**\n```\n```python\n**kept**\n```\nafter"
+
+    write_comment(comment, comment_markdown(text))
+
+    assert [p.text for p in comment.paragraphs] == [
+        "Title",
+        "```python",
+        "**kept**",
+        "after",
+    ]

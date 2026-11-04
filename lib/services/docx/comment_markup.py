@@ -19,7 +19,7 @@ _FOOTNOTE_LINK = re.compile(r"\[\[(\d+)\]\]\(#footnote-\d+\)")
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*$", re.M)
 _HEADING_MARK = re.compile(r"^#{1,6}\s+", re.M)
 # A code fence: three or more backticks or tildes.
-_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
+_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
 # CommonMark inline parsing, as the documents' own markdown is read elsewhere
 # (`lib.services.text.markdown_rendering`): nesting, shared closing delimiters,
 # code spans and backslash escapes behave as markdown defines them.
@@ -61,13 +61,14 @@ class Segment(BaseModel):
     italic: bool = False
 
 
-def segments(text: str) -> list[Segment]:
+def segments(text: str, targets: bool = True) -> list[Segment]:
     """One line of markdown split into formatted stretches, its marks dropped.
 
     Bold and italic nest (`**a *term* here**`); code is taken literally, so
     asterisks inside it stay text. A link keeps its destination after its
     label, since a comment cannot link (see `_link_target`), and an image
-    becomes its alt text and source.
+    becomes its alt text and source; with `targets` off, as a document shows
+    them, both are only their label or alt text.
     """
     if not text:
         return []
@@ -84,12 +85,13 @@ def segments(text: str) -> list[Segment]:
         elif kind == "link_close" and links:
             href, start = links.pop()
             label = "".join(segment.text for segment in out[start:])
-            if target := _link_target(href, label):
+            if targets and (target := _link_target(href, label)):
                 out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
         elif kind == "image":
             # An image reads like a link: its alt text, then its source.
             src = str(token.attrs.get("src", ""))
-            image = token.content + (_link_target(src, token.content) or "")
+            target = _link_target(src, token.content) if targets else None
+            image = token.content + (target or "")
             out.append(Segment(text=image, bold=bold > 0, italic=italic > 0))
         elif kind == "strong_open":
             bold += 1
@@ -143,18 +145,26 @@ def literal(text: str) -> str:
 def _fenced(lines: list[str]) -> list[bool | None]:
     """For each line: None for a code fence, True inside a fenced block.
 
-    A block closes only on a fence of its opener's character, at least as long,
-    so a fence shown inside the block (``` inside ````) stays code.
+    A block closes only on a bare fence of its opener's character, at least as
+    long, so a fence shown inside the block (``` inside ````, or "```python")
+    stays code.
     """
     opener: str | None = None
     kinds: list[bool | None] = []
     for line in lines:
         match = _FENCE.match(line)
         fence = match[1] if match else None
+        bare = match is not None and not match[2].strip()
         if fence and opener is None:
             opener = fence
             kinds.append(None)
-        elif fence and opener and fence[0] == opener[0] and len(fence) >= len(opener):
+        elif (
+            fence
+            and opener
+            and bare
+            and fence[0] == opener[0]
+            and len(fence) >= len(opener)
+        ):
             opener = None
             kinds.append(None)
         else:
@@ -189,11 +199,16 @@ def marked_text(text: str) -> str:
     return _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub(r"[\1]", text))
 
 
-def plain_text(text: str) -> str:
-    """Document text with no marks at all, for quoting it inside a comment."""
+def plain_text(text: str, targets: bool = True) -> str:
+    """Document text with no marks at all, for quoting it inside a comment.
+
+    With `targets` off, links and images read only as their label or alt
+    text, as the document shows them.
+    """
     text = _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub("", text))
     return "\n".join(
-        "".join(segment.text for segment in segments(line)) for line in text.split("\n")
+        "".join(segment.text for segment in segments(line, targets))
+        for line in text.split("\n")
     )
 
 

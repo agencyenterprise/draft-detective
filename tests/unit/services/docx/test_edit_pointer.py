@@ -155,3 +155,16 @@ def test_a_whole_link_keeps_its_destination_with_display_text():
     assert plain_text_of(fix) == (
         "Replace “Report (https://x/a)” with “Report (https://x/b)”"
     )
+
+
+def test_a_link_target_with_markup_characters_is_kept():
+    fix = edit_fix(
+        "[Report](https://x/report_old.pdf)",
+        "[Report](https://x/report_new.pdf)",
+        "Report",
+        "Report",
+    )
+    assert plain_text_of(fix) == (
+        "Replace “Report (https://x/report_old.pdf)” with "
+        "“Report (https://x/report_new.pdf)”"
+    )
