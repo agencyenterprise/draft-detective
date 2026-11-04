@@ -121,14 +121,14 @@ def _resolve_paragraph_overlaps(
     planned: Sequence[PlannedEdit],
     candidates_by_id: Mapping[uuid.UUID, EditCandidate],
 ) -> tuple[list[PlannedEdit], list[EditOutcome]]:
-    """Keep one redline per overlap group, by the same policy as a line's.
+    """Keep one edit per overlap group, by the same policy as a line's.
 
     The winner is `pick_winner`'s, not whichever edit happened to be planned
     first: an accepted edit beats a proposed one here exactly as it does when
-    both quotes sit on the same markdown line.
+    both quotes sit on the same markdown line. An edit placed as several
+    redlines (around footnote references) is kept or dropped whole, so a lost
+    overlap on one of its redlines takes the others out too.
     """
-    kept: list[PlannedEdit] = []
-    losses: list[EditOutcome] = []
     # One Word paragraph can cover several markdown lines (a list, a table row,
     # a hard line break), so two edits from different lines can still land on
     # the same words. They must not both reach docx-editor: an operation whose
@@ -138,28 +138,27 @@ def _resolve_paragraph_overlaps(
         planned,
         key=lambda edit: edit.paragraph_ref,
         span=lambda edit: edit.span,
-        item_id=lambda edit: str(edit.edit_id),
+        item_id=lambda edit: f"{edit.edit_id}:{edit.span}",
     )
+    winners: dict[uuid.UUID, uuid.UUID] = {}
     for group in groups:
-        if len(group) == 1:
-            kept.append(group[0])
+        edit_ids = list(dict.fromkeys(edit.edit_id for edit in group))
+        if len(edit_ids) == 1:
             continue
-        winner_id = pick_winner(
-            [candidates_by_id[edit.edit_id] for edit in group]
-        ).edit.id
-        for edit in group:
-            if edit.edit_id == winner_id:
-                kept.append(edit)
-                continue
-            losses.append(
-                EditOutcome(
-                    edit_id=edit.edit_id,
-                    status="conflict",
-                    detail=f"overlaps proposed edit {winner_id} in this paragraph",
-                    winner_id=winner_id,
-                )
-            )
-    return kept, losses
+        winner_id = pick_winner([candidates_by_id[i] for i in edit_ids]).edit.id
+        for edit_id in edit_ids:
+            if edit_id != winner_id:
+                winners.setdefault(edit_id, winner_id)
+    losses = [
+        EditOutcome(
+            edit_id=edit_id,
+            status="conflict",
+            detail=f"overlaps proposed edit {winner_id} in this paragraph",
+            winner_id=winner_id,
+        )
+        for edit_id, winner_id in winners.items()
+    ]
+    return [edit for edit in planned if edit.edit_id not in winners], losses
 
 
 def _plan_sync(
@@ -196,15 +195,14 @@ def _plan_sync(
         if paragraph_index is None or paragraph is None:
             outcomes.append(EditOutcome(edit_id=edit.id, status="not_found"))
             continue
-        one, outcome = plan_edit(
+        pieces, outcome = plan_edit(
             edit,
             paragraph_index,
             paragraph,
             paragraph_line_ranges[paragraph_index],
             document_lines,
         )
-        if one is not None:
-            planned.append(one)
+        planned.extend(pieces)
         outcomes.append(outcome)
 
     # Every applicable edit is planned first, then the paragraph's overlaps are
