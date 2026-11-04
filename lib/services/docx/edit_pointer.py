@@ -8,12 +8,7 @@ text has to be given whole, since the comment is then the only place it is.
 
 import difflib
 
-from lib.services.docx.comment_markup import (
-    footnote_labels,
-    literal,
-    marked_text,
-    plain_text,
-)
+from lib.services.docx.comment_markup import literal, marked_text, plain_text
 
 # A change of at most this many words on either side is quoted as is.
 _SHORT_CHANGE_WORDS = 6
@@ -72,22 +67,11 @@ def edit_pointer(original: str, replacement: str) -> str:
 def edit_fix(original: str, replacement: str) -> str:
     """The whole edit, for a comment that is the only place it appears.
 
-    Quotes drop the document's marks, unless the change lies in them (bold,
-    italics, a footnote link, also beside a change of words) or the quote is
-    nothing but marks: then both sides
-    keep their emphasis, which the comment shows as such, and footnotes read
-    "[N]".
+    Both sides keep the document's own formatting, which the comment shows as
+    such (bold, italics, code as typed), and footnote links read "[N]": a fix
+    that differs only in those is still visible, and nothing in it is lost.
     """
-    before, after = plain_text(original), plain_text(replacement)
-    hidden = (
-        before == after
-        or not before.strip()
-        or footnote_labels(original) != footnote_labels(replacement)
-    )
-    if hidden:
-        before, after = marked_text(original), marked_text(replacement)
-    else:
-        before, after = literal(before), literal(after)
+    before = marked_text(original)
     if not replacement:
         return f"Delete “{before}”"
-    return f"Replace “{before}” with “{after}”"
+    return f"Replace “{before}” with “{marked_text(replacement)}”"

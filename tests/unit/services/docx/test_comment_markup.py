@@ -42,6 +42,13 @@ def test_nested_emphasis_is_formatted_without_stray_marks():
     ]
 
 
+def test_bold_and_italic_can_close_together():
+    assert [(s.text, s.bold, s.italic) for s in segments("**bold *and italic***")] == [
+        ("bold ", True, False),
+        ("and italic", True, True),
+    ]
+
+
 def test_code_is_quoted_literally():
     assert [(s.text, s.bold) for s in segments("Keep `**name**` literally")] == [
         ("Keep ", False),

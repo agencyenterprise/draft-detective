@@ -2,30 +2,31 @@
 
 Issues are written in markdown, which a Word comment would show raw: asterisks
 round bold words, backticks, `### headings` and footnote links such as
-`[[100]](#footnote-101)`. A comment's text keeps `**bold**`, `*italic*` (also
-nested, and `***both***`) and `` `code` ``, whose content is shown literally;
-`write_comment` turns each line into a paragraph of the comment with those spans
-formatted and the marks themselves dropped.
+`[[100]](#footnote-101)`. A comment's text is a line-by-line CommonMark
+subset: `**bold**`, `*italic*` (nested as markdown allows), `` `code` `` shown
+literally and backslash escapes; `write_comment` turns each line into a
+paragraph of the comment with those spans formatted and the marks dropped.
 """
 
 import re
 
 from docx.comments import Comment
 from docx.text.paragraph import Paragraph
+from markdown_it import MarkdownIt
 from pydantic import BaseModel
 
 _FOOTNOTE_LINK = re.compile(r"\[\[(\d+)\]\]\(#footnote-\d+\)")
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*$", re.M)
 _HEADING_MARK = re.compile(r"^#{1,6}\s+", re.M)
-# One span, in the order tried at each position: inline code (1), bold italic
-# (2), bold (3) or italic (4). A lone asterisk, as in a "* item" bullet or
-# "5 * 3", is left alone.
-_SPAN = re.compile(
-    r"`([^`\n]+)`"
-    r"|\*\*\*(?!\s)(.+?)(?<!\s)\*\*\*"
-    r"|\*\*(?!\s)(.+?)(?<!\s)\*\*"
-    r"|(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])"
-)
+# CommonMark inline parsing, as the documents' own markdown is read elsewhere
+# (`lib.services.text.markdown_rendering`): nesting, shared closing delimiters,
+# code spans and backslash escapes behave as markdown defines them.
+_INLINE = MarkdownIt("commonmark")
+# Characters that can start inline markup in CommonMark (emphasis, code, links,
+# HTML, entities, escapes); a backslash before one keeps it literal.
+_INLINE_MARKUP = re.compile(r"([\\`*_\[\]<>&])")
+# Tokens whose content is shown as text; any other token is a mark.
+_TEXT_TOKENS = {"text", "code_inline", "html_inline"}
 
 
 class Segment(BaseModel):
@@ -36,32 +37,34 @@ class Segment(BaseModel):
     italic: bool = False
 
 
-def segments(text: str, bold: bool = False, italic: bool = False) -> list[Segment]:
-    """`text` split into formatted stretches, its marks dropped.
+def segments(text: str) -> list[Segment]:
+    """One line of markdown split into formatted stretches, its marks dropped.
 
     Bold and italic nest (`**a *term* here**`); code is taken literally, so
     asterisks inside it stay text.
     """
+    if not text:
+        return []
+    (line,) = _INLINE.parseInline(text)
     out: list[Segment] = []
-    position = 0
-    for match in _SPAN.finditer(text):
-        if match.start() > position:
-            out.append(
-                Segment(text=text[position : match.start()], bold=bold, italic=italic)
-            )
-        code, both, strong, emphasis = match.groups()
-        if code is not None:
-            out.append(Segment(text=code, bold=bold, italic=italic))
-        elif both is not None:
-            out += segments(both, True, True)
-        elif strong is not None:
-            out += segments(strong, True, italic)
-        else:
-            out += segments(emphasis, bold, True)
-        position = match.end()
-    if position < len(text):
-        out.append(Segment(text=text[position:], bold=bold, italic=italic))
+    bold = italic = 0
+    for token in line.children or []:
+        if token.type == "strong_open":
+            bold += 1
+        elif token.type == "strong_close":
+            bold -= 1
+        elif token.type == "em_open":
+            italic += 1
+        elif token.type == "em_close":
+            italic -= 1
+        elif token.type in _TEXT_TOKENS and token.content:
+            out.append(Segment(text=token.content, bold=bold > 0, italic=italic > 0))
     return out
+
+
+def literal(text: str) -> str:
+    """`text` escaped so that the comment shows it exactly as it is."""
+    return _INLINE_MARKUP.sub(r"\\\1", text)
 
 
 def comment_markdown(text: str) -> str:
@@ -71,24 +74,10 @@ def comment_markdown(text: str) -> str:
     return _HEADING.sub(lambda m: f"**{m[1].replace('**', '')}**", text)
 
 
-def footnote_labels(text: str) -> list[str]:
-    """The footnote numbers a text's footnote links show, in order."""
-    return _FOOTNOTE_LINK.findall(text)
-
-
-def literal(text: str) -> str:
-    """`text` marked so that the comment shows it as is.
-
-    Quoted document text has lost its own marks, so any asterisk left in it is
-    literal; inline code keeps it from being read as emphasis again.
-    """
-    return f"`{text}`" if "*" in text and "`" not in text else text
-
-
 def marked_text(text: str) -> str:
     """Document text with its emphasis kept and footnote links as "[N]".
 
-    For quoting an edit whose only change is in what `plain_text` drops.
+    For quoting a proposed edit in full, formatting and footnotes included.
     """
     return _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub(r"[\1]", text))
 
@@ -96,7 +85,9 @@ def marked_text(text: str) -> str:
 def plain_text(text: str) -> str:
     """Document text with no marks at all, for quoting it inside a comment."""
     text = _HEADING_MARK.sub("", _FOOTNOTE_LINK.sub("", text))
-    return "".join(segment.text for segment in segments(text))
+    return "\n".join(
+        "".join(segment.text for segment in segments(line)) for line in text.split("\n")
+    )
 
 
 def _write_line(paragraph: Paragraph, line: str) -> None:

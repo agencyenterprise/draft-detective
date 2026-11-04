@@ -12,7 +12,7 @@ which `comment_markup.write_comment` turns into Word formatting.
 
 from collections.abc import Sequence
 
-from lib.services.docx.comment_markup import comment_markdown, plain_text
+from lib.services.docx.comment_markup import comment_markdown, literal, plain_text
 from lib.services.docx.edit_notes import EditNote
 
 
@@ -82,7 +82,7 @@ def comment_text(
     notes: Sequence[EditNote] = (),
 ) -> str:
     """The whole comment for one issue."""
-    heading = f"**{plain_text(title)}**"
+    heading = f"**{literal(plain_text(title))}**"
     if workflow_name:
         heading += f" · {workflow_name}"
     blocks = [heading]

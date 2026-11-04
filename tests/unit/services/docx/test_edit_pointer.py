@@ -110,7 +110,26 @@ def test_a_footnote_change_beside_a_word_change_is_kept():
     )
 
 
-def test_literal_asterisks_in_a_quote_stay_literal():
+def test_a_full_fix_keeps_code_as_written():
     assert edit_fix("Use `a**b**c` here", "Use `a**b**c` there") == (
-        "Replace “`Use a**b**c here`” with “`Use a**b**c there`”"
+        "Replace “Use `a**b**c` here” with “Use `a**b**c` there”"
+    )
+
+
+def test_literal_asterisks_in_a_pointer_stay_literal():
+    pointer = edit_pointer(
+        "The rate fell as the `a*b` term grew this quarter.",
+        "The rate fell as the `a*b` term rose this quarter.",
+    )
+    assert pointer == "“grew” → “rose”"
+    deleted = edit_pointer(
+        "Five a*b times in the third quarter of the year.",
+        "Five times in the third quarter of the year.",
+    )
+    assert deleted == "deletes “a\\*b”"
+
+
+def test_a_full_fix_keeps_formatting_beside_a_word_change():
+    assert edit_fix("a *bad* term", "a **good** term") == (
+        "Replace “a *bad* term” with “a **good** term”"
     )
