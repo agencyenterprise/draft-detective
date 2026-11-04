@@ -110,6 +110,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@mohtasham/md-to-docx>sharp": "^0.35.5",
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "vite@>=8.3.0 <8.3.3": "8.3.4"
     },
