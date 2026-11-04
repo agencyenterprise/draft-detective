@@ -1,5 +1,6 @@
 """Tests for how a comment points at an edit's changed words."""
 
+from lib.services.docx.comment_markup import plain_text as plain_text_of
 from lib.services.docx.edit_pointer import edit_fix, edit_pointer
 
 
@@ -133,3 +134,9 @@ def test_a_full_fix_keeps_formatting_beside_a_word_change():
     assert edit_fix("a *bad* term", "a **good** term") == (
         "Replace “a *bad* term” with “a **good** term”"
     )
+
+
+def test_a_changed_link_destination_is_visible_in_the_fix():
+    assert plain_text_of(
+        edit_fix("[Report](https://x/a)", "[Report](https://x/b)")
+    ) == ("Replace “Report (https://x/a)” with “Report (https://x/b)”")

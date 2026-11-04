@@ -41,15 +41,24 @@ def segments(text: str) -> list[Segment]:
     """One line of markdown split into formatted stretches, its marks dropped.
 
     Bold and italic nest (`**a *term* here**`); code is taken literally, so
-    asterisks inside it stay text.
+    asterisks inside it stay text. A link keeps its destination after its
+    label, since a comment cannot link: see `_link_target`.
     """
     if not text:
         return []
     (line,) = _INLINE.parseInline(text)
     out: list[Segment] = []
     bold = italic = 0
+    links: list[tuple[str, int]] = []
     for token in line.children or []:
-        if token.type == "strong_open":
+        if token.type == "link_open":
+            links.append((str(token.attrs.get("href", "")), len(out)))
+        elif token.type == "link_close" and links:
+            href, start = links.pop()
+            label = "".join(segment.text for segment in out[start:])
+            if target := _link_target(href, label):
+                out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
+        elif token.type == "strong_open":
             bold += 1
         elif token.type == "strong_close":
             bold -= 1
@@ -60,6 +69,17 @@ def segments(text: str) -> list[Segment]:
         elif token.type in _TEXT_TOKENS and token.content:
             out.append(Segment(text=token.content, bold=bold > 0, italic=italic > 0))
     return out
+
+
+def _link_target(href: str, label: str) -> str | None:
+    """What follows a link's label in a comment, or None for nothing.
+
+    The destination, in parentheses, unless it is the label itself or an
+    anchor inside the document (a footnote link).
+    """
+    if not href or href.startswith("#") or href == label:
+        return None
+    return f" ({href})"
 
 
 def literal(text: str) -> str:

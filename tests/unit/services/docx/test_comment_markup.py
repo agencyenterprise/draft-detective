@@ -49,6 +49,13 @@ def test_bold_and_italic_can_close_together():
     ]
 
 
+def test_a_link_keeps_its_destination():
+    text = "see [NeurIPS](https://x/a), <https://y.org> and [1](#footnote-2)"
+    assert "".join(s.text for s in segments(text)) == (
+        "see NeurIPS (https://x/a), https://y.org and 1"
+    )
+
+
 def test_code_is_quoted_literally():
     assert [(s.text, s.bold) for s in segments("Keep `**name**` literally")] == [
         ("Keep ", False),
