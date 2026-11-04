@@ -64,8 +64,8 @@ def test_an_image_reads_as_its_alt_text_and_source():
 
 
 def test_an_image_alt_text_is_read_as_rendered():
-    assert "".join(s.text for s in segments("![**Figure** 1](a.png)")) == (
-        "Figure 1 (a.png)"
+    assert "".join(s.text for s in segments("![**Figure** `A`](a.png)")) == (
+        "Figure A (a.png)"
     )
 
 

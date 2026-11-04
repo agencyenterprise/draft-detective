@@ -90,7 +90,9 @@ def segments(text: str, targets: bool = True) -> list[Segment]:
         elif kind == "image":
             # An image reads like a link: its alt text as rendered, then its
             # source.
-            alt = "".join(c.content for c in token.children or [] if c.type == "text")
+            alt = "".join(
+                c.content for c in token.children or [] if c.type in _TEXT_TOKENS
+            )
             src = str(token.attrs.get("src", ""))
             target = _link_target(src, alt) if targets else None
             image = alt + (target or "")
