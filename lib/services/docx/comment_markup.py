@@ -27,7 +27,29 @@ _INLINE = MarkdownIt("commonmark")
 # HTML, entities, escapes); a backslash before one keeps it literal.
 _INLINE_MARKUP = re.compile(r"([\\`*_\[\]<>&])")
 # Tokens whose content is shown as text; any other token is a mark.
-_TEXT_TOKENS = {"text", "code_inline", "html_inline"}
+_TEXT_TOKENS = {"text", "code_inline"}
+_HTML_TAG = re.compile(r"^<(/?)([A-Za-z][\w-]*)")
+# HTML tags read as the markdown emphasis they stand for.
+_HTML_EMPHASIS = {"em": "em", "i": "em", "b": "strong", "strong": "strong"}
+# HTML tags dropped, keeping what they enclose: formatting a comment cannot
+# show, and tags models leak into issue text (`<cite index="…">` from search
+# results, `<parameter name="…">` from tool calls). Any other tag-like text,
+# such as a `<name>` placeholder, is kept as written.
+_HTML_DROPPED = {
+    "a",
+    "br",
+    "cite",
+    "div",
+    "font",
+    "mark",
+    "p",
+    "parameter",
+    "small",
+    "span",
+    "sub",
+    "sup",
+    "u",
+}
 
 
 class Segment(BaseModel):
@@ -53,29 +75,52 @@ def segments(text: str) -> list[Segment]:
     bold = italic = 0
     links: list[tuple[str, int]] = []
     for token in line.children or []:
-        if token.type == "link_open":
+        kind = _kind(token.type, token.content)
+        if kind == "html_break":
+            out.append(Segment(text=" ", bold=bold > 0, italic=italic > 0))
+        elif kind == "link_open":
             links.append((str(token.attrs.get("href", "")), len(out)))
-        elif token.type == "link_close" and links:
+        elif kind == "link_close" and links:
             href, start = links.pop()
             label = "".join(segment.text for segment in out[start:])
             if target := _link_target(href, label):
                 out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
-        elif token.type == "image":
+        elif kind == "image":
             # An image reads like a link: its alt text, then its source.
             src = str(token.attrs.get("src", ""))
             image = token.content + (_link_target(src, token.content) or "")
             out.append(Segment(text=image, bold=bold > 0, italic=italic > 0))
-        elif token.type == "strong_open":
+        elif kind == "strong_open":
             bold += 1
-        elif token.type == "strong_close":
+        elif kind == "strong_close":
             bold -= 1
-        elif token.type == "em_open":
+        elif kind == "em_open":
             italic += 1
-        elif token.type == "em_close":
+        elif kind == "em_close":
             italic -= 1
-        elif token.type in _TEXT_TOKENS and token.content:
+        elif kind in _TEXT_TOKENS and token.content:
             out.append(Segment(text=token.content, bold=bold > 0, italic=italic > 0))
     return out
+
+
+def _kind(token_type: str, content: str) -> str:
+    """A token's type, with inline HTML read as the markdown it stands for.
+
+    An emphasis tag becomes `em_open`, `strong_close` and so on; a dropped tag
+    becomes `html_dropped` (`html_break` for `<br>`, which keeps a space); any
+    other tag-like text is plain `text`.
+    """
+    if token_type != "html_inline":
+        return token_type
+    match = _HTML_TAG.match(content)
+    if match is None:
+        return "text"
+    closing, name = match[1], match[2].lower()
+    if name in _HTML_EMPHASIS:
+        return f"{_HTML_EMPHASIS[name]}_{'close' if closing else 'open'}"
+    if name == "br":
+        return "html_break"
+    return "html_dropped" if name in _HTML_DROPPED else "text"
 
 
 def _link_target(href: str, label: str) -> str | None:

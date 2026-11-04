@@ -145,3 +145,16 @@ def test_an_anchor_that_is_not_a_footnote_keeps_its_target():
 def test_a_literal_url_keeps_its_underscores():
     url = "https://dd.example/share/_abcd_-1234#lines-3-4"
     assert "".join(s.text for s in segments(literal(url))) == url
+
+
+def test_html_tags_render_or_drop_and_placeholders_stay():
+    text = 'a <em>warning</em>,<br>see (<cite index="38-1">Smith</cite>) for <name>'
+    assert [(s.text, s.italic) for s in segments(text) if s.text.strip()] == [
+        ("a ", False),
+        ("warning", True),
+        (",", False),
+        ("see (", False),
+        ("Smith", False),
+        (") for ", False),
+        ("<name>", False),
+    ]
