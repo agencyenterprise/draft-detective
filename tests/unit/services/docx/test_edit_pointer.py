@@ -85,3 +85,9 @@ def test_document_marks_are_left_out_of_quotes():
 def test_the_whole_fix_reads_as_an_instruction():
     assert edit_fix("for 2019", "") == "Delete “for 2019”"
     assert edit_fix("14% rise", "18% rise") == "Replace “14% rise” with “18% rise”"
+
+
+def test_a_formatting_only_fix_keeps_its_formatting():
+    assert edit_fix("rose sharply", "rose **sharply**") == (
+        "Replace “rose sharply” with “rose **sharply**”"
+    )
