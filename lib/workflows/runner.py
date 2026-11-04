@@ -108,10 +108,12 @@ async def run_workflow_with_dependency_check(
         )
 
     except Exception as e:
-        # run_workflow records its own failures. This branch catches what is
-        # raised before it starts: a required dependency with no run at all
-        # (wait_for_dependencies), or setup such as create_context finding no
-        # API key or create_state failing.
+        # run_workflow records failures raised while the graph runs. This
+        # branch catches the rest: a required dependency with no run at all
+        # (wait_for_dependencies), setup such as create_context finding no API
+        # key or create_state failing, run_workflow's own setup before its try
+        # (marking the run RUNNING, compiling the graph), and errors raised
+        # while its handlers persist state or mark the run failed.
         logger.error(f"Error running workflow: {e}", exc_info=True)
         await fail_workflow_run(
             workflow_run_id,
