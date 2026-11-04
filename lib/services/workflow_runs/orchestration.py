@@ -40,13 +40,20 @@ async def wait_for_dependencies(
 
     This function handles two types of waiting:
     1. Same-type locking: If current_workflow_run_id is provided, waits for any other
-       PENDING/RUNNING instance of the same workflow type to complete first.
+       unfinished (pending, running or awaiting approval) run of the same workflow
+       type to end first. Workflows with independent_runs skip it.
     2. Dependency waiting: Waits for required and optional dependencies to complete.
 
     Args:
         workflow_type: The workflow type to check dependencies for
         project_id: The project ID to check workflow runs for
         current_workflow_run_id: If provided, enables same-type locking (skips self)
+        revision: The project revision whose runs are checked
+
+    Raises:
+        DependencyWaitTimeoutError: If the wait exceeds DEPENDENCY_WAIT_TIMEOUT
+        ValueError: If a required dependency has no run on the revision
+        WorkflowCancelledError: If a required dependency was cancelled or failed
     """
     manifest = get_workflow_manifest(workflow_type)
     required_dependencies = manifest.required_dependencies
@@ -143,14 +150,15 @@ async def _get_pending_workflow_dependencies(
         dependencies: The dependencies to check
         required: Whether the dependencies are required
         current_workflow_run_id: ID of the current run, used to self-cancel when a
-            required dependency is cancelled
+            required dependency is cancelled or failed
+        revision: The project revision whose runs are checked
 
     Returns:
         A list of pending dependencies
 
     Raises:
         ValueError: If a required dependency has not been started yet or is not scheduled to run
-        WorkflowCancelledError: If a required dependency was cancelled
+        WorkflowCancelledError: If a required dependency was cancelled or failed
     """
 
     pending_dependencies: list[WorkflowRunType] = []

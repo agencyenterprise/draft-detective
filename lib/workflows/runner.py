@@ -108,9 +108,12 @@ async def run_workflow_with_dependency_check(
         )
 
     except Exception as e:
-        # Errors that escape run_workflow's own handler land here. run_workflow
-        # already marks itself FAILED in that case; this branch covers errors
-        # raised before/after run_workflow runs (e.g. setup failures).
+        # run_workflow records failures raised while the graph runs. This
+        # branch catches the rest: a required dependency with no run at all
+        # (wait_for_dependencies), setup such as create_context finding no API
+        # key or create_state failing, run_workflow's own setup before its try
+        # (marking the run RUNNING, compiling the graph), and errors raised
+        # while its handlers persist state or mark the run failed.
         logger.error(f"Error running workflow: {e}", exc_info=True)
         await fail_workflow_run(
             workflow_run_id,
@@ -364,7 +367,7 @@ def create_context(
     Create workflow context.
 
     Key resolution: per-request key > user's stored key > server env var.
-    Each workflow declares whether it requires an API key via requires_api_key().
+    Each workflow's config class declares whether it requires an API key via requires_api_key().
     Workflows that don't use LLMs (data manipulation only) can return False.
     """
     user_stored_key = get_user_decrypted_api_key(user) if user else None
