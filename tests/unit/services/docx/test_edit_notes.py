@@ -1,7 +1,7 @@
 """Tests for what a Word comment says about each proposed edit.
 
-Every edit the export considered is written into its issue's comment, whether
-or not it became a redline; these are the sentences that say which.
+Every edit the export considered is noted in its issue's comment, whether or
+not it became a redline; these notes say which, and why not.
 """
 
 import uuid
@@ -17,39 +17,38 @@ from tests.unit.services.docx.tracked_changes.support import (
 
 
 class TestEditNotes:
-    def test_an_applied_edit_reads_as_a_tracked_change(self):
+    def test_an_applied_edit_points_at_its_changed_words(self):
         edit = _edit("14% rise", "18% rise", 1)
 
         (note,) = build_edit_notes(
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status="applied")}, {}
         )
 
-        assert note == (
-            'Proposed edit: "14% rise" → "18% rise"\n'
-            "because the figure is misnumbered\n"
-            "Applied below as a tracked change."
-        )
+        assert note.status == "applied"
+        assert note.pointer == "“14%” → “18%”"
+        assert note.fix == "Replace “14% rise” with “18% rise”"
+        assert note.rationale == "because the figure is misnumbered"
+        assert note.reason is None
 
-    def test_an_empty_rationale_leaves_no_blank_line(self):
-        edit = _edit("14% rise", "18% rise", 1)
-        edit.rationale = ""
-
-        (note,) = build_edit_notes(
-            [edit], {edit.id: EditOutcome(edit_id=edit.id, status="applied")}, {}
-        )
-
-        assert note == (
-            'Proposed edit: "14% rise" → "18% rise"\nApplied below as a tracked change.'
-        )
-
-    def test_a_deletion_is_labelled_as_one(self):
+    def test_a_deletion_is_given_as_one(self):
         edit = _edit("for 2019", "", 1)
 
         (note,) = build_edit_notes(
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status="applied")}, {}
         )
 
-        assert note.startswith('Proposed deletion: "for 2019"\n')
+        assert note.fix == "Delete “for 2019”"
+        assert note.pointer == "deletes “for 2019”"
+
+    def test_a_comments_only_export_marks_every_edit_as_skipped(self):
+        edit = _edit("14% rise", "18% rise", 1)
+
+        (note,) = build_edit_notes(
+            [edit], {edit.id: EditOutcome(edit_id=edit.id, status="skipped")}, {}
+        )
+
+        assert note.status == "skipped"
+        assert note.reason == "tracked changes were not requested for this export"
 
     def test_a_conflict_names_the_workflow_it_lost_to(self):
         edit = _edit("14% rise", "18% rise", 1)
@@ -60,9 +59,10 @@ class TestEditNotes:
             {edit.id: "Reference Error Checker"},
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: overlaps another proposed edit "
-            "on this line (Reference Error Checker)."
+        assert note.status == "not_applied"
+        assert (
+            note.reason
+            == "overlaps another proposed edit on this line (Reference Error Checker)"
         )
 
     def test_a_conflict_without_a_named_winner_says_so_plainly(self):
@@ -72,10 +72,8 @@ class TestEditNotes:
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status="conflict")}, {}
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: overlaps another proposed edit "
-            "in the same paragraph."
-        )
+        assert note.status == "not_applied"
+        assert note.reason == "overlaps another proposed edit in the same paragraph"
 
     def test_an_unsupported_replacement_says_what_word_cannot_show(self):
         edit = _edit("aword", "a\nword", 1)
@@ -92,10 +90,10 @@ class TestEditNotes:
             {},
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: the replacement cannot be "
-            "represented in Word (the replacement spans more than one "
-            "paragraph)."
+        assert note.status == "not_applied"
+        assert (
+            note.reason
+            == "the replacement cannot be represented in Word (the replacement spans more than one paragraph)"
         )
 
     def test_an_unsupported_link_change_says_what_word_keeps_apart(self):
@@ -113,10 +111,10 @@ class TestEditNotes:
             {},
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: the replacement cannot be "
-            "represented in Word (it changes a link destination, which the export "
-            "cannot write)."
+        assert note.status == "not_applied"
+        assert (
+            note.reason
+            == "the replacement cannot be represented in Word (it changes a link destination, which the export cannot write)"
         )
 
     def test_an_unsupported_replacement_without_a_detail_stops_at_the_reason(self):
@@ -126,10 +124,8 @@ class TestEditNotes:
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status="unsupported")}, {}
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: the replacement cannot be "
-            "represented in Word."
-        )
+        assert note.status == "not_applied"
+        assert note.reason == "the replacement cannot be represented in Word"
 
     def test_a_paragraph_wide_conflict_says_which_paragraph_it_is(self):
         edit = _edit("14% rise", "18% rise", 1)
@@ -148,9 +144,10 @@ class TestEditNotes:
             {edit.id: "Advocacy Tone Check"},
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: overlaps another proposed edit "
-            "in this paragraph (Advocacy Tone Check)."
+        assert note.status == "not_applied"
+        assert (
+            note.reason
+            == "overlaps another proposed edit in this paragraph (Advocacy Tone Check)"
         )
 
     def test_a_failed_write_says_what_went_wrong(self):
@@ -168,9 +165,8 @@ class TestEditNotes:
             {},
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: text not found in paragraph P3#aaaa."
-        )
+        assert note.status == "not_applied"
+        assert note.reason == "text not found in paragraph P3#aaaa"
 
     def test_a_failed_write_without_a_detail_still_reads_as_a_failure(self):
         edit = _edit("14% rise", "18% rise", 1)
@@ -179,9 +175,8 @@ class TestEditNotes:
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status="failed")}, {}
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: writing the change to Word failed."
-        )
+        assert note.status == "not_applied"
+        assert note.reason == "writing the change to Word failed"
 
     @pytest.mark.parametrize("status", ["unlocatable", "not_found", "ambiguous"])
     def test_every_unmatched_outcome_reads_the_same(self, status):
@@ -191,10 +186,8 @@ class TestEditNotes:
             [edit], {edit.id: EditOutcome(edit_id=edit.id, status=status)}, {}
         )
 
-        assert note.endswith(
-            "Not applied as a tracked change: the quoted text could not be "
-            "matched in this paragraph."
-        )
+        assert note.status == "not_applied"
+        assert note.reason == "the quoted text could not be matched in this paragraph"
 
     def test_an_edit_with_no_outcome_is_left_out(self):
         edit = _edit("14% rise", "18% rise", 1, status=IssueEditStatus.REJECTED)

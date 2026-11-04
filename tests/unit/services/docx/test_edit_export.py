@@ -140,11 +140,8 @@ async def test_an_issues_edit_is_planned_noted_and_written(
     )
     output = await _write([issue], plan, _CommentWriter(docx_path, tmp_path), tmp_path)
 
-    assert plan.notes_for(issue.id) == [
-        'Proposed edit: "14% rise" → "18% rise"\n'
-        "the figure is wrong\n"
-        "Applied below as a tracked change."
-    ]
+    assert [n.status for n in plan.notes_for(issue.id)] == ["applied"]
+    assert plan.notes_for(issue.id)[0].pointer == "“14%” → “18%”"
     assert "reports a 18% rise" in _visible(output)
 
 
@@ -160,7 +157,7 @@ async def test_a_word_file_uploaded_under_a_doc_name_is_still_planned(
         [issue], _MARKDOWN, str(doc_named), {0: (1, 1)}, workspace_root=str(tmp_path)
     )
 
-    assert plan.notes_for(issue.id)[0].endswith("Applied below as a tracked change.")
+    assert plan.notes_for(issue.id)[0].status == "applied"
 
 
 @pytest.mark.asyncio
@@ -176,9 +173,8 @@ async def test_without_a_paragraph_mapping_nothing_is_written_and_the_note_says_
     output = await _write([issue], plan, _CommentWriter(docx_path, tmp_path), tmp_path)
 
     assert plan.planned == []
-    assert plan.notes_for(issue.id)[0].endswith(
-        "Not applied as a tracked change: the quoted text could not be "
-        "matched in this paragraph."
+    assert plan.notes_for(issue.id)[0].reason == (
+        "the quoted text could not be matched in this paragraph"
     )
     assert output.read_bytes() == before
 
@@ -274,17 +270,12 @@ class TestTheWriteDecidesWhatTheCommentsClaim:
         assert not writer.paths[0].exists()
         delivered = writer.exports[-1]
         (refused_note,) = delivered.notes_for(refused.id)
-        assert refused_note.endswith(
-            "Not applied as a tracked change: text not found in paragraph."
-        )
+        assert refused_note.status == "not_applied"
+        assert refused_note.reason == "text not found in paragraph"
         assert [edit.edit_id for edit in delivered.planned] == [
             writable.edit_rows[0].id
         ]
-        assert delivered.notes_for(writable.id) == [
-            'Proposed edit: "14% rise" → "18% rise"\n'
-            "the figure is wrong\n"
-            "Applied below as a tracked change."
-        ]
+        assert [n.status for n in delivered.notes_for(writable.id)] == ["applied"]
         visible = _visible(output)
         assert "reports a 18% rise" in visible
         assert "lists every source consulted" in visible
@@ -322,12 +313,10 @@ class TestTheCommentsOnlyMode:
         export = describe_edit_export([issue])
 
         assert export.planned == []
-        assert export.notes_for(issue.id) == [
-            'Proposed edit: "14% rise" → "18% rise"\n'
-            "the figure is wrong\n"
-            "Not applied as a tracked change: tracked changes were not "
-            "requested for this export."
-        ]
+        (note,) = export.notes_for(issue.id)
+        assert note.status == "skipped"
+        assert note.fix == "Replace “14% rise” with “18% rise”"
+        assert note.rationale == "the figure is wrong"
 
     def test_a_rejected_edit_is_still_left_out(self):
         issue = _issue(
@@ -375,9 +364,8 @@ class TestAnEmptyPlanCostsNothing:
         output = await _write([issue], export, writer, tmp_path)
 
         assert export.planned == []
-        assert export.notes_for(issue.id)[0].endswith(
-            "Not applied as a tracked change: the quoted text could not be "
-            "matched in this paragraph."
+        assert export.notes_for(issue.id)[0].reason == (
+            "the quoted text could not be matched in this paragraph"
         )
         assert writer.exports == [export]
         assert output.read_bytes() == docx_path.read_bytes()

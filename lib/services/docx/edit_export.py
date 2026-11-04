@@ -36,7 +36,7 @@ from lib.services.docx.edit_conflicts import (
     EditDecision,
     resolve_edit_conflicts,
 )
-from lib.services.docx.edit_notes import build_edit_notes
+from lib.services.docx.edit_notes import EditNote, build_edit_notes
 from lib.services.docx.tracked_changes import (
     EditOutcome,
     PlannedEdit,
@@ -55,12 +55,12 @@ class EditExport(BaseModel):
 
     planned: list[PlannedEdit] = Field(default_factory=list)
     outcomes: dict[uuid.UUID, EditOutcome] = Field(default_factory=dict)
-    notes_by_issue: dict[uuid.UUID, list[str]] = Field(default_factory=dict)
+    notes_by_issue: dict[uuid.UUID, list[EditNote]] = Field(default_factory=dict)
     # The workflow each conflict lost to, by losing edit, kept so the notes can
     # be composed again once the write has settled which edits failed.
     winner_names: dict[uuid.UUID, str] = Field(default_factory=dict)
 
-    def notes_for(self, issue_id: uuid.UUID) -> list[str]:
+    def notes_for(self, issue_id: uuid.UUID) -> list[EditNote]:
         return self.notes_by_issue.get(issue_id, [])
 
 
