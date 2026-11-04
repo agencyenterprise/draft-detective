@@ -15,7 +15,6 @@ def build_reference_validation_v2_graph() -> StateGraph:
     graph = StateGraph(ReferenceValidationV2State, context_schema=ContextSchema)
 
     graph.add_node("initialize_validations", initialize_validations)
-    graph.add_node("distribute_validations", distribute_validations)
     graph.add_node("validate_single_reference", validate_single_reference)
     graph.add_node("finalize_validations", finalize_validations)
 

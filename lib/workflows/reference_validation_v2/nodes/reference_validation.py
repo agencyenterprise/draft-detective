@@ -46,7 +46,7 @@ async def initialize_validations(
 async def distribute_validations(
     state: ReferenceValidationV2State, runtime: Runtime[ContextSchema]
 ):
-    """Fan-out node: creates a Send for each reference."""
+    """Fan-out router: creates a Send for each reference."""
     references = await runtime.context.file_artifacts_service.get_extracted_references()
     # Each reference's place in the document, to anchor its edits on.
     lines_by_id = {
