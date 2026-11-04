@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.6.0] - 2026-11-04
+
+### Added
+- Word export comments now lead with proposed-edit status, point to tracked changes, and render supported formatting.
+- Suggested actions now include only guidance not covered by proposed edits.
+
+### Changed
+- Updated the frontend, Docker image, and release workflow to Node 26.13.0 LTS.
+- Improved document-search output by merging overlapping context, preserving trailing context, and accurately reporting result limits.
+- Improved chat attachment handling and added coverage for attachment, document-panel, thread-list, and turn-loop behavior.
+
+### Fixed
+- Reusing a gated workflow start now returns the existing awaiting-approval run rather than creating a duplicate.
+- Users can no longer access or cancel workflow runs that have no associated project.
+- Workflow timeouts retain their TIMEOUT reason when cancellation cleanup fails.
+- Fixed chat attachment label removal for file names containing quotation marks.
+- Fixed duplicate lines, missing context, and incorrect truncation messaging in document search results.
+
+### Security
+- Updated `sharp` to 0.35.5 for high-severity frontend advisories.
+- Updated `pyasn1` to 0.6.5 and `joserfc` to 1.7.7 to address backend advisories.
+
+
 ## [v2.5.0] - 2026-10-30
 
 Added
