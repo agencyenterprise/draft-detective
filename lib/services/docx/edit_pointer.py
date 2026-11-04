@@ -17,6 +17,8 @@ _MAX_CHANGES = 2
 # Past this share of the sentence's words, the changes read as a rewrite: a word
 # diff of a sentence turned around comes out in pieces no reader can follow.
 _REWRITE_SHARE = 0.5
+# Characters markdown can take as formatting.
+_MARKUP_CHARACTERS = "*_`"
 # Words quoted from the start of a rewritten sentence.
 _LEAD_WORDS = 5
 
@@ -72,11 +74,20 @@ def _as_shown(raw: str, shown: str | None) -> str:
     span, half of a bold phrase): then the text as the document shows it,
     taken literally.
     """
-    if shown is not None and " ".join(plain_text(raw).split()) != " ".join(
-        shown.split()
-    ):
+    if shown is not None and _markup_count(plain_text(raw)) != _markup_count(shown):
         return literal(shown)
     return marked_text(raw)
+
+
+def _markup_count(text: str) -> list[int]:
+    """How many of each markup character a text shows.
+
+    A quote parsed on its own that shows fewer than the document does is a
+    fragment whose markup the parse took as formatting. Other differences,
+    such as a link's destination the comment adds after its label, do not
+    count.
+    """
+    return [text.count(mark) for mark in _MARKUP_CHARACTERS]
 
 
 def edit_fix(

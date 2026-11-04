@@ -18,7 +18,8 @@ from pydantic import BaseModel
 _FOOTNOTE_LINK = re.compile(r"\[\[(\d+)\]\]\(#footnote-\d+\)")
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*$", re.M)
 _HEADING_MARK = re.compile(r"^#{1,6}\s+", re.M)
-_FENCE = re.compile(r"^\s{0,3}(```|~~~)")
+# A code fence: three or more backticks or tildes.
+_FENCE = re.compile(r"^\s{0,3}(`{3,}|~{3,})")
 # CommonMark inline parsing, as the documents' own markdown is read elsewhere
 # (`lib.services.text.markdown_rendering`): nesting, shared closing delimiters,
 # code spans and backslash escapes behave as markdown defines them.
@@ -140,15 +141,24 @@ def literal(text: str) -> str:
 
 
 def _fenced(lines: list[str]) -> list[bool | None]:
-    """For each line: None for a code fence, True inside a fenced block."""
-    inside = False
+    """For each line: None for a code fence, True inside a fenced block.
+
+    A block closes only on a fence of its opener's character, at least as long,
+    so a fence shown inside the block (``` inside ````) stays code.
+    """
+    opener: str | None = None
     kinds: list[bool | None] = []
     for line in lines:
-        if _FENCE.match(line):
-            inside = not inside
+        match = _FENCE.match(line)
+        fence = match[1] if match else None
+        if fence and opener is None:
+            opener = fence
+            kinds.append(None)
+        elif fence and opener and fence[0] == opener[0] and len(fence) >= len(opener):
+            opener = None
             kinds.append(None)
         else:
-            kinds.append(inside)
+            kinds.append(opener is not None)
     return kinds
 
 

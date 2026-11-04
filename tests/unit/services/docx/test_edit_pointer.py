@@ -147,3 +147,11 @@ def test_a_fragment_of_markup_is_quoted_as_the_document_shows_it():
     # "abc" with an italic "b", so each side is quoted as the document shows it.
     fix = edit_fix("a*b*c", "x*y*z", "a*b*c", "x*y*z")
     assert plain_text_of(fix) == "Replace “a*b*c” with “x*y*z”"
+
+
+def test_a_whole_link_keeps_its_destination_with_display_text():
+    # display_text holds only the rendered label; the destination must survive.
+    fix = edit_fix("[Report](https://x/a)", "[Report](https://x/b)", "Report", "Report")
+    assert plain_text_of(fix) == (
+        "Replace “Report (https://x/a)” with “Report (https://x/b)”"
+    )
