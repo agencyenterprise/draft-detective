@@ -11,7 +11,8 @@ that covers several markdown lines cannot be indexed by an occurrence counted
 in one of them, so a quote it repeats is reported instead of placed.
 
 `plan_edit` answers all three for one edit and is the only name
-`planning` needs from here.
+`planning` needs from here. A quote that crosses footnote references is placed
+by `footnotes` instead, as one redline per stretch it changes.
 """
 
 import re
@@ -20,14 +21,15 @@ from collections.abc import Sequence
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import (
     LINK_DESTINATION_CHANGED,
-    is_table_row,
+    UNCHANGED_ONCE_RENDERED,
     unsupported_replacement_reason,
 )
 from lib.services.docx.paragraph_refs import MappedParagraph
-from lib.services.docx.tracked_changes.lines import (
-    line_belongs_to_paragraph,
-    source_line,
+from lib.services.docx.tracked_changes.footnotes import (
+    carries_footnotes,
+    place_around_footnotes,
 )
+from lib.services.docx.tracked_changes.lines import membership_outcome
 from lib.services.docx.tracked_changes.models import (
     EditOutcome,
     EditOutcomeStatus,
@@ -158,78 +160,88 @@ def _with_boundary_whitespace(
     return start, end
 
 
-def plan_edit(
+# One redline as `_locate` hands it over: the paragraph span and its new text.
+_Piece = tuple[tuple[int, int], str]
+
+
+def _locate(
     edit: IssueEdit,
-    paragraph_index: int,
-    paragraph: MappedParagraph,
+    paragraph_text: str,
     paragraph_range: tuple[int, int],
     document_lines: Sequence[str],
-) -> tuple[PlannedEdit | None, EditOutcome]:
-    """Turn one applicable edit into a redline, or say why it cannot be one."""
-    line = source_line(edit, document_lines)
-    # Before any comparison with the paragraph: a row repeating the prose above
-    # it word for word would pass the containment test below, and its redline
-    # would land on the paragraph instead of the cell.
-    if line is not None and is_table_row(line):
-        return None, EditOutcome(
-            edit_id=edit.id,
-            status="unlocatable",
-            detail="the edit sits in a table, which the export cannot redline",
-        )
-    if not line_belongs_to_paragraph(line, paragraph.text):
-        return None, EditOutcome(
-            edit_id=edit.id,
-            status="unlocatable",
-            detail=(
-                "the edit's line is not part of the mapped paragraph "
-                "(a table or nested block)"
-            ),
-        )
+) -> list[_Piece] | EditOutcome:
+    """The spans to redline and what to write over each, or why there are none.
 
+    A quote is matched as the document renders it, and is one redline. A quote
+    carrying footnote references is matched around them instead, as one
+    redline per stretch between references that the edit changes (see
+    `footnotes`). Never as rendered: Word keeps a reference as a mark with no
+    text, so a paragraph showing the rendered ``Claim[1]`` can only be showing a
+    literal citation, never the passage the quote means.
+    """
+    if carries_footnotes(edit):
+        placed = place_around_footnotes(edit, paragraph_text)
+        if placed.pieces:
+            return [(piece.span, piece.replace_with) for piece in placed.pieces]
+        if placed.detail is not None:
+            return EditOutcome(
+                edit_id=edit.id, status="unsupported", detail=placed.detail
+            )
+        return EditOutcome(edit_id=edit.id, status="not_found")
     span, status, detail = _resolve_span(
-        edit, paragraph.text, paragraph_range, document_lines
+        edit, paragraph_text, paragraph_range, document_lines
     )
     if span is None:
-        return None, EditOutcome(edit_id=edit.id, status=status, detail=detail)
+        return EditOutcome(edit_id=edit.id, status=status, detail=detail)
+    span = _with_boundary_whitespace(span, paragraph_text, edit.original_text)
+    return [(span, edit.display_replacement)]
 
-    span = _with_boundary_whitespace(span, paragraph.text, edit.original_text)
-    find = paragraph.text[span[0] : span[1]]
-    replace_with = edit.display_replacement
+
+def _refusal(
+    edit: IssueEdit, paragraph_text: str, pieces: list[_Piece]
+) -> EditOutcome | None:
+    """Why located redlines still cannot be written, or None when they can."""
     unsupported = unsupported_replacement_reason(edit.replacement_text)
     if unsupported is not None:
-        return None, EditOutcome(
-            edit_id=edit.id,
-            status="unsupported",
-            detail=unsupported,
-        )
+        return EditOutcome(edit_id=edit.id, status="unsupported", detail=unsupported)
     if link_destinations(edit.replacement_text) != link_destinations(
         edit.original_text
     ):
-        return None, EditOutcome(
-            edit_id=edit.id,
-            status="unsupported",
-            detail=LINK_DESTINATION_CHANGED,
+        return EditOutcome(
+            edit_id=edit.id, status="unsupported", detail=LINK_DESTINATION_CHANGED
         )
-    if replace_with == find:
-        return None, EditOutcome(
-            edit_id=edit.id,
-            status="unsupported",
-            detail="the replacement matches the current text once formatting is removed",
+    finds = [paragraph_text[start:end] for (start, end), _ in pieces]
+    if all(find == replace for find, (_, replace) in zip(finds, pieces)):
+        return EditOutcome(
+            edit_id=edit.id, status="unsupported", detail=UNCHANGED_ONCE_RENDERED
         )
-    if _CONTROL_CHARS.search(find) or _CONTROL_CHARS.search(replace_with):
-        return None, EditOutcome(
+    if any(
+        _CONTROL_CHARS.search(find) or _CONTROL_CHARS.search(replace)
+        for find, (_, replace) in zip(finds, pieces)
+    ):
+        return EditOutcome(
             edit_id=edit.id,
             status="failed",
             detail="quoted or replacement text carries a control character",
         )
+    return None
 
+
+def _planned(
+    edit: IssueEdit,
+    paragraph_index: int,
+    paragraph: MappedParagraph,
+    piece: _Piece,
+) -> PlannedEdit:
+    span, replace_with = piece
+    find = paragraph.text[span[0] : span[1]]
     # docx-editor counts occurrences of the exact search string in the
     # paragraph's visible text, which is not the whitespace-normalized count
     # the span came from, so the index is recounted on `find` itself.
     occurrence = len(
         [offset for offset in all_offsets(paragraph.text, find) if offset < span[0]]
     )
-    planned = PlannedEdit(
+    return PlannedEdit(
         edit_id=edit.id,
         paragraph_ref=paragraph.ref,
         paragraph_index=paragraph_index,
@@ -238,4 +250,33 @@ def plan_edit(
         occurrence=occurrence,
         span=span,
     )
+
+
+def plan_edit(
+    edit: IssueEdit,
+    paragraph_index: int,
+    paragraph: MappedParagraph,
+    paragraph_range: tuple[int, int],
+    document_lines: Sequence[str],
+) -> tuple[list[PlannedEdit], EditOutcome]:
+    """Turn one applicable edit into its redlines, or say why it has none.
+
+    Usually one redline. A quote that crosses footnote references gets one per
+    stretch it changes between them, all under the edit's id: they are written,
+    refused and reported together.
+    """
+    refused = membership_outcome(edit, paragraph.text, document_lines)
+    if refused is not None:
+        return [], refused
+    located = _locate(edit, paragraph.text, paragraph_range, document_lines)
+    if isinstance(located, EditOutcome):
+        return [], located
+    refused = _refusal(edit, paragraph.text, located)
+    if refused is not None:
+        return [], refused
+    planned = [
+        _planned(edit, paragraph_index, paragraph, piece)
+        for piece in located
+        if paragraph.text[piece[0][0] : piece[0][1]] != piece[1]
+    ]
     return planned, EditOutcome(edit_id=edit.id, status="applied")
