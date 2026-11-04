@@ -117,17 +117,43 @@ def unplaceable_outcomes(
     ]
 
 
+def _competing_edits(groups: Sequence[Sequence[PlannedEdit]]) -> list[set[uuid.UUID]]:
+    """The edits that compete with each other, joined through shared edits.
+
+    An overlap group links the edits it holds, and an edit placed as several
+    redlines links every group one of its redlines sits in. So two groups that
+    share an edit are one competition, the way a chain of overlaps is one group
+    on a markdown line: deciding them apart could drop an edit for losing to
+    one that is itself dropped elsewhere.
+    """
+    parent: dict[uuid.UUID, uuid.UUID] = {}
+
+    def root(edit_id: uuid.UUID) -> uuid.UUID:
+        while parent.setdefault(edit_id, edit_id) != edit_id:
+            edit_id = parent[edit_id]
+        return edit_id
+
+    for group in groups:
+        first = root(group[0].edit_id)
+        for edit in group[1:]:
+            parent[root(edit.edit_id)] = first
+    components: dict[uuid.UUID, set[uuid.UUID]] = {}
+    for edit_id in list(parent):
+        components.setdefault(root(edit_id), set()).add(edit_id)
+    return list(components.values())
+
+
 def _resolve_paragraph_overlaps(
     planned: Sequence[PlannedEdit],
     candidates_by_id: Mapping[uuid.UUID, EditCandidate],
 ) -> tuple[list[PlannedEdit], list[EditOutcome]]:
-    """Keep one edit per overlap group, by the same policy as a line's.
+    """Keep one edit per competing set, by the same policy as a line's.
 
     The winner is `pick_winner`'s, not whichever edit happened to be planned
     first: an accepted edit beats a proposed one here exactly as it does when
     both quotes sit on the same markdown line. An edit placed as several
-    redlines (around footnote references) is kept or dropped whole, so a lost
-    overlap on one of its redlines takes the others out too.
+    redlines (around footnote references) is kept or dropped whole, and
+    competes with everything any of its redlines overlaps.
     """
     # One Word paragraph can cover several markdown lines (a list, a table row,
     # a hard line break), so two edits from different lines can still land on
@@ -140,25 +166,22 @@ def _resolve_paragraph_overlaps(
         span=lambda edit: edit.span,
         item_id=lambda edit: f"{edit.edit_id}:{edit.span}",
     )
-    winners: dict[uuid.UUID, uuid.UUID] = {}
-    for group in groups:
-        edit_ids = list(dict.fromkeys(edit.edit_id for edit in group))
-        if len(edit_ids) == 1:
+    losses: list[EditOutcome] = []
+    for competing in _competing_edits(groups):
+        if len(competing) == 1:
             continue
-        winner_id = pick_winner([candidates_by_id[i] for i in edit_ids]).edit.id
-        for edit_id in edit_ids:
-            if edit_id != winner_id:
-                winners.setdefault(edit_id, winner_id)
-    losses = [
-        EditOutcome(
-            edit_id=edit_id,
-            status="conflict",
-            detail=f"overlaps proposed edit {winner_id} in this paragraph",
-            winner_id=winner_id,
+        winner_id = pick_winner([candidates_by_id[i] for i in competing]).edit.id
+        losses.extend(
+            EditOutcome(
+                edit_id=edit_id,
+                status="conflict",
+                detail=f"overlaps proposed edit {winner_id} in this paragraph",
+                winner_id=winner_id,
+            )
+            for edit_id in sorted(competing - {winner_id}, key=str)
         )
-        for edit_id, winner_id in winners.items()
-    ]
-    return [edit for edit in planned if edit.edit_id not in winners], losses
+    lost = {loss.edit_id for loss in losses}
+    return [edit for edit in planned if edit.edit_id not in lost], losses
 
 
 def _plan_sync(

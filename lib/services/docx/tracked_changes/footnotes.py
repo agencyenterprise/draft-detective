@@ -149,6 +149,22 @@ def _bounds(
     return (max([floor, *before]), min([ceiling, *after]))
 
 
+def _differs(quoted: str, replacement: str) -> bool:
+    """Whether the edit changes a stretch, whitespace at its edges included.
+
+    Inside the stretch only the words count: `display_text` is
+    whitespace-normalized and the replacement is not, so a non-breaking space
+    the replacement kept is no change. At the edges, next to a mark, gaining or
+    losing a space is one: ``foo [1]bar`` to ``foo[1] bar`` moves the mark
+    across the space.
+    """
+    return (
+        normalize_whitespace(quoted) != normalize_whitespace(replacement)
+        or quoted[:1].isspace() != replacement[:1].isspace()
+        or quoted[-1:].isspace() != replacement[-1:].isspace()
+    )
+
+
 def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlacement:
     """The redlines for a quote whose footnote references the paragraph lacks.
 
@@ -176,7 +192,7 @@ def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlac
     changed = [
         index
         for index, (old, new) in enumerate(zip(quoted, replaced))
-        if old.strip() != new.strip()
+        if _differs(old, new)
     ]
     if not changed:
         return FootnotePlacement(detail=UNCHANGED_ONCE_RENDERED)

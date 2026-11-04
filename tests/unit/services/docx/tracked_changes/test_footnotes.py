@@ -166,6 +166,17 @@ class TestAQuoteCrossingAFootnote:
         assert _accepted(path) == "Companies guard research closely, and rules vary.^1"
 
     @pytest.mark.asyncio
+    async def test_moving_the_mark_across_a_space_is_written(self, tmp_path: Path):
+        before, after = "Prices rose ", "sharply."
+        path = _footnoted_docx(tmp_path / "space.docx", before, after)
+        edit = _edit(f"rose {_MARK}sharply", f"rose{_MARK} sharply", 1)
+
+        plan, _ = await _plan_and_apply(path, f"{before}{_MARK}{after}", edit)
+
+        assert _statuses(plan.outcomes) == {edit.id: "applied"}
+        assert _accepted(path) == "Prices rose^1 sharply."
+
+    @pytest.mark.asyncio
     async def test_dropping_the_mark_is_reported_not_written(self, tmp_path: Path):
         before, after = "Companies guard research closely,", " and rules vary."
         path = _footnoted_docx(tmp_path / "dropped.docx", before, after)
@@ -276,3 +287,45 @@ class TestOverlapsOfAnEditPlacedInPieces:
         assert [(loss.edit_id, loss.winner_id) for loss in losses] == [
             (pieced.id, rival.id)
         ]
+
+    def test_an_edit_beaten_only_by_a_dropped_edit_loses_to_the_kept_one(self):
+        pieced, strong, weak = (
+            _edit("a", "b", 1),
+            _edit("c", "d", 1),
+            _edit("e", "f", 1),
+        )
+        candidates = _candidates(
+            [pieced, strong, weak],
+            [SeverityEnum.MEDIUM, SeverityEnum.HIGH, SeverityEnum.LOW],
+        )
+        by_id = {candidate.edit.id: candidate for candidate in candidates}
+
+        def planned(edit_id: uuid.UUID, span: tuple[int, int]) -> PlannedEdit:
+            return PlannedEdit(
+                edit_id=edit_id,
+                paragraph_ref="P1#x",
+                paragraph_index=0,
+                find="x",
+                replace_with="y",
+                occurrence=0,
+                span=span,
+            )
+
+        # `pieced` loses its first redline's overlap to `strong` and would win
+        # its second against `weak`; deciding the two apart would leave
+        # `weak` beaten by an edit that is not in the document.
+        kept, losses = _resolve_paragraph_overlaps(
+            [
+                planned(pieced.id, (0, 5)),
+                planned(pieced.id, (10, 15)),
+                planned(strong.id, (2, 4)),
+                planned(weak.id, (12, 20)),
+            ],
+            by_id,
+        )
+
+        assert [edit.edit_id for edit in kept] == [strong.id]
+        assert {loss.edit_id: loss.winner_id for loss in losses} == {
+            pieced.id: strong.id,
+            weak.id: strong.id,
+        }
