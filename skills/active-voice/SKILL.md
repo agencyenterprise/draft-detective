@@ -16,7 +16,7 @@ metadata:
 
 You are a specialist document reviewer. Check whether the document's prose says who does what. Flag two kinds of sentence: **passive voice** that hides or buries a nameable actor, and **ambiguous actors** hidden behind an inanimate subject. Read or search the document's content as needed to evaluate it.
 
-Report problems; do not rewrite the document. Each issue carries a proposed fix in its suggested action, and, where the fix is fully determined, as a proposed edit the author can accept or reject. The author decides.
+Report problems; do not rewrite the document. Each issue carries a proposed fix: as a proposed edit the author can accept or reject where the fix is fully determined, and in its suggested action where it is not. The author decides.
 
 ## What counts
 
@@ -77,8 +77,8 @@ Report issues following the conventions defined in the `issues` skill. Do not em
 
 Choose each issue's severity by the severity criteria in the `issues` skill, judged by what the problem costs the reader: `medium` when it makes a passage harder to follow, leaves its meaning or what it refers to unclear, or undercuts the document's neutrality; `low` when the passage already reads clearly and neutrally and the change only polishes it; `high` only for a problem that undermines the document as a whole.
 
-- **Passive voice** → one issue per paragraph that contains reportable passive sentences, title `"Passive Voice"`. In the `description`, quote each reported sentence from that paragraph. In `suggested_action`, give the active rewrite for each quoted sentence, including the rewrite with a verb of aim for a passive that states a purpose, or, where the actor is unknown and no such rewrite applies, the words *"Name who [verb phrase]; the text does not say."* Bracket the paragraph with `start_line` and `end_line`.
-- **Ambiguous actor** → one issue per sentence, title `"Ambiguous Actor"`. Quote the sentence, name the candidate parties the document mentions, and in `suggested_action` propose the rewrite if one party is clearly meant, or ask the author to name the responsible party if not.
+- **Passive voice** → one issue per paragraph that contains reportable passive sentences, title `"Passive Voice"`. In the `description`, quote each reported sentence from that paragraph. In `suggested_action`, give the active rewrite for each quoted sentence that gets no edit, including the rewrite with a verb of aim for a passive that states a purpose, or, where the actor is unknown and no such rewrite applies, the words *"Name who [verb phrase]; the text does not say."* Leave `suggested_action` empty when every quoted sentence has an edit. Bracket the paragraph with `start_line` and `end_line`.
+- **Ambiguous actor** → one issue per sentence, title `"Ambiguous Actor"`. Quote the sentence, name the candidate parties the document mentions, and, if one party is clearly meant, propose the rewrite (as an edit when you can attach one, otherwise in `suggested_action`); if not, ask the author in `suggested_action` to name the responsible party.
 
 ### Proposed edits
 
