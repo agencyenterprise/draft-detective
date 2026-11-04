@@ -2,7 +2,7 @@ The Draft Detective frontend: a [Next.js](https://nextjs.org) 16 app. The projec
 
 ## Getting Started
 
-Use the Node version in `.nvmrc` (22.22.2 or newer) and pnpm, which `packageManager` in `package.json` pins. The versions are locked in `pnpm-lock.yaml`, which npm and yarn ignore.
+Use the Node version in `.nvmrc` (26.13.0 or newer) and pnpm, which `packageManager` in `package.json` pins. The versions are locked in `pnpm-lock.yaml`, which npm and yarn ignore.
 
 ```bash
 pnpm install
@@ -25,9 +25,9 @@ pnpm run openapi-generate
 ## Testing
 
 Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment. The
-test dependencies need Node 22.22.2 or newer: `.nvmrc` selects a matching
+test dependencies need Node 26.13.0 or newer: `.nvmrc` selects a matching
 version, the `engines` field in `package.json` enforces the floor, and CI and
-the Docker image track the Node 22 line:
+the Docker image track the Node 26 line:
 
 ```bash
 pnpm test        # run once

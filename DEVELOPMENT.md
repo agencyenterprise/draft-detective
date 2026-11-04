@@ -10,7 +10,7 @@ This guide covers everything you need to know to set up, run, and develop the Dr
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-- **Node.js 22.22.2+**: For the frontend development (see `frontend/.nvmrc`)
+- **Node.js 26.13.0+**: For the frontend development (see `frontend/.nvmrc`)
 - **pnpm**: Fast, disk space efficient package manager for Node.js. Install via npm:
 
 ```bash
