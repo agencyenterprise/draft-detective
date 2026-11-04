@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from lib.config.env import config
 from lib.models.issue import Issue
 from lib.services.docx.comment_layout import comment_text
-from lib.services.docx.comment_markup import write_comment
+from lib.services.docx.comment_markup import literal, write_comment
 from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.projects.share_links import build_share_url
@@ -297,7 +297,7 @@ class DocxManipulatorService:
                 full_comment_text = comment.comment_text
                 if comment.share_link:
                     full_comment_text += (
-                        f"\n\n🔗 View in Draft Detective: {comment.share_link}"
+                        f"\n\n🔗 View in Draft Detective: {literal(comment.share_link)}"
                     )
 
                 self._add_comment_to_paragraph(

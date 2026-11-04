@@ -117,3 +117,31 @@ def test_the_comment_keeps_its_annotation_reference():
     write_comment(comment, "**Title** · Check")
 
     assert "annotationRef" in comment._comment_elm.xml
+
+
+def test_a_fenced_block_is_written_literally_without_its_fences():
+    document = Document()
+    paragraph = document.add_paragraph("anchor")
+    comment = document.add_comment(
+        runs=paragraph.runs, text="", author="DD", initials="DD"
+    )
+    text = comment_markdown("**Title**\n```\na*b*c and ### not a heading\n```\nafter")
+
+    write_comment(comment, text)
+
+    assert [p.text for p in comment.paragraphs] == [
+        "Title",
+        "a*b*c and ### not a heading",
+        "after",
+    ]
+
+
+def test_an_anchor_that_is_not_a_footnote_keeps_its_target():
+    assert "".join(s.text for s in segments("[Methods](#methods-1)")) == (
+        "Methods (#methods-1)"
+    )
+
+
+def test_a_literal_url_keeps_its_underscores():
+    url = "https://dd.example/share/_abcd_-1234#lines-3-4"
+    assert "".join(s.text for s in segments(literal(url))) == url

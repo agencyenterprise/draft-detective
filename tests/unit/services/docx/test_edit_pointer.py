@@ -140,3 +140,10 @@ def test_a_changed_link_destination_is_visible_in_the_fix():
     assert plain_text_of(
         edit_fix("[Report](https://x/a)", "[Report](https://x/b)")
     ) == ("Replace “Report (https://x/a)” with “Report (https://x/b)”")
+
+
+def test_a_fragment_of_markup_is_quoted_as_the_document_shows_it():
+    # "a*b*c" cut from inside the code span `a*b*c`: parsed alone it would read
+    # "abc" with an italic "b", so each side is quoted as the document shows it.
+    fix = edit_fix("a*b*c", "x*y*z", "a*b*c", "x*y*z")
+    assert plain_text_of(fix) == "Replace “a*b*c” with “x*y*z”"

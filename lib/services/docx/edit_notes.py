@@ -104,7 +104,12 @@ def build_edit_notes(
             EditNote(
                 status=_status(outcome),
                 pointer=edit_pointer(edit.original_text, edit.replacement_text),
-                fix=edit_fix(edit.original_text, edit.replacement_text),
+                fix=edit_fix(
+                    edit.original_text,
+                    edit.replacement_text,
+                    edit.display_text,
+                    edit.display_replacement,
+                ),
                 rationale=edit.rationale,
                 reason=_reason(outcome, conflict_winner_names.get(edit.id)),
             )

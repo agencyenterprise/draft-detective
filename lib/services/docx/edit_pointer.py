@@ -64,14 +64,35 @@ def edit_pointer(original: str, replacement: str) -> str:
     return f"rewrites “{lead}”"
 
 
-def edit_fix(original: str, replacement: str) -> str:
+def _as_shown(raw: str, shown: str | None) -> str:
+    """One side of an edit as the comment quotes it.
+
+    With its own formatting, unless the quote is a fragment of markup that
+    reads differently on its own than in the document (the inside of a code
+    span, half of a bold phrase): then the text as the document shows it,
+    taken literally.
+    """
+    if shown is not None and " ".join(plain_text(raw).split()) != " ".join(
+        shown.split()
+    ):
+        return literal(shown)
+    return marked_text(raw)
+
+
+def edit_fix(
+    original: str,
+    replacement: str,
+    shown_original: str | None = None,
+    shown_replacement: str | None = None,
+) -> str:
     """The whole edit, for a comment that is the only place it appears.
 
     Both sides keep the document's own formatting, which the comment shows as
     such (bold, italics, code as typed), and footnote links read "[N]": a fix
     that differs only in those is still visible, and nothing in it is lost.
+    `shown_*` are the sides as the document renders them, for fragments.
     """
-    before = marked_text(original)
+    before = _as_shown(original, shown_original)
     if not replacement:
         return f"Delete “{before}”"
-    return f"Replace “{before}” with “{marked_text(replacement)}”"
+    return f"Replace “{before}” with “{_as_shown(replacement, shown_replacement)}”"

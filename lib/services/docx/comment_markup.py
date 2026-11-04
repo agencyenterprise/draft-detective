@@ -18,6 +18,7 @@ from pydantic import BaseModel
 _FOOTNOTE_LINK = re.compile(r"\[\[(\d+)\]\]\(#footnote-\d+\)")
 _HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*$", re.M)
 _HEADING_MARK = re.compile(r"^#{1,6}\s+", re.M)
+_FENCE = re.compile(r"^\s{0,3}(```|~~~)")
 # CommonMark inline parsing, as the documents' own markdown is read elsewhere
 # (`lib.services.text.markdown_rendering`): nesting, shared closing delimiters,
 # code spans and backslash escapes behave as markdown defines them.
@@ -80,10 +81,10 @@ def segments(text: str) -> list[Segment]:
 def _link_target(href: str, label: str) -> str | None:
     """What follows a link's label in a comment, or None for nothing.
 
-    The destination, in parentheses, unless it is the label itself or an
-    anchor inside the document (a footnote link).
+    The destination, in parentheses, unless it is the label itself or a
+    footnote link, whose number the label already shows.
     """
-    if not href or href.startswith("#") or href == label:
+    if not href or href.startswith("#footnote-") or href == label:
         return None
     return f" ({href})"
 
@@ -93,11 +94,36 @@ def literal(text: str) -> str:
     return _INLINE_MARKUP.sub(r"\\\1", text)
 
 
+def _fenced(lines: list[str]) -> list[bool | None]:
+    """For each line: None for a code fence, True inside a fenced block."""
+    inside = False
+    kinds: list[bool | None] = []
+    for line in lines:
+        if _FENCE.match(line):
+            inside = not inside
+            kinds.append(None)
+        else:
+            kinds.append(inside)
+    return kinds
+
+
 def comment_markdown(text: str) -> str:
-    """Issue markdown reduced to what a comment shows: emphasis, code and lines."""
-    text = _FOOTNOTE_LINK.sub("", text)
+    """Issue markdown reduced to what a comment shows: emphasis, code and lines.
+
+    Fenced code blocks are left as they are, for `write_comment` to show
+    literally.
+    """
+    lines = text.split("\n")
+    return "\n".join(
+        line if kind is not False else _comment_line(line)
+        for line, kind in zip(lines, _fenced(lines), strict=True)
+    )
+
+
+def _comment_line(line: str) -> str:
+    line = _FOOTNOTE_LINK.sub("", line)
     # A heading's own bold marks would nest inside the bold it becomes.
-    return _HEADING.sub(lambda m: f"**{m[1].replace('**', '')}**", text)
+    return _HEADING.sub(lambda m: f"**{m[1].replace('**', '')}**", line)
 
 
 def marked_text(text: str) -> str:
@@ -126,11 +152,22 @@ def _write_line(paragraph: Paragraph, line: str) -> None:
 
 
 def write_comment(comment: Comment, text: str) -> None:
-    """Fill an empty comment with `text`, one paragraph per line."""
-    first, *rest = text.split("\n")
+    """Fill an empty comment with `text`, one paragraph per line.
+
+    The lines of a fenced code block are written as they are, without the
+    fences.
+    """
+    lines = text.split("\n")
     # The first paragraph already holds the run with the comment's reference
     # mark (`w:annotationRef`), which every Word comment carries; the text
     # follows it.
-    _write_line(comment.paragraphs[0], first)
-    for line in rest:
-        _write_line(comment.add_paragraph(), line)
+    paragraph: Paragraph | None = comment.paragraphs[0]
+    for line, kind in zip(lines, _fenced(lines), strict=True):
+        if kind is None:
+            continue
+        paragraph = paragraph or comment.add_paragraph()
+        if kind:
+            paragraph.add_run(line)
+        else:
+            _write_line(paragraph, line)
+        paragraph = None
