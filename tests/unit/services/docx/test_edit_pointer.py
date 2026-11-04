@@ -168,3 +168,8 @@ def test_a_link_target_with_markup_characters_is_kept():
         "Replace “Report (https://x/report_old.pdf)” with "
         "“Report (https://x/report_new.pdf)”"
     )
+
+
+def test_an_image_with_formatted_alt_text_keeps_its_source():
+    fix = edit_fix("![**Figure**](a.png)", "![**Figure**](b.png)", "Figure", "Figure")
+    assert plain_text_of(fix) == "Replace “Figure (a.png)” with “Figure (b.png)”"

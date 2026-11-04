@@ -88,10 +88,12 @@ def segments(text: str, targets: bool = True) -> list[Segment]:
             if targets and (target := _link_target(href, label)):
                 out.append(Segment(text=target, bold=bold > 0, italic=italic > 0))
         elif kind == "image":
-            # An image reads like a link: its alt text, then its source.
+            # An image reads like a link: its alt text as rendered, then its
+            # source.
+            alt = "".join(c.content for c in token.children or [] if c.type == "text")
             src = str(token.attrs.get("src", ""))
-            target = _link_target(src, token.content) if targets else None
-            image = token.content + (target or "")
+            target = _link_target(src, alt) if targets else None
+            image = alt + (target or "")
             out.append(Segment(text=image, bold=bold > 0, italic=italic > 0))
         elif kind == "strong_open":
             bold += 1
