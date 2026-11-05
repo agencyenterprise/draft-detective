@@ -106,3 +106,29 @@ describe('WorkflowTypeSelector with running assessments', () => {
     expect(checkbox(B).getAttribute('data-state')).toBe('unchecked');
   });
 });
+
+describe('WorkflowTypeSelector search', () => {
+  async function type(input: HTMLInputElement, value: string) {
+    // React tracks the input's value; set it through the native setter so the change event registers.
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+    await act(async () => {
+      setValue.call(input, value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  it('narrows the list and selects only the matches, keeping hidden selections', async () => {
+    const { onSelectionChange, checkbox, button } = await mount([WorkflowRunType.FiguresTablesCheck], []);
+    const search = rendered!.container.querySelector<HTMLInputElement>('input[type="search"]')!;
+
+    await type(search, 'a TONE');
+    expect(checkbox(WorkflowRunType.AdvocacyToneV2)).not.toBeNull();
+    expect(checkbox(WorkflowRunType.AbbreviationScanV2)).toBeNull();
+
+    await act(async () => button('Select matches').click());
+    expect(onSelectionChange).toHaveBeenLastCalledWith([
+      WorkflowRunType.FiguresTablesCheck,
+      WorkflowRunType.AdvocacyToneV2,
+    ]);
+  });
+});
