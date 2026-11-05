@@ -12,6 +12,7 @@ its issue concerns the whole line, as before.
 """
 
 import re
+from collections import Counter
 from collections.abc import Iterator, Sequence
 
 from lib.workflows.abbreviation_scan_v2.catalogue import abbreviation_pattern
@@ -22,6 +23,14 @@ from lib.workflows.simple_deep_agent.issue_reporting import resolve_passage
 # How many words a repeated abbreviation is widened by before giving up.
 _MAX_WIDENING = 6
 _WORD = re.compile(r"\S+")
+
+
+def _token_count(lines: Sequence[str], item: AbbreviationItem) -> int:
+    """How many whole-token occurrences of the abbreviation its line carries."""
+    pattern = abbreviation_pattern(item.abbr)
+    if pattern is None or not 1 <= item.line_start <= len(lines):
+        return 0
+    return len(pattern.findall(lines[item.line_start - 1]))
 
 
 def _token_span(line: str, abbr: str, nth: int) -> tuple[int, int] | None:
@@ -82,8 +91,9 @@ def _trimmed(word: str) -> str:
     return word
 
 
-def _candidates(item: AbbreviationItem, line: str, nth: int) -> Iterator[str]:
-    span = _token_span(line, item.abbr, nth)
+def _candidates(item: AbbreviationItem, line: str, nth: int | None) -> Iterator[str]:
+    """The quotes to try, best first. `nth` None: which token is this one is not known."""
+    span = _token_span(line, item.abbr, nth) if nth is not None else None
     token = line[span[0] : span[1]] if span else item.abbr
     if item.inline_definition:
         yield f"{item.inline_definition} ({token})"
@@ -93,12 +103,13 @@ def _candidates(item: AbbreviationItem, line: str, nth: int) -> Iterator[str]:
 
 
 def occurrence_passage(
-    lines: Sequence[str], item: AbbreviationItem, nth_on_line: int
+    lines: Sequence[str], item: AbbreviationItem, nth_on_line: int | None
 ) -> LocatedQuote | None:
     """The occurrence's words as a located passage, or None for its whole line.
 
     `nth_on_line` is which of the abbreviation's tokens on the line this
-    occurrence is, counted in reading order.
+    occurrence is, counted in reading order, or None when that is not known:
+    then only a definition, quoted as written, can place it.
     """
     if not 1 <= item.line_start <= len(lines):
         return None
@@ -113,13 +124,24 @@ def occurrence_passage(
 def with_passages(
     lines: Sequence[str], catalogue: list[AbbreviationItem]
 ) -> list[AbbreviationItem]:
-    """The catalogue with each occurrence's passage located."""
+    """The catalogue with each occurrence's passage located.
+
+    An occurrence's token is told apart from the others on its line by order,
+    which only works when the catalogue holds every token the line carries.
+    It does not always: occurrences inside a URL, a footnote or a postal code
+    are exempt and never catalogued, so the first catalogued CAST of ``See
+    [www.rand.org/CAST](...) for the CAST results`` is the second token. When
+    the counts differ the token is not guessed at -- a passage on the wrong
+    words is worse than none -- and only a definition can place it.
+    """
+    recorded = Counter((item.abbr, item.line_start) for item in catalogue)
     seen: dict[tuple[str, int], int] = {}
     located: list[AbbreviationItem] = []
     for item in catalogue:
         key = (item.abbr, item.line_start)
         nth = seen.get(key, 0)
         seen[key] = nth + 1
-        passage = occurrence_passage(lines, item, nth)
+        known = recorded[key] == _token_count(lines, item)
+        passage = occurrence_passage(lines, item, nth if known else None)
         located.append(item.model_copy(update={"passage": passage}))
     return located

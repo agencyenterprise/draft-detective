@@ -119,3 +119,22 @@ def test_the_word_before_is_taken_first():
 
 def test_whole_word_widening_sheds_punctuation_it_does_not_close():
     assert _text(_item("CAIRNE", 8), 0) == "now CAIRNE"
+
+
+def test_exempt_url_token_does_not_shift_the_recorded_occurrence():
+    """Review probe (DUDU-17): the skill leaves URL occurrences out of the
+    catalogue, so the only recorded CAST on this line is the prose one. Which
+    token it is cannot be told by order, so it is not guessed: the issue keeps
+    its whole line rather than highlight the link."""
+    lines = ["See [www.rand.org/CAST](http://www.rand.org/CAST) for the CAST results."]
+    [item] = with_passages(lines, [_item("CAST", 1)])
+    assert item.passage is None
+
+
+def test_a_definition_still_places_an_occurrence_whose_token_is_unknown():
+    lines = [
+        "See [the CAST page](http://x.org/CAST) on the Cost Analysis Study Tool (CAST)."
+    ]
+    [item] = with_passages(lines, [_item("CAST", 1, "Cost Analysis Study Tool")])
+    assert item.passage is not None
+    assert item.passage.display_text == "Cost Analysis Study Tool (CAST)"
