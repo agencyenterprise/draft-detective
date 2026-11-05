@@ -20,6 +20,7 @@ import pytest
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 
 from lib.agents import word_chat_agent
@@ -214,6 +215,28 @@ class TestATurn:
             "first",
             "second",
         ]
+
+
+@pytest.mark.asyncio
+async def test_skills_are_written_to_a_thread_once(saver: InMemorySaver) -> None:
+    """Each copy stays in the thread's history and every read replays it."""
+
+    with scripted(AIMessage(content="one"), AIMessage(content="two")):
+        await run(turn("first", document=DOCUMENT))
+        await run(turn("second"))
+
+    config: RunnableConfig = {"configurable": {"thread_id": str(THREAD)}}
+    files_writes = [
+        write[2]
+        async for checkpoint in saver.alist(config)
+        for write in checkpoint.pending_writes or []
+        if write[1] == "files"
+    ]
+    skill_writes = [w for w in files_writes if any(p.startswith("/skills/") for p in w)]
+    assert len(skill_writes) == 1
+    # Still one write a turn, if empty: it is what moves the channel to its next
+    # snapshot, which is how a thread that holds older copies stops replaying them.
+    assert len(files_writes) == 2
 
 
 @pytest.mark.asyncio

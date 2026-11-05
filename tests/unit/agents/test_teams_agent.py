@@ -34,6 +34,7 @@ from lib.agents.teams_agent import (
 )
 from lib.agents.tools import sharepoint
 from lib.services.microsoft.graph.client import GraphError
+from lib.skills import skill_backend_files
 
 # Every run reads as somebody; the tests do not care who.
 TOKEN = "a-user-token"
@@ -156,6 +157,22 @@ class TestTheKeyItAnswersWith:
 
 
 class TestWhatTheAgentIsGiven:
+    @pytest.mark.asyncio
+    async def test_skills_the_thread_holds_are_not_mounted_again(self) -> None:
+        """Each copy would stay in the thread's history, replayed on every read."""
+
+        held = skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
+        agent = agent_returning("an answer", state={"files": held})
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch("lib.agents.teams_agent.build_deep_agent", return_value=agent),
+        ):
+            await answer_question(
+                "does this overclaim?", graph_token=TOKEN, thread_id=THREAD
+            )
+
+        assert agent.ainvoke.call_args[0][0]["files"] == {}
+
     @pytest.mark.asyncio
     async def test_no_document_is_mounted_up_front(self) -> None:
         """Documents arrive through the tool; only skills are mounted."""
