@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
+import { QueryObserver } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { flush, renderInto, testQueryClient, withQueryClient } from '@/lib/test-render';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
@@ -51,6 +52,8 @@ describe('useIssueActions', () => {
     client.setQueryData(rev1, [issue('a'), issue('b')]);
     client.setQueryData(rev2, [issue('a')]);
     client.setQueryData(otherProject, [issue('a', 'q')]);
+    // One list is on screen, as the results page keeps it: only a watched list refetches on invalidation.
+    const watching = new QueryObserver(client, { queryKey: rev1, staleTime: Infinity }).subscribe(() => {});
     mocks.resolve.mockResolvedValue({ ...issue('a', 'p', true) });
 
     await act(async () => actions().resolveIssue('a'));
@@ -62,6 +65,7 @@ describe('useIssueActions', () => {
     expect(client.getQueryData<Issue[]>(otherProject)).toEqual([issue('a', 'q')]);
     expect(mocks.issues).not.toHaveBeenCalled();
     expect(toast.success).toHaveBeenCalledOnce();
+    watching();
     await view.unmount();
   });
 
