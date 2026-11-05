@@ -43,14 +43,14 @@ def test_resolve_revision_keeps_the_one_asked_for():
 class TestResolveExistingRevision:
     """Moved from the Word export's ``_resolved_revision`` with the same cases."""
 
-    def test_none_falls_back_to_the_current_revision(self):
+    def test_none_falls_back_to_the_current_revision(self) -> None:
         assert resolve_existing_revision(_project(3), None) == 3
 
-    def test_a_revision_the_project_has_is_kept(self):
+    def test_a_revision_the_project_has_is_kept(self) -> None:
         assert resolve_existing_revision(_project(3), 1) == 1
         assert resolve_existing_revision(_project(3), 3) == 3
 
-    def test_anything_outside_the_range_is_refused(self):
+    def test_anything_outside_the_range_is_refused(self) -> None:
         with pytest.raises(ValueError, match="revisions 1 to 3"):
             resolve_existing_revision(_project(3), 4)
         with pytest.raises(ValueError, match="revisions 1 to 3"):

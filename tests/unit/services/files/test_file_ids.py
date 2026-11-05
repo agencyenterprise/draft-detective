@@ -76,7 +76,7 @@ async def test_get_main_file_id_raises_when_the_revision_has_no_main_file():
 
 
 @pytest.mark.asyncio
-async def test_find_main_file_returns_the_revision_row_and_skips_shared_ones():
+async def test_find_main_file_returns_the_revision_row_and_skips_shared_ones() -> None:
     stray = _file(FileRole.MAIN, revision=None)
     main = _file(FileRole.MAIN, revision=2)
     with patch(
@@ -86,7 +86,7 @@ async def test_find_main_file_returns_the_revision_row_and_skips_shared_ones():
 
 
 @pytest.mark.asyncio
-async def test_find_main_file_is_none_before_an_upload():
+async def test_find_main_file_is_none_before_an_upload() -> None:
     stray = _file(FileRole.MAIN, revision=None)
     with patch(
         "lib.services.files.service.get_files_by_project_id", new=_lookup([stray])

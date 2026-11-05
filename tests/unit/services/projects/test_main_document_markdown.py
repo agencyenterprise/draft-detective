@@ -40,7 +40,7 @@ def _document(file: File) -> FileDocument:
 
 
 @pytest.mark.asyncio
-async def test_reads_the_markdown_of_the_revision_main_file():
+async def test_reads_the_markdown_of_the_revision_main_file() -> None:
     main = _main_file(2)
     get_document = AsyncMock(return_value=_document(main))
     with (
@@ -54,13 +54,13 @@ async def test_reads_the_markdown_of_the_revision_main_file():
 
 
 @pytest.mark.asyncio
-async def test_is_none_before_the_main_document_is_uploaded():
+async def test_is_none_before_the_main_document_is_uploaded() -> None:
     with patch(f"{MODULE}.find_main_file", new=AsyncMock(return_value=None)):
         assert await get_main_document_markdown(PROJECT_ID, 2) is None
 
 
 @pytest.mark.asyncio
-async def test_is_none_before_document_processing_has_converted_it():
+async def test_is_none_before_document_processing_has_converted_it() -> None:
     get_document = AsyncMock(side_effect=ValueError("no file document"))
     with (
         patch(f"{MODULE}.find_main_file", new=AsyncMock(return_value=_main_file(2))),
