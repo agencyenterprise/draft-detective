@@ -23,7 +23,7 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
 )
 from lib.services.files.service import (
     delete_project_files,
-    get_files_by_project_id,
+    find_main_file,
 )
 from lib.services.projects.share_links import get_resource_by_token
 from lib.services.references.service import (
@@ -221,14 +221,12 @@ def strip_converted_markdown(workflow_runs: Sequence[WorkflowRunDetail]) -> None
 async def get_main_document_markdown(project_id: str, revision: int) -> str | None:
     """Load the full markdown of the main document for a revision, or None if
     it isn't available yet (e.g. before document processing completes)."""
-    main_files = await get_files_by_project_id(
-        project_id, roles=[FileRole.MAIN], revision=revision
-    )
-    if not main_files:
+    main_file = await find_main_file(project_id, revision)
+    if main_file is None:
         return None
     artifacts = FileArtifactsService(project_id, revision=revision)
     try:
-        file_document = await artifacts.get_file_document(str(main_files[0].id))
+        file_document = await artifacts.get_file_document(str(main_file.id))
     except ValueError:
         return None
     return file_document.markdown

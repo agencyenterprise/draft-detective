@@ -132,6 +132,9 @@ async def test_main_file_falls_back_to_the_processing_state() -> None:
     with (
         run_patch,
         state_patch,
-        patch.object(service, "_load_main_files", AsyncMock(return_value=[])),
+        patch(
+            "lib.services.file_artifacts_service.file_artifacts_service.find_main_file",
+            AsyncMock(return_value=None),
+        ),
     ):
         assert await service.get_main_file() == main

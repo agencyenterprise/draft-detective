@@ -12,6 +12,7 @@ import pytest
 
 from lib.models.file import File, FileRole
 from lib.services.files.service import (
+    find_main_file,
     get_main_file_id,
     get_processed_supporting_file_ids,
 )
@@ -72,6 +73,25 @@ async def test_get_main_file_id_raises_when_the_revision_has_no_main_file():
     with patch("lib.services.files.service.get_files_by_project_id", new=_lookup([])):
         with pytest.raises(ValueError, match="No main file found"):
             await get_main_file_id(PROJECT_ID, 1)
+
+
+@pytest.mark.asyncio
+async def test_find_main_file_returns_the_revision_row_and_skips_shared_ones():
+    stray = _file(FileRole.MAIN, revision=None)
+    main = _file(FileRole.MAIN, revision=2)
+    with patch(
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([stray, main])
+    ):
+        assert await find_main_file(PROJECT_ID, 2) is main
+
+
+@pytest.mark.asyncio
+async def test_find_main_file_is_none_before_an_upload():
+    stray = _file(FileRole.MAIN, revision=None)
+    with patch(
+        "lib.services.files.service.get_files_by_project_id", new=_lookup([stray])
+    ):
+        assert await find_main_file(PROJECT_ID, 2) is None
 
 
 @pytest.mark.asyncio
