@@ -7,6 +7,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWorkflowDurationEstimates } from '@/lib/hooks/use-workflow-duration-estimates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { WorkflowPresetChips } from './workflow-presets';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
@@ -68,6 +69,8 @@ export function WorkflowTypeSelector({
   );
 
   const visibleCount = renderedTypes.length;
+  // Search and presets only make sense over the full, loaded list.
+  const showListTools = restrictToType === undefined && !isLoadingWorkflowTypes && visibleCount > 0;
   const isSelected = (type: WorkflowRunType) => selectedTypes.includes(type) && !runningTypes.includes(type);
   const selectedVisibleCount = renderedTypes.filter(isSelected).length;
 
@@ -120,70 +123,78 @@ export function WorkflowTypeSelector({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <h2 className="text-sm font-medium">
-          Assessments
-          <span className="text-destructive ml-1">*</span>
-          {visibleCount > 0 && (
-            <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
-              {selectedVisibleCount}/{visibleCount} selected
-            </span>
-          )}
-        </h2>
+      {/* The whole header is two rows that stick to the top of whatever
+          scrolls the list, so the count, the search, the bulk actions and the
+          presets stay in reach halfway down a long list. Row one is what is
+          picked and how to narrow it; row two is the named sets and the bulk actions. Single-type
+          mode has nothing to search or choose between, so it neither sticks
+          nor shows them. */}
+      <div className={cn('space-y-2', showListTools && 'sticky top-0 z-10 bg-background py-1')}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h2 className="shrink-0 text-sm font-medium">
+            Assessments
+            <span className="text-destructive ml-1">*</span>
+            {visibleCount > 0 && (
+              <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
+                {selectedVisibleCount}/{visibleCount} selected
+              </span>
+            )}
+          </h2>
 
-        {selectableTypes.length > 1 && (
-          <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={handleSelectAll}
-              disabled={isLoadingWorkflowTypes || selectedBulkCount === bulkSelectableTypes.length}
-            >
-              {isSearching ? 'Select matches' : 'Select all'}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={handleDeselectAll}
-              disabled={isLoadingWorkflowTypes || selectedBulkCount === 0}
-            >
-              {isSearching ? 'Deselect matches' : 'Deselect all'}
-            </Button>
+          {showListTools && (
+            <div className="relative min-w-48 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search assessments"
+                aria-label="Search assessments"
+                className="h-8 pl-7 text-xs"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Presets on the left: a department picks its set here and the rows
+            below show what that set is. Bulk actions on the right. */}
+        {((showListTools && presets.length > 0) || selectableTypes.length > 1) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {showListTools && presets.length > 0 && (
+              <WorkflowPresetChips
+                presets={presets}
+                selectedTypes={selectedTypes}
+                offeredTypes={selectableTypes}
+                onSelectionChange={commitSelection}
+                disabled={isLoadingWorkflowTypes}
+                getWorkflowTypeName={getWorkflowTypeName}
+              />
+            )}
+            {selectableTypes.length > 1 && (
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleSelectAll}
+                  disabled={isLoadingWorkflowTypes || selectedBulkCount === bulkSelectableTypes.length}
+                >
+                  {isSearching ? 'Select matches' : 'Select all'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleDeselectAll}
+                  disabled={isLoadingWorkflowTypes || selectedBulkCount === 0}
+                >
+                  {isSearching ? 'Deselect matches' : 'Deselect all'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
-      {/* Presets and search sit between the header and the list, and stick to
-          the top of whatever scrolls it, so both stay in reach halfway down a
-          long list. A department picks its set here and the rows below show
-          what that set is. Never in single-type mode, where there is nothing
-          to choose between. */}
-      {restrictToType === undefined && !isLoadingWorkflowTypes && renderedTypes.length > 0 && (
-        <div className="sticky top-0 z-10 space-y-3 bg-background py-1">
-          {presets.length > 0 && (
-            <WorkflowPresetChips
-              presets={presets}
-              selectedTypes={selectedTypes}
-              offeredTypes={selectableTypes}
-              onSelectionChange={commitSelection}
-              disabled={isLoadingWorkflowTypes}
-              getWorkflowTypeName={getWorkflowTypeName}
-            />
-          )}
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search assessments"
-              aria-label="Search assessments"
-              className="h-8 pl-7 text-xs"
-            />
-          </div>
-        </div>
-      )}
 
       <div className="space-y-4">
         {isLoadingWorkflowTypes ? (
