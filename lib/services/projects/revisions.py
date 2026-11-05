@@ -29,6 +29,22 @@ def resolve_revision(project: Project, revision: int | None) -> int:
     return revision if revision is not None else project.current_revision
 
 
+def resolve_existing_revision(project: Project, revision: int | None) -> int:
+    """Like ``resolve_revision``, but refuse a revision the project does not
+    have rather than pass it through.
+
+    Raises:
+        ValueError: ``revision`` is outside 1 to ``project.current_revision``.
+    """
+    resolved = resolve_revision(project, revision)
+    if not 1 <= resolved <= project.current_revision:
+        raise ValueError(
+            f"Revision {resolved} does not exist for this project "
+            f"(it has revisions 1 to {project.current_revision})"
+        )
+    return resolved
+
+
 async def list_project_revisions(project: Project) -> list[RevisionListItem]:
     """Every revision of the project, oldest first, with its main file if any."""
     main_files = await get_files_by_project_id(project.id, roles=[FileRole.MAIN])

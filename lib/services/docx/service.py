@@ -23,27 +23,11 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import get_project_issues
+from lib.services.projects.revisions import resolve_existing_revision
 from lib.services.projects.service import get_project_by_id
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
-
-
-def _resolved_revision(requested: int | None, current: int) -> int:
-    """The revision to export, defaulting to the project's current one.
-
-    A revision the project does not have is refused rather than silently
-    served as the current one: the caller asked for a specific document, and
-    the issues and counts it is paired with belong to that revision.
-    """
-    if requested is None:
-        return current
-    if requested < 1 or requested > current:
-        raise ValueError(
-            f"Revision {requested} does not exist for this project "
-            f"(it has revisions 1 to {current})"
-        )
-    return requested
 
 
 async def generate_docx(
@@ -83,7 +67,9 @@ async def generate_docx(
     project = await get_project_by_id(project_id)
     if project is None:
         raise ValueError(f"Project {project_id} not found")
-    revision = _resolved_revision(revision, project.current_revision)
+    # A revision the project does not have is refused rather than served as
+    # the current one: the issues and counts it is paired with belong to it.
+    revision = resolve_existing_revision(project, revision)
 
     file_artifacts = FileArtifactsService(project_id, revision=revision)
     # Asked for by name, not left to the service's default: without an explicit

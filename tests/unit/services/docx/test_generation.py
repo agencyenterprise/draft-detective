@@ -18,7 +18,7 @@ from lib.services.docx.manipulator import (
     count_unanchorable_issues,
     issue_to_comment,
 )
-from lib.services.docx.service import _resolved_revision, generate_docx
+from lib.services.docx.service import generate_docx
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _SERVICE = "lib.services.docx.service"
@@ -584,18 +584,3 @@ class TestGenerateDocxWithoutTrackedChanges:
         run_ids = {call.kwargs["workflow_run_id"] for call in calls}
         assert len(calls) == 2
         assert len(run_ids) == 2
-
-
-class TestResolvedRevision:
-    def test_none_falls_back_to_the_current_revision(self):
-        assert _resolved_revision(None, 3) == 3
-
-    def test_a_revision_the_project_has_is_kept(self):
-        assert _resolved_revision(1, 3) == 1
-        assert _resolved_revision(3, 3) == 3
-
-    def test_anything_outside_the_range_is_refused(self):
-        with pytest.raises(ValueError, match="revisions 1 to 3"):
-            _resolved_revision(4, 3)
-        with pytest.raises(ValueError, match="revisions 1 to 3"):
-            _resolved_revision(0, 3)

@@ -12,6 +12,7 @@ from lib.services.projects import revisions
 from lib.services.projects.revisions import (
     RevisionListItem,
     list_project_revisions,
+    resolve_existing_revision,
     resolve_revision,
 )
 
@@ -37,6 +38,23 @@ def test_resolve_revision_defaults_to_the_current_revision():
 
 def test_resolve_revision_keeps_the_one_asked_for():
     assert resolve_revision(_project(3), 1) == 1
+
+
+class TestResolveExistingRevision:
+    """Moved from the Word export's ``_resolved_revision`` with the same cases."""
+
+    def test_none_falls_back_to_the_current_revision(self):
+        assert resolve_existing_revision(_project(3), None) == 3
+
+    def test_a_revision_the_project_has_is_kept(self):
+        assert resolve_existing_revision(_project(3), 1) == 1
+        assert resolve_existing_revision(_project(3), 3) == 3
+
+    def test_anything_outside_the_range_is_refused(self):
+        with pytest.raises(ValueError, match="revisions 1 to 3"):
+            resolve_existing_revision(_project(3), 4)
+        with pytest.raises(ValueError, match="revisions 1 to 3"):
+            resolve_existing_revision(_project(3), 0)
 
 
 @pytest.mark.asyncio
