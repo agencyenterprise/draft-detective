@@ -256,8 +256,11 @@ async def get_project_files_list_items(
     during reference downloading) and derived artifacts (extracted images).
     """
     project_id = ensure_uuid(project_id, "project ID")
+    # Only the list item's columns: the project overview polls this, and full
+    # rows would carry every file's markdown and summary along with them.
+    list_columns = [col(getattr(File, name)) for name in FileListItem.model_fields]
     async with get_async_db_session() as session:
-        stmt = select(File).where(
+        stmt = select(*list_columns).where(
             col(File.project_id) == project_id,
             col(File.role).in_(
                 [
@@ -269,9 +272,8 @@ async def get_project_files_list_items(
                 ]
             ),
         )
-        result = await session.execute(stmt)
-        files = result.scalars().all()
-        return [FileListItem.model_validate(f, from_attributes=True) for f in files]
+        rows = (await session.execute(stmt)).mappings().all()
+        return [FileListItem.model_validate(dict(row)) for row in rows]
 
 
 async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> list[File]:
