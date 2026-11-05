@@ -43,5 +43,6 @@ It leaves these alone:
         "quoted": "it is quoted wording",
         "two_sentences": "they are two clear sentences",
         "aims_sentence": "it states the framework's aims, which is content",
+        "other_check": "its only problem belongs to another Writing Style check",
     },
 )
