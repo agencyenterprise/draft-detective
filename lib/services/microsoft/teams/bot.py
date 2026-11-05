@@ -166,9 +166,10 @@ class _Bot:
     async def claims_for(self, authorization: str | None) -> ClaimsIdentity:
         """Who sent this, according to the token Teams presented.
 
-        Raises if the token is missing or does not verify. This is the only thing
-        standing between the endpoint and anyone who can reach it, which is why it
-        is the SDK's job and not ours.
+        Raises if the token is missing or does not verify. The SDK checks only the
+        signature and audience, which any Entra token for the bot's app id passes,
+        so this is not enough on its own: ``_require_connector_token_for`` is the
+        other half of the check, and ``handle`` runs both.
         """
 
         if not authorization or not authorization.lower().startswith("bearer "):
@@ -319,4 +320,28 @@ async def handle(
         # unparseable payload cannot help, and the Connector retries a 5xx.
         raise InvalidActivity(str(error)) from error
 
+    _require_connector_token_for(claims, activity)
     return await bot.adapter.process_activity(claims, activity, on_turn)
+
+
+def _require_connector_token_for(claims: ClaimsIdentity, activity: Activity) -> None:
+    """Refuse a token the Bot Connector did not issue for this activity's service URL.
+
+    The SDK's validator checks a token's signature and audience only. Any Entra token
+    for the bot's app id passes that, such as one minted by client credentials from any
+    app in the bot's tenant. The adapter then trusts the activity's ``serviceUrl``,
+    posting replies there with the bot's own token, and its ``from``, the person whose
+    documents are read. The Bot Connector names the service URL in every token it
+    sends, in the ``serviceurl`` claim, and Bot Framework requires that claim to match
+    the activity. Only the Connector's tokens carry it.
+    """
+
+    claimed = claims.get_claim_value(AuthenticationConstants.SERVICE_URL_CLAIM)
+    if not claimed or claimed != activity.service_url:
+        # Both URLs in the message, which the route logs: a service URL is no secret,
+        # and a refused genuine activity has to be told apart from a forged one.
+        raise PermissionError(
+            "the token was not issued for this activity's service URL "
+            f"(token: {claimed!r}, activity: {activity.service_url!r}, "
+            f"type: {activity.type!r})"
+        )
