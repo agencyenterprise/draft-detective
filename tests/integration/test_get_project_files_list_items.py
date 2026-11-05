@@ -99,7 +99,7 @@ async def test_returns_every_main_revision_and_supports(project_with_revisions):
 
 
 @pytest.mark.asyncio
-async def test_never_reads_the_heavy_columns(project_with_revisions):
+async def test_never_reads_the_heavy_columns(project_with_revisions: Project) -> None:
     """The overview polls this list: markdown and summary must stay in the database."""
     statements: list[str] = []
 

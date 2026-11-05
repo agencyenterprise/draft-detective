@@ -26,15 +26,15 @@ def _state_columns() -> dict[str, str]:
     }
 
 
-def test_only_errors_are_read_from_every_run():
+def test_only_errors_are_read_from_every_run() -> None:
     assert set(_state_columns()) == {"errors", "ref_count", "main_file_path"}
 
 
-def test_reference_count_is_read_only_from_reference_extraction():
+def test_reference_count_is_read_only_from_reference_extraction() -> None:
     sql = _state_columns()["ref_count"]
     assert sql.startswith("CASE WHEN (workflow_runs.type = 'reference_extraction')")
 
 
-def test_main_file_path_is_read_only_from_document_processing():
+def test_main_file_path_is_read_only_from_document_processing() -> None:
     sql = _state_columns()["main_file_path"]
     assert sql.startswith("CASE WHEN (workflow_runs.type = 'document_processing')")
