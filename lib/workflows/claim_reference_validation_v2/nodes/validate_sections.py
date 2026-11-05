@@ -1,6 +1,7 @@
 """Graph nodes for Claim Reference Validation V2 workflow."""
 
 import logging
+from collections.abc import Sequence
 
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
@@ -25,12 +26,31 @@ from lib.workflows.claim_reference_validation_v2.state import (
 from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.error_details import capture_error_details
-from lib.workflows.models import ErrorDetails, WorkflowError, WorkflowErrorSeverity
+from lib.workflows.models import (
+    ErrorDetails,
+    LocatedQuote,
+    WorkflowError,
+    WorkflowErrorSeverity,
+)
+from lib.workflows.simple_deep_agent.edit_anchoring import document_lines
+from lib.workflows.simple_deep_agent.issue_reporting import resolve_passage
 
 logger = logging.getLogger(__name__)
 
 
-def _assessment_to_issue(assessment: CitationAssessment) -> CitationIssueItem:
+def _cited_passage(
+    assessment: CitationAssessment, lines: Sequence[str]
+) -> LocatedQuote | None:
+    """The cited text as the issue's passage, by the rule agents' passages follow."""
+    located = resolve_passage(
+        lines, assessment.quoted_text, assessment.line_start, assessment.line_end
+    )
+    return located if isinstance(located, LocatedQuote) else None
+
+
+def _assessment_to_issue(
+    assessment: CitationAssessment, lines: Sequence[str]
+) -> CitationIssueItem:
     """Convert the agent's output record into the persisted workflow-state
     record. The deprecated `truthfulness_label` field is left unset (None)."""
     return CitationIssueItem(
@@ -42,6 +62,7 @@ def _assessment_to_issue(assessment: CitationAssessment) -> CitationIssueItem:
         feedback=assessment.feedback,
         evidence_sources=assessment.evidence_sources,
         citation_to_file_mapping=assessment.citation_to_file_mapping,
+        passage=_cited_passage(assessment, lines),
     )
 
 
@@ -107,9 +128,11 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
     error: str | None = None
     error_details: ErrorDetails | None = None
     status = SectionVerificationStatus.COMPLETED
+    lines: list[str] = []
 
     try:
         main_file = await file_artifacts_service.get_main_file()
+        lines = document_lines(main_file.markdown or "")
         references = await file_artifacts_service.get_references()
         supporting_files = await file_artifacts_service.get_project_files(
             [FileRole.SUPPORT]
@@ -138,7 +161,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
             }
         )
 
-        issues = [_assessment_to_issue(a) for a in result.issues]
+        issues = [_assessment_to_issue(a, lines) for a in result.issues]
         messages = lc_messages
 
     except PartialSectionValidationError as e:
@@ -151,7 +174,7 @@ async def validate_section(state: dict, runtime: Runtime[ContextSchema]):
             len(e.result.issues),
             e,
         )
-        issues = [_assessment_to_issue(a) for a in e.result.issues]
+        issues = [_assessment_to_issue(a, lines) for a in e.result.issues]
         messages = e.messages
         status = SectionVerificationStatus.PARTIAL
         error = str(e)

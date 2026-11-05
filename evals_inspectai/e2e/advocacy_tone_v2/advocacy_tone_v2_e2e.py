@@ -1,8 +1,8 @@
 """E2E eval for the Advocacy & Tone v2 workflow, on the issue-inventory structure.
 
 Declared by ``skills/advocacy-tone/SKILL.md``; runs through the API like every
-other e2e eval. The workflow emits one issue per genuine occurrence, bracketing
-the offending sentence, under a fixed title per kind ("Trigger Words Detected",
+other e2e eval. The workflow emits one issue per genuine occurrence, on the
+line of the offending sentence, under a fixed title per kind ("Trigger Words Detected",
 "Advocacy Language Detected", "Subjective Tone Detected"). The agent judges
 each issue's severity, so severity is not scored.
 

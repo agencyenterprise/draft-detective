@@ -8,7 +8,7 @@ import {
   ensureEditHighlightStyle,
   EDIT_HIGHLIGHT_STYLE_ID,
   allOffsets,
-  editRanges,
+  quoteRanges,
   matchOffsets,
   normalizeWhitespace,
   rangeInElement,
@@ -168,7 +168,7 @@ describe('blocksForLineRange', () => {
   });
 });
 
-describe('editRanges', () => {
+describe('quoteRanges', () => {
   it('returns a range per findable quote and stops at the first block carrying it', () => {
     const container = element(`
       <div id="first" data-block-owner="first" data-line-start="1" data-line-end="2">
@@ -179,7 +179,7 @@ describe('editRanges', () => {
       </div>
     `);
 
-    const ranges = editRanges(container, [
+    const ranges = quoteRanges(container, [
       edit({ id: 'found', display_text: 'The claim is unproven.', start_line: 1, end_line: 3 }),
       edit({ id: 'missing', display_text: 'a sentence the document never had', start_line: 1, end_line: 3 }),
     ]);
@@ -198,7 +198,7 @@ describe('editRanges', () => {
       </ul>
     `);
 
-    const ranges = editRanges(container, [edit({ display_text: 'See Figure 3', start_line: 12, end_line: 12 })]);
+    const ranges = quoteRanges(container, [edit({ display_text: 'See Figure 3', start_line: 12, end_line: 12 })]);
 
     expect(ranges).toHaveLength(1);
     expect(ranges[0].startContainer.parentElement?.id).toBe('late');
@@ -207,7 +207,7 @@ describe('editRanges', () => {
   it('returns nothing when no block covers the edit lines', () => {
     const container = element('<div data-block-owner="a" data-line-start="1" data-line-end="2">The claim.</div>');
 
-    expect(editRanges(container, [edit({ display_text: 'The claim.', start_line: 40, end_line: 41 })])).toEqual([]);
+    expect(quoteRanges(container, [edit({ display_text: 'The claim.', start_line: 40, end_line: 41 })])).toEqual([]);
   });
 });
 
@@ -222,7 +222,7 @@ describe('repeated quotes', () => {
   it('marks the occurrence the edit was anchored to', () => {
     // `**Figure 3**` is unique in the markdown and the second `Figure 3` on
     // the page, which is what the backend stored.
-    const [range] = editRanges(element(html), [
+    const [range] = quoteRanges(element(html), [
       edit({ display_text: 'Figure 3', display_occurrence: 1, start_line: 3, end_line: 3 }),
     ]);
 
@@ -231,7 +231,7 @@ describe('repeated quotes', () => {
   });
 
   it('marks the first occurrence when that is the one stored', () => {
-    const [range] = editRanges(element(html), [
+    const [range] = quoteRanges(element(html), [
       edit({ display_text: 'Figure 3', display_occurrence: 0, start_line: 3, end_line: 3 }),
     ]);
 
@@ -247,7 +247,7 @@ describe('repeated quotes', () => {
     );
 
     expect(
-      editRanges(wrapped, [edit({ display_text: 'See Figure 3', display_occurrence: 0, start_line: 2, end_line: 2 })]),
+      quoteRanges(wrapped, [edit({ display_text: 'See Figure 3', display_occurrence: 0, start_line: 2, end_line: 2 })]),
     ).toEqual([]);
   });
 
@@ -256,7 +256,7 @@ describe('repeated quotes', () => {
       '<p data-block-owner="" data-line-start="1" data-line-end="2">See Figure 3 for the baseline. See Figure 4 for the outcome.</p>',
     );
 
-    const [range] = editRanges(wrapped, [
+    const [range] = quoteRanges(wrapped, [
       edit({ display_text: 'See Figure 4', display_occurrence: 0, start_line: 2, end_line: 2 }),
     ]);
 

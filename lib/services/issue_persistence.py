@@ -17,7 +17,12 @@ from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
 from lib.models.issue_edit import IssueEdit
 from lib.services.text.sanitization import strip_control_chars
-from lib.workflows.models import DocumentIssue, ProposedEdit, WorkflowRunType
+from lib.workflows.models import (
+    DocumentIssue,
+    LocatedQuote,
+    ProposedEdit,
+    WorkflowRunType,
+)
 from lib.workflows.registry import available_workflow_type_values
 
 logger = logging.getLogger(__name__)
@@ -52,6 +57,23 @@ def _edit_rows(edits: list[ProposedEdit]) -> list[IssueEdit]:
         )
         for index, edit in enumerate(edits)
     ]
+
+
+def _passage_columns(passage: LocatedQuote | None) -> dict[str, str | int | None]:
+    """The `passage_*` column values for an issue's passage, all None without one."""
+    if passage is None:
+        return {
+            "passage_text": None,
+            "passage_display_text": None,
+            "passage_display_occurrence": None,
+            "passage_line": None,
+        }
+    return {
+        "passage_text": strip_control_chars(passage.original_text),
+        "passage_display_text": strip_control_chars(passage.display_text),
+        "passage_display_occurrence": passage.display_occurrence,
+        "passage_line": passage.start_line,
+    }
 
 
 async def persist_workflow_issues(
@@ -99,6 +121,7 @@ async def persist_workflow_issues(
                 end_line=doc_issue.end_line,
                 status=IssueStatus.ACTIVE,
                 revision=revision,
+                **_passage_columns(doc_issue.passage),
             )
             issue.edit_rows = _edit_rows(doc_issue.edits)
             session.add(issue)

@@ -100,7 +100,7 @@ When you can attach proposed edits to an issue, attach one edit per sentence who
 
 ### Volume and coverage
 
-Report every qualifying paragraph up to 40 concision issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, anchored to the section's first reportable paragraph and spanning the section: quote each reported phrase with its tighter wording, and attach edits as above. Precision issues are never consolidated. Every section of the document is covered either way.
+Report every qualifying paragraph up to 40 concision issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Wordy Construction: Section Summary"`, on the line of the section's first reportable paragraph: quote each reported phrase with its line and its tighter wording, and attach edits only for the phrases on that first line. Precision issues are never consolidated. Every section of the document is covered either way.
 
 ## Report
 

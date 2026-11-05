@@ -3,7 +3,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { editRanges } from './edit-highlight';
+import { quoteRanges } from './edit-highlight';
 import type { ProposedEdit } from './proposed-edit';
 import { TableRow } from './table-row';
 
@@ -65,7 +65,7 @@ describe('TableRow', () => {
   it('lets an edit highlight land on its own row when another row repeats the quote', () => {
     const container = render();
 
-    const [range] = editRanges(container, [edit({ start_line: 6, end_line: 6 })]);
+    const [range] = quoteRanges(container, [edit({ start_line: 6, end_line: 6 })]);
 
     expect(range.toString()).toBe('See Figure 3');
     expect(range.startContainer.parentElement?.closest('tr')?.textContent).toContain('Outcome');
@@ -74,7 +74,7 @@ describe('TableRow', () => {
   it('still finds the earlier row when the edit is anchored there', () => {
     const container = render();
 
-    const [range] = editRanges(container, [edit({ start_line: 5, end_line: 5 })]);
+    const [range] = quoteRanges(container, [edit({ start_line: 5, end_line: 5 })]);
 
     expect(range.startContainer.parentElement?.closest('tr')?.textContent).toContain('Baseline');
   });

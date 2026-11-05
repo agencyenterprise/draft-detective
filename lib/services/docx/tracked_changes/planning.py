@@ -61,7 +61,7 @@ def _docx_named(docx_path: str, directory: str) -> str:
     return str(copy)
 
 
-def _paragraph_map(
+def paragraph_map(
     docx_path: str, workspace_root: str | None
 ) -> dict[int, MappedParagraph] | None:
     """``{python-docx paragraph index: docx-editor paragraph}`` for a file.
@@ -197,7 +197,7 @@ def _plan_sync(
     if not applicable:
         return TrackedChangesPlan(planned=[], outcomes=outcomes)
 
-    paragraphs = _paragraph_map(docx_path, workspace_root)
+    paragraphs = paragraph_map(docx_path, workspace_root)
     if paragraphs is None:
         # The file's paragraphs could not be tied to docx-editor's, so no ref
         # is trustworthy. Every edit is reported rather than written blind.

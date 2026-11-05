@@ -16,6 +16,7 @@ from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field, Relationship, SQLModel
 
 from lib.models.issue_edit import IssueEdit, IssueEditRead
+from lib.models.issue_passage import IssuePassageRead
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 
@@ -119,6 +120,47 @@ class Issue(SQLModel, table=True):
         description="1-indexed end line of the issue in the main document markdown",
     )
 
+    passage_text: str | None = Field(
+        sa_column=Column(Text, nullable=True),
+        default=None,
+        # Published once, through the computed `passage`.
+        exclude=True,
+        description=(
+            "The exact words of the main document markdown this issue is about, "
+            "quoted from one line. Null when the issue concerns its whole line range."
+        ),
+    )
+
+    passage_display_text: str | None = Field(
+        sa_column=Column(Text, nullable=True),
+        default=None,
+        # Published once, through the computed `passage`.
+        exclude=True,
+        description=(
+            "passage_text as the document renders it: markdown syntax gone, "
+            "whitespace normalized. What the highlight and the export search for."
+        ),
+    )
+
+    passage_display_occurrence: int | None = Field(
+        sa_column=Column(Integer, nullable=True),
+        default=None,
+        # Published once, through the computed `passage`.
+        exclude=True,
+        description=(
+            "0-based index of passage_display_text among its occurrences in the "
+            "rendered line."
+        ),
+    )
+
+    passage_line: int | None = Field(
+        sa_column=Column(Integer, nullable=True),
+        default=None,
+        # Published once, through the computed `passage`.
+        exclude=True,
+        description="1-indexed line of the main document markdown carrying the passage",
+    )
+
     status: IssueStatus = Field(
         sa_column=Column(
             SQLModelEnum(IssueStatus), nullable=False, default=IssueStatus.ACTIVE
@@ -212,6 +254,29 @@ class Issue(SQLModel, table=True):
             IssueEditRead.model_validate(row, from_attributes=True)
             for row in self.edit_rows
         ]
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def passage(self) -> IssuePassageRead | None:
+        """The exact words this issue is about, or None for a whole-line issue.
+
+        Shaped like an edit's quote, and computed for the same reason `edits`
+        is: every payload that serializes an `Issue` publishes it.
+        """
+        if (
+            self.passage_text is None
+            or self.passage_display_text is None
+            or self.passage_display_occurrence is None
+            or self.passage_line is None
+        ):
+            return None
+        return IssuePassageRead(
+            original_text=self.passage_text,
+            display_text=self.passage_display_text,
+            display_occurrence=self.passage_display_occurrence,
+            start_line=self.passage_line,
+            end_line=self.passage_line,
+        )
 
     @property
     def is_resolved(self) -> bool:

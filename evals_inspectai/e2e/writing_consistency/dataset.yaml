@@ -1,5 +1,5 @@
 # Eval samples for the writing_consistency workflow, in inventory form: one expected issue per
-# inconsistency, anchored at the first minority occurrence, with edit expectations, plus decoys
+# line carrying an inconsistency's minority form, with edit expectations, plus decoys
 # whose variation is legitimate. Titles carry the variants after a colon ("Inconsistent Term:
 # students / pupils"), so an expected title names the stable prefix; where a family could fairly be
 # reported under two prefixes (a spelling that is also a number style), the title is just

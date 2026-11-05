@@ -91,7 +91,7 @@ def _document_size_note(document: str | None) -> str:
     return _DOCUMENT_SIZE_NOTE.format(lines=len(document.splitlines()))
 
 
-def _main_document_text(files: dict[str, Any]) -> str | None:
+def main_document_text(files: dict[str, Any]) -> str | None:
     """Read the document under review out of the DeepAgent backend file tree."""
     file_data = files.get(MAIN_DOCUMENT_PATH)
     if file_data is None:
@@ -166,11 +166,11 @@ class SimpleDeepAgent(LangChainAgent):
                 include_skills=True,
             )
         )
-        document = _main_document_text(files)
+        document = main_document_text(files)
         issue_reporter = (
             IssueReporter(
                 propose_edits=self._propose_edits,
-                document_text=document if self._propose_edits else None,
+                document_text=document,
             )
             if self._report_issues
             else None

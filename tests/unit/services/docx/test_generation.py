@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.models.issue import Issue
+from lib.services.docx.comment_anchors import CommentAnchor
 from lib.services.docx.edit_export import EditExport
 from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.manipulator import (
@@ -81,6 +82,26 @@ class TestIssueToComment:
         assert "This claim lacks evidence" in comment.comment_text
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
+
+    def test_a_passage_anchor_moves_the_comment_to_the_passage_paragraph(self):
+        issue = _make_issue(
+            title="Trigger word",
+            description="Certainty language",
+            severity=SeverityEnum.MEDIUM,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=5,
+        )
+        anchor = CommentAnchor(
+            paragraph_index=1, find="certainly", occurrence=0, total=1
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}, comment_anchor=anchor)
+
+        assert comment is not None
+        assert comment.paragraph_index == 1
+        assert comment.anchor == anchor
+        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}).anchor is None  # type: ignore[union-attr]
 
     def test_without_severity_the_comment_names_no_priority(self):
         """A project that doesn't group by severity exports plain Draft Detective comments."""

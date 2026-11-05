@@ -139,8 +139,9 @@ def _summary(
             f"line {e.line}: {e.anchor}, in plain words ..." for e in rest
         ),
         severity=severity,
-        start_line=min(e.line for e in rest),
-        end_line=max(e.line for e in rest),
+        # One issue, one place: the summary sits on the first paragraph it covers.
+        start_line=rest[0].line,
+        end_line=rest[0].line,
     )
 
 
@@ -211,10 +212,15 @@ def test_overflow_fails_a_summary_with_the_wrong_title_or_range():
     assert any_severity["overflow_summary_title"] == 1.0, (
         "the agent judges the summary's severity"
     )
-    short = _summary(rest)
-    short.end_line = rest[0].line
-    too_short, _ = overflow_scores([_single(e) for e in first] + [short], inventory)
-    assert too_short["overflow_summary_covers_rest"] == 0.0
+    # On a later paragraph than the first it covers, or silent on one of them.
+    misplaced = _summary(rest)
+    misplaced.start_line = misplaced.end_line = rest[-1].line
+    off_place, _ = overflow_scores([_single(e) for e in first] + [misplaced], inventory)
+    assert off_place["overflow_summary_covers_rest"] == 0.0
+    silent = _summary(rest[1:])
+    silent.start_line = silent.end_line = rest[0].line
+    missing_term, _ = overflow_scores([_single(e) for e in first] + [silent], inventory)
+    assert missing_term["overflow_summary_covers_rest"] == 0.0
 
 
 def test_overflow_is_not_scored_on_other_samples():

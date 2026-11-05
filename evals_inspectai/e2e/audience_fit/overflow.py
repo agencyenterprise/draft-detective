@@ -10,7 +10,7 @@ more than ``CAP`` technical paragraphs; every other sample is NaN. They ask
 for at most ``CAP`` issues titled exactly ``Technical Language``, one of them
 for each of the first ``CAP`` technical paragraphs in document order and none
 for a paragraph past the cap, exactly one summary, and a
-summary that spans every remaining paragraph and quotes each one's term.
+summary on the first remaining paragraph's line that quotes each remaining paragraph's term.
 Whether the summary gives each paragraph a plain alternative is graded in
 ``overflow_judge``.
 """
@@ -40,7 +40,7 @@ OVERFLOW_DESCRIPTIONS = {
     "overflow_cap": f"On a sample with more than {CAP} technical paragraphs: at most {CAP} issues titled exactly '{PARAGRAPH_TITLE}'.",
     "overflow_first_in_order": f"On that sample: each of the first {CAP} technical paragraphs in document order has its own '{PARAGRAPH_TITLE}' issue (matched one-to-one), and no such issue covers a paragraph past the cap.",
     "overflow_summary_title": f"On that sample: exactly one issue titled '{SUMMARY_TITLE}'.",
-    "overflow_summary_covers_rest": "On that sample: the summary spans every remaining technical paragraph and quotes each one's term.",
+    "overflow_summary_covers_rest": "On that sample: the summary sits on the first remaining technical paragraph's line and quotes each remaining paragraph's term.",
 }
 OVERFLOW_LABELS = {
     "overflow_cap": "Cap",
@@ -130,10 +130,8 @@ def overflow_scores(
         e.id
         for e in rest
         if summary is None
-        or not (
-            summary.start_line <= e.line <= summary.end_line
-            and normalize(e.anchor) in _text(summary)
-        )
+        or summary.start_line != rest[0].line
+        or normalize(e.anchor) not in _text(summary)
     ]
     values = {
         "overflow_cap": float(len(singles) <= CAP),

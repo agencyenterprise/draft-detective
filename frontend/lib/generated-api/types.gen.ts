@@ -91,6 +91,10 @@ export type AbbreviationItem = {
    */
   abbreviations_section_definition?: string | null;
   /**
+   * The words this occurrence's issue is about, located on its line; None when they could not be pinned down, and on states stored before passages existed.
+   */
+  passage?: LocatedQuote | null;
+  /**
    * Ignored
    *
    * Legacy: True if this occurrence was excluded from compliance checks.
@@ -1446,6 +1450,7 @@ export type CitationIssueItem = {
    * Citation To File Mapping
    */
   citation_to_file_mapping?: string | null;
+  passage?: LocatedQuote | null;
 };
 
 /**
@@ -2584,6 +2589,13 @@ export type Issue = {
    * without restating the schema.
    */
   readonly edits: Array<IssueEditRead>;
+  /**
+   * The exact words this issue is about, or None for a whole-line issue.
+   *
+   * Shaped like an edit's quote, and computed for the same reason `edits`
+   * is: every payload that serializes an `Issue` publishes it.
+   */
+  readonly passage: IssuePassageRead | null;
 };
 
 /**
@@ -2715,6 +2727,38 @@ export type IssueItem = {
    * Proposed edits resolving this issue, already located in the document. Empty unless the agent proposed one and it passed validation.
    */
   edits?: Array<ProposedEdit>;
+  /**
+   * The exact words this issue is about, already located in the document. None when the issue concerns its whole line range.
+   */
+  passage?: LocatedQuote | null;
+};
+
+/**
+ * IssuePassageRead
+ *
+ * Read-only view of an issue's passage.
+ */
+export type IssuePassageRead = {
+  /**
+   * Original Text
+   */
+  original_text: string;
+  /**
+   * Display Text
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   */
+  display_occurrence: number;
+  /**
+   * Start Line
+   */
+  start_line: number;
+  /**
+   * End Line
+   */
+  end_line: number;
 };
 
 /**
@@ -2896,6 +2940,49 @@ export type LinkReferenceFileResponse = {
    * File Id
    */
   file_id: string;
+};
+
+/**
+ * LocatedQuote
+ *
+ * Words quoted verbatim from one line of the main document, already located.
+ *
+ * The shared half of a passage and a proposed edit: both quote the document,
+ * and both are found, highlighted in the app and anchored in the Word export
+ * by the same fields. A quote sits on one line of the markdown (one Word
+ * paragraph), so start_line equals end_line.
+ */
+export type LocatedQuote = {
+  /**
+   * Original Text
+   *
+   * The exact text quoted from the main document markdown. Never empty.
+   */
+  original_text: string;
+  /**
+   * Start Line
+   *
+   * 1-indexed first line of the main document markdown containing original_text
+   */
+  start_line: number;
+  /**
+   * End Line
+   *
+   * 1-indexed last line of the main document markdown containing original_text
+   */
+  end_line: number;
+  /**
+   * Display Text
+   *
+   * original_text as the document renders it -- markdown syntax gone, whitespace normalized. What the highlight and the export search for.
+   */
+  display_text: string;
+  /**
+   * Display Occurrence
+   *
+   * 0-based index of display_text among its occurrences in the rendered line, since rendering can turn a unique quote into a repeat.
+   */
+  display_occurrence: number;
 };
 
 /**
@@ -3272,22 +3359,16 @@ export type ProjectReferences = {
  * Optional detail on an issue: a fix that is fully determined by the document
  * text plus the finding, expressed as one replacement of a quoted span. An
  * insertion is expressed as replacing a span with that span plus the new text,
- * and a deletion as replacing it with the empty string. A span sits on one
- * line of the markdown (one Word paragraph), so start_line equals end_line.
+ * and a deletion as replacing it with the empty string. An edit is a located
+ * quote with a replacement: `original_text` is the span it replaces.
  */
 export type ProposedEdit = {
   /**
    * Original Text
    *
-   * The exact text quoted from the main document markdown that this edit replaces. Never empty.
+   * The exact text quoted from the main document markdown. Never empty.
    */
   original_text: string;
-  /**
-   * Replacement Text
-   *
-   * The text that takes the place of original_text. An empty string deletes the quoted span.
-   */
-  replacement_text: string;
   /**
    * Start Line
    *
@@ -3301,12 +3382,6 @@ export type ProposedEdit = {
    */
   end_line: number;
   /**
-   * Rationale
-   *
-   * One short sentence explaining why this replacement resolves the issue.
-   */
-  rationale: string;
-  /**
    * Display Text
    *
    * original_text as the document renders it -- markdown syntax gone, whitespace normalized. What the highlight and the export search for.
@@ -3318,6 +3393,18 @@ export type ProposedEdit = {
    * 0-based index of display_text among its occurrences in the rendered line, since rendering can turn a unique quote into a repeat.
    */
   display_occurrence: number;
+  /**
+   * Replacement Text
+   *
+   * The text that takes the place of original_text. An empty string deletes the quoted span.
+   */
+  replacement_text: string;
+  /**
+   * Rationale
+   *
+   * One short sentence explaining why this replacement resolves the issue.
+   */
+  rationale: string;
   /**
    * Display Replacement
    *

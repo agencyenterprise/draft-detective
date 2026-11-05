@@ -79,7 +79,7 @@ This check does not propose text edits: the audience is the author's to name, an
 
 ### Volume and coverage
 
-Audience issues are at most three per document. Report up to 15 `"Technical Language"` issues. If the document has more, keep the first 15 in document order and summarize the rest in one issue titled `"Technical Language: Further Paragraphs"`, spanning the remaining paragraphs and listing each paragraph's line with its terms and their plain alternatives. Every section of the main body is covered either way.
+Audience issues are at most three per document. Report up to 15 `"Technical Language"` issues. If the document has more, keep the first 15 in document order and summarize the rest in one issue titled `"Technical Language: Further Paragraphs"`, on the line of the first remaining paragraph, listing each paragraph's line with its terms and their plain alternatives. Every section of the main body is covered either way.
 
 ## Report
 

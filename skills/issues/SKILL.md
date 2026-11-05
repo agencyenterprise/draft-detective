@@ -59,6 +59,11 @@ The 1-indexed line number in the supplied document where the text relevant to th
 **`end_line`** (`int`)
 The 1-indexed line number in the supplied document where the relevant text ends. Must be ≥ `start_line`. Set to `1` when no specific location can be determined.
 
+**`passage`** (`str`, optional)
+The exact words of the document this issue is about. The passage is what users see highlighted for the issue, and what the issue is attached to wherever it is shown (a review interface, a comment in the document), so choose the words a reader should look at to understand the finding, rather than leaving them a whole line to search. Without a passage, the issue's whole line range is highlighted instead. Quote it **verbatim** from one line of the document, inside the issue's `start_line`–`end_line` range, and make it appear there only once. Make it as long as the issue needs, from a phrase up to the whole line, so it covers everything the issue is about: the offending phrase, the sentence that makes the claim, the caption that is wrong.
+
+Set a passage when the issue concerns specific words within a paragraph. Omit it when the issue concerns the whole line, spans more than one line, or is about something absent from the document (a missing section, a missing caption): the issue's line range already locates it.
+
 **`suggested_action`** (`str`, optional, markdown supported)
 A direct, concise recommendation to the author on what to do to resolve this issue. Set this field whenever a concrete author-facing fix applies; omit it when no actionable recommendation can be made (e.g. for purely diagnostic findings).
 
@@ -79,7 +84,7 @@ Zero or more mechanical text replacements that resolve the issue. An edit is a f
 
 **Propose an edit only when the fix is fully determined by the document text plus the finding.** Never propose one when the fix needs a new fact or new prose: no invented citations, references, data, findings, or rewritten paragraphs. If the right fix requires the author's judgement or information that is not in the document, leave `edits` empty and say what is needed in `suggested_action`.
 
-Edits take the place of `suggested_action` for the part of the fix they carry: set `suggested_action` only for what they leave to the author, as described above. One issue may carry several edits when a single finding requires more than one replacement, each within its own line. If nothing about the fix is mechanical, omit `edits` entirely; an issue with no edits is a normal, complete issue.
+Edits take the place of `suggested_action` for the part of the fix they carry: set `suggested_action` only for what they leave to the author, as described above. One issue may carry several edits when its line needs more than one replacement; all of an issue's edits sit on one line. A fix needed on several lines is one issue per line, each carrying its own edits. If nothing about the fix is mechanical, omit `edits` entirely; an issue with no edits is a normal, complete issue.
 
 **`long_description`** (`str`, optional, markdown supported)
 An extended markdown description for issues that require more detail than fits in `description`. Use this field only when the issue is complex enough that a short paragraph is not sufficient — for example, when you need to list multiple affected locations, quote specific passages, compare expected versus actual content, or provide step-by-step remediation guidance. If `description` alone communicates the problem clearly, omit this field entirely.
@@ -99,6 +104,7 @@ Report one issue per problem found. Only create an issue for a failing rule or m
 
 - Line numbers are 1-indexed: the first line of the supplied document is line 1. When your instructions designate the document or line numbering to use, follow them.
 - For issues tied to a specific passage, set `start_line` and `end_line` to bracket that passage.
+- **One issue, one place.** An issue covers one contiguous passage: a phrase, a sentence, a paragraph, or a block that runs over several lines, such as a table, a list or a section. When the same problem occurs in separate places, report one issue per line that carries it, each with its own range, passage and edits; never one issue whose range stretches from the first occurrence to the last. When your instructions cap how many issues to report and say to summarize the rest in one issue, anchor that summary on the first place it covers, with its range on that line, and list the other lines in its description.
 - For issues with no specific line or line range — for example, a finding that a required section is missing entirely from the document — set both `start_line` and `end_line` to `1`. **Never** report such an issue with a range that spans the entire document; a whole-document range is reserved for problems that genuinely apply to every line.
 
 ## Best Practices for All Formats

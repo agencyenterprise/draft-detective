@@ -6,10 +6,19 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
-import { useSeverityStyle } from '@/context/group-by-severity-context';
-import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
+import { useGroupBySeverity, useSeverityStyle } from '@/context/group-by-severity-context';
+import { clearEditHighlight, quoteRanges, setEditHighlight } from './edit-highlight';
 import { issueLineRange, rangesOverlap } from './issue-lines';
 import { MarginLayer } from './margin-layer';
+import {
+  blockKeepsUnderline,
+  clearPassageHighlights,
+  issuesOnLines,
+  locatePassages,
+  paintPassages,
+  passageSeverity,
+  washesBlock,
+} from './passage-highlight';
 import { issueEdits } from './proposed-edit';
 import { TableRow } from './table-row';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
@@ -327,6 +336,16 @@ export function DocumentView({
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange), [issues]);
   const styleOf = useSeverityStyle();
+  const groupBySeverity = useGroupBySeverity();
+  /**
+   * The issues the reader has open: the active one, or without an id every
+   * issue on the selected lines. Their passages carry the selection colour.
+   */
+  const openIssues = useMemo(() => {
+    if (activeIssueId) return lineIssues.filter((issue) => issue.id === activeIssueId);
+    if (!selectedLineRange) return [];
+    return issuesOnLines(lineIssues, selectedLineRange[0], selectedLineRange[1]);
+  }, [activeIssueId, lineIssues, selectedLineRange]);
   // The rest: findings about the document rather than a place in it, like a
   // missing Abbreviations section. Nothing anchors them, so the margin would
   // drop them entirely and the header would count issues that are not on screen.
@@ -354,6 +373,8 @@ export function DocumentView({
 
     const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
     const cleanups: Array<() => void> = [];
+    // Issues marked on their exact words rather than on their lines.
+    const located = locatePassages(container, lineIssues);
 
     blocks.forEach((block) => {
       const lineStart = Number(block.getAttribute('data-line-start'));
@@ -382,11 +403,14 @@ export function DocumentView({
       // spans into the selection lights up alongside the paragraph you picked.
       const isSelected = selectedLineRange !== null && rangesOverlap([lineStart, lineEnd], selectedLineRange);
 
-      block.classList.add('cursor-pointer', ...FLAGGED_CLASSES);
+      block.classList.add('cursor-pointer');
+      if (blockKeepsUnderline(issuesOnLines(lineIssues, lineStart, lineEnd), located)) {
+        block.classList.add(...FLAGGED_CLASSES);
+      }
       block.setAttribute('data-issue-id', issue.id);
       block.setAttribute('data-issue-selected', String(isSelected));
 
-      if (isSelected) {
+      if (washesBlock(isSelected, openIssues, located)) {
         block.classList.add(...styleOf(issue.severity).wash.split(' '));
       }
 
@@ -402,10 +426,13 @@ export function DocumentView({
       cleanups.push(() => block.removeEventListener('click', handler));
     });
 
+    paintPassages(located, openIssues, (severity) => passageSeverity(severity, groupBySeverity));
+
     return () => {
       for (const cleanup of cleanups) cleanup();
+      clearPassageHighlights();
     };
-  }, [markdown, lineIssues, selectedLineRange, onIssueSelect, styleOf]);
+  }, [markdown, lineIssues, selectedLineRange, onIssueSelect, styleOf, openIssues, groupBySeverity]);
 
   /**
    * The edits belonging to the open issue. Without an id — a host that shows the
@@ -438,7 +465,7 @@ export function DocumentView({
       return;
     }
 
-    setEditHighlight(editRanges(container, selectedEdits));
+    setEditHighlight(quoteRanges(container, selectedEdits));
     return clearEditHighlight;
   }, [markdown, selectedEdits]);
 

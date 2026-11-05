@@ -9,6 +9,7 @@ from lib.workflows.abbreviation_scan_v2.chunk_models import (
     AbbreviationChunk,
     ChunkStatus,
 )
+from lib.workflows.abbreviation_scan_v2.passages import with_passages
 from lib.workflows.abbreviation_scan_v2.state import (
     AbbreviationItem,
     AbbreviationScanV2State,
@@ -27,11 +28,14 @@ async def assemble_catalogue_node(
     main_file = await runtime.context.file_artifacts_service.get_main_file()
     lines = (main_file.markdown or "").split("\n") if main_file else []
 
-    catalogue = assemble_catalogue(
-        state.chunks,
-        state.abbreviations_section_entries,
-        state.abbreviations_section_ranges,
+    catalogue = with_passages(
         lines,
+        assemble_catalogue(
+            state.chunks,
+            state.abbreviations_section_entries,
+            state.abbreviations_section_ranges,
+            lines,
+        ),
     )
     summary = _summary(state, catalogue, len(lines))
     logger.info(f"[AbbreviationScanV2] {summary}")

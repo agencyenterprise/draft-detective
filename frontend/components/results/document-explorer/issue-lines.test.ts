@@ -15,6 +15,7 @@ function issue(overrides: Partial<Issue> = {}): Issue {
     created_at: new Date('2026-01-01T00:00:00Z'),
     updated_at: new Date('2026-01-01T00:00:00Z'),
     edits: [],
+    passage: null,
     ...overrides,
   };
 }
