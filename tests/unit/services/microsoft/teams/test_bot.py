@@ -443,7 +443,10 @@ class TestHandlingAnActivity:
     ) -> None:
         service_url = "https://smba.trafficmanager.net/amer/"
         claims = ClaimsIdentity(
-            claims={AuthenticationConstants.SERVICE_URL_CLAIM: service_url},
+            claims={
+                AuthenticationConstants.ISSUER_CLAIM: "https://api.botframework.com",
+                AuthenticationConstants.SERVICE_URL_CLAIM: service_url,
+            },
             is_authenticated=True,
         )
         reply = InvokeResponse(status=200, body={"statusCode": 200})
@@ -628,4 +631,22 @@ class TestOnlyTheBotConnectorsTokenOpensATurn:
                 self._message("https://collector.example.com/"),
                 AsyncMock(),
             )
+        adapter.process_activity.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_a_tenant_token_carrying_a_matching_service_url_is_refused(
+        self, key: rsa.RSAPrivateKey, adapter: MagicMock
+    ) -> None:
+        """A tenant admin can map a ``serviceurl`` claim into its own tokens. Only the
+        Bot Connector issues ``https://api.botframework.com`` tokens."""
+
+        tenant = config.TEAMS_BOT_TENANT_ID
+        url = "https://collector.example.com/"
+        token = _signed(
+            self._claims(iss=f"https://sts.windows.net/{tenant}/", serviceurl=url),
+            key,
+        )
+
+        with pytest.raises(PermissionError):
+            await bot.handle(f"Bearer {token}", self._message(url), AsyncMock())
         adapter.process_activity.assert_not_awaited()

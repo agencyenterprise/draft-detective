@@ -333,8 +333,17 @@ def _require_connector_token_for(claims: ClaimsIdentity, activity: Activity) -> 
     posting replies there with the bot's own token, and its ``from``, the person whose
     documents are read. The Bot Connector names the service URL in every token it
     sends, in the ``serviceurl`` claim, and Bot Framework requires that claim to match
-    the activity. Only the Connector's tokens carry it.
+    the activity. It also requires the issuer to be ``https://api.botframework.com``,
+    single-tenant bots included: only the Connector's own keys sign such a token, so a
+    tenant could not mint one even by mapping a ``serviceurl`` claim into its tokens.
     """
+
+    issuer = claims.get_claim_value(AuthenticationConstants.ISSUER_CLAIM)
+    if issuer != AuthenticationConstants.AGENTS_SDK_TOKEN_ISSUER:
+        raise PermissionError(
+            f"the token was not issued by the Bot Connector (issuer: {issuer!r}, "
+            f"type: {activity.type!r})"
+        )
 
     claimed = claims.get_claim_value(AuthenticationConstants.SERVICE_URL_CLAIM)
     if not claimed or claimed != activity.service_url:
