@@ -110,7 +110,7 @@ class TestFilesToMount:
         assert mounted == files
 
     @pytest.mark.asyncio
-    async def test_only_what_the_thread_lacks_or_holds_differently_is_kept(
+    async def test_what_the_thread_holds_unchanged_is_left_out(
         self,
     ) -> None:
         saver = InMemorySaver()
@@ -122,14 +122,35 @@ class TestFilesToMount:
             # Same text as the thread holds, written again (new timestamps).
             "/attachments/a.md": create_file_data("one\ntwo"),
             "/attachments/b.md": create_file_data("new"),
-            "/skills/s.md": create_file_data("changed"),
             "/attachments/gone.md": None,
         }
 
         mounted = await thread_state.files_to_mount(agent, "t-1", files)
 
-        assert set(mounted) == {
-            "/attachments/b.md",
-            "/skills/s.md",
-            "/attachments/gone.md",
-        }
+        assert set(mounted) == {"/attachments/b.md", "/attachments/gone.md"}
+
+    @pytest.mark.parametrize(
+        "changed",
+        [
+            create_file_data("one\ntwo, edited"),
+            create_file_data("one\ntwo", encoding="base64"),
+        ],
+        ids=["content", "encoding"],
+    )
+    @pytest.mark.asyncio
+    async def test_a_file_the_thread_holds_differently_is_written_again(
+        self, changed: dict[str, Any]
+    ) -> None:
+        """How a skill edited by a deploy reaches a running thread."""
+
+        saver = InMemorySaver()
+        await _run_turns(saver, "t-1")
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=saver
+        )
+
+        mounted = await thread_state.files_to_mount(
+            agent, "t-1", {"/attachments/a.md": changed}
+        )
+
+        assert mounted == {"/attachments/a.md": changed}
