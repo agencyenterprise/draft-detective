@@ -17,8 +17,8 @@ The rules for a row:
 - **Overall avg** is the unweighted mean of those metrics.
 - **Date** is the day the run was created.
 
-Rows are added by hand (number, eval name and footnote); the script fills in
-the rest. The `#` and eval columns, the footnotes and the prose are untouched.
+Rows are added by hand (number and eval name); the script fills in the rest.
+The `#` and eval columns and the prose are untouched.
 """
 
 import argparse
