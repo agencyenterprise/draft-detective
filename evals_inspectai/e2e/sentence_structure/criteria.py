@@ -49,12 +49,11 @@ MEANING_CRITERION = (
     "The replacement fixes the structure of the original sentence and preserves its meaning. Supplying a word "
     "the sentence was missing (a verb, a preposition, an object), giving each of two verbs its own object, "
     "moving or completing a correlative (both/and, either/or, not only/but also), putting the items of a "
-    "series into one form, or leading a summary sentence with the table, figure or content it introduces "
-    '("Table 2 summarizes...", "The following recommendations draw on...", or the authors as "we") is the '
-    "purpose of the edit and does not count as changing content. Everything else is strict: every claim, "
-    "qualifier, hedge, number, date, citation and footnote marker in the original survives with the same "
-    "meaning; neither half of a shared construction loses its meaning; no new information is added; and a "
-    "summary sentence still names every source the original listed."
+    "series into one form, or leading with the table or figure where the missing verb would otherwise make "
+    'a passive ("Table 2 summarizes...") is the purpose of the edit and does not count as changing content. '
+    "Everything else is strict: every claim, qualifier, hedge, number, date, citation and footnote marker in "
+    "the original survives with the same meaning; neither half of a shared construction loses its meaning; "
+    "and no new information is added."
 )
 
 READS_CRITERION = (

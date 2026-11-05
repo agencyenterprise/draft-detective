@@ -154,7 +154,9 @@ def test_dataset_is_well_formed():
         len(r.expected_issues) >= 5 for r in records
     )
     assert all(f.line >= 1 for r in records for f in r.expected_issues)
-    assert "stative" in decoy_reasons(records)
+    assert {"stative", "emergent_finding"} <= set(decoy_reasons(records))
+    titles = {e.title for r in records for e in r.expected_issues if e.required}
+    assert {"Passive Voice", "Ambiguous Actor", "Indirect Summary Sentence"} <= titles
     assert expects_edits(records) is True and expects_titles(records) is True
     # Every expected says whether an edit is expected, so the edit layer has something to check.
     assert all(

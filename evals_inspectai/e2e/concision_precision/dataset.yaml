@@ -915,7 +915,7 @@
     anchor: predicts retention; specifically
     required: false
   - id: roundabout_leadin
-    anchor: A number of key themes surfaced from
+    anchor: A number of key lessons surfaced from
     required: false
   - id: faulty_parallelism
     anchor: both strengthened coordination among partner organizations, as well as the obstacles

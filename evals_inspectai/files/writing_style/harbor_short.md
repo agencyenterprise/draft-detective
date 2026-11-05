@@ -20,6 +20,6 @@ Harbor relied on functioning smoothly as a network of nonprofit providers, and f
 
 ## 4. Recommendations
 
-A number of key themes surfaced from the review of program documents, interviews with city and provider staff, and the examination of administrative data. We order them by how many participants they affect.
+A number of key lessons surfaced from the review of program documents, interviews with city and provider staff, and the examination of administrative data. We order them by how many participants they affect.
 
 In fact, studies of youth employment programs show that consistent mentoring predicts retention; specifically, young adults in similar programs stressed the importance of mentors who share their background (Okafor and Lin, 2022). For an initiative like Harbor, it could be especially useful to carry out early outreach to learn about issues like access to transit, caregiving responsibilities and digital access and also get a better sense of how young adults view the program. A related suggestion for the city is to set aside funding early for peer outreach workers, preferably people who are deeply familiar with the day-to-day circumstances of the neighborhoods served.

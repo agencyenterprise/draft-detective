@@ -22,14 +22,13 @@ DATASET = Path("evals_inspectai/e2e/sentence_structure/dataset.yaml")
 
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
-    assert len(records) == 15
+    assert len(records) == 12
     expected = [e for r in records for e in r.expected_issues if e.required]
-    assert len(expected) == 28
+    assert len(expected) == 22
     assert {e.title for e in expected} == {
         "Incomplete Sentence",
         "Broken Shared Construction",
         "Faulty Parallelism",
-        "Indirect Summary Sentence",
     }
     assert sum(1 for r in records if not r.expected_issues) == 3, (
         "three clean documents"
@@ -37,7 +36,6 @@ def test_dataset_is_well_formed():
     assert {
         "grammatical_shared",
         "correct_correlative",
-        "emergent_finding",
         "direct_leadin",
         "other_check",
     } <= set(decoy_reasons(records))
@@ -55,7 +53,7 @@ def test_long_report_plants_a_pattern_in_its_last_chapter():
 
 def test_task_composes_the_inventory_scorers_and_its_own_checks():
     t = sentence_structure_e2e()
-    assert len(t.dataset) == 15 and len(t.scorer) == 4
+    assert len(t.dataset) == 12 and len(t.scorer) == 4
     # One issue per sentence: a report on a shared paragraph line covers only one expected sentence.
     assert all(
         s.metadata["inventory"]["policy"]["pairing"] == "one_to_one" for s in t.dataset
