@@ -145,7 +145,7 @@ The project includes comprehensive Docker support with three services:
 ### Docker Files
 
 - **`Dockerfile`**: Backend container (Python 3.13 + FastAPI)
-- **`frontend/Dockerfile`**: Frontend container (Node.js 22 + Next.js)
+- **`frontend/Dockerfile`**: Frontend container (Node.js 26 + Next.js)
 - **`docker-compose.yml`**: Orchestrates all services
 
 ### Quick Start
