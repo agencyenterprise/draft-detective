@@ -6,18 +6,26 @@ private, loopback or link-local address would reach services that are not meant 
 be reachable from outside (cloud metadata, cluster services, an intranet), and a PDF
 answer would come back as a project file.
 
-Every request the direct client makes, including each redirect hop, goes through
-``refuse_non_public``: the host must resolve, and every address it resolves to must
-be globally routable.
+Two pieces, both applied to every request the direct client sends, redirect hops
+included:
 
-A host this pod cannot resolve is neither refused nor fetched directly: it raises
-``UnresolvableHostError``, which the caller treats like any other direct-fetch
-failure and hands to Jina. Behind an egress proxy the pod may not resolve public
-names at all, and Jina fetches from its own network, so nothing internal is exposed
-that way.
+- ``PinnedTransport`` resolves the host, requires every address to be globally
+  routable, and then connects to the address it checked, keeping the original
+  ``Host`` header and TLS server name. Checking one lookup and letting the
+  connection make another would let a DNS server answer differently the second
+  time (DNS rebinding).
+- ``refuse_non_public``, a request hook, runs the same check before the client
+  picks a transport. It is what still applies when an environment proxy
+  (``HTTPS_PROXY``) takes the request instead of ``PinnedTransport``.
 
-Not covered: DNS rebinding between this check and httpx's own resolution. Closing
-it would need a transport that connects to the address checked here.
+Names are resolved in the ASCII form httpx connects to (``raw_host``), not the
+Unicode one, whose IDNA encoding can differ and name another host.
+
+A host this pod cannot resolve, or not in time, is neither refused nor fetched
+directly: it raises ``UnresolvableHostError``, which the caller treats like any
+other direct-fetch failure and hands to Jina. Behind an egress proxy the pod may not
+resolve public names at all, and Jina fetches from its own network, so nothing
+internal is exposed that way.
 """
 
 import asyncio
@@ -27,6 +35,8 @@ import socket
 import httpx
 
 ALLOWED_SCHEMES = ("http", "https")
+# httpx's own timeout does not cover the lookup, which runs before it connects.
+DNS_TIMEOUT_SECONDS = 10.0
 
 IPAddress = ipaddress.IPv4Address | ipaddress.IPv6Address
 
@@ -39,18 +49,55 @@ class UnresolvableHostError(Exception):
     """This pod cannot resolve the URL's host."""
 
 
+class PinnedTransport(httpx.AsyncBaseTransport):
+    """Sends each request to the public address its host was checked to have."""
+
+    def __init__(self, inner: httpx.AsyncBaseTransport | None = None) -> None:
+        self.inner = inner or httpx.AsyncHTTPTransport()
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        addresses = await public_addresses(request.url)
+        return await self.inner.handle_async_request(_pinned(request, addresses[0]))
+
+    async def aclose(self) -> None:
+        await self.inner.aclose()
+
+
 async def refuse_non_public(request: httpx.Request) -> None:
     """httpx request hook: raise unless the request goes to a public address."""
 
-    url = request.url
+    await public_addresses(request.url)
+
+
+async def public_addresses(url: httpx.URL) -> list[IPAddress]:
+    """Every address the URL's host resolves to, all of them public, or raise."""
+
     if url.scheme not in ALLOWED_SCHEMES:
         raise BlockedUrlError(f"scheme {url.scheme!r} is not allowed")
-    if not url.host:
+    host = url.raw_host.decode("ascii")
+    if not host:
         raise BlockedUrlError("the URL has no host")
 
-    for address in await _addresses(url.host, url.port or _default_port(url.scheme)):
+    addresses = await _addresses(host, url.port or _default_port(url.scheme))
+    for address in addresses:
         if not _is_public(address):
-            raise BlockedUrlError(f"{url.host} resolves to a non-public address")
+            raise BlockedUrlError(f"{host} resolves to a non-public address")
+    return addresses
+
+
+def _pinned(request: httpx.Request, address: IPAddress) -> httpx.Request:
+    """The request addressed to ``address``, still naming its host to the server."""
+
+    extensions = dict(request.extensions)
+    if request.url.scheme == "https":
+        extensions["sni_hostname"] = request.url.raw_host.decode("ascii")
+    return httpx.Request(
+        request.method,
+        request.url.copy_with(host=str(address)),
+        headers=request.headers,
+        stream=request.stream,
+        extensions=extensions,
+    )
 
 
 async def _addresses(host: str, port: int) -> list[IPAddress]:
@@ -61,9 +108,11 @@ async def _addresses(host: str, port: int) -> list[IPAddress]:
     except ValueError:
         pass
     try:
-        resolved = await _resolve(host, port)
-    except (socket.gaierror, UnicodeError) as error:
-        raise UnresolvableHostError(f"could not resolve {host}: {error}") from error
+        resolved = await asyncio.wait_for(
+            _resolve(host, port), timeout=DNS_TIMEOUT_SECONDS
+        )
+    except (socket.gaierror, UnicodeError, TimeoutError) as error:
+        raise UnresolvableHostError(f"could not resolve {host}: {error!r}") from error
     if not resolved:
         raise UnresolvableHostError(f"{host} resolved to no addresses")
     return [ipaddress.ip_address(address) for address in resolved]

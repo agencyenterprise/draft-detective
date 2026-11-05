@@ -4,6 +4,7 @@ Its URLs come from the user's document, so each test plays an attacker pointing 
 inside the deployment, directly or through a redirect.
 """
 
+import asyncio
 import uuid
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -36,13 +37,15 @@ class FakeWeb:
 
     def __init__(self, redirect_to: str | None = None) -> None:
         self.redirect_to = redirect_to
-        self.requests: list[httpx.URL] = []
+        self.requests: list[httpx.Request] = []
 
     def handle(self, request: httpx.Request) -> httpx.Response:
-        self.requests.append(request.url)
-        if request.url.host == JINA_HOST:
+        # Routed by the Host header: a pinned request is addressed to an IP.
+        self.requests.append(request)
+        host = request.headers["host"]
+        if host == JINA_HOST:
             return httpx.Response(200, text="# markdown")
-        if self.redirect_to and request.url.host == "attacker.example.net":
+        if self.redirect_to and host == "attacker.example.net":
             return httpx.Response(302, headers={"Location": self.redirect_to})
         return httpx.Response(
             200, content=PDF, headers={"Content-Type": "application/pdf"}
@@ -50,7 +53,7 @@ class FakeWeb:
 
     @property
     def hosts(self) -> list[str]:
-        return [url.host for url in self.requests]
+        return [request.headers["host"] for request in self.requests]
 
 
 async def _fake_resolve(host: str, port: int) -> list[str]:
@@ -66,7 +69,11 @@ def web(tmp_path: Path) -> Iterator[Callable[..., FakeWeb]]:
     real_client = httpx.AsyncClient
 
     def client_factory(**kwargs: Any) -> httpx.AsyncClient:
-        return real_client(transport=httpx.MockTransport(webs[0].handle), **kwargs)
+        mock = httpx.MockTransport(webs[0].handle)
+        transport = kwargs.pop("transport", None)
+        if isinstance(transport, url_guard.PinnedTransport):
+            transport.inner = mock
+        return real_client(transport=transport or mock, **kwargs)
 
     with (
         patch.object(dl.httpx, "AsyncClient", client_factory),
@@ -146,6 +153,77 @@ async def test_public_pdf_is_still_downloaded(web: Callable[..., FakeWeb]) -> No
     assert response.success is True
     assert response.file_id == "file-1"
     assert fake.hosts == ["publisher.example.org"]
+
+
+@pytest.mark.asyncio
+async def test_connection_goes_to_the_checked_address(
+    web: Callable[..., FakeWeb],
+) -> None:
+    fake = web()
+
+    await _download("https://publisher.example.org/paper.pdf")
+
+    [sent] = fake.requests
+    assert sent.url.host == PUBLIC_IP
+    assert sent.headers["host"] == "publisher.example.org"
+    assert sent.extensions["sni_hostname"] == "publisher.example.org"
+
+
+@pytest.mark.asyncio
+async def test_dns_rebinding_after_the_hook_is_refused(
+    web: Callable[..., FakeWeb],
+) -> None:
+    """Public for the hook's lookup, loopback for the connection's: refused."""
+    fake = web()
+    answers = iter([[PUBLIC_IP], ["127.0.0.1"]])
+
+    async def rebinding(host: str, port: int) -> list[str]:
+        return next(answers)
+
+    with patch.object(url_guard, "_resolve", rebinding):
+        response = await _download("https://rebind.example.net/paper.pdf")
+
+    assert response.success is False
+    assert "private or internal address" in response.message
+    assert fake.requests == []
+
+
+@pytest.mark.asyncio
+async def test_idn_host_is_checked_in_the_form_httpx_connects_to(
+    web: Callable[..., FakeWeb],
+) -> None:
+    """IDNA 2003 maps faß to fass; httpx connects to the IDNA 2008 xn-- name."""
+    fake = web()
+    names = {
+        "fass.attacker.example": [PUBLIC_IP],
+        "xn--fa-hia.attacker.example": ["10.0.0.7"],
+    }
+
+    with patch.dict(DNS, names):
+        response = await _download("https://faß.attacker.example/paper.pdf")
+
+    assert response.success is False
+    assert fake.requests == []
+
+
+@pytest.mark.asyncio
+async def test_stalled_dns_lookup_goes_to_jina(web: Callable[..., FakeWeb]) -> None:
+    fake = web()
+
+    async def stalled(host: str, port: int) -> list[str]:
+        if host == JINA_HOST:
+            return [PUBLIC_IP]
+        await asyncio.sleep(10)
+        return [PUBLIC_IP]
+
+    with (
+        patch.object(url_guard, "_resolve", stalled),
+        patch.object(url_guard, "DNS_TIMEOUT_SECONDS", 0.05),
+    ):
+        response = await _download("https://slow-dns.example.org/paper")
+
+    assert response.success is True
+    assert fake.hosts == [JINA_HOST]
 
 
 @pytest.mark.asyncio

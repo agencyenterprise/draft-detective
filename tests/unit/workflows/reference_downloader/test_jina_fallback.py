@@ -62,7 +62,11 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
     real_client = httpx.AsyncClient
 
     def client_factory(**kwargs: Any) -> httpx.AsyncClient:
-        return real_client(transport=httpx.MockTransport(web[0].handle), **kwargs)
+        mock = httpx.MockTransport(web[0].handle)
+        transport = kwargs.pop("transport", None)
+        if isinstance(transport, url_guard.PinnedTransport):
+            transport.inner = mock
+        return real_client(transport=transport or mock, **kwargs)
 
     with (
         patch.object(dl.httpx, "AsyncClient", client_factory),
