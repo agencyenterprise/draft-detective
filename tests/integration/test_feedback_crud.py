@@ -70,7 +70,6 @@ def _make_issue(run: WorkflowRun, title: str) -> Issue:
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0],
     )
 
 

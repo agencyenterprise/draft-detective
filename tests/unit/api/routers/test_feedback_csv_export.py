@@ -60,7 +60,6 @@ def _make_issue(**kwargs) -> Issue:
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0, 2],
         created_at=_NOW,
         updated_at=_NOW,
     )
@@ -175,7 +174,6 @@ async def test_csv_row_values():
         severity=SeverityEnum.MEDIUM,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[1, 3],
     )
     feedback = _make_feedback(
         feedback_type=FeedbackType.THUMBS_DOWN,

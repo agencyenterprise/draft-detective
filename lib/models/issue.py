@@ -11,7 +11,7 @@ from enum import Enum
 
 from pydantic import computed_field
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -105,12 +105,6 @@ class Issue(SQLModel, table=True):
     workflow_type: WorkflowRunType = Field(
         sa_column=Column(String(100), nullable=False),
         description="The workflow type that generated this issue",
-    )
-
-    chunk_indices: list[int] | None = Field(
-        sa_column=Column(ARRAY(Integer), nullable=True),
-        default=None,
-        description="All chunk indices related to this issue",
     )
 
     start_line: int | None = Field(

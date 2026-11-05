@@ -50,7 +50,6 @@ class IssueResponse(BaseModel):
     suggested_action: str | None
     severity: str
     workflow_type: str
-    chunk_indices: list[int] | None
     start_line: int | None
     end_line: int | None
     edits: list[IssueEditRead]

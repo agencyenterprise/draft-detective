@@ -68,9 +68,7 @@ async def persist_workflow_issues(
     Archives existing active issues of the same workflow type for the project
     and revision, then creates new issues from the provided DocumentIssue list.
 
-    Issues carry the line range their workflow reported. `chunk_indices` is only
-    ever set on rows written before workflows moved to line ranges; nothing
-    populates it now.
+    Issues carry the line range their workflow reported.
     """
     async with get_async_db_session() as session:
         await session.execute(
@@ -97,7 +95,6 @@ async def persist_workflow_issues(
                 suggested_action=_strip_control_chars(doc_issue.suggested_action),
                 severity=doc_issue.severity,
                 workflow_type=doc_issue.type,
-                chunk_indices=doc_issue.chunk_indices,
                 start_line=doc_issue.start_line,
                 end_line=doc_issue.end_line,
                 status=IssueStatus.ACTIVE,

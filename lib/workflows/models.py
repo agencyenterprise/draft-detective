@@ -283,7 +283,7 @@ class ProposedEdit(BaseModel):
 class DocumentIssue(BaseModel):
     id: str = Field(
         default="",
-        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + chunk_indices.",
+        description="A unique identifier for the issue, generated as a hash of type + title + description + severity + line range.",
     )
     title: str = Field(description="The title of the issue")
     description: str = Field(
@@ -303,10 +303,6 @@ class DocumentIssue(BaseModel):
     severity: SeverityEnum = Field(description="The severity of the issue")
     type: WorkflowRunType = Field(
         description="The workflow type that generated this issue"
-    )
-    chunk_indices: list[int] | None = Field(
-        description="The indices of all chunks that contain the issue",
-        default=None,
     )
     start_line: int | None = Field(
         description="1-indexed start line of the issue in the main document markdown",
@@ -335,8 +331,7 @@ class DocumentIssue(BaseModel):
         # its fix, so attaching or revising an edit must not mint a new issue.
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
-            f"{self.severity.value}|{self.chunk_indices}|"
-            f"{self.start_line}|{self.end_line}"
+            f"{self.severity.value}|{self.start_line}|{self.end_line}"
         )
         self.id = hashlib.sha256(hash_input.encode()).hexdigest()[:16]
         return self

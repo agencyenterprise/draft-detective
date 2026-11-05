@@ -33,7 +33,6 @@ def _make_issue(
     description: str,
     severity: SeverityEnum,
     workflow_type: WorkflowRunType,
-    chunk_indices: list[int] | None = None,
     start_line: int | None = None,
     end_line: int | None = None,
     long_description: str | None = None,
@@ -52,7 +51,6 @@ def _make_issue(
         suggested_action=suggested_action,
         severity=severity,
         workflow_type=workflow_type,
-        chunk_indices=chunk_indices,
         start_line=start_line,
         end_line=end_line,
         created_at=now,
@@ -209,25 +207,6 @@ class TestIssueToComment:
         assert comment is not None
         assert comment.comment_text.endswith("This claim lacks evidence")
 
-    def test_legacy_chunk_indices_issue_is_dropped(self):
-        """An issue carrying only chunk_indices can no longer be placed.
-
-        Those rows pre-date workflows emitting line ranges, and the chunk data
-        that used to translate them went with the chunk_splitting workflow. The
-        export drops them rather than guessing at a paragraph; the caller logs
-        how many were omitted.
-        """
-        issue = _make_issue(
-            title="Legacy issue",
-            description="Only has chunk_indices",
-            severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-            chunk_indices=[1],
-        )
-        paragraph_line_ranges = {0: (1, 2), 1: (3, 5)}
-
-        assert issue_to_comment(issue, paragraph_line_ranges) is None
-
     def test_returns_none_when_line_range_unresolvable(self):
         issue = _make_issue(
             title="Invalid reference",
@@ -329,13 +308,6 @@ class TestUnanchorableIssueAccounting:
                 start_line=3,
                 end_line=5,
             ),
-            _make_issue(  # legacy: chunk_indices only
-                title="legacy",
-                description="d",
-                severity=SeverityEnum.LOW,
-                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-                chunk_indices=[1],
-            ),
             _make_issue(  # no location at all
                 title="locationless",
                 description="d",
@@ -357,7 +329,7 @@ class TestUnanchorableIssueAccounting:
             self._mixed_issues(), self.PARAGRAPHS
         )
 
-        assert (no_range, unmatched) == (2, 1)
+        assert (no_range, unmatched) == (1, 1)
 
     def test_total_matches_what_the_comments_path_drops(self):
         issues = self._mixed_issues()
