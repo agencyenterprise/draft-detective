@@ -24,10 +24,10 @@ pnpm run openapi-generate
 
 ## Testing
 
-Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment. The
-test dependencies need Node 26.13.0 or newer: `.nvmrc` selects a matching
-version, the `engines` field in `package.json` enforces the floor, and CI and
-the Docker image track the Node 26 line:
+Unit tests run on [Vitest](https://vitest.dev) in a jsdom environment, on the
+Node version in `.nvmrc`. CI runs them on that version, and the Docker image
+tracks the same Node 26 line. The `engines` floor in `package.json` only makes
+pnpm warn when your Node is older:
 
 ```bash
 pnpm test        # run once

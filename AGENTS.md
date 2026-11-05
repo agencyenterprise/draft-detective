@@ -259,7 +259,7 @@ uv run pytest tests/path/to/test.py -k "name"     # One file or pattern
 
 ### Frontend Tests (Vitest)
 
-Vitest runs in jsdom and needs Node 26.13.0 or newer (`frontend/.nvmrc`). CI runs it on every PR.
+Vitest runs in jsdom, on the Node version in `frontend/.nvmrc` (26.13.0). CI runs it on every PR.
 
 ```bash
 cd frontend && pnpm test                              # All tests
