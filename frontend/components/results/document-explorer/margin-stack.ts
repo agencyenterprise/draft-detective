@@ -8,6 +8,26 @@ export interface Slot {
 }
 
 /**
+ * The order the notes are stacked in: top to bottom by where each would like
+ * to sit, as measured, not by the line its issue starts on. A note anchored on
+ * a passage further down than its issue's first line -- an issue over lines
+ * 1-100 with its passage on line 100 -- would otherwise be stacked ahead of
+ * the notes it sits below, and push them down after it.
+ *
+ * A note with no preference keeps its place among its neighbours (it takes
+ * the position of the note before it), and one at the very start rides at the
+ * top, as the document-level group does. Equal positions keep their order.
+ */
+export function visualOrder(slots: Slot[]): number[] {
+  let previous = Number.NEGATIVE_INFINITY;
+  const keys = slots.map((slot) => {
+    if (slot.wanted !== null) previous = slot.wanted;
+    return previous;
+  });
+  return slots.map((_, index) => index).sort((a, b) => keys[a] - keys[b]);
+}
+
+/**
  * Where each note goes, given where it would like to go.
  *
  * With nothing selected the notes are stacked top to bottom: each sits level

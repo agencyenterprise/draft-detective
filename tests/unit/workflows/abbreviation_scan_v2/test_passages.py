@@ -138,3 +138,12 @@ def test_a_definition_still_places_an_occurrence_whose_token_is_unknown():
     [item] = with_passages(lines, [_item("CAST", 1, "Cost Analysis Study Tool")])
     assert item.passage is not None
     assert item.passage.display_text == "Cost Analysis Study Tool (CAST)"
+
+
+def test_an_entity_spelled_token_is_not_mistaken_for_the_next_one():
+    """The catalogue counts tokens after decoding entities, so it sees two R&D
+    here; the raw line matches one. The first recorded R&D is not guessed onto
+    the second, which is the one the raw line carries."""
+    lines = ["The R&amp;D team compared R & D budgets."]
+    first, _ = with_passages(lines, [_item("R&D", 1), _item("R&D", 1)])
+    assert first.passage is None

@@ -10,7 +10,7 @@ import { useGroupBySeverity, useSeverityStyle } from '@/context/group-by-severit
 import { clearEditHighlight, quoteRanges, setEditHighlight } from './edit-highlight';
 import { issueLineRange, rangesOverlap } from './issue-lines';
 import { MarginLayer } from './margin-layer';
-import { lineTargets } from './passage-targets';
+import { lineTargets, narrowestBlocks } from './passage-targets';
 import { usePassageTargets } from './use-passage-targets';
 import {
   clearPassageHighlights,
@@ -397,6 +397,16 @@ export function DocumentView({
     // Issues marked on their exact words rather than on their lines.
     const located = locatePassages(lineIssues, resolver.range);
     const locatedIds = new Set(located.keys());
+    // Each whole-paragraph issue is marked on, and opened from, one block: the
+    // narrowest holding its first line, never the list or table around it.
+    const owners = narrowestBlocks(
+      Array.from(blocks, (block) => ({
+        block,
+        start: Number(block.getAttribute('data-line-start')),
+        end: Number(block.getAttribute('data-line-end')),
+      })),
+      lineIssues.filter((i) => !locatedIds.has(i.id)),
+    );
 
     blocks.forEach((block) => {
       const lineStart = Number(block.getAttribute('data-line-start'));
@@ -422,7 +432,9 @@ export function DocumentView({
       // in the most severe target's colour: a mark that cannot be clicked would
       // be a promise the paragraph does not keep, which is what the paragraphs
       // after the first of a many-paragraph issue used to show.
-      const targets = lineTargets(lineIssues, locatedIds, lineStart, lineEnd, (i) => severityRank(i.severity));
+      const targets = lineTargets(lineIssues, locatedIds, lineStart, lineEnd, (i) => severityRank(i.severity)).filter(
+        (i) => owners.get(i.id) === block,
+      );
       if (targets.length > 0) {
         block.classList.add('cursor-pointer', ...FLAGGED_CLASSES, styleOf(targets[0].severity).decoration);
         block.setAttribute('data-line-targets', targets.map((i) => i.id).join(' '));

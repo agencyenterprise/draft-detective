@@ -217,6 +217,12 @@ def test_overflow_fails_a_summary_with_the_wrong_title_or_range():
     misplaced.start_line = misplaced.end_line = rest[-1].line
     off_place, _ = overflow_scores([_single(e) for e in first] + [misplaced], inventory)
     assert off_place["overflow_summary_covers_rest"] == 0.0
+    spanning = _summary(rest)
+    spanning.end_line = rest[-1].line
+    old_shape, _ = overflow_scores([_single(e) for e in first] + [spanning], inventory)
+    assert old_shape["overflow_summary_covers_rest"] == 0.0, (
+        "a range over the rest is the shape the skill dropped"
+    )
     silent = _summary(rest[1:])
     silent.start_line = silent.end_line = rest[0].line
     missing_term, _ = overflow_scores([_single(e) for e in first] + [silent], inventory)

@@ -40,7 +40,7 @@ OVERFLOW_DESCRIPTIONS = {
     "overflow_cap": f"On a sample with more than {CAP} technical paragraphs: at most {CAP} issues titled exactly '{PARAGRAPH_TITLE}'.",
     "overflow_first_in_order": f"On that sample: each of the first {CAP} technical paragraphs in document order has its own '{PARAGRAPH_TITLE}' issue (matched one-to-one), and no such issue covers a paragraph past the cap.",
     "overflow_summary_title": f"On that sample: exactly one issue titled '{SUMMARY_TITLE}'.",
-    "overflow_summary_covers_rest": "On that sample: the summary sits on the first remaining technical paragraph's line and quotes each remaining paragraph's term.",
+    "overflow_summary_covers_rest": "On that sample: the summary sits on the first remaining technical paragraph's line alone (no range over the rest) and quotes each remaining paragraph's term.",
 }
 OVERFLOW_LABELS = {
     "overflow_cap": "Cap",
@@ -130,7 +130,8 @@ def overflow_scores(
         e.id
         for e in rest
         if summary is None
-        or summary.start_line != rest[0].line
+        # One place: the first remaining paragraph's line, not a range over all of them.
+        or (summary.start_line, summary.end_line) != (rest[0].line, rest[0].line)
         or normalize(e.anchor) not in _text(summary)
     ]
     values = {

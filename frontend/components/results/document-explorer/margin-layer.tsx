@@ -5,7 +5,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DocumentIssues } from './document-issues';
 import { issueStartLine } from './issue-lines';
 import { MarginNote } from './margin-note';
-import { Slot, stackNotes } from './margin-stack';
+import { Slot, stackNotes, visualOrder } from './margin-stack';
 
 interface MarginLayerProps {
   /** Issues anchored to a line, in the order they appear in the document. */
@@ -121,11 +121,17 @@ export function MarginLayer({
       return { wanted: owned ? anchor.element.getBoundingClientRect().top - bodyTop : null, height };
     });
 
-    const pivot = entries.findIndex((entry) => entry.id === activeRef.current);
-    const tops = stackNotes(slots, pivot);
+    // Stacked in the order the notes appear down the page, which a passage
+    // below its issue's first line can change; see visualOrder.
+    const order = visualOrder(slots);
+    const pivot = order.findIndex((index) => entries[index].id === activeRef.current);
+    const tops = stackNotes(
+      order.map((index) => slots[index]),
+      pivot,
+    );
     const next: Record<string, number> = {};
-    entries.forEach((entry, index) => {
-      next[entry.id] = tops[index];
+    order.forEach((index, position) => {
+      next[entries[index].id] = tops[position];
     });
 
     setTops((previous) => (sameTops(previous, next) ? previous : next));

@@ -122,3 +122,31 @@ export function passageBoxes(ranges: ReadonlyMap<string, Range>): Map<string, { 
     ]),
   );
 }
+
+/** A rendered block and the source lines it covers. */
+export interface LineBlock<T> {
+  block: T;
+  start: number;
+  end: number;
+}
+
+/**
+ * The block each issue is a target of: the narrowest one holding the line its
+ * issue starts on. A list, a table or a quote covers its items' lines too, and
+ * without this the whole list would be marked and clicked for one item's
+ * issue. Blocks of equal span keep document order.
+ */
+export function narrowestBlocks<T>(blocks: LineBlock<T>[], issues: Issue[]): Map<string, T> {
+  const owners = new Map<string, T>();
+  for (const issue of issues) {
+    const line = issue.start_line;
+    if (typeof line !== 'number') continue;
+    let best: LineBlock<T> | null = null;
+    for (const candidate of blocks) {
+      if (candidate.start > line || candidate.end < line) continue;
+      if (!best || candidate.end - candidate.start < best.end - best.start) best = candidate;
+    }
+    if (best) owners.set(issue.id, best.block);
+  }
+  return owners;
+}

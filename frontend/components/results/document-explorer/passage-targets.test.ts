@@ -1,6 +1,6 @@
 import { SeverityEnum, WorkflowRunType, type Issue } from '@/lib/generated-api';
 import { describe, expect, it } from 'vitest';
-import { issuesAtPoint, lineTargets, nextTarget, type Box } from './passage-targets';
+import { issuesAtPoint, lineTargets, narrowestBlocks, nextTarget, type Box } from './passage-targets';
 
 const box = (left: number, top: number, right: number, bottom: number): Box => ({ left, top, right, bottom });
 
@@ -66,5 +66,21 @@ describe('lineTargets', () => {
     // `spread` covers line 10 too, but is opened from line 4, where it starts.
     expect(targets.map((i) => i.id)).toEqual(['high', 'low']);
     expect(lineTargets([spread], new Set(), 4, 4, rank).map((i) => i.id)).toEqual(['spread']);
+  });
+});
+
+describe('narrowestBlocks', () => {
+  it('gives an issue to the list item holding its first line, not the list around it', () => {
+    const blocks = [
+      { block: 'list', start: 10, end: 14 },
+      { block: 'item-10', start: 10, end: 10 },
+      { block: 'item-12', start: 12, end: 12 },
+    ];
+
+    const owners = narrowestBlocks(blocks, [issue('on-12', 12, 12), issue('on-11', 11, 11)]);
+
+    expect(owners.get('on-12')).toBe('item-12');
+    // A line no item holds falls to the list.
+    expect(owners.get('on-11')).toBe('list');
   });
 });

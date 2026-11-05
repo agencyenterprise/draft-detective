@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stackNotes, type Slot } from './margin-stack';
+import { stackNotes, visualOrder, type Slot } from './margin-stack';
 
 const note = (wanted: number | null, height = 50): Slot => ({ wanted, height });
 
@@ -24,5 +24,16 @@ describe('stackNotes', () => {
 
   it('pushes the notes below the open one down', () => {
     expect(stackNotes([note(100), note(110)], 0)).toEqual([100, 156]);
+  });
+});
+
+describe('visualOrder', () => {
+  it("orders notes by where they sit, not by their issue's first line", () => {
+    // An issue over lines 1-100 with its passage near the bottom, then one on line 50.
+    expect(visualOrder([note(900), note(400)])).toEqual([1, 0]);
+  });
+
+  it('keeps a note without a position beside its neighbours, and the document group on top', () => {
+    expect(visualOrder([note(null), note(300), note(null), note(100)])).toEqual([0, 3, 1, 2]);
   });
 });
