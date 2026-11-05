@@ -10,11 +10,13 @@ import httpx
 import pytest
 
 from lib.workflows.reference_downloader.tools import download_file_from_url as dl
+from lib.workflows.reference_downloader.tools import url_guard
 
 URL = "https://publisher.example.org/paper"
 JINA_HOST = "r.jina.ai"
 PDF_BYTES = b"%PDF-1.7 fake pdf body"
 MARKDOWN = "# Paper title\n\nFull text."
+PUBLIC_IP = "93.184.215.14"
 
 Handler = Callable[[httpx.Request], httpx.Response]
 
@@ -66,6 +68,8 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
         patch.object(dl.httpx, "AsyncClient", client_factory),
         patch.object(dl.jina_rate_limiter, "aacquire", AsyncMock(return_value=True)),
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
+        # No real DNS in tests: every host resolves to a public address.
+        patch.object(url_guard, "_resolve", AsyncMock(return_value=[PUBLIC_IP])),
     ):
 
         def _install(fake: FakeWeb) -> FakeWeb:
