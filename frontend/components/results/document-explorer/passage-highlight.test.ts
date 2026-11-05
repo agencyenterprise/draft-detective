@@ -1,14 +1,14 @@
 import { SeverityEnum, WorkflowRunType, type Issue, type IssuePassageRead } from '@/lib/generated-api';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  PASSAGE_HIGHLIGHT_NAME,
-  blockKeepsUnderline,
   locatePassages,
   paintPassages,
+  restPassageHighlightName,
   passageSeverity,
   selectedPassageHighlightName,
-  washesBlock,
+  blockWash,
 } from './passage-highlight';
+import { createPassageResolver } from './passage-targets';
 
 function passage(overrides: Partial<IssuePassageRead> = {}): IssuePassageRead {
   return {
@@ -82,7 +82,7 @@ describe('locatePassages', () => {
     const whole = issue({ id: 'whole-line' });
     const gone = issue({ id: 'gone', passage: passage({ display_text: 'never written' }) });
 
-    const located = locatePassages(page, [found, whole, gone]);
+    const located = locatePassages([found, whole, gone], createPassageResolver({ current: page }, '').range);
 
     expect([...located.keys()]).toEqual(['found']);
     expect(located.get('found')?.toString()).toBe('certainly');
@@ -90,29 +90,31 @@ describe('locatePassages', () => {
 
   it('locates nothing where the browser cannot paint a highlight, so every issue keeps its block marks', () => {
     const page = documentWith({ 3: 'This will certainly work.' });
-    expect(locatePassages(page, [issue({ passage: passage() })]).size).toBe(0);
+    expect(
+      locatePassages([issue({ passage: passage() })], createPassageResolver({ current: page }, '').range).size,
+    ).toBe(0);
   });
 });
 
 describe('block marks', () => {
   const range = new Range();
 
-  it('drops the block underline only when every issue on it is marked on its passage', () => {
-    const marked = issue({ id: 'marked' });
-    const lineLevel = issue({ id: 'line-level' });
-
-    expect(blockKeepsUnderline([marked], new Map([['marked', range]]))).toBe(false);
-    expect(blockKeepsUnderline([marked, lineLevel], new Map([['marked', range]]))).toBe(true);
-  });
-
   it('washes a selected block unless every open issue is marked on its passage', () => {
     const open = issue({ id: 'open' });
+    const top = issue({ id: 'top', severity: SeverityEnum.High });
 
-    expect(washesBlock(true, [open], new Map([['open', range]]))).toBe(false);
-    expect(washesBlock(true, [open], new Map())).toBe(true);
-    // Selected lines with no issue open in particular: the block is what was picked.
-    expect(washesBlock(true, [], new Map([['open', range]]))).toBe(true);
-    expect(washesBlock(false, [open], new Map())).toBe(false);
+    expect(blockWash(true, [open], new Map([['open', range]]), top)).toBeNull();
+    expect(blockWash(true, [open], new Map(), top)).toBe(open);
+    // Selected lines with no issue open in particular: the block's own colour.
+    expect(blockWash(true, [], new Map([['open', range]]), top)).toBe(top);
+    expect(blockWash(false, [open], new Map(), top)).toBeNull();
+  });
+
+  it("washes in the open issue's colour, not the most severe issue the paragraph carries", () => {
+    const low = issue({ id: 'low', severity: SeverityEnum.Low });
+    const high = issue({ id: 'high', severity: SeverityEnum.High });
+
+    expect(blockWash(true, [low], new Map(), high)?.severity).toBe(SeverityEnum.Low);
   });
 });
 
@@ -128,14 +130,16 @@ describe('paintPassages', () => {
       end_line: 4,
       passage: passage({ display_text: 'must', start_line: 4, end_line: 4 }),
     });
-    const located = locatePassages(page, [rest, open]);
+    const located = locatePassages([rest, open], createPassageResolver({ current: page }, '').range);
 
-    paintPassages(located, [open], (severity) => severity);
+    paintPassages(located, [rest, open], [open], (severity) => severity);
 
-    expect(highlights.get(PASSAGE_HIGHLIGHT_NAME)?.ranges.map(String)).toEqual(['certainly', 'must']);
+    // Each passage is dotted in its own issue's colour.
+    expect(highlights.get(restPassageHighlightName(SeverityEnum.Medium))?.ranges.map(String)).toEqual(['certainly']);
+    expect(highlights.get(restPassageHighlightName(SeverityEnum.High))?.ranges.map(String)).toEqual(['must']);
     const washed = highlights.get(selectedPassageHighlightName(SeverityEnum.High));
     expect(washed?.ranges.map(String)).toEqual(['must']);
-    expect(washed?.priority).toBeLessThan(2);
+    expect(washed?.priority).toBeLessThan(3);
     expect(highlights.has(selectedPassageHighlightName(SeverityEnum.Medium))).toBe(false);
   });
 

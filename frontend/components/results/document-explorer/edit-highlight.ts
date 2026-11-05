@@ -252,7 +252,7 @@ export function setHighlight(name: string, ranges: Range[], priority: number): v
 export function setEditHighlight(ranges: Range[]): void {
   if (!supportsHighlightApi()) return;
   if (ranges.length > 0) ensureEditHighlightStyle();
-  setHighlight(EDIT_HIGHLIGHT_NAME, ranges, 2);
+  setHighlight(EDIT_HIGHLIGHT_NAME, ranges, 3);
 }
 
 /** Takes the edit highlight off the document. */
