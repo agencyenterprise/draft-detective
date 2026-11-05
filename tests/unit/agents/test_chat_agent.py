@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from langchain_core.messages import HumanMessage
@@ -118,6 +118,8 @@ class TestRunChatTurn:
     @pytest.mark.asyncio
     async def test_a_turn_borrows_a_saver_and_streams_the_agent(self) -> None:
         saver = object()
+        graph = MagicMock()
+        graph.aget_state = AsyncMock(return_value=MagicMock(values={}))
         seen: dict[str, Any] = {}
 
         @asynccontextmanager
@@ -132,7 +134,7 @@ class TestRunChatTurn:
 
         with (
             patch.object(chat_agent, "get_checkpointer", get_checkpointer),
-            patch.object(chat_agent, "build_chat_agent", return_value="graph") as build,
+            patch.object(chat_agent, "build_chat_agent", return_value=graph) as build,
             patch.object(chat_agent, "stream_chat_events", fake_stream),
         ):
             events = await self._collect(
@@ -149,7 +151,7 @@ class TestRunChatTurn:
 
         assert events == [{"t": "text", "v": "ok"}]
         assert build.call_args.args == (DEFAULT_CHAT_MODEL, None, saver)
-        assert seen["agent"] == "graph"
+        assert seen["agent"] is graph
         assert seen["config"]["configurable"] == {"thread_id": "t-1"}
         (message,) = seen["agent_input"]["messages"]
         assert message.id == "page-id-1"

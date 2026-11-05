@@ -92,3 +92,44 @@ async def test_deleting_a_thread_deletes_its_checkpoints() -> None:
     with reader, graph:
         await thread_state.delete_thread_state("t-1")
         assert await thread_state.load_thread_messages("t-1", reader=CHAT) == []
+
+
+class TestFilesToMount:
+    """Re-mounting what a thread holds would add a copy to its history every turn,
+    and every later read of the thread replays each copy."""
+
+    @pytest.mark.asyncio
+    async def test_a_new_thread_gets_everything(self) -> None:
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=InMemorySaver()
+        )
+        files = {"/skills/a.md": create_file_data("a")}
+
+        mounted = await thread_state.files_to_mount(agent, "t-new", files)
+
+        assert mounted == files
+
+    @pytest.mark.asyncio
+    async def test_only_what_the_thread_lacks_or_holds_differently_is_kept(
+        self,
+    ) -> None:
+        saver = InMemorySaver()
+        await _run_turns(saver, "t-1")
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=saver
+        )
+        files = {
+            # Same text as the thread holds, written again (new timestamps).
+            "/attachments/a.md": create_file_data("one\ntwo"),
+            "/attachments/b.md": create_file_data("new"),
+            "/skills/s.md": create_file_data("changed"),
+            "/attachments/gone.md": None,
+        }
+
+        mounted = await thread_state.files_to_mount(agent, "t-1", files)
+
+        assert set(mounted) == {
+            "/attachments/b.md",
+            "/skills/s.md",
+            "/attachments/gone.md",
+        }

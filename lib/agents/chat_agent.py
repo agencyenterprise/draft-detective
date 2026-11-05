@@ -45,7 +45,7 @@ from lib.config.llm_models import (
 from lib.models.agent import ReasoningDict
 from lib.services.chat.events import ChatEvent, stream_chat_events
 from lib.services.chat.history import ChatAttachment, build_user_turn
-from lib.services.chat.thread_state import READER_API_KEY
+from lib.services.chat.thread_state import READER_API_KEY, files_to_mount
 from lib.skills import SkillSummary, list_skill_summaries, skill_backend_files
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.models import WorkflowRunType
@@ -250,6 +250,7 @@ def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, 
 
     Skills are mounted every turn, as the Teams agent does: the files channel
     merges, so this refreshes them without touching what the thread already holds.
+    ``run_chat_turn`` then drops the ones the thread already has (``files_to_mount``).
     """
 
     return {
@@ -284,7 +285,9 @@ async def run_chat_turn(
     message, files = build_user_turn(text, attachments, message_id)
     async with get_checkpointer() as saver:
         agent = build_chat_agent(model, api_key, saver)
+        turn = build_chat_input(message, files)
+        turn["files"] = await files_to_mount(agent, thread_id, turn["files"])
         async for event in stream_chat_events(
-            agent, build_chat_input(message, files), chat_run_config(thread_id, user_id)
+            agent, turn, chat_run_config(thread_id, user_id)
         ):
             yield event
