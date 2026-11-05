@@ -2548,12 +2548,6 @@ export type Issue = {
    */
   workflow_type: WorkflowRunType;
   /**
-   * Chunk Indices
-   *
-   * All chunk indices related to this issue
-   */
-  chunk_indices?: Array<number> | null;
-  /**
    * Start Line
    *
    * 1-indexed start line of the issue in the main document markdown
@@ -2789,10 +2783,6 @@ export type IssueResponse = {
    * Workflow Type
    */
   workflow_type: string;
-  /**
-   * Chunk Indices
-   */
-  chunk_indices: Array<number> | null;
   /**
    * Start Line
    */
@@ -5525,12 +5515,6 @@ export type IssueWritable = {
    * The workflow type that generated this issue
    */
   workflow_type: WorkflowRunType;
-  /**
-   * Chunk Indices
-   *
-   * All chunk indices related to this issue
-   */
-  chunk_indices?: Array<number> | null;
   /**
    * Start Line
    *

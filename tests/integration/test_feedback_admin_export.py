@@ -109,7 +109,6 @@ async def issue(shared_project, workflow_run):
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0, 1],
     )
     async with get_async_db_session() as session:
         session.add(iss)

@@ -104,7 +104,6 @@ async def feedback(author, project):
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0],
     )
     record = Feedback(
         id=uuid.uuid4(),

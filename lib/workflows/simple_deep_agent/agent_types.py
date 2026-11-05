@@ -169,11 +169,7 @@ def issues_from_agent_result(
     result: AgentCheckResult | DeepAgentResult,
     workflow_type: WorkflowRunType,
 ) -> list[DocumentIssue]:
-    """Convert a result's issues into DocumentIssue objects.
-
-    Emits line ranges only; ``chunk_indices`` is left unset and derived at
-    persistence time from the line range.
-    """
+    """Convert a result's issues into DocumentIssue objects."""
 
     return [
         DocumentIssue(

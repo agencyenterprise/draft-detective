@@ -146,9 +146,9 @@ async def generate_docx(
             docx_type = DocxManipulatorType.COMMENTS
 
         # The export silently skips issues it cannot tie to a paragraph, so account
-        # for them here. Two causes: no
-        # line range at all (typically a legacy row carrying only chunk_indices, from
-        # before workflows emitted line ranges), or a range overlapping no paragraph.
+        # for them here. Two causes: no line range at all (typically a legacy row
+        # from before workflows emitted line ranges), or a range overlapping no
+        # paragraph.
         no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
         if no_range or unmatched:
             logger.warning(

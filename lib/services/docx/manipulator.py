@@ -57,10 +57,9 @@ def _map_severity_enum_to_comment_severity(severity: SeverityEnum) -> "CommentSe
 def _resolve_issue_line_range(issue: Issue) -> tuple[int, int] | None:
     """Return ``(start_line, end_line)`` for an issue, or None if it has none.
 
-    Issues written before workflows moved to line ranges carry only
-    `chunk_indices`, and the chunk data that used to translate those is gone with
-    the chunk_splitting workflow. Such an issue cannot be anchored to a
-    paragraph, so it is dropped from the export — see the caller, which logs it.
+    Issues written before workflows moved to line ranges have no range, so they
+    cannot be anchored to a paragraph and are dropped from the export (the
+    caller logs them).
     """
     if issue.start_line is not None and issue.end_line is not None:
         return (issue.start_line, issue.end_line)
