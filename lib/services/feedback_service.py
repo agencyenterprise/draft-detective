@@ -1,7 +1,7 @@
 """
 Feedback service layer.
 
-Provides business logic for feedback CRUD operations using coordinate-based addressing.
+Business logic for feedback CRUD on issues.
 """
 
 import uuid
@@ -40,47 +40,54 @@ async def _verify_workflow_run_ownership(
         raise HTTPException(status_code=403, detail="Access denied")
 
 
-async def create_feedback(
+async def _get_owned_issue(
+    session: AsyncSession, issue_id: uuid.UUID, user: User
+) -> Issue:
+    """The issue, once the user is confirmed to own its run. 404s, then 403s."""
+    issue = (
+        await session.execute(select(Issue).where(col(Issue.id) == issue_id))
+    ).scalar_one_or_none()
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    await _verify_workflow_run_ownership(session, issue.workflow_run_id, user)
+    return issue
+
+
+async def create_or_update_feedback(
     session: AsyncSession,
-    workflow_run_id: uuid.UUID,
-    entity_path: dict,
+    issue_id: uuid.UUID,
     feedback_type: FeedbackType,
     user: User,
     feedback_text: str | None = None,
-    issue_id: uuid.UUID | None = None,
 ) -> Feedback:
-    """
-    Create new feedback for any entity.
+    """Save the user's feedback on an issue, replacing any they already left.
 
-    Args:
-        session: Database session
-        workflow_run_id: The workflow run this feedback belongs to
-        entity_path: Dict with entity coordinates, e.g.:
-            - {"chunk_index": 0} for chunk
-            - {"chunk_index": 0, "claim_index": 1} for claim
-            - {"reference_index": 2} for reference
-            - {} for workflow-level or issue-level feedback
-        feedback_type: Type of feedback
-        user: The user creating the feedback
-        feedback_text: Optional feedback text
-        issue_id: Optional issue ID for issue-level feedback
-
-    Returns:
-        Created Feedback object
+    The feedback's `workflow_run_id` is taken from the issue.
 
     Raises:
-        HTTPException: If workflow run not found or user doesn't own it
+        HTTPException: 404 if the issue or its run is missing, 403 if the user
+            doesn't own the run.
     """
-    await _verify_workflow_run_ownership(session, workflow_run_id, user)
+    issue = await _get_owned_issue(session, issue_id, user)
 
-    feedback = Feedback(
-        workflow_run_id=workflow_run_id,
-        user_id=user.id,
-        entity_path=entity_path,
-        feedback_type=feedback_type,
-        feedback_text=feedback_text,
-        issue_id=issue_id,
+    stmt = (
+        select(Feedback)
+        .where(col(Feedback.issue_id) == issue_id)
+        .where(col(Feedback.user_id) == user.id)
     )
+    feedback = (await session.execute(stmt)).scalar_one_or_none()
+
+    if feedback is None:
+        feedback = Feedback(
+            workflow_run_id=issue.workflow_run_id,
+            user_id=user.id,
+            issue_id=issue_id,
+            feedback_type=feedback_type,
+            feedback_text=feedback_text,
+        )
+    else:
+        feedback.feedback_type = feedback_type
+        feedback.feedback_text = feedback_text
 
     session.add(feedback)
     await session.commit()
@@ -88,133 +95,17 @@ async def create_feedback(
     return feedback
 
 
-async def create_or_update_feedback(
-    session: AsyncSession,
-    workflow_run_id: uuid.UUID,
-    entity_path: dict,
-    feedback_type: FeedbackType,
-    user: User,
-    feedback_text: str | None = None,
-    issue_id: uuid.UUID | None = None,
-) -> Feedback:
-    """
-    Create or update feedback for any entity.
-
-    If feedback already exists for this entity and user, it will be updated.
-    Otherwise, a new feedback entry is created.
-
-    Args:
-        session: Database session
-        workflow_run_id: The workflow run this feedback belongs to
-        entity_path: Dict with entity coordinates
-        feedback_type: Type of feedback
-        user: The user creating/updating the feedback
-        feedback_text: Optional feedback text
-        issue_id: Optional issue ID for issue-level feedback
-
-    Returns:
-        Created or updated Feedback object
-
-    Raises:
-        HTTPException: If workflow run not found or user doesn't own it
-    """
-    await _verify_workflow_run_ownership(session, workflow_run_id, user)
-
-    # Build query based on whether we're using issue_id or entity_path
-    if issue_id:
-        stmt = (
-            select(Feedback)
-            .where(col(Feedback.workflow_run_id) == workflow_run_id)
-            .where(col(Feedback.user_id) == user.id)
-            .where(col(Feedback.issue_id) == issue_id)
-        )
-    else:
-        stmt = (
-            select(Feedback)
-            .where(col(Feedback.workflow_run_id) == workflow_run_id)
-            .where(col(Feedback.user_id) == user.id)
-            .where(col(Feedback.issue_id).is_(None))
-            .where(col(Feedback.entity_path) == entity_path)
-        )
-    result = await session.execute(stmt)
-    existing_feedback = result.scalar_one_or_none()
-
-    if existing_feedback:
-        existing_feedback.feedback_type = feedback_type
-        existing_feedback.feedback_text = feedback_text
-        session.add(existing_feedback)
-        await session.commit()
-        await session.refresh(existing_feedback)
-        return existing_feedback
-
-    return await create_feedback(
-        session=session,
-        workflow_run_id=workflow_run_id,
-        entity_path=entity_path,
-        feedback_type=feedback_type,
-        user=user,
-        feedback_text=feedback_text,
-        issue_id=issue_id,
-    )
-
-
-async def get_feedback(
-    session: AsyncSession, workflow_run_id: uuid.UUID, entity_path: dict, user: User
-) -> Feedback | None:
-    """
-    Get feedback for a specific entity.
-
-    Args:
-        session: Database session
-        workflow_run_id: The workflow run ID
-        entity_path: Dict with entity coordinates
-        user: The user requesting the feedback
-
-    Returns:
-        Feedback object if found, None otherwise
-
-    Raises:
-        HTTPException: If workflow run not found or user doesn't own it
-    """
-    await _verify_workflow_run_ownership(session, workflow_run_id, user)
-
-    stmt = (
-        select(Feedback)
-        .where(col(Feedback.workflow_run_id) == workflow_run_id)
-        .where(col(Feedback.user_id) == user.id)
-        .where(col(Feedback.issue_id).is_(None))
-        .where(col(Feedback.entity_path) == entity_path)
-    )
-    result = await session.execute(stmt)
-    return result.scalar_one_or_none()
-
-
 async def get_feedback_by_issue(
     session: AsyncSession, issue_id: uuid.UUID, user: User
 ) -> Feedback | None:
+    """The user's feedback on an issue, or None if they haven't rated it.
+
+    Raises:
+        HTTPException: 404 if the issue or its run is missing, 403 if the user
+            doesn't own the run.
     """
-    Get feedback for a specific issue.
+    await _get_owned_issue(session, issue_id, user)
 
-    Args:
-        session: Database session
-        issue_id: The issue ID
-        user: The user requesting the feedback
-
-    Returns:
-        Feedback object if found, None otherwise
-    """
-    # Get the issue to verify ownership
-    issue_stmt = select(Issue).where(col(Issue.id) == issue_id)
-    issue_result = await session.execute(issue_stmt)
-    issue = issue_result.scalar_one_or_none()
-
-    if issue is None:
-        raise HTTPException(status_code=404, detail="Issue not found")
-
-    # Verify ownership through the workflow run
-    await _verify_workflow_run_ownership(session, issue.workflow_run_id, user)
-
-    # Get feedback for this issue
     feedback_stmt = (
         select(Feedback)
         .where(col(Feedback.issue_id) == issue_id)
@@ -247,7 +138,6 @@ async def get_project_issue_feedback(
     # drift apart.
     _, access_level = await get_project_access(str(project_id), user=user)
 
-    # Get all feedback for issues in this project (issue_id is not null)
     feedback_stmt = (
         select(Feedback)
         .join(Issue, col(Feedback.issue_id) == col(Issue.id))

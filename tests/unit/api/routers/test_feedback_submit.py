@@ -1,4 +1,4 @@
-"""POST /api/feedback validates feedback_type before it reaches the service."""
+"""POST /api/feedback validates the issue and feedback_type before the service."""
 
 import uuid
 from collections.abc import AsyncIterator
@@ -22,6 +22,7 @@ USER = User(
     show_experimental_features=False,
 )
 RUN_ID = uuid.uuid4()
+ISSUE_ID = uuid.uuid4()
 
 
 @asynccontextmanager
@@ -42,7 +43,7 @@ def _stored(feedback_type: FeedbackType) -> Feedback:
         id=uuid.uuid4(),
         workflow_run_id=RUN_ID,
         user_id=USER.id,
-        entity_path={"chunk_index": 0},
+        issue_id=ISSUE_ID,
         feedback_type=feedback_type,
         created_at=now,
         updated_at=now,
@@ -54,7 +55,7 @@ def test_an_unknown_feedback_type_is_a_422():
     with patch.object(feedback.feedback_service, "create_or_update_feedback", service):
         response = _client().post(
             "/api/feedback",
-            json={"workflow_run_id": str(RUN_ID), "feedback_type": "meh"},
+            json={"issue_id": str(ISSUE_ID), "feedback_type": "meh"},
         )
 
     assert response.status_code == 422
@@ -70,8 +71,7 @@ def test_a_known_feedback_type_reaches_the_service_as_the_enum():
         response = _client().post(
             "/api/feedback",
             json={
-                "workflow_run_id": str(RUN_ID),
-                "entity_path": {"chunk_index": 0},
+                "issue_id": str(ISSUE_ID),
                 "feedback_type": "thumbs_down",
             },
         )
@@ -79,3 +79,16 @@ def test_a_known_feedback_type_reaches_the_service_as_the_enum():
     assert response.status_code == 200
     assert response.json()["feedback_type"] == "thumbs_down"
     assert service.call_args.kwargs["feedback_type"] is FeedbackType.THUMBS_DOWN
+    assert service.call_args.kwargs["issue_id"] == ISSUE_ID
+
+
+def test_feedback_without_an_issue_is_a_422():
+    service = AsyncMock()
+    with patch.object(feedback.feedback_service, "create_or_update_feedback", service):
+        response = _client().post(
+            "/api/feedback",
+            json={"workflow_run_id": str(RUN_ID), "feedback_type": "thumbs_up"},
+        )
+
+    assert response.status_code == 422
+    service.assert_not_called()

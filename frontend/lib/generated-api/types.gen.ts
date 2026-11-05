@@ -1946,29 +1946,15 @@ export type ExtractedReference = {
 /**
  * FeedbackRequest
  *
- * Generic request model for any entity feedback
+ * A user's feedback on an issue
  */
 export type FeedbackRequest = {
   /**
-   * Workflow Run Id
-   *
-   * Workflow run ID (optional if issue_id is provided)
-   */
-  workflow_run_id?: string | null;
-  /**
-   * Entity Path
-   *
-   * JSONB path identifying the entity
-   */
-  entity_path?: {
-    [key: string]: unknown;
-  };
-  /**
    * Issue Id
    *
-   * Issue ID for issue-level feedback (preferred, derives workflow_run_id automatically)
+   * The issue this feedback is about
    */
-  issue_id?: string | null;
+  issue_id: string;
   feedback_type: FeedbackType;
   /**
    * Feedback Text
@@ -1993,15 +1979,9 @@ export type FeedbackResponse = {
    */
   workflow_run_id: string;
   /**
-   * Entity Path
-   */
-  entity_path: {
-    [key: string]: unknown;
-  };
-  /**
    * Issue Id
    */
-  issue_id: string | null;
+  issue_id: string;
   feedback_type: FeedbackType;
   /**
    * Feedback Text
@@ -6517,19 +6497,11 @@ export type DownloadFileApiFilesDownloadFileIdGetResponses = {
 export type GetFeedbackApiFeedbackGetData = {
   body?: never;
   path?: never;
-  query?: {
-    /**
-     * Workflow Run Id
-     */
-    workflow_run_id?: string | null;
-    /**
-     * Entity Path
-     */
-    entity_path?: string | null;
+  query: {
     /**
      * Issue Id
      */
-    issue_id?: string | null;
+    issue_id: string;
   };
   url: '/api/feedback';
 };
