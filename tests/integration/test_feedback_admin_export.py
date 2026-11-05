@@ -133,7 +133,6 @@ async def thumbs_down_feedback(db_user, workflow_run, issue):
         workflow_run_id=workflow_run.id,
         user_id=db_user.id,
         issue_id=issue.id,
-        entity_path={},
         feedback_type=FeedbackType.THUMBS_DOWN,
         feedback_text="This citation is wrong.",
     )
@@ -194,7 +193,6 @@ async def test_get_admin_feedbacks_filters_private_projects(
         workflow_run_id=workflow_run.id,
         user_id=db_user.id,
         issue_id=issue.id,
-        entity_path={},
         feedback_type=FeedbackType.THUMBS_UP,
     )
     async with get_async_db_session() as session:
@@ -330,7 +328,6 @@ async def test_get_admin_feedbacks_limit(
         workflow_run_id=workflow_run.id,
         user_id=db_user.id,
         issue_id=issue.id,
-        entity_path={"extra": "second"},
         feedback_type=FeedbackType.THUMBS_UP,
     )
     async with get_async_db_session() as session:
@@ -369,7 +366,6 @@ async def test_get_admin_feedbacks_offset(
         workflow_run_id=workflow_run.id,
         user_id=db_user.id,
         issue_id=issue.id,
-        entity_path={"extra": "second"},
         feedback_type=FeedbackType.THUMBS_UP,
     )
     async with get_async_db_session() as session:
@@ -525,7 +521,6 @@ async def test_get_admin_feedbacks_no_limit_returns_all(
         workflow_run_id=workflow_run.id,
         user_id=db_user.id,
         issue_id=issue.id,
-        entity_path={"extra": "second"},
         feedback_type=FeedbackType.THUMBS_UP,
     )
     async with get_async_db_session() as session:

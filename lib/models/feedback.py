@@ -1,16 +1,11 @@
-"""
-Feedback system models.
-
-This module provides a self-contained feedback system that uses coordinate-based
-addressing to attach feedback to any entity.
-"""
+"""Feedback system models: a user's thumbs up or down on an issue."""
 
 import uuid
 from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field as SQLField
 from sqlmodel import SQLModel, String
@@ -24,12 +19,11 @@ class FeedbackType(str, Enum):
 
 
 class Feedback(SQLModel, table=True):
-    """
-    Independent feedback model using coordinate-based addressing.
+    """A user's rating of one issue.
 
-    Feedback can reference either:
-    - An Issue (via issue_id) for issue-level feedback
-    - A coordinate path (via entity_path) for non-issue entities (chunks, claims, etc.)
+    `workflow_run_id` is copied from the issue when the feedback is saved, so
+    ownership checks and the admin queries can reach the run without going
+    through the issue.
     """
 
     __tablename__ = "feedback"
@@ -61,20 +55,14 @@ class Feedback(SQLModel, table=True):
         description="The user who created this feedback",
     )
 
-    issue_id: uuid.UUID | None = SQLField(
+    issue_id: uuid.UUID = SQLField(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("issues.id", ondelete="CASCADE", use_alter=True),
-            nullable=True,
+            nullable=False,
             index=True,
         ),
-        default=None,
-        description="FK to the issue this feedback is about (for issue-level feedback)",
-    )
-
-    entity_path: dict = SQLField(
-        sa_column=Column(JSONB, nullable=False),
-        description="JSONB path identifying the entity (e.g., {chunk_index: 2, claim_index: 0})",
+        description="The issue this feedback is about",
     )
 
     feedback_type: FeedbackType = SQLField(
@@ -104,4 +92,4 @@ class Feedback(SQLModel, table=True):
     )
 
     def __repr__(self):
-        return f"<Feedback(workflow_run_id={self.workflow_run_id}, entity_path={self.entity_path}, type={self.feedback_type})>"
+        return f"<Feedback(workflow_run_id={self.workflow_run_id}, issue_id={self.issue_id}, type={self.feedback_type})>"

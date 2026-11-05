@@ -110,7 +110,6 @@ async def feedback(author, project):
         workflow_run_id=run.id,
         user_id=author.id,
         issue_id=issue.id,
-        entity_path={},
         feedback_type=FeedbackType.THUMBS_DOWN,
         feedback_text="not useful",
     )

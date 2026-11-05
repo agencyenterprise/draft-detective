@@ -110,8 +110,8 @@ async def dashboard_data():
         last_updated_at=NOW - timedelta(hours=1),
         feedback_visibility=FeedbackVisibility.FULL_PROJECT,
     )
-    # "Share only this issue information": issue feedback is shared, feedback
-    # on a chunk or a claim is not.
+    # "Share only this issue information": every feedback row is on an issue,
+    # so all of it is shared.
     issue_only_project = Project(
         id=uuid.uuid4(),
         title=f"Issue-only project {tag}",
@@ -191,7 +191,7 @@ async def dashboard_data():
             NOW - timedelta(hours=2),
             5,
         ),
-        # Carries the issue-only project's two feedback rows. Ten seconds, the
+        # Carries the issue-only project's feedback row. Ten seconds, the
         # same as an existing run, so the median duration does not move.
         _run(
             issue_only_project.id,
@@ -201,25 +201,29 @@ async def dashboard_data():
             10,
         ),
     ]
-    issue = Issue(
-        id=uuid.uuid4(),
-        project_id=issue_only_project.id,
-        workflow_run_id=runs[-1].id,
-        issue_hash=f"hash-{tag}",
-        title=f"Issue {tag}",
-        description="Something to leave feedback on",
-        severity=SeverityEnum.LOW,
-        workflow_type=WorkflowRunType.FIGURES_TABLES_CHECK,
-        status=IssueStatus.ACTIVE,
-        revision=1,
-        created_at=NOW - timedelta(minutes=30),
-    )
+    # Feedback always hangs off an issue: one per run that carries feedback.
+    issues = [
+        Issue(
+            id=uuid.uuid4(),
+            project_id=run.project_id,
+            workflow_run_id=run.id,
+            issue_hash=f"hash-{tag}-{i}",
+            title=f"Issue {tag} {i}",
+            description="Something to leave feedback on",
+            severity=SeverityEnum.LOW,
+            workflow_type=WorkflowRunType.FIGURES_TABLES_CHECK,
+            status=IssueStatus.ACTIVE,
+            revision=1,
+            created_at=NOW - timedelta(minutes=30),
+        )
+        for i, run in enumerate([runs[0], runs[1], runs[-2], runs[-1]])
+    ]
     feedbacks = [
         Feedback(
             id=uuid.uuid4(),
             workflow_run_id=runs[0].id,
             user_id=user.id,
-            entity_path={},
+            issue_id=issues[0].id,
             feedback_type=FeedbackType.THUMBS_UP,
             created_at=NOW - timedelta(minutes=20),
             updated_at=NOW - timedelta(minutes=20),
@@ -228,7 +232,7 @@ async def dashboard_data():
             id=uuid.uuid4(),
             workflow_run_id=runs[1].id,
             user_id=user.id,
-            entity_path={},
+            issue_id=issues[1].id,
             feedback_type=FeedbackType.THUMBS_DOWN,
             feedback_text="Missed a citation",
             created_at=NOW - timedelta(minutes=10),
@@ -240,34 +244,21 @@ async def dashboard_data():
             id=uuid.uuid4(),
             workflow_run_id=runs[-2].id,
             user_id=user.id,
-            entity_path={},
+            issue_id=issues[2].id,
             feedback_type=FeedbackType.THUMBS_DOWN,
             feedback_text="Private, and not for admin eyes",
             created_at=NOW - timedelta(minutes=5),
             updated_at=NOW - timedelta(minutes=5),
         ),
-        # Issue-only project, attached to an issue: shared, so counted.
+        # On the issue-only project: shared, so counted.
         Feedback(
             id=uuid.uuid4(),
             workflow_run_id=runs[-1].id,
             user_id=user.id,
-            issue_id=issue.id,
-            entity_path={},
+            issue_id=issues[3].id,
             feedback_type=FeedbackType.THUMBS_UP,
             created_at=NOW - timedelta(minutes=4),
             updated_at=NOW - timedelta(minutes=4),
-        ),
-        # Issue-only project, on a chunk: "only this issue information" does
-        # not cover it, and the listing endpoint drops it too.
-        Feedback(
-            id=uuid.uuid4(),
-            workflow_run_id=runs[-1].id,
-            user_id=user.id,
-            entity_path={"chunk_index": 2},
-            feedback_type=FeedbackType.THUMBS_DOWN,
-            feedback_text="Not covered by issue-only sharing",
-            created_at=NOW - timedelta(minutes=3),
-            updated_at=NOW - timedelta(minutes=3),
         ),
     ]
 
@@ -283,7 +274,8 @@ async def dashboard_data():
         for run in runs:
             session.add(run)
         await session.commit()
-        session.add(issue)
+        for issue in issues:
+            session.add(issue)
         await session.commit()
         for feedback in feedbacks:
             session.add(feedback)
@@ -294,7 +286,7 @@ async def dashboard_data():
     async with get_async_db_session() as session:
         for model, ids in (
             (Feedback, [f.id for f in feedbacks]),
-            (Issue, [issue.id]),
+            (Issue, [i.id for i in issues]),
             (WorkflowRun, [r.id for r in runs]),
             (Project, [project.id, private_project.id, issue_only_project.id]),
             (User, [user.id]),
@@ -334,9 +326,8 @@ async def test_workflow_usage_attributes_feedback_to_the_run_type(dashboard_data
 
     item = next(w for w in response.workflows if w.type == dashboard_data.slug)
 
-    # Shared: one up on the full-project one, one up on the issue-only one's
-    # issue. Excluded: the private project's down, and the issue-only
-    # project's chunk-level down.
+    # Shared: one up and one down on the full-project one, one up on the
+    # issue-only one. Excluded: the private project's down.
     assert item.thumbs_up == 2
     assert item.thumbs_down == 1
 
@@ -539,15 +530,9 @@ async def test_the_transaction_carries_a_snapshot_and_a_timeout(
 
 
 @pytest.mark.asyncio
-async def test_issue_only_sharing_covers_the_issue_and_nothing_else(dashboard_data):
-    """ "Share only this issue information" is narrower than "share".
-
-    The fixture leaves two rows on an ISSUE_ONLY project: a thumbs-up attached
-    to an issue, and a thumbs-down on a chunk. Only the first is what the author
-    agreed to share, and it is the only one the listing endpoint would return.
-    """
-    window = DashboardWindow.for_days(1)
-
+async def test_issue_only_sharing_counts_the_projects_feedback(dashboard_data):
+    """ "Share only this issue information" shares the feedback on that issue,
+    and every feedback row is on an issue."""
     async with get_async_db_session() as session:
         shared = (
             await session.execute(
@@ -560,24 +545,8 @@ async def test_issue_only_sharing_covers_the_issue_and_nothing_else(dashboard_da
                 )
             )
         ).scalars()
-        shared_ids = list(shared)
 
-        issue_feedback = (
-            await session.execute(
-                select(Feedback.id).where(col(Feedback.issue_id).is_not(None))
-            )
-        ).scalars()
-        issue_feedback_ids = set(issue_feedback)
-
-    assert len(shared_ids) == 1
-    assert shared_ids[0] in issue_feedback_ids
-
-    # And the chunk-level row moves no count: the up/down split for this slug
-    # holds at two shared ups and one shared down.
-    async with get_async_db_session() as session:
-        by_type = await queries._get_feedback_by_workflow_type(session, window)
-
-    assert by_type[dashboard_data.slug] == (2, 1)
+    assert len(list(shared)) == 1
 
 
 @pytest.mark.asyncio

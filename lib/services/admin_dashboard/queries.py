@@ -115,32 +115,22 @@ def _run_owner_not_ignored(ignored: Collection[uuid.UUID]) -> ColumnElement[bool
 def _is_shared_feedback() -> ColumnElement[bool]:
     """Only feedback whose author allowed it to be shared with admins.
 
-    The two sharing levels do not grant the same thing, so neither does this:
-
     - `FULL_PROJECT` — "Administrators will be able to view the project, all
-      uploaded files, and all analysis results." Broad consent; every feedback
-      row on the project counts.
-    - `ISSUE_ONLY` — "Share only this issue information." Feedback that hangs
-      off an issue counts; feedback on a chunk or a claim (`issue_id IS NULL`)
-      does not, and the listing endpoint drops those rows too, through its
-      `Issue` join.
+      uploaded files, and all analysis results."
+    - `ISSUE_ONLY` — "Share only this issue information." Every feedback row
+      hangs off an issue, so this shares all of them too.
     - `PRIVATE`, the dialog's default — "Don't share any information / Your
       feedback is visible only to you." Nothing counts, sentiment and
       has-a-comment included.
 
-    Written as an allowlist of what each level grants rather than "not
+    Written as an allowlist of the levels that share rather than "not
     private", so a visibility level added later is excluded until someone
     decides what it shares.
 
     Requires the caller to have joined Feedback -> WorkflowRun -> Project.
     """
-    visibility = col(Project.feedback_visibility)
-    return or_(
-        visibility == FeedbackVisibility.FULL_PROJECT,
-        and_(
-            visibility == FeedbackVisibility.ISSUE_ONLY,
-            col(Feedback.issue_id).is_not(None),
-        ),
+    return col(Project.feedback_visibility).in_(
+        [FeedbackVisibility.FULL_PROJECT, FeedbackVisibility.ISSUE_ONLY]
     )
 
 

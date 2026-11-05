@@ -72,7 +72,6 @@ def _make_feedback(**kwargs) -> Feedback:
         workflow_run_id=uuid.uuid4(),
         user_id=uuid.uuid4(),
         issue_id=uuid.uuid4(),
-        entity_path={},
         feedback_type=FeedbackType.THUMBS_DOWN,
         feedback_text="Not accurate.",
         created_at=_NOW,

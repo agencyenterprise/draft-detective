@@ -33,11 +33,7 @@ export function useProjectFeedback(projectId: string | undefined) {
   // re-creating on every render and causing unnecessary consumer re-renders.
   const feedbackByIssueId = useMemo(() => {
     const map = new Map<string, FeedbackResponse>();
-    feedbackList?.forEach((f) => {
-      if (f.issue_id) {
-        map.set(f.issue_id, f);
-      }
-    });
+    feedbackList?.forEach((f) => map.set(f.issue_id, f));
     return map;
   }, [feedbackList]);
 
