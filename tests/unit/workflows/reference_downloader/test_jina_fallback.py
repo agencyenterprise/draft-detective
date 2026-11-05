@@ -73,6 +73,8 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
         patch.object(dl.jina_rate_limiter, "aacquire", AsyncMock(return_value=True)),
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
         # No real DNS in tests: every host resolves to a public address.
+        # No proxy unless a test sets one: on macOS this reads system settings too.
+        patch.object(url_guard.urllib.request, "getproxies", return_value={}),
         patch.object(url_guard, "_resolve", AsyncMock(return_value=[PUBLIC_IP])),
     ):
 

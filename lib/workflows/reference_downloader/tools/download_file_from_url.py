@@ -26,8 +26,7 @@ from lib.services.postgres_rate_limiter import PostgresRateLimiter
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.tools.url_guard import (
     BlockedUrlError,
-    PinnedTransport,
-    refuse_non_public,
+    direct_client,
 )
 
 logger = logging.getLogger(__name__)
@@ -199,12 +198,7 @@ async def _fetch_pdf_directly(url: str) -> httpx.Response | None:
     Raises on any fetch failure, including an empty PDF body, and with
     ``BlockedUrlError`` when the URL or a redirect hop is not a public address.
     """
-    async with httpx.AsyncClient(
-        timeout=30.0,
-        headers=headers,
-        transport=PinnedTransport(),
-        event_hooks={"request": [refuse_non_public]},
-    ) as client:
+    async with direct_client(timeout=30.0, headers=headers) as client:
         logger.info("Downloading %s", url)
         response = await client.get(url, follow_redirects=True)
         response.raise_for_status()

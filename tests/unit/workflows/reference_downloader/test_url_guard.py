@@ -20,6 +20,7 @@ from lib.workflows.reference_downloader.tools import url_guard
 
 PDF = b"%PDF-1.7 internal report"
 PUBLIC_IP = "93.184.215.14"
+PUBLIC_IPV6 = "2606:2800:21f:cb07:6820:80da:af6b:8b2c"
 JINA_HOST = "r.jina.ai"
 
 # Hosts the fake DNS knows; any other name does not resolve.
@@ -35,11 +36,16 @@ DNS = {
 class FakeWeb:
     """Answers every request with a PDF, except a redirect from the attacker's host."""
 
-    def __init__(self, redirect_to: str | None = None) -> None:
+    def __init__(
+        self, redirect_to: str | None = None, unreachable: tuple[str, ...] = ()
+    ) -> None:
         self.redirect_to = redirect_to
+        self.unreachable = unreachable
         self.requests: list[httpx.Request] = []
 
     def handle(self, request: httpx.Request) -> httpx.Response:
+        if request.url.host in self.unreachable:
+            raise httpx.ConnectError("unreachable", request=request)
         # Routed by the Host header: a pinned request is addressed to an IP.
         self.requests.append(request)
         host = request.headers["host"]
@@ -80,6 +86,8 @@ def web(tmp_path: Path) -> Iterator[Callable[..., FakeWeb]]:
         patch.object(dl.jina_rate_limiter, "aacquire", AsyncMock(return_value=True)),
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
         patch.object(dl, "_persist_file_record", AsyncMock(return_value="file-1")),
+        # No proxy unless a test sets one: on macOS this reads system settings too.
+        patch.object(url_guard.urllib.request, "getproxies", return_value={}),
         patch.object(url_guard, "_resolve", _fake_resolve),
     ):
 
@@ -167,6 +175,38 @@ async def test_connection_goes_to_the_checked_address(
     assert sent.url.host == PUBLIC_IP
     assert sent.headers["host"] == "publisher.example.org"
     assert sent.extensions["sni_hostname"] == "publisher.example.org"
+
+
+@pytest.mark.asyncio
+async def test_unreachable_first_address_falls_through_to_the_next(
+    web: Callable[..., FakeWeb],
+) -> None:
+    """A dual-stack host whose IPv6 answer an IPv4-only pod cannot reach."""
+    fake = web(unreachable=(PUBLIC_IPV6,))
+
+    with patch.dict(DNS, {"dual.example.org": [PUBLIC_IPV6, PUBLIC_IP]}):
+        response = await _download("https://dual.example.org/paper.pdf")
+
+    assert response.success is True
+    assert [request.url.host for request in fake.requests] == [PUBLIC_IP]
+
+
+@pytest.mark.asyncio
+async def test_proxied_client_keeps_httpx_routing_and_still_refuses(
+    web: Callable[..., FakeWeb],
+) -> None:
+    """Behind HTTPS_PROXY the proxy connects: requests are checked, not pinned."""
+    fake = web()
+    proxies = {"https": "http://proxy.internal:3128"}
+
+    with patch.object(url_guard.urllib.request, "getproxies", return_value=proxies):
+        public = await _download("https://publisher.example.org/paper.pdf")
+        internal = await _download("https://intranet.example.org/report.pdf")
+
+    assert public.success is True
+    assert [request.url.host for request in fake.requests] == ["publisher.example.org"]
+    assert internal.success is False
+    assert "private or internal address" in internal.message
 
 
 @pytest.mark.asyncio

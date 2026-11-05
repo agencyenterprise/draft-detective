@@ -14,9 +14,14 @@ included:
   ``Host`` header and TLS server name. Checking one lookup and letting the
   connection make another would let a DNS server answer differently the second
   time (DNS rebinding).
-- ``refuse_non_public``, a request hook, runs the same check before the client
-  picks a transport. It is what still applies when an environment proxy
-  (``HTTPS_PROXY``) takes the request instead of ``PinnedTransport``.
+- ``refuse_non_public``, a request hook, runs the same check on every request.
+
+``direct_client`` uses both unless the environment configures a proxy
+(``HTTPS_PROXY`` and the like). httpx honours those only when it builds its own
+transport, and a deploy that sets one may need it to reach the internet, so a
+proxied client keeps httpx's routing and the hook alone: the proxy connects, and its
+own egress policy governs where. A host the proxy settings exempt (``NO_PROXY``) is
+then checked but not pinned.
 
 Names are resolved in the ASCII form httpx connects to (``raw_host``), not the
 Unicode one, whose IDNA encoding can differ and name another host.
@@ -31,6 +36,8 @@ internal is exposed that way.
 import asyncio
 import ipaddress
 import socket
+import urllib.request
+from typing import Any
 
 import httpx
 
@@ -49,15 +56,38 @@ class UnresolvableHostError(Exception):
     """This pod cannot resolve the URL's host."""
 
 
+_PROXY_SCHEMES = ("http", "https", "all")
+
+
+def direct_client(**kwargs: Any) -> httpx.AsyncClient:
+    """An httpx client whose every request, redirects included, is held to public
+    addresses: pinned to them, or only checked when an environment proxy connects."""
+
+    proxied = any(scheme in urllib.request.getproxies() for scheme in _PROXY_SCHEMES)
+    if not proxied:
+        kwargs["transport"] = PinnedTransport()
+    return httpx.AsyncClient(event_hooks={"request": [refuse_non_public]}, **kwargs)
+
+
 class PinnedTransport(httpx.AsyncBaseTransport):
-    """Sends each request to the public address its host was checked to have."""
+    """Sends each request to a public address its host was checked to have.
+
+    Each checked address is tried in turn until one connects, as httpx would try
+    every address it resolved itself: a dual-stack host's first answer is often an
+    IPv6 address an IPv4-only pod cannot reach.
+    """
 
     def __init__(self, inner: httpx.AsyncBaseTransport | None = None) -> None:
         self.inner = inner or httpx.AsyncHTTPTransport()
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        addresses = await public_addresses(request.url)
-        return await self.inner.handle_async_request(_pinned(request, addresses[0]))
+        *others, last = await public_addresses(request.url)
+        for address in others:
+            try:
+                return await self.inner.handle_async_request(_pinned(request, address))
+            except (httpx.ConnectError, httpx.ConnectTimeout):
+                continue
+        return await self.inner.handle_async_request(_pinned(request, last))
 
     async def aclose(self) -> None:
         await self.inner.aclose()
