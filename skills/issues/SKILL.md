@@ -103,7 +103,7 @@ Report one issue per problem found. Only create an issue for a failing rule or m
 ### Structured Line-Number Conventions
 
 - Line numbers are 1-indexed: the first line of the supplied document is line 1. When your instructions designate the document or line numbering to use, follow them.
-- For issues tied to a specific passage, set `start_line` and `end_line` to bracket that passage.
+- Set `start_line` and `end_line` to bracket what the issue is about: the sentence, the paragraph, or the whole element (a table, a figure, a list). Choose the range first; the `passage` then picks the words within it to highlight. Don't shrink the range to the passage's line.
 - **One issue, one place.** An issue covers one contiguous passage: a phrase, a sentence, a paragraph, or a block that runs over several lines, such as a table, a list or a section. When the same problem occurs in separate places, report one issue per line that carries it, each with its own range, passage and edits; never one issue whose range stretches from the first occurrence to the last. When your instructions cap how many issues to report and say to summarize the rest in one issue, anchor that summary on the first place it covers, with its range on that line, and list the other lines in its description.
 - For issues with no specific line or line range — for example, a finding that a required section is missing entirely from the document — set both `start_line` and `end_line` to `1`. **Never** report such an issue with a range that spans the entire document; a whole-document range is reserved for problems that genuinely apply to every line.
 
