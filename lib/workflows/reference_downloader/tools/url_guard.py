@@ -16,12 +16,13 @@ included:
   time (DNS rebinding).
 - ``refuse_non_public``, a request hook, runs the same check on every request.
 
-``direct_client`` uses both unless the environment configures a proxy
-(``HTTPS_PROXY`` and the like). httpx honours those only when it builds its own
-transport, and a deploy that sets one may need it to reach the internet, so a
-proxied client keeps httpx's routing and the hook alone: the proxy connects, and its
-own egress policy governs where. A host the proxy settings exempt (``NO_PROXY``) is
-then checked but not pinned.
+``direct_client`` builds the client. httpx stops reading the environment's proxy
+settings (``HTTPS_PROXY``, ``NO_PROXY`` and the like) once it is given a transport,
+and a deploy that sets them may need the proxy to reach the internet. So the client
+mounts a proxy transport wherever httpx itself would use one, from httpx's own
+reading of those settings, and ``PinnedTransport`` takes every other request,
+``NO_PROXY`` hosts included. A proxied request is checked by the hook but not
+pinned: the proxy connects, and its own egress policy governs where.
 
 Names are resolved in the ASCII form httpx connects to (``raw_host``), not the
 Unicode one, whose IDNA encoding can differ and name another host.
@@ -36,10 +37,14 @@ internal is exposed that way.
 import asyncio
 import ipaddress
 import socket
-import urllib.request
+from collections.abc import Callable
 from typing import Any
 
 import httpx
+
+# Private, but it is exactly how httpx reads the proxy environment, NO_PROXY
+# patterns included; re-deriving it here would drift from what httpx would do.
+from httpx._utils import get_environment_proxies
 
 ALLOWED_SCHEMES = ("http", "https")
 # httpx's own timeout does not cover the lookup, which runs before it connects.
@@ -56,17 +61,20 @@ class UnresolvableHostError(Exception):
     """This pod cannot resolve the URL's host."""
 
 
-_PROXY_SCHEMES = ("http", "https", "all")
-
-
 def direct_client(**kwargs: Any) -> httpx.AsyncClient:
     """An httpx client whose every request, redirects included, is held to public
     addresses: pinned to them, or only checked when an environment proxy connects."""
 
-    proxied = any(scheme in urllib.request.getproxies() for scheme in _PROXY_SCHEMES)
-    if not proxied:
-        kwargs["transport"] = PinnedTransport()
-    return httpx.AsyncClient(event_hooks={"request": [refuse_non_public]}, **kwargs)
+    proxies: dict[str, httpx.AsyncBaseTransport | None] = {
+        pattern: None if proxy is None else httpx.AsyncHTTPTransport(proxy=proxy)
+        for pattern, proxy in get_environment_proxies().items()
+    }
+    return httpx.AsyncClient(
+        transport=PinnedTransport(),
+        mounts=proxies,
+        event_hooks={"request": [refuse_non_public]},
+        **kwargs,
+    )
 
 
 class PinnedTransport(httpx.AsyncBaseTransport):
@@ -75,22 +83,39 @@ class PinnedTransport(httpx.AsyncBaseTransport):
     Each checked address is tried in turn until one connects, as httpx would try
     every address it resolved itself: a dual-stack host's first answer is often an
     IPv6 address an IPv4-only pod cannot reach.
+
+    Each origin gets its own connection pool. A pinned request's URL names an IP,
+    which is what httpcore keys its pool on, so two hostnames sharing an address
+    would otherwise share a keep-alive connection, and the second would skip the TLS
+    handshake that checks its own hostname.
     """
 
-    def __init__(self, inner: httpx.AsyncBaseTransport | None = None) -> None:
-        self.inner = inner or httpx.AsyncHTTPTransport()
+    def __init__(
+        self,
+        new_inner: Callable[[], httpx.AsyncBaseTransport] = httpx.AsyncHTTPTransport,
+    ) -> None:
+        self.new_inner = new_inner
+        self._pools: dict[tuple[str, str, int | None], httpx.AsyncBaseTransport] = {}
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
         *others, last = await public_addresses(request.url)
+        pool = self._pool_for(request.url)
         for address in others:
             try:
-                return await self.inner.handle_async_request(_pinned(request, address))
+                return await pool.handle_async_request(_pinned(request, address))
             except (httpx.ConnectError, httpx.ConnectTimeout):
                 continue
-        return await self.inner.handle_async_request(_pinned(request, last))
+        return await pool.handle_async_request(_pinned(request, last))
+
+    def _pool_for(self, url: httpx.URL) -> httpx.AsyncBaseTransport:
+        origin = (url.scheme, url.raw_host.decode("ascii").lower(), url.port)
+        if origin not in self._pools:
+            self._pools[origin] = self.new_inner()
+        return self._pools[origin]
 
     async def aclose(self) -> None:
-        await self.inner.aclose()
+        for pool in self._pools.values():
+            await pool.aclose()
 
 
 async def refuse_non_public(request: httpx.Request) -> None:

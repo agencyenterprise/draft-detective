@@ -65,7 +65,10 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
         mock = httpx.MockTransport(web[0].handle)
         transport = kwargs.pop("transport", None)
         if isinstance(transport, url_guard.PinnedTransport):
-            transport.inner = mock
+            transport.new_inner = lambda: mock
+        # A proxy mount answers from the same mock, addressed to the original host.
+        mounts = kwargs.pop("mounts", None) or {}
+        kwargs["mounts"] = {k: None if v is None else mock for k, v in mounts.items()}
         return real_client(transport=transport or mock, **kwargs)
 
     with (
@@ -74,7 +77,7 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
         # No real DNS in tests: every host resolves to a public address.
         # No proxy unless a test sets one: on macOS this reads system settings too.
-        patch.object(url_guard.urllib.request, "getproxies", return_value={}),
+        patch.object(url_guard, "get_environment_proxies", return_value={}),
         patch.object(url_guard, "_resolve", AsyncMock(return_value=[PUBLIC_IP])),
     ):
 

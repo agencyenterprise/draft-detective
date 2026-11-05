@@ -78,7 +78,10 @@ def web(tmp_path: Path) -> Iterator[Callable[..., FakeWeb]]:
         mock = httpx.MockTransport(webs[0].handle)
         transport = kwargs.pop("transport", None)
         if isinstance(transport, url_guard.PinnedTransport):
-            transport.inner = mock
+            transport.new_inner = lambda: mock
+        # A proxy mount answers from the same mock, addressed to the original host.
+        mounts = kwargs.pop("mounts", None) or {}
+        kwargs["mounts"] = {k: None if v is None else mock for k, v in mounts.items()}
         return real_client(transport=transport or mock, **kwargs)
 
     with (
@@ -87,7 +90,7 @@ def web(tmp_path: Path) -> Iterator[Callable[..., FakeWeb]]:
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
         patch.object(dl, "_persist_file_record", AsyncMock(return_value="file-1")),
         # No proxy unless a test sets one: on macOS this reads system settings too.
-        patch.object(url_guard.urllib.request, "getproxies", return_value={}),
+        patch.object(url_guard, "get_environment_proxies", return_value={}),
         patch.object(url_guard, "_resolve", _fake_resolve),
     ):
 
@@ -192,21 +195,58 @@ async def test_unreachable_first_address_falls_through_to_the_next(
 
 
 @pytest.mark.asyncio
-async def test_proxied_client_keeps_httpx_routing_and_still_refuses(
+async def test_proxy_settings_decide_per_request_what_is_pinned(
     web: Callable[..., FakeWeb],
 ) -> None:
-    """Behind HTTPS_PROXY the proxy connects: requests are checked, not pinned."""
+    """Proxied requests keep the proxy, checked; NO_PROXY ones are pinned."""
     fake = web()
-    proxies = {"https": "http://proxy.internal:3128"}
+    proxies = {
+        "https://": "http://proxy.internal:3128",
+        "all://*exempt.example.org": None,
+    }
 
-    with patch.object(url_guard.urllib.request, "getproxies", return_value=proxies):
-        public = await _download("https://publisher.example.org/paper.pdf")
+    with (
+        patch.object(url_guard, "get_environment_proxies", return_value=proxies),
+        patch.dict(DNS, {"exempt.example.org": [PUBLIC_IP]}),
+    ):
+        proxied = await _download("https://publisher.example.org/paper.pdf")
+        exempt = await _download("https://exempt.example.org/paper.pdf")
         internal = await _download("https://intranet.example.org/report.pdf")
 
-    assert public.success is True
-    assert [request.url.host for request in fake.requests] == ["publisher.example.org"]
+    assert proxied.success is True
+    assert exempt.success is True
+    # Through the proxy: the original host. Exempt: pinned to the checked IP.
+    assert [request.url.host for request in fake.requests] == [
+        "publisher.example.org",
+        PUBLIC_IP,
+    ]
     assert internal.success is False
     assert "private or internal address" in internal.message
+
+
+@pytest.mark.asyncio
+async def test_each_origin_gets_its_own_connection_pool() -> None:
+    """Two hostnames on one IP never share a keep-alive connection."""
+    pools: list[httpx.MockTransport] = []
+
+    def new_pool() -> httpx.MockTransport:
+        pool = httpx.MockTransport(lambda request: httpx.Response(200))
+        pools.append(pool)
+        return pool
+
+    transport = url_guard.PinnedTransport(new_inner=new_pool)
+    names = {"a.example.org": [PUBLIC_IP], "b.example.org": [PUBLIC_IP]}
+    with patch.object(
+        url_guard, "_resolve", AsyncMock(side_effect=lambda h, p: names[h])
+    ):
+        for url in [
+            "https://a.example.org/1",
+            "https://b.example.org/2",
+            "https://a.example.org/3",
+        ]:
+            await transport.handle_async_request(httpx.Request("GET", url))
+
+    assert len(pools) == 2
 
 
 @pytest.mark.asyncio
