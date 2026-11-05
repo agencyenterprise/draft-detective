@@ -10,11 +10,17 @@ token turns one bad request into a retry storm. Both of these were 500s until a
 manual probe against the tunnel showed it.
 """
 
+import json
 import logging
+import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
+from jwt import PyJWK
+from jwt.algorithms import RSAAlgorithm
 from microsoft_agents.activity import (
     Activity,
     ActivityTypes,
@@ -27,7 +33,11 @@ from microsoft_agents.activity import (
     Mention,
 )
 from microsoft_agents.activity.invoke_response import InvokeResponse
-from microsoft_agents.hosting.core import AuthenticationConstants, ClaimsIdentity
+from microsoft_agents.hosting.core import (
+    AuthenticationConstants,
+    ClaimsIdentity,
+    JwtTokenValidator,
+)
 
 from lib.config.env import config
 from lib.services.microsoft.teams import bot
@@ -431,7 +441,14 @@ class TestHandlingAnActivity:
     async def test_the_parsed_activity_and_handler_reach_the_adapter(
         self, configured: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        claims = ClaimsIdentity(claims={}, is_authenticated=True)
+        service_url = "https://smba.trafficmanager.net/amer/"
+        claims = ClaimsIdentity(
+            claims={
+                AuthenticationConstants.ISSUER_CLAIM: "https://api.botframework.com",
+                AuthenticationConstants.SERVICE_URL_CLAIM: service_url,
+            },
+            is_authenticated=True,
+        )
         reply = InvokeResponse(status=200, body={"statusCode": 200})
         adapter = MagicMock()
         adapter.process_activity = AsyncMock(return_value=reply)
@@ -441,7 +458,12 @@ class TestHandlingAnActivity:
 
         result = await bot.handle(
             "Bearer ok",
-            {"type": "invoke", "name": "adaptiveCard/action", "value": {}},
+            {
+                "type": "invoke",
+                "name": "adaptiveCard/action",
+                "value": {},
+                "serviceUrl": service_url,
+            },
             on_turn,
         )
 
@@ -484,3 +506,147 @@ class TestAMalformedActivity:
         assert issubclass(bot.InvalidActivity, Exception)
         assert not issubclass(bot.InvalidActivity, PermissionError)
         assert not issubclass(bot.InvalidActivity, bot.NotConfigured)
+
+
+def _signed(claims: dict[str, Any], key: rsa.RSAPrivateKey) -> str:
+    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": "test-key"})
+
+
+class TestOnlyTheBotConnectorsTokenOpensATurn:
+    """The SDK's validator checks a token's signature and audience, nothing more, and
+    the adapter then posts its replies -- with the bot's own token -- to whatever
+    ``serviceUrl`` the activity names. Any Entra token for the bot's app id passes the
+    first check: one minted by client credentials from any app registered in the bot's
+    tenant, say. So these run real tokens through the real validator, with only the key
+    lookup replaced, and check that a turn starts only for a token the Bot Connector
+    issued for the conversation the activity says it came from: its ``serviceurl``
+    claim, which the Connector puts in every token it sends, has to match."""
+
+    SERVICE_URL = "https://smba.trafficmanager.net/amer/"
+
+    @pytest.fixture
+    def key(
+        self, configured: None, monkeypatch: pytest.MonkeyPatch
+    ) -> rsa.RSAPrivateKey:
+        private = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public = PyJWK.from_dict(
+            {
+                **json.loads(RSAAlgorithm.to_jwk(private.public_key())),
+                "kid": "test-key",
+            }
+        )
+        monkeypatch.setattr(
+            JwtTokenValidator._jwk_client_manager,
+            "get_signing_key",
+            AsyncMock(return_value=public),
+        )
+        return private
+
+    @pytest.fixture
+    def adapter(self, configured: None, monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+        adapter = MagicMock()
+        adapter.process_activity = AsyncMock(return_value=None)
+        bot.bot._build()
+        monkeypatch.setattr(bot.bot, "_adapter", adapter)
+        return adapter
+
+    def _claims(self, **extra: Any) -> dict[str, Any]:
+        now = int(time.time())
+        return {
+            "aud": config.TEAMS_BOT_APP_ID,
+            "iat": now,
+            "nbf": now,
+            "exp": now + 600,
+            **extra,
+        }
+
+    def _message(self, service_url: str) -> dict[str, Any]:
+        return {
+            "type": "message",
+            "text": "what does this say?",
+            "serviceUrl": service_url,
+            "channelId": "msteams",
+            "from": {"id": "29:someone-else"},
+            "conversation": {"id": "19:channel@thread.tacv2"},
+            "recipient": {"id": f"28:{config.TEAMS_BOT_APP_ID}"},
+        }
+
+    @pytest.mark.asyncio
+    async def test_a_token_from_the_bot_connector_opens_a_turn(
+        self, key: rsa.RSAPrivateKey, adapter: MagicMock
+    ) -> None:
+        token = _signed(
+            self._claims(
+                iss="https://api.botframework.com", serviceurl=self.SERVICE_URL
+            ),
+            key,
+        )
+
+        await bot.handle(
+            f"Bearer {token}", self._message(self.SERVICE_URL), AsyncMock()
+        )
+
+        adapter.process_activity.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_a_tenant_token_for_the_bots_app_id_is_refused(
+        self, key: rsa.RSAPrivateKey, adapter: MagicMock
+    ) -> None:
+        """What client credentials from another app in the bot's tenant return."""
+
+        tenant = config.TEAMS_BOT_TENANT_ID
+        token = _signed(
+            self._claims(
+                iss=f"https://sts.windows.net/{tenant}/",
+                tid=tenant,
+                appid="99999999-8888-7777-6666-555555555555",
+            ),
+            key,
+        )
+
+        with pytest.raises(PermissionError):
+            await bot.handle(
+                f"Bearer {token}",
+                self._message("https://collector.example.com/"),
+                AsyncMock(),
+            )
+        adapter.process_activity.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_a_connector_token_for_another_service_url_is_refused(
+        self, key: rsa.RSAPrivateKey, adapter: MagicMock
+    ) -> None:
+        """A genuine token does not let its holder redirect the bot's replies."""
+
+        token = _signed(
+            self._claims(
+                iss="https://api.botframework.com", serviceurl=self.SERVICE_URL
+            ),
+            key,
+        )
+
+        with pytest.raises(PermissionError):
+            await bot.handle(
+                f"Bearer {token}",
+                self._message("https://collector.example.com/"),
+                AsyncMock(),
+            )
+        adapter.process_activity.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_a_tenant_token_carrying_a_matching_service_url_is_refused(
+        self, key: rsa.RSAPrivateKey, adapter: MagicMock
+    ) -> None:
+        """A tenant admin can map a ``serviceurl`` claim into its own tokens. Only the
+        Bot Connector issues ``https://api.botframework.com`` tokens."""
+
+        tenant = config.TEAMS_BOT_TENANT_ID
+        url = "https://collector.example.com/"
+        token = _signed(
+            self._claims(iss=f"https://sts.windows.net/{tenant}/", serviceurl=url),
+            key,
+        )
+
+        with pytest.raises(PermissionError):
+            await bot.handle(f"Bearer {token}", self._message(url), AsyncMock())
+        adapter.process_activity.assert_not_awaited()
