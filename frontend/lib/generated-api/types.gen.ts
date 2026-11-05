@@ -2819,6 +2819,7 @@ export type IssueResponse = {
    * Edits
    */
   edits: Array<IssueEditRead>;
+  passage: IssuePassageRead | null;
   status: IssueStatus;
   /**
    * Resolved By
