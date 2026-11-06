@@ -22,8 +22,6 @@ DEFAULT_TOP_K = 15
 class CandidateMatch(BaseModel):
     """A candidate document match for a reference."""
 
-    doc_index: int
-    similarity_score: float
     summary: FileSummary
     file_id: str | None = None
 
@@ -132,7 +130,8 @@ class ReferenceEmbeddingMatcher:
             raise
         ref_normalized = _normalize(np.array(ref_vectors))
 
-        # We need to compute cosine similarity via dot product of normalized vectors: (num_refs, num_docs) to return the correct similarity scores
+        # Cosine similarity via dot product of normalized vectors: (num_refs, num_docs).
+        # Raw dot products would rank long vectors first.
         similarities = ref_normalized @ self._doc_embeddings_normalized.T
 
         effective_k = min(top_k, len(self._summaries))
@@ -142,8 +141,6 @@ class ReferenceEmbeddingMatcher:
             top_indices = np.argsort(ref_similarities)[-effective_k:][::-1]
             candidates = [
                 CandidateMatch(
-                    doc_index=idx,
-                    similarity_score=float(ref_similarities[idx]),
                     summary=self._summaries[idx],
                     file_id=getattr(self._summaries[idx], "file_id", None),
                 )

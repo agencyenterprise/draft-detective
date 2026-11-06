@@ -55,7 +55,6 @@ async def test_extracts_image_and_rewrites_src(tmp_path):
     image = result.images[0]
     assert image.mime_type == "image/png"
     assert image.file_size == len(PNG_BYTES)
-    assert image.line_number == 3
     assert image.alt == "Figure 1"
     assert os.path.isfile(image.image_path)
     assert image.image_path.startswith(
@@ -80,7 +79,6 @@ async def test_line_count_is_preserved(tmp_path):
         result = await extract_data_uri_images(markdown)
 
     assert result.markdown.count("\n") == markdown.count("\n")
-    assert [img.line_number for img in result.images] == [3, 7]
 
 
 @pytest.mark.asyncio
@@ -124,7 +122,6 @@ async def test_undecodable_payload_is_skipped(tmp_path):
         result = await extract_data_uri_images(markdown)
 
     assert len(result.images) == 1
-    assert result.images[0].line_number == 2
     assert "![bad](data:image/png;base64,AAAA=BADPADDING)" in result.markdown
     assert f"![good]({image_reference(result.images[0].id)})" in result.markdown
 

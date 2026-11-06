@@ -143,7 +143,6 @@ class TestOpeningADocument:
             mime_type="image/png",
             file_size=3,
             content_hash="a",
-            line_number=1,
         )
         opened = document().model_copy(update={"images": [image]})
         with loading(opened):

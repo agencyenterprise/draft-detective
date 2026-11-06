@@ -153,7 +153,6 @@ class TestATurn:
             mime_type="image/png",
             file_size=3,
             content_hash="a",
-            line_number=1,
         )
         read = LoadedDocument(
             name="Draft.docx", url=URL, markdown="# Draft", images=[image]

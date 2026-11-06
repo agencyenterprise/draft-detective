@@ -8,19 +8,11 @@ from lib.agents.tools.vector_search import format_passages_with_lines, vector_se
 from lib.services.vector_store import RetrievedPassage
 
 
-def _passage(
-    content: str,
-    source_file: str,
-    start_line: int,
-    end_line: int | None = None,
-) -> RetrievedPassage:
-    """Helper to create a RetrievedPassage with a default cosine_distance."""
+def _passage(start_line: int, end_line: int | None = None) -> RetrievedPassage:
+    """A passage covering ``start_line`` to ``end_line`` (default: one line)."""
     return RetrievedPassage(
-        content=content,
-        source_file=source_file,
         start_line=start_line,
         end_line=end_line if end_line is not None else start_line,
-        cosine_distance=0.1,
     )
 
 
@@ -30,7 +22,7 @@ class TestFormatPassagesWithLines:
     def test_single_passage(self):
         """Test formatting a single passage with context lines."""
         content = "line 0\nline 1\nline 2\nmatch line\nline 4\nline 5\nline 6"
-        passages = [_passage("match line", "doc.pdf", start_line=4)]
+        passages = [_passage(start_line=4)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -48,8 +40,8 @@ class TestFormatPassagesWithLines:
         lines = [f"line {i}" for i in range(20)]
         content = "\n".join(lines)
         passages = [
-            _passage("line 3", "doc.pdf", start_line=4),
-            _passage("line 15", "doc.pdf", start_line=16),
+            _passage(start_line=4),
+            _passage(start_line=16),
         ]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
@@ -65,8 +57,8 @@ class TestFormatPassagesWithLines:
         content = "\n".join(lines)
         # Two passages close enough that their context windows overlap
         passages = [
-            _passage("line 3", "doc.pdf", start_line=4),
-            _passage("line 5", "doc.pdf", start_line=6),
+            _passage(start_line=4),
+            _passage(start_line=6),
         ]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
@@ -81,7 +73,7 @@ class TestFormatPassagesWithLines:
     def test_passage_at_start_of_document(self):
         """Context shouldn't go negative for passages at start."""
         content = "match here\nline 1\nline 2\nline 3\nline 4"
-        passages = [_passage("match here", "doc.pdf", start_line=1)]
+        passages = [_passage(start_line=1)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -95,7 +87,7 @@ class TestFormatPassagesWithLines:
     def test_passage_at_end_of_document(self):
         """Context shouldn't exceed document length for passages at end."""
         content = "line 0\nline 1\nline 2\nmatch here"
-        passages = [_passage("match here", "doc.pdf", start_line=4)]
+        passages = [_passage(start_line=4)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -106,7 +98,7 @@ class TestFormatPassagesWithLines:
     def test_matched_lines_use_colon_separator(self):
         """Matched lines should use : and context lines should use -."""
         content = "ctx before\nmatch\nctx after"
-        passages = [_passage("match", "doc.pdf", start_line=2)]
+        passages = [_passage(start_line=2)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -124,7 +116,7 @@ class TestFormatPassagesWithLines:
     def test_preserves_empty_lines_in_content(self):
         """Test that empty lines in the document are preserved."""
         content = "line 1\n\nmatch here\n\nline 5"
-        passages = [_passage("match here", "doc.pdf", start_line=3)]
+        passages = [_passage(start_line=3)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -134,7 +126,7 @@ class TestFormatPassagesWithLines:
     def test_header_format(self):
         """Test the header format includes file name and count."""
         content = "line 1\nline 2\nline 3"
-        passages = [_passage("line 2", "report.pdf", start_line=2)]
+        passages = [_passage(start_line=2)]
 
         result = format_passages_with_lines(passages, content, "report.pdf")
 
@@ -165,13 +157,9 @@ class TestFormatPassagesWithLines:
 
         passages = [
             _passage(
-                "The clinical trial was conducted over 12 weeks.",
-                "study.pdf",
                 start_line=8,
             ),
             _passage(
-                "Results from the clinical trial demonstrate improvement.",
-                "study.pdf",
                 start_line=16,
             ),
         ]
@@ -188,9 +176,7 @@ class TestFormatPassagesWithLines:
         lines = [f"line {i}" for i in range(10)]
         content = "\n".join(lines)
         # A chunk spanning lines 4-6 (1-indexed)
-        passages = [
-            _passage("line 3\nline 4\nline 5", "doc.pdf", start_line=4, end_line=6)
-        ]
+        passages = [_passage(start_line=4, end_line=6)]
 
         result = format_passages_with_lines(passages, content, "doc.pdf")
 
@@ -343,7 +329,7 @@ class TestVectorSearch:
         markdown = "line 0\nline 1\nline 2\nmatch line\nline 4\nline 5\nline 6"
         mock_file = self._create_mock_file(markdown=markdown)
         passages = [
-            _passage("match line", "doc.pdf", start_line=4),
+            _passage(start_line=4),
         ]
 
         mock_vector_store = AsyncMock()
