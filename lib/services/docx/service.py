@@ -99,8 +99,8 @@ async def generate_docx(
         # authoritative (no fuzzy matching) and resolves each issue's line range to a
         # target docx paragraph. The persisted
         # markdown's line count guards against a structurally different conversion
-        # (e.g. drawing rasterization failing now but not at ingestion) silently
-        # anchoring every comment to the wrong paragraph.
+        # (e.g. one that differs from ingestion's in how charts or equations came
+        # out) silently anchoring every comment to the wrong paragraph.
         paragraph_line_ranges = await build_paragraph_line_ranges(
             docx_path,
             expected_line_count=(

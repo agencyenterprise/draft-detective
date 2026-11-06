@@ -2,9 +2,9 @@
 
 Current Inspect AI eval numbers across every eval in `evals_inspectai/e2e/`.
 
-- **Last updated:** 2026-11-05
+- **Last updated:** 2026-11-06
 - **Model:** `gpt-5.6-terra` on every agent
-- **Total:** 29 evals · 602 runnable samples · run at epochs=3
+- **Total:** 29 evals · 603 runnable samples · run at epochs=3
 
 > [!NOTE]
 > All evals are **end-to-end**: they trigger the real workflow through the API,
@@ -45,7 +45,7 @@ review-assistant suites (18, 19 and 26), which pin `openai/gpt-5.6-terra`.
 | 1 | `abbreviation_checker` | 36 | 3 | 22 deterministic 0.990–1.000 | **1.000** | 2026-11-05 | [`…_NMieZFGbTkbGTvEhwhomAH.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T19-23-41-00-00_abbreviation-checker-e2e_NMieZFGbTkbGTvEhwhomAH.eval) |
 | 2 | `abbreviation_checker_report` | 10 | 3 | 20 deterministic 0.900–1.000 | **0.981** | 2026-10-13 | [`…_TzQcWxKqeESPgCnaKGeNn9.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-10-13T18-29-35-00-00_abbreviation-checker-report-e2e_TzQcWxKqeESPgCnaKGeNn9.eval) |
 | 3 | `about_this_ger` | 24 | 3 | 14 deterministic 0.982–1.000 · 2 judged 0.720–0.833 | **0.969** | 2026-11-05 | [`…_UX7s2RjXqRiXXeHHdd7YDM.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T19-50-22-00-00_about-this-ger-e2e_UX7s2RjXqRiXXeHHdd7YDM.eval) |
-| 4 | `advocacy_tone_v2` | 26 | 3 | 19 deterministic 0.990–1.000 · 2 judged 0.539–1.000 | **0.977** | 2026-11-05 | [`…_VWPt9XmMCQiyCo3NHXNx5R.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T19-23-41-00-00_advocacy-tone-v2-e2e_VWPt9XmMCQiyCo3NHXNx5R.eval) |
+| 4 | `advocacy_tone_v2` | 27 | 3 | 20 deterministic 0.981–1.000 · 2 judged 0.555–1.000 | **0.978** | 2026-11-06 | [`…_XN3f8guh9pN2AoHjYUfitf.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-06T14-42-42-00-00_advocacy-tone-v2-e2e_XN3f8guh9pN2AoHjYUfitf.eval) |
 | 5 | `claim_reference_validation_v2` | 22 | 3 | 16 deterministic 0.889–1.000 · 2 judged 0.976–1.000 | **0.989** | 2026-11-05 | [`…_2owSzdqghwEb3wVicAy6ou.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T19-27-16-00-00_claim-reference-validation-v2-e2e_2owSzdqghwEb3wVicAy6ou.eval) |
 | 6 | `document_structure` | 19 | 3 | 7 deterministic all 1.000 · 2 judged 0.870–1.000 | **0.986** | 2026-11-05 | [`…_W5cd3Efb43bWGDkshMQKNZ.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T19-50-22-00-00_document-structure-e2e_W5cd3Efb43bWGDkshMQKNZ.eval) |
 | 7 | `figures_tables_check` | 33 | 3 | 20 deterministic 0.965–1.000 · 2 judged 0.856–0.985 | **0.988** | 2026-11-05 | [`…_mh2r6zEcG5ufgXaeRqfKT6.eval`](https://agencyenterprise.github.io/draft-detective/evals-viewer/#/tasks/2026-11-05T20-41-02-00-00_figures-tables-check-e2e_mh2r6zEcG5ufgXaeRqfKT6.eval) |
