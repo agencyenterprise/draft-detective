@@ -93,7 +93,10 @@ class TestIssueToComment:
             end_line=5,
         )
         anchor = CommentAnchor(
-            paragraph_index=1, find="certainly", occurrence=0, total=1
+            paragraph_index=1,
+            find="certainly",
+            occurrence=0,
+            paragraph_text="It will certainly work.",
         )
 
         comment = issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}, comment_anchor=anchor)

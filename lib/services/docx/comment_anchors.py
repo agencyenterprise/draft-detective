@@ -32,11 +32,11 @@ class CommentAnchor(BaseModel):
 
     paragraph_index: int
     find: str
-    # Which repeat of `find` in the paragraph's text, and how many there are:
-    # the comment pass checks python-docx sees the same count before trusting
-    # the index.
+    # Which repeat of `find` in the paragraph's text, and that text as
+    # docx-editor read it: the comment pass checks python-docx reads the same
+    # text before trusting the index.
     occurrence: int
-    total: int
+    paragraph_text: str
 
 
 def _anchor(
@@ -63,7 +63,7 @@ def _anchor(
         paragraph_index=index,
         find=find,
         occurrence=len([offset for offset in offsets if offset < span[0]]),
-        total=len(offsets),
+        paragraph_text=paragraph.text,
     )
 
 

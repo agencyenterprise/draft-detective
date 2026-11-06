@@ -321,7 +321,7 @@ class DocxManipulatorService:
                         paragraph,
                         comment.anchor.find,
                         comment.anchor.occurrence,
-                        comment.anchor.total,
+                        comment.anchor.paragraph_text,
                     )
                     if comment.anchor is not None
                     else None

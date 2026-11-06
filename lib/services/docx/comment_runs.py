@@ -12,9 +12,13 @@ covers a few characters more than the passage.
 
 The characters are found in the runs python-docx shows, hyperlinks included.
 That is not always the text docx-editor located the passage in (a field, a
-content control, an earlier tracked insertion), so the anchor's repeat count
-is checked first, and any disagreement returns None: the caller anchors the
-comment on the whole paragraph rather than on the wrong words.
+content control, an earlier tracked insertion), so the whole paragraph's text
+is compared first, and any disagreement returns None: the caller anchors the
+comment on the whole paragraph rather than on the wrong words. Matching repeat
+counts would not be enough: a hidden "caXt" and a visible "cat" each hold one
+"cat". Tabs and line breaks are the one known difference between the readers
+(python-docx reads them as ``\t`` and ``\n``, docx-editor drops them), so
+they are left out of the comparison.
 """
 
 import copy
@@ -27,6 +31,7 @@ from docx.text.run import Run
 from lib.services.text.location import all_offsets
 
 _PLAIN_RUN_CHILDREN = {qn("w:rPr"), qn("w:t")}
+_NOT_READ_BY_DOCX_EDITOR = str.maketrans("", "", "\t\n")
 
 
 def _visible_runs(paragraph: Paragraph) -> list[Run]:
@@ -80,17 +85,21 @@ def _covering(paragraph: Paragraph, start: int, end: int) -> list[Run]:
 
 
 def anchored_runs(
-    paragraph: Paragraph, find: str, occurrence: int, total: int
+    paragraph: Paragraph, find: str, occurrence: int, paragraph_text: str
 ) -> list[Run] | None:
     """The first and last run covering the `occurrence`-th `find`, or None.
 
-    `total` is how many times docx-editor saw `find` in the paragraph; a
-    different count here means the two libraries read the paragraph
-    differently, and `occurrence` cannot be trusted.
+    `paragraph_text` is the paragraph as docx-editor read it, where
+    `occurrence` was counted; unless python-docx reads the same text,
+    `occurrence` cannot be trusted.
     """
     text = "".join(run.text for run in _visible_runs(paragraph))
+    if text.translate(_NOT_READ_BY_DOCX_EDITOR) != paragraph_text:
+        return None
     offsets = all_offsets(text, find)
-    if not find or len(offsets) != total or occurrence >= len(offsets):
+    if not find or len(offsets) != len(all_offsets(paragraph_text, find)):
+        return None
+    if occurrence >= len(offsets):
         return None
     start = offsets[occurrence]
     end = start + len(find)

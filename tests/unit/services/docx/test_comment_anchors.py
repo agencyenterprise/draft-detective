@@ -61,7 +61,9 @@ class TestAnchoredRuns:
         document = new_document()
         paragraph = _three_run_paragraph(document)
 
-        runs = anchored_runs(paragraph, "brown fox", occurrence=0, total=1)
+        runs = anchored_runs(
+            paragraph, "brown fox", 0, "The quick brown fox jumps over the lazy dog."
+        )
         assert runs is not None
         document.add_comment(runs=runs, text="note", author="DD", initials="DD")
         path = tmp_path / "out.docx"
@@ -84,7 +86,7 @@ class TestAnchoredRuns:
         document = new_document()
         paragraph = document.add_paragraph("one cat, two cat, three cat")
 
-        runs = anchored_runs(paragraph, "cat", occurrence=1, total=3)
+        runs = anchored_runs(paragraph, "cat", 1, "one cat, two cat, three cat")
         assert runs is not None
         document.add_comment(runs=runs, text="note", author="DD", initials="DD")
         path = tmp_path / "out.docx"
@@ -102,19 +104,27 @@ class TestAnchoredRuns:
         tail.text = "after"
         run._r.append(tail)
 
-        runs = anchored_runs(paragraph, "fore", occurrence=0, total=1)
+        runs = anchored_runs(paragraph, "fore", 0, "beforeafter")
 
         assert runs is not None
         assert runs[0] is not None and runs[0]._r is run._r
         assert paragraph.runs[0]._r.find(qn("w:tab")) is not None
 
-    def test_a_count_python_docx_does_not_see_gives_up(self):
+    def test_text_python_docx_does_not_see_gives_up(self):
         document = new_document()
         paragraph = document.add_paragraph("one cat only")
 
-        # docx-editor saw two, so its occurrence does not index this text.
-        assert anchored_runs(paragraph, "cat", occurrence=1, total=2) is None
-        assert anchored_runs(paragraph, "dog", occurrence=0, total=1) is None
+        # docx-editor read different text, so its occurrence does not index this.
+        assert anchored_runs(paragraph, "cat", 1, "one cat, one cat only") is None
+        assert anchored_runs(paragraph, "dog", 0, "one dog only") is None
+
+    def test_an_equal_count_in_different_text_gives_up(self):
+        """docx-editor sees a tracked insertion python-docx's runs leave out:
+        each reads one "cat", but not the same one."""
+        document = new_document()
+        paragraph = document.add_paragraph("cat then ")
+
+        assert anchored_runs(paragraph, "cat", 0, "caXt then cat") is None
 
 
 def _issue(passage_text: str | None, *, line: int = 1, display: str | None = None):
@@ -169,7 +179,10 @@ class TestPlanCommentAnchors:
         )
 
         assert anchors[first.id] == CommentAnchor(
-            paragraph_index=0, find="certainly succeed", occurrence=0, total=1
+            paragraph_index=0,
+            find="certainly succeed",
+            occurrence=0,
+            paragraph_text="We will certainly succeed.",
         )
         assert anchors[second.id].paragraph_index == 1
         assert anchors[second.id].find == "certainly"
@@ -218,7 +231,12 @@ class TestAnchoredCommentsWithRedlines:
                         paragraph_index=0,
                         comment_text="Passage comment",
                         anchor=CommentAnchor(
-                            paragraph_index=0, find="brown fox", occurrence=0, total=1
+                            paragraph_index=0,
+                            find="brown fox",
+                            occurrence=0,
+                            paragraph_text=(
+                                "The quick brown fox jumps over the lazy dog."
+                            ),
                         ),
                     ),
                     DocxComment(paragraph_index=0, comment_text="Whole paragraph"),
