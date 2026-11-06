@@ -9,8 +9,8 @@ export const EDIT_HIGHLIGHT_STYLE_ID = 'proposed-edit-highlight-style';
 /**
  * How the highlighted span looks.
  *
- * Amber rather than a severity colour, and wavy-underlined: the block already
- * carries its severity wash, so the span has to say something different --
+ * Amber rather than a severity colour, and wavy-underlined: the open issue's
+ * passage or block already carries its severity wash, so the span has to say something different --
  * "these characters are what changes" -- without competing with it.
  *
  * Injected at runtime rather than written in globals.css: the production CSS
@@ -119,10 +119,10 @@ export function buildTextIndex(root: Element): TextIndex {
  * does not carry it. Without an occurrence, the quote must appear exactly once
  * in the block: guessing between repeats would mark the wrong words.
  *
- * `displayText` is the edit's `display_text`: the quote as the document
- * renders it, worked out by the backend's CommonMark parser when the issue was
- * reported. Nothing is stripped here, so the page and the exported DOCX cannot
- * disagree about which characters an edit covers.
+ * `displayText` is a located quote's `display_text` (an edit's or a passage's):
+ * the quote as the document renders it, worked out by the backend's CommonMark
+ * parser when the issue was reported. Nothing is stripped here, so the page and
+ * the exported DOCX cannot disagree about which characters a quote covers.
  */
 export function rangeInElement(block: Element, displayText: string, occurrence?: number): Range | null {
   const needle = normalizeWhitespace(displayText);

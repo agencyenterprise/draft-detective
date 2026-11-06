@@ -196,8 +196,9 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     if (lineEnd !== undefined) dataProps['data-line-end'] = lineEnd;
 
     const isRow = !nested && lineStart !== undefined;
-    // The gutter rule belongs to the row, and a row is shared with every block
-    // nested inside it. Marking its owner keeps the others from writing to it.
+    // A row is shared with every block nested inside it. Marking its owner is
+    // how the margin, the click targets and the annotate view find the row's
+    // own block and leave the nested ones alone.
     if (isRow) dataProps['data-block-owner'] = '';
     const body = isContainer ? <NestedContext.Provider value>{children}</NestedContext.Provider> : children;
     const element = React.createElement(
@@ -224,8 +225,8 @@ function blockFactory(Tag: string, spacing: string, className: string, isContain
     return (
       <div data-block-row className={cn('grid', spacing, GRID_BASE, inMargin && GRID_WITH_MARGIN)}>
         {/* The rule sits beside the text rather than in the gutter cell so it
-            measures the paragraph, not the row — a row can be tall because its
-            margin holds several notes. */}
+            measures the paragraph, not the row. Only the annotate view colours
+            it (see passage-document.tsx). */}
         <div className="justify-end pt-[0.15em] pr-2 text-right select-none" aria-hidden>
           <span className="font-mono text-[10.5px] leading-[1.7] tabular-nums text-muted-foreground/60">
             {lineStart}
@@ -269,8 +270,8 @@ export const BLOCK_COMPONENTS = {
     <td className="border-t px-2 py-1.5 align-top">{children}</td>
   ),
   hr: blockFactory('hr', 'my-5', ''),
-  // Links are inert here: a click anywhere in the document picks the paragraph's
-  // issues, and following a link instead would take the reader off the page mid
+  // Links are inert here: a click in the document opens the issue under it, and
+  // following a link instead would take the reader off the page mid
   // review. The destination still shows on hover.
   a: ({ href, children }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <span className="underline decoration-muted-foreground/40 underline-offset-2" title={href}>
