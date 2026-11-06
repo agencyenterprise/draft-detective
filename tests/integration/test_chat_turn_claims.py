@@ -20,7 +20,9 @@ from lib.services.chat import turn_claims
 @pytest_asyncio.fixture
 async def thread() -> AsyncIterator[ChatThread]:
     async with get_async_db_session() as session:
-        user = User(email=f"turn-claims-{uuid.uuid4().hex[:12]}@example.com")
+        user = User(
+            email=f"turn-claims-{uuid.uuid4().hex[:12]}@example.com", name="Turn Claims"
+        )
         session.add(user)
         await session.commit()
         await session.refresh(user)
