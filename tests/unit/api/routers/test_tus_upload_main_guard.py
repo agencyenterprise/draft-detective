@@ -48,7 +48,7 @@ async def _upload_main(rows: list[File]) -> AsyncMock:
 
 
 @pytest.mark.asyncio
-async def test_refuses_a_second_main_for_the_revision():
+async def test_refuses_a_second_main_for_the_revision() -> None:
     rows = [file_row(PROJECT_ID, FileRole.MAIN, 2)]
     with pytest.raises(HTTPException) as exc:
         await _upload_main(rows)
@@ -56,17 +56,18 @@ async def test_refuses_a_second_main_for_the_revision():
 
 
 @pytest.mark.asyncio
-async def test_allows_a_main_when_only_earlier_revisions_have_one():
+async def test_allows_a_main_when_only_earlier_revisions_have_one() -> None:
     rows = [
         file_row(PROJECT_ID, FileRole.MAIN, 1),
         file_row(PROJECT_ID, FileRole.SUPPORT, None),
     ]
     finalize = await _upload_main(rows)
+    assert finalize.await_args is not None
     assert finalize.await_args.kwargs["revision"] == 2
 
 
 @pytest.mark.asyncio
-async def test_a_shared_main_row_does_not_block_the_upload():
+async def test_a_shared_main_row_does_not_block_the_upload() -> None:
     rows = [file_row(PROJECT_ID, FileRole.MAIN, None)]
     finalize = await _upload_main(rows)
     finalize.assert_awaited_once()
