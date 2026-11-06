@@ -88,13 +88,13 @@ When the document has more than 300 lines and you can hand work to sub-agents, s
 2. **Cut the body into consecutive parts** at chapter or major-section headings, each roughly 100 to 250 lines, and no more than eight parts. Notes at the end of the document go with the part that calls them out, or form their own part.
 3. **Give each part to its own sub-agent**, all at once if you can. Tell each one the first and last line it owns, the line range of the reference list, and the citation system you expect, and ask it to follow this skill's steps 3, 5, 6 and 8 for its range only, to report its own issues in the usual format with the usual edit rules except citations with no entry (a source missing from the list may be cited in several parts, and it gets one issue for the whole document), not to write the report deliverable, and to reply with every citation it found and the first and last line it reviewed. For each citation the reply gives its line, its text, and the entry it matched; for an ambiguous citation, every entry it could mean; for a mismatch, the entry it most likely means; otherwise *none*. The uncited check in step 5 needs those entries.
 4. **Check that every part came back.** If a sub-agent failed, or reviewed less than its range, review the missing lines yourself.
-5. **Do the document-wide checks yourself** from the sub-agents' replies: citations with no entry (one issue per source across all parts, anchored on its first citation in the document), the mixed-system check, the uncited-entry check, and whether the list is missing. Report only those issues: the sub-agents have already reported every other citation-level issue in their parts, so never report one of those again, even to restate it.
+5. **Do the document-wide checks yourself** from the sub-agents' replies: citations with no entry (one issue per line that cites the source, across all parts), the mixed-system check, the uncited-entry check, and whether the list is missing. Report only those issues: the sub-agents have already reported every other citation-level issue in their parts, so never report one of those again, even to restate it.
 
 ## Reporting
 
 Report issues following the conventions defined in the `issues` skill. Do not emit issues for citations that pass. Anchor every issue on the line of the citation or entry it concerns, and quote the citation exactly in the description.
 
-- **Citation with no entry** → title `"Citation Not in Reference List: [citation]"`, **severity: high**. One issue per source, anchored on its first citation; list the lines of any others in the description.
+- **Citation with no entry** → title `"Citation Not in Reference List: [citation]"`, **severity: high**. One issue per line that cites the source, each anchored on its citation; in the first one, list the lines of the others.
 - **Citation that nearly matches an entry** (wrong year, misspelled surname, a year letter the entry lacks or a different one, a different second author) → title `"Citation Does Not Match Reference: [citation]"`, **severity: medium**. Name the entry it most likely means, quote that entry's author and year, and say what differs. Say that the entry may be the one in error.
 - **Citation that fits more than one entry** → title `"Ambiguous Citation: [citation]"`, **severity: medium**. Name the entries it could mean and say what would tell them apart (a year letter, a second name, initials).
 - **Uncited entry in a References list** → title `"Uncited Reference: [first author, year]"`, **severity: low**. One issue per entry, anchored on the entry. Suggest citing it or moving it to a Bibliography.
@@ -116,7 +116,7 @@ Quote the citation verbatim as the text to replace, with only as much surroundin
 
 ### Volume
 
-Report every citation with no entry, every mismatch and every ambiguous citation. Report format problems one issue per citation up to 40; if there are more, report the rest one issue per rule broken, titled `"Citation Format: [rule]"`, listing each citation's line and its corrected form, with an edit for each.
+Report every citation with no entry, every mismatch and every ambiguous citation. Report format problems one issue per citation up to 40; if there are more, report the rest one issue per rule broken, titled `"Citation Format: [rule]"`, on the line of the first such citation, listing each citation's line and its corrected form, with an edit for the citation on its own line.
 
 ## Report
 

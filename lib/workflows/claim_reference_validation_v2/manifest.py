@@ -125,6 +125,7 @@ def _build_issue(
         end_line=item.line_end,
         long_description=long_description,
         suggested_action=item.feedback or None,
+        passage=item.passage,
     )
 
 

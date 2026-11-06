@@ -136,7 +136,7 @@ def _count_on_lines(occurrence: ChunkOccurrence, lines: list[str]) -> int:
 
     HTML entities are decoded first (the converted markdown writes "R&amp;D").
     """
-    pattern = _abbreviation_pattern(occurrence.abbr.strip())
+    pattern = abbreviation_pattern(occurrence.abbr.strip())
     if pattern is None:
         return 0
     end = max(occurrence.line_end, occurrence.line_start)
@@ -145,7 +145,7 @@ def _count_on_lines(occurrence: ChunkOccurrence, lines: list[str]) -> int:
 
 
 @lru_cache(maxsize=4096)
-def _abbreviation_pattern(abbr: str) -> re.Pattern[str] | None:
+def abbreviation_pattern(abbr: str) -> re.Pattern[str] | None:
     """A regex matching `abbr` as a whole token, tolerant of how it is spelled.
 
     - Punctuation and spacing between the abbreviation's parts may vary:

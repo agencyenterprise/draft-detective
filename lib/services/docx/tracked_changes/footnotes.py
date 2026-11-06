@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import UNCHANGED_ONCE_RENDERED
 from lib.services.docx.tracked_changes.lines import footnote_references
+from lib.services.docx.tracked_changes.models import LocatedQuoteLike
 from lib.services.text.location import locate_in_paragraph, normalize_whitespace
 from lib.services.text.markdown_rendering import render_line_text
 
@@ -60,9 +61,9 @@ class FootnotePlacement(BaseModel):
     detail: str | None = None
 
 
-def carries_footnotes(edit: IssueEdit) -> bool:
-    """Whether the edit's quote holds a footnote reference."""
-    return bool(footnote_references(edit.original_text))
+def carries_footnotes(quote: LocatedQuoteLike) -> bool:
+    """Whether the quote holds a footnote reference."""
+    return bool(footnote_references(quote.original_text))
 
 
 def _split_at(text: str, markers: list[str]) -> list[str] | None:
@@ -78,19 +79,19 @@ def _split_at(text: str, markers: list[str]) -> list[str] | None:
     return pieces
 
 
-def _quoted_pieces(edit: IssueEdit, markers: list[str]) -> list[str] | None:
+def _quoted_pieces(quote: LocatedQuoteLike, markers: list[str]) -> list[str] | None:
     """`display_text` cut at the markers, with the quote's own edge whitespace.
 
     `display_text` is whitespace-normalized; the raw quote still says which
     spaces at its ends it owns, as `placement._with_boundary_whitespace` reads
     it, and the first and last stretch need that to be redlined the same way.
     """
-    pieces = _split_at(edit.display_text, markers)
+    pieces = _split_at(quote.display_text, markers)
     if pieces is None:
         return None
-    if edit.original_text[:1].isspace():
+    if quote.original_text[:1].isspace():
         pieces[0] = " " + pieces[0]
-    if edit.original_text[-1:].isspace():
+    if quote.original_text[-1:].isspace():
         pieces[-1] = pieces[-1] + " "
     return pieces
 
@@ -257,3 +258,21 @@ def place_around_footnotes(edit: IssueEdit, paragraph_text: str) -> FootnotePlac
         pieces.append(piece)
         floor = piece.span[1]
     return FootnotePlacement(pieces=pieces)
+
+
+def footnoted_quote_span(
+    quote: LocatedQuoteLike, paragraph_text: str
+) -> tuple[int, int] | None:
+    """The one span of the paragraph a footnote-carrying quote covers, or None.
+
+    The quote is matched with its references taken out, as a redline's is, and
+    must be unique in the paragraph. The span runs from the first stretch's
+    start to the last one's end, so a comment on it covers the reference marks
+    in between.
+    """
+    markers = [render_line_text(m) for m in footnote_references(quote.original_text)]
+    quoted = _quoted_pieces(quote, markers)
+    if quoted is None:
+        return None
+    whole = locate_in_paragraph(paragraph_text, normalize_whitespace("".join(quoted)))
+    return whole[0] if len(whole) == 1 else None

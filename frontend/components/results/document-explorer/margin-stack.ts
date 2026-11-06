@@ -8,6 +8,26 @@ export interface Slot {
 }
 
 /**
+ * The order the notes are stacked in: top to bottom by where each would like
+ * to sit, as measured, not by the line its issue starts on. A note anchored on
+ * a passage further down than its issue's first line -- an issue over lines
+ * 1-100 with its passage on line 100 -- would otherwise be stacked ahead of
+ * the notes it sits below, and push them down after it.
+ *
+ * A note with no preference keeps its place among its neighbours (it takes
+ * the position of the note before it), and one at the very start rides at the
+ * top, as the document-level group does. Equal positions keep their order.
+ */
+export function visualOrder(slots: Slot[]): number[] {
+  let previous = Number.NEGATIVE_INFINITY;
+  const keys = slots.map((slot) => {
+    if (slot.wanted !== null) previous = slot.wanted;
+    return previous;
+  });
+  return slots.map((_, index) => index).sort((a, b) => keys[a] - keys[b]);
+}
+
+/**
  * Where each note goes, given where it would like to go.
  *
  * With nothing selected the notes are stacked top to bottom: each sits level
@@ -16,13 +36,13 @@ export interface Slot {
  * paragraphs carrying many notes drags the stack past the paragraphs below, so
  * the note the reader just opened lands nowhere near its paragraph.
  *
- * So the open note, when there is one, is pinned level with its paragraph and
+ * So the open note, when there is one, is pinned level with its words and
  * the rest are laid out away from it: the notes above are pushed up, the notes
- * below are pushed down. This is what Word and Google Docs do. If the notes
- * above the pinned one need more room than the document above it offers, they
- * are stacked down from the top of the margin as they would be with nothing
- * selected, and the open note follows under them — the one case where it
- * cannot sit beside its paragraph.
+ * below are pushed down. This is what Word and Google Docs do, and it holds
+ * however crowded the margin is: when the notes above need more room than the
+ * document above the open one offers, the topmost of them are pushed past the
+ * top of the margin, out of sight until the note is closed, rather than the
+ * open note being pushed down and away from the words it is about.
  */
 export function stackNotes(slots: Slot[], pivot: number): number[] {
   const tops = new Array<number>(slots.length);
@@ -31,13 +51,8 @@ export function stackNotes(slots: Slot[], pivot: number): number[] {
     return tops;
   }
 
-  let anchorTop = slots[pivot].wanted;
-  if (stackUp(slots, pivot - 1, anchorTop, tops)) {
-    // The notes above do not fit between the top of the margin and the open
-    // note's paragraph, so they are stacked down from the top instead, each at
-    // its own paragraph where it can be, and the open note goes under them.
-    anchorTop = Math.max(anchorTop, stackDown(slots, 0, pivot, 0, tops));
-  }
+  const anchorTop = slots[pivot].wanted;
+  stackUp(slots, pivot - 1, anchorTop, tops);
   tops[pivot] = anchorTop;
   stackDown(slots, pivot + 1, slots.length, anchorTop + slots[pivot].height + GAP, tops);
   return tops;
@@ -58,10 +73,10 @@ function stackDown(slots: Slot[], from: number, to: number, floor: number, tops:
 }
 
 /**
- * Places slots[..from] bottom to top, none reaching below `ceiling`. Returns
- * whether the topmost note overshot the top of the margin.
+ * Places slots[..from] bottom to top, none reaching below `ceiling`. A note
+ * that does not fit below the top of the margin is placed above it.
  */
-function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): boolean {
+function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): void {
   let cursor = ceiling;
   for (let index = from; index >= 0; index -= 1) {
     const fits = cursor - slots[index].height - GAP;
@@ -69,5 +84,4 @@ function stackUp(slots: Slot[], from: number, ceiling: number, tops: number[]): 
     tops[index] = top;
     cursor = top;
   }
-  return cursor < 0;
 }

@@ -1,5 +1,5 @@
 # Eval samples for the writing_consistency workflow, in inventory form: one expected issue per
-# inconsistency, anchored at the first minority occurrence, with edit expectations, plus decoys
+# line carrying an inconsistency's minority form, with edit expectations, plus decoys
 # whose variation is legitimate. Titles carry the variants after a colon ("Inconsistent Term:
 # students / pupils"), so an expected title names the stable prefix; where a family could fairly be
 # reported under two prefixes (a spelling that is also a number style), the title is just
@@ -364,6 +364,22 @@
   - id: long_case_tracking_system
     title: Inconsistent
     anchor: case tracking system during the first year
+    required: false
+  - id: long_case_tracking_system_2
+    title: Inconsistent
+    anchor: recorded in the case tracking system for
+    required: false
+  - id: long_case_tracking_system_3
+    title: Inconsistent
+    anchor: entered into the case tracking system by
+    required: false
+  - id: long_case_tracking_system_4
+    title: Inconsistent
+    anchor: enter referrals into the case tracking system
+    required: false
+  - id: long_case_tracking_system_5
+    title: Inconsistent
+    anchor: data from the case tracking system and
     required: false
   - id: long_board
     title: Inconsistent

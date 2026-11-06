@@ -30,6 +30,7 @@ from lib.services.issue_persistence import (
 )
 from lib.workflows.models import (
     DocumentIssue,
+    LocatedQuote,
     ProposedEdit,
     SeverityEnum,
     WorkflowRunType,
@@ -46,6 +47,13 @@ def _document_issue() -> DocumentIssue:
         type=WORKFLOW_TYPE,
         start_line=6,
         end_line=8,
+        passage=LocatedQuote(
+            original_text="**Figure 3**",
+            start_line=6,
+            end_line=6,
+            display_text="Figure 3",
+            display_occurrence=1,
+        ),
         edits=[
             ProposedEdit(
                 original_text="**Figure 3**",
@@ -225,3 +233,16 @@ async def test_resolving_an_issue_still_returns_its_edits(persisted):
         "**Figure 2**",
         "",
     ]
+
+
+@pytest.mark.asyncio
+async def test_resolving_an_issue_still_returns_its_passage(persisted):
+    """The resolve response publishes the passage, as every issue payload does."""
+    (created,) = persisted["created"]
+
+    issue = await resolve_issue(created.id, persisted["user"].id)
+
+    assert issue is not None
+    passage = IssueResponse.from_model(issue).passage
+    assert passage is not None
+    assert (passage.display_text, passage.start_line) == ("Figure 3", 6)

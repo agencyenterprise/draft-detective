@@ -11,7 +11,12 @@ from lib.workflows.abbreviation_scan_v2.chunk_models import (
     merge_chunks,
 )
 from lib.workflows.agent_messages import AgentMessages
-from lib.workflows.models import BaseWorkflowConfig, BaseWorkflowState, WorkflowRunType
+from lib.workflows.models import (
+    BaseWorkflowConfig,
+    BaseWorkflowState,
+    LocatedQuote,
+    WorkflowRunType,
+)
 
 
 class AbbreviationItem(BaseModel):
@@ -45,6 +50,14 @@ class AbbreviationItem(BaseModel):
         description=(
             "The definition as it appears in the Abbreviations section of the document. "
             "None if the abbreviation is not listed there, or if no Abbreviations section exists."
+        ),
+    )
+    passage: LocatedQuote | None = Field(
+        default=None,
+        description=(
+            "The words this occurrence's issue is about, located on its line; "
+            "None when they could not be pinned down, and on states stored "
+            "before passages existed."
         ),
     )
     # Exempt occurrences are no longer catalogued, so these are always False/None on

@@ -6,10 +6,20 @@ import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
 import { DocumentImage, documentUrlTransform } from '@/components/document-image';
 import { SEVERITY } from '@/lib/severity-style';
-import { useSeverityStyle } from '@/context/group-by-severity-context';
-import { clearEditHighlight, editRanges, setEditHighlight } from './edit-highlight';
+import { useGroupBySeverity, useSeverityStyle } from '@/context/group-by-severity-context';
+import { clearEditHighlight, quoteRanges, setEditHighlight } from './edit-highlight';
 import { issueLineRange, rangesOverlap } from './issue-lines';
 import { MarginLayer } from './margin-layer';
+import { lineTargets, narrowestBlocks } from './passage-targets';
+import { usePassageTargets } from './use-passage-targets';
+import {
+  clearPassageHighlights,
+  issuesOnLines,
+  locatePassages,
+  paintPassages,
+  passageSeverity,
+  blockWash,
+} from './passage-highlight';
 import { issueEdits } from './proposed-edit';
 import { TableRow } from './table-row';
 import React, { Ref, createContext, useContext, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
@@ -66,11 +76,22 @@ interface DocumentViewProps {
   margin?: { activeIssueId: string | null; readOnly: boolean; onSelect: (issue: Issue) => void };
 }
 
-/** Resting mark on flagged text, as in the mock: the mark is on the text, not behind it. */
-const FLAGGED_CLASSES = ['underline', 'decoration-dotted', 'underline-offset-4', 'decoration-muted-foreground/50'];
+/**
+ * Resting mark on a paragraph marked as a whole: the mark is on the text, not
+ * behind it, dotted in the severity colour a passage's underline would take.
+ */
+const FLAGGED_CLASSES = [
+  'underline',
+  'decoration-dotted',
+  'decoration-[1.5px]',
+  'underline-offset-4',
+  // Under the pointer, the same grey a hovered passage takes.
+  'data-[hovered]:bg-stone-500/[0.14]',
+  'dark:data-[hovered]:bg-stone-300/[0.14]',
+];
 
 const CLEARED_CLASSES = [
-  ...new Set(Object.values(SEVERITY).flatMap((style) => style.wash.split(' '))),
+  ...new Set(Object.values(SEVERITY).flatMap((style) => [...style.wash.split(' '), style.decoration])),
   ...FLAGGED_CLASSES,
   'cursor-pointer',
 ];
@@ -327,6 +348,26 @@ export function DocumentView({
 
   const lineIssues = useMemo(() => issues.filter(hasLineRange), [issues]);
   const styleOf = useSeverityStyle();
+  const groupBySeverity = useGroupBySeverity();
+  /**
+   * The issues the reader has open: the active one, or without an id every
+   * issue on the selected lines. Their passages carry the selection colour.
+   */
+  const openIssues = useMemo(() => {
+    if (activeIssueId) return lineIssues.filter((issue) => issue.id === activeIssueId);
+    if (!selectedLineRange) return [];
+    return issuesOnLines(lineIssues, selectedLineRange[0], selectedLineRange[1]);
+  }, [activeIssueId, lineIssues, selectedLineRange]);
+  // The issue a click toggles: the open one, or for a host without an issue
+  // queue the single issue on the selected lines.
+  const activeId = activeIssueId ?? (openIssues.length === 1 ? openIssues[0].id : null);
+  const { resolver, hoveredIssueId, handlers } = usePassageTargets(
+    containerRef,
+    markdown,
+    lineIssues,
+    activeId,
+    onIssueSelect,
+  );
   // The rest: findings about the document rather than a place in it, like a
   // missing Abbreviations section. Nothing anchors them, so the margin would
   // drop them entirely and the header would count issues that are not on screen.
@@ -353,26 +394,29 @@ export function DocumentView({
     if (!container) return;
 
     const blocks = container.querySelectorAll<HTMLElement>('[data-line-start][data-line-end]');
-    const cleanups: Array<() => void> = [];
+    // Issues marked on their exact words rather than on their lines.
+    const located = locatePassages(lineIssues, resolver.range);
+    const locatedIds = new Set(located.keys());
+    // Each whole-paragraph issue is marked on, and opened from, one block: the
+    // narrowest holding its first line, never the list or table around it.
+    const owners = narrowestBlocks(
+      Array.from(blocks, (block) => ({
+        block,
+        start: Number(block.getAttribute('data-line-start')),
+        end: Number(block.getAttribute('data-line-end')),
+      })),
+      lineIssues.filter((i) => !locatedIds.has(i.id)),
+    );
 
     blocks.forEach((block) => {
       const lineStart = Number(block.getAttribute('data-line-start'));
       const lineEnd = Number(block.getAttribute('data-line-end'));
       if (!Number.isFinite(lineStart) || !Number.isFinite(lineEnd)) return;
 
-      // Only the row's own block. A list and each of its items resolve to the
-      // same row, so letting nested blocks write here meant the last item
-      // decided: an issue on the first bullet was cleared by the four below it.
-      const rule = block.hasAttribute('data-block-owner')
-        ? block.closest('[data-block-row]')?.querySelector<HTMLElement>('[data-rule]')
-        : null;
-
       block.classList.remove(...CLEARED_CLASSES);
       block.removeAttribute('data-issue-id');
       block.removeAttribute('data-issue-selected');
-      if (rule) {
-        rule.className = 'w-[2px] shrink-0 rounded-full bg-transparent';
-      }
+      block.removeAttribute('data-line-targets');
 
       const issue = pickTopSeverityIssue(lineIssues, lineStart, lineEnd);
       if (!issue) return;
@@ -382,30 +426,32 @@ export function DocumentView({
       // spans into the selection lights up alongside the paragraph you picked.
       const isSelected = selectedLineRange !== null && rangesOverlap([lineStart, lineEnd], selectedLineRange);
 
-      block.classList.add('cursor-pointer', ...FLAGGED_CLASSES);
+      // The paragraph is a target only for the issues without a passage on the
+      // page, and only where their lines start; passages take their own clicks
+      // (see usePassageTargets). It is underlined exactly where it is a target,
+      // in the most severe target's colour: a mark that cannot be clicked would
+      // be a promise the paragraph does not keep, which is what the paragraphs
+      // after the first of a many-paragraph issue used to show.
+      const targets = lineTargets(lineIssues, locatedIds, lineStart, lineEnd, (i) => severityRank(i.severity)).filter(
+        (i) => owners.get(i.id) === block,
+      );
+      if (targets.length > 0) {
+        block.classList.add('cursor-pointer', ...FLAGGED_CLASSES, styleOf(targets[0].severity).decoration);
+        block.setAttribute('data-line-targets', targets.map((i) => i.id).join(' '));
+      }
       block.setAttribute('data-issue-id', issue.id);
       block.setAttribute('data-issue-selected', String(isSelected));
 
-      if (isSelected) {
-        block.classList.add(...styleOf(issue.severity).wash.split(' '));
+      const wash = blockWash(isSelected, openIssues, located, issue);
+      if (wash) {
+        block.classList.add(...styleOf(wash.severity).wash.split(' '));
       }
-
-      if (rule) {
-        rule.className = cn('w-[2px] shrink-0 rounded-full', styleOf(issue.severity).dot);
-      }
-
-      const handler = (event: Event) => {
-        event.stopPropagation();
-        onIssueSelect(isSelected ? null : issue);
-      };
-      block.addEventListener('click', handler);
-      cleanups.push(() => block.removeEventListener('click', handler));
     });
 
-    return () => {
-      for (const cleanup of cleanups) cleanup();
-    };
-  }, [markdown, lineIssues, selectedLineRange, onIssueSelect, styleOf]);
+    paintPassages(located, lineIssues, openIssues, (severity) => passageSeverity(severity, groupBySeverity));
+
+    return clearPassageHighlights;
+  }, [markdown, lineIssues, selectedLineRange, styleOf, openIssues, groupBySeverity, resolver]);
 
   /**
    * The edits belonging to the open issue. Without an id — a host that shows the
@@ -438,7 +484,7 @@ export function DocumentView({
       return;
     }
 
-    setEditHighlight(editRanges(container, selectedEdits));
+    setEditHighlight(quoteRanges(container, selectedEdits));
     return clearEditHighlight;
   }, [markdown, selectedEdits]);
 
@@ -447,8 +493,10 @@ export function DocumentView({
   return (
     <div
       ref={containerRef}
+      {...handlers}
       className={cn(
         'relative h-full overflow-x-hidden overflow-y-auto px-5 py-5 text-sm break-words',
+        hoveredIssueId && 'cursor-pointer',
         // MathML does not wrap, so give it its own scroll rather than letting it
         // run past the text column.
         '[&_math]:inline-block [&_math]:max-w-full [&_math]:overflow-x-auto [&_math]:align-middle',
@@ -463,6 +511,8 @@ export function DocumentView({
               issues={lineIssues}
               documentIssues={documentIssues}
               activeIssueId={marginState.activeIssueId}
+              hoveredIssueId={hoveredIssueId}
+              passageRange={resolver.range}
               readOnly={marginState.readOnly}
               onSelect={marginState.onSelect}
             />

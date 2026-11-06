@@ -15,6 +15,7 @@ from lib.models.agent import LangChainAgent
 from lib.skills import load_skill_prompt
 from lib.workflows.about_this_ger.state import AgentCheckResult
 from lib.workflows.context import ContextSchema
+from lib.workflows.simple_deep_agent.agent import main_document_text
 from lib.workflows.simple_deep_agent.agent_types import (
     DEEP_AGENT_RECURSION_LIMIT,
     markdown_result_from_run,
@@ -80,7 +81,9 @@ class AboutThisValidatorAgent(LangChainAgent):
         config: RunnableConfig | None = None,
     ) -> tuple[AgentCheckResult, list[BaseMessage]]:
         """Return the check result and the agent's full conversation, system prompt included."""
-        issue_reporter = IssueReporter()
+        files = await self.context.file_artifacts_service.get_deepagent_backend_files()
+        # The document is what the agent's passages are checked against.
+        issue_reporter = IssueReporter(document_text=main_document_text(files))
         deep_agent = build_deep_agent(
             model=self.llm,
             tools=issue_reporter.tools,
@@ -89,7 +92,7 @@ class AboutThisValidatorAgent(LangChainAgent):
 
         result = await deep_agent.ainvoke(
             agent_input(
-                files=await self.context.file_artifacts_service.get_deepagent_backend_files(),
+                files=files,
                 messages=[
                     SystemMessage(
                         content=load_skill_prompt(self.skill) + self.env_guidance

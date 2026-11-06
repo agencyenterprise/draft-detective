@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.7.0] - 2026-11-06
+
+### Added
+- Added highlightable issue passages that open issues from the referenced text and anchor Word export comments to the passage.
+- Added search to the assessment picker, including search-aware bulk selection actions and a pinned header.
+
+### Changed
+- Moved indirect summary sentence checks from Sentence Structure to Active Voice.
+- Improved project overview polling performance by reducing run-state and file data reads.
+- Improved chat performance by avoiding re-mounting unchanged skill files on later turns.
+
+### Fixed
+- Fixed Word tracked-change exports for proposed edits that quote footnote markers.
+- Fixed frontend image health checks and corrected Node version documentation.
+
+### Security
+- Restricted Teams bot requests to Bot Connector tokens issued for the activity’s service URL.
+- Restricted reference downloads to public internet addresses, including redirect destinations.
+
+### Removed
+- Removed non-issue feedback support and the `entity_path` feedback field.
+- Removed the legacy `chunk_indices` field from issues.
+
+
 ## [v2.6.0] - 2026-11-04
 
 ### Added

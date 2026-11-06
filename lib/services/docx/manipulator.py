@@ -10,12 +10,15 @@ from pathlib import Path
 from docx import Document
 from docx.document import Document as DocumentObject
 from docx.text.paragraph import Paragraph
+from docx.text.run import Run
 from pydantic import BaseModel
 
 from lib.config.env import config
 from lib.models.issue import Issue
+from lib.services.docx.comment_anchors import CommentAnchor
 from lib.services.docx.comment_layout import comment_text
 from lib.services.docx.comment_markup import literal, write_comment
+from lib.services.docx.comment_runs import anchored_runs
 from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.paragraph_line_mapper import find_paragraph_by_line_range
 from lib.services.projects.share_links import build_share_url
@@ -122,6 +125,8 @@ class DocxComment(BaseModel):
 
     paragraph_index: int
     comment_text: str
+    # The exact words to anchor on; None anchors the whole paragraph.
+    anchor: CommentAnchor | None = None
     severity: CommentSeverity | None = None
     author: str | None = None
     share_link: str | None = None
@@ -166,6 +171,7 @@ def issue_to_comment(
     share_token: str | None = None,
     edit_notes: Sequence[EditNote] = (),
     show_severity: bool = True,
+    comment_anchor: CommentAnchor | None = None,
 ) -> "DocxComment | None":
     """Convert an Issue to DocxComment with optional share link.
 
@@ -180,13 +186,21 @@ def issue_to_comment(
     comment is authored as plain "Draft Detective" instead of naming a priority.
     Passing checks keep their author either way: "passing" is not a priority, and
     the app keeps them apart from findings too.
+
+    ``comment_anchor``, from `lib.services.docx.comment_anchors`, puts the comment on
+    the issue's passage, in the passage's paragraph; without one it covers the
+    paragraph the line range resolves to.
     """
     line_range = _resolve_issue_line_range(issue)
     if line_range is None:
         return None
 
-    paragraph_index = find_paragraph_by_line_range(
-        paragraph_line_ranges, line_range[0], line_range[1]
+    paragraph_index = (
+        comment_anchor.paragraph_index
+        if comment_anchor is not None
+        else find_paragraph_by_line_range(
+            paragraph_line_ranges, line_range[0], line_range[1]
+        )
     )
     if paragraph_index is None:
         return None
@@ -212,6 +226,7 @@ def issue_to_comment(
     return DocxComment(
         paragraph_index=paragraph_index,
         comment_text=text,
+        anchor=comment_anchor,
         severity=(
             _map_severity_enum_to_comment_severity(issue.severity)
             if show_severity or issue.severity == SeverityEnum.NONE
@@ -280,6 +295,8 @@ class DocxManipulatorService:
 
         comments_added = 0
         comments_skipped = 0
+        # Passages the runs did not reproduce, anchored on the paragraph instead.
+        anchors_dropped = 0
 
         for comment in comments:
             para_idx = comment.paragraph_index
@@ -299,12 +316,25 @@ class DocxManipulatorService:
                         f"\n\n🔗 View in Draft Detective: {literal(comment.share_link)}"
                     )
 
+                runs = (
+                    anchored_runs(
+                        paragraph,
+                        comment.anchor.find,
+                        comment.anchor.occurrence,
+                        comment.anchor.paragraph_text,
+                    )
+                    if comment.anchor is not None
+                    else None
+                )
+                if comment.anchor is not None and runs is None:
+                    anchors_dropped += 1
                 self._add_comment_to_paragraph(
                     doc,
                     paragraph,
                     full_comment_text,
                     comment.get_author(),
                     comment.get_initials(),
+                    runs,
                 )
                 comments_added += 1
             except Exception as e:
@@ -315,7 +345,8 @@ class DocxManipulatorService:
 
         doc.save(str(output_path))
         logger.info(
-            f"Created reviewed docx: {comments_added} added, {comments_skipped} skipped"
+            f"Created reviewed docx: {comments_added} added, {comments_skipped} "
+            f"skipped, {anchors_dropped} passage anchors fell back to the paragraph"
         )
         return str(output_path)
 
@@ -326,11 +357,18 @@ class DocxManipulatorService:
         comment_text: str,
         author: str,
         initials: str,
+        runs: list[Run] | None = None,
     ):
-        """Add a comment to a paragraph, one comment paragraph per line of text."""
+        """Add a comment to a paragraph, one comment paragraph per line of text.
+
+        `runs` narrows it to the first and last run of a passage; without them
+        the comment covers the whole paragraph.
+        """
+        if not runs:
+            runs = paragraph.runs if paragraph.runs else [paragraph.add_run("")]
         try:
             comment = doc.add_comment(
-                runs=paragraph.runs if paragraph.runs else [paragraph.add_run("")],
+                runs=runs,
                 text="",
                 author=_sanitize_for_xml(author),
                 initials=_sanitize_for_xml(initials),
