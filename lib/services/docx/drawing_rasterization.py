@@ -24,22 +24,26 @@ paragraph — the shape Word produces for figures — so each PDF page contains
 exactly one drawing and page order equals drawing order. Anything else is
 left untouched.
 
-Used by both the main-document conversion and the DOCX-export line mapper:
-the two must see the same document, or the markdown line numbers they derive
-would disagree.
+The DOCX-export line mapper must see the same document structure as the
+main-document conversion, or the markdown line numbers they derive would
+disagree. It needs only the structure, not the pixels, so it uses
+`stub_docx_drawings`: the same drawings swapped for a placeholder image, with
+no LibreOffice render.
 """
 
 import asyncio
+import io
 import logging
 import os
 import shutil
 import tempfile
-from typing import Any
+from typing import IO, Any
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 from docx import Document
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
+from PIL import Image
 
 # PDFium is not thread-safe; every pypdfium2 use in the codebase serializes on
 # this lock (see lib/services/converters/pypdfium.py).
@@ -121,6 +125,32 @@ async def _rasterize_docx_drawings(docx_path: str) -> str | None:
         return out.name
     finally:
         shutil.rmtree(tmp_render_dir, ignore_errors=True)
+
+
+def stub_docx_drawings(docx_path: str) -> str | None:
+    """Return a temp copy of ``docx_path`` with every drawing
+    `rasterize_docx_drawings` would render replaced by a 1×1 placeholder.
+
+    The markdown converts to the same lines as the rasterized copy's (each
+    picture is one image line, whatever its pixels), without the LibreOffice
+    render, for callers that only need line numbers. Returns None when there
+    is nothing to replace or a replacement fails, as `rasterize_docx_drawings`
+    does. Synchronous; the caller owns deleting the returned file.
+    """
+    document = Document(docx_path)
+    renderable = [drawing for _, drawing in _renderable_paragraphs(document)]
+    if not renderable:
+        return None
+    placeholder = io.BytesIO()
+    Image.new("RGB", (1, 1), "white").save(placeholder, format="PNG")
+    for drawing in renderable:
+        image = io.BytesIO(placeholder.getvalue())
+        if not _replace_drawing_with_image(document, drawing, image):
+            return None
+    out = tempfile.NamedTemporaryFile(suffix=".docx", delete=False)
+    out.close()
+    document.save(out.name)
+    return out.name
 
 
 def _is_render_target(document, drawing) -> bool:
@@ -379,8 +409,8 @@ async def _render_drawings_to_images(
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
-    """Swap a drawing's graphic for a picture pointing at ``image_path``."""
+def _replace_drawing_with_image(document, drawing, image: str | IO[bytes]) -> bool:
+    """Swap a drawing's graphic for a picture of ``image`` (a path or stream)."""
     graphic_data = drawing.find(f".//{qn('a:graphicData')}")
     extent = drawing.find(f".//{qn('wp:extent')}")
     if graphic_data is None or extent is None:
@@ -388,7 +418,7 @@ def _replace_drawing_with_image(document, drawing, image_path: str) -> bool:
     cx, cy = extent.get("cx", "0"), extent.get("cy", "0")
 
     try:
-        rId, _ = document.part.get_or_add_image(image_path)
+        rId, _ = document.part.get_or_add_image(image)
     except Exception:
         logger.warning("Could not add rendered drawing image", exc_info=True)
         return False

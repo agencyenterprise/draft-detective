@@ -7,11 +7,14 @@ survive the docx → HTML → markdown pipeline as inline text and do not change
 line count, the resulting line numbers are identical to those of the original
 markdown that issues were indexed against.
 
-Drawings are rasterized first, exactly like the main conversion: rendered
-charts occupy markdown lines, so skipping that step here would shift every
-line number after the first chart.
+The main conversion rasterizes charts and metafile pictures first, and each
+rendered drawing occupies a markdown line, so skipping that here would shift
+every line number after the first chart. Only the line matters, not the
+pixels, so the same drawings are swapped for a placeholder image instead of
+being rendered again with LibreOffice.
 """
 
+import asyncio
 import logging
 import os
 import re
@@ -23,7 +26,7 @@ from docx.oxml.ns import qn
 from lxml import etree  # type: ignore[import-untyped]
 
 from lib.services.converters.markitdown import markitdown_converter
-from lib.services.docx.drawing_rasterization import rasterize_docx_drawings
+from lib.services.docx.drawing_rasterization import stub_docx_drawings
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +107,31 @@ async def _convert_like_persisted(
     return markdown
 
 
+def _remove(path: str) -> None:
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
+async def _marked_markdown(
+    docx_path: str, expected_line_count: int | None
+) -> tuple[str, int]:
+    """The document's markdown with a marker on every non-empty paragraph, and
+    how many markers were injected (no conversion when there are none)."""
+    doc = Document(docx_path)
+    injected = _inject_markers(doc)
+    if injected == 0:
+        return "", 0
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        doc.save(tmp_path)
+        return await _convert_like_persisted(tmp_path, expected_line_count), injected
+    finally:
+        _remove(tmp_path)
+
+
 async def build_paragraph_line_ranges(
     docx_path: str, expected_line_count: int | None = None
 ) -> dict[int, tuple[int, int]]:
@@ -115,46 +143,39 @@ async def build_paragraph_line_ranges(
 
     ``expected_line_count`` is the persisted markdown's line count. The map is
     only valid when this conversion is line-for-line the one the issues were
-    indexed against; drawing rasterization succeeding on one side but not the
-    other (LibreOffice missing, timeout) would shift every line after the
-    first drawing. On mismatch the map is empty — unanchorable issues are
-    skipped and logged, which beats anchoring them to the wrong paragraphs.
+    indexed against. The drawings the main conversion rasterizes are stubbed
+    here, which matches it whenever rasterization succeeded at ingestion; when
+    it did not (LibreOffice missing, timeout), the persisted markdown has no
+    lines for them, so the untouched document is converted instead. On a
+    mismatch either way the map is empty — unanchorable issues are skipped and
+    logged, which beats anchoring them to the wrong paragraphs.
     """
-    rasterized_path = await rasterize_docx_drawings(docx_path)
+    stubbed_path = await asyncio.to_thread(stub_docx_drawings, docx_path)
     try:
-        doc = Document(rasterized_path or docx_path)
-        injected = _inject_markers(doc)
-        if injected == 0:
-            return {}
-
-        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
-            tmp_path = tmp.name
-        try:
-            doc.save(tmp_path)
-            markdown_with_markers = await _convert_like_persisted(
-                tmp_path, expected_line_count
-            )
-        finally:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        markdown_with_markers, injected = await _marked_markdown(
+            stubbed_path or docx_path, expected_line_count
+        )
     finally:
-        if rasterized_path:
-            try:
-                os.unlink(rasterized_path)
-            except OSError:
-                pass
+        if stubbed_path:
+            _remove(stubbed_path)
+    if injected == 0:
+        return {}
+    stubbed_lines = _line_count(markdown_with_markers) if stubbed_path else None
+    if stubbed_lines is not None and expected_line_count not in (None, stubbed_lines):
+        markdown_with_markers, injected = await _marked_markdown(
+            docx_path, expected_line_count
+        )
 
     total_lines = _line_count(markdown_with_markers)
     if expected_line_count is not None and total_lines != expected_line_count:
         logger.warning(
-            "Paragraph line-range mapper: conversion produced %d lines but the "
-            "persisted markdown has %d — the conversions are structurally "
-            "different (drawing rasterization succeeded on one side only?); "
-            "refusing to anchor",
-            total_lines,
+            "Paragraph line-range mapper: the persisted markdown has %d lines, but "
+            "the conversion with drawings stubbed produced %s and the one without "
+            "them %d — the conversions are structurally different; refusing to "
+            "anchor",
             expected_line_count,
+            stubbed_lines if stubbed_lines is not None else "n/a (no drawings)",
+            total_lines,
         )
         return {}
 

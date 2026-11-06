@@ -12,7 +12,7 @@ import os
 import re
 import shutil
 import struct
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from docx import Document
@@ -186,16 +186,16 @@ async def test_metafile_picture_is_rendered_to_png(tmp_path):
 @pytest.mark.asyncio
 async def test_mapper_refuses_to_anchor_when_rasterization_diverges(tmp_path):
     """Ingestion rendered the chart (stored markdown has its lines) but the
-    export-time rasterization fails: anchoring against a structurally
-    different conversion would misplace every later comment, so the mapper
-    must return nothing instead."""
+    export cannot stand a placeholder in for it: anchoring against a
+    structurally different conversion would misplace every later comment, so
+    the mapper must return nothing instead."""
     docx_path, _ = _build_document_with_chart(tmp_path)
     markdown = await _stored_markdown(docx_path)
     assert "data:image" in markdown
 
     with patch(
-        "lib.services.docx.paragraph_line_mapper.rasterize_docx_drawings",
-        new=AsyncMock(return_value=None),
+        "lib.services.docx.paragraph_line_mapper.stub_docx_drawings",
+        return_value=None,
     ):
         ranges = await build_paragraph_line_ranges(
             docx_path, expected_line_count=markdown.count("\n") + 1

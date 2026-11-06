@@ -21,6 +21,7 @@ from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls, qn
 from PIL import Image
 
+from lib.services.converters.markitdown import markitdown_converter
 from lib.services.docx.drawing_rasterization import (
     CHART_GRAPHIC_URI,
     PICTURE_GRAPHIC_URI,
@@ -29,6 +30,7 @@ from lib.services.docx.drawing_rasterization import (
     _replace_drawing_with_image,
     _write_render_source_docx,
     rasterize_docx_drawings,
+    stub_docx_drawings,
 )
 
 MODULE = "lib.services.docx.drawing_rasterization"
@@ -618,3 +620,74 @@ async def test_render_cleans_tmp_dir_on_unexpected_failure(tmp_path):
         assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
 
     assert not os.path.exists(render_dir)
+
+
+# --- stubbing (the export line mapper's stand-in for rendering) ---------------
+
+
+def _two_chart_docx(tmp_path) -> str:
+    document = Document()
+    document.add_paragraph("PARA-0")
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    document.add_paragraph("PARA-1")
+    _append_paragraph(document, _drawing_xml(_chart_graphic_data()))
+    document.add_paragraph("PARA-2")
+    path = str(tmp_path / "charts.docx")
+    document.save(path)
+    return path
+
+
+def test_stub_returns_none_without_render_targets(tmp_path):
+    src = str(tmp_path / "plain.docx")
+    document = Document()
+    document.add_paragraph("No drawings here.")
+    document.save(src)
+
+    assert stub_docx_drawings(src) is None
+
+
+def test_stub_replaces_drawings_without_rendering(tmp_path):
+    with patch(f"{MODULE}._render_drawings_to_images") as render_mock:
+        out = stub_docx_drawings(_two_chart_docx(tmp_path))
+
+    assert out is not None
+    try:
+        render_mock.assert_not_called()
+        stubbed = Document(out)
+        uris = [gd.get("uri") for gd in stubbed.element.body.iter(qn("a:graphicData"))]
+        assert uris == [PICTURE_GRAPHIC_URI, PICTURE_GRAPHIC_URI]
+    finally:
+        os.remove(out)
+
+
+@pytest.mark.asyncio
+async def test_stub_converts_to_the_same_lines_as_rasterizing(tmp_path):
+    """The export's line mapper relies on this: a stubbed copy's markdown has
+    the rasterized copy's line count and puts each paragraph on the same line."""
+    src = _two_chart_docx(tmp_path)
+    renders = [
+        _png_file(tmp_path, "r0.png", "magenta"),
+        _png_file(tmp_path, "r1.png", "navy"),
+    ]
+    with patch(
+        f"{MODULE}._render_drawings_to_images",
+        new=AsyncMock(return_value=(tempfile.mkdtemp(), renders)),
+    ):
+        rasterized = await rasterize_docx_drawings(src)
+    stubbed = stub_docx_drawings(src)
+    assert rasterized is not None and stubbed is not None
+    try:
+        rasterized_md = await markitdown_converter.convert_to_markdown(rasterized)
+        stubbed_md = await markitdown_converter.convert_to_markdown(stubbed)
+        original_md = await markitdown_converter.convert_to_markdown(src)
+    finally:
+        os.remove(rasterized)
+        os.remove(stubbed)
+
+    def para_lines(markdown: str) -> list[int]:
+        return [i for i, line in enumerate(markdown.splitlines()) if "PARA-" in line]
+
+    assert stubbed_md.count("\n") == rasterized_md.count("\n")
+    assert para_lines(stubbed_md) == para_lines(rasterized_md)
+    # Guards the test itself: the charts must occupy lines, or parity is trivial.
+    assert para_lines(original_md) != para_lines(rasterized_md)
