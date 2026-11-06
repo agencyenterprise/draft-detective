@@ -21,6 +21,7 @@ It leaves these alone:
 - Descriptions or quotations of existing rules (*under the statute, agencies must report within 24 hours*).
 - Claims that are hedged or backed by the evidence given.
 - Anything in the authors, references, bibliography, appendix or acknowledgments sections.
+- Cover pages and the publisher's standard notices (release notices, disclaimers, copyright and trademark lines).
 """,
     questions=[should_flag_question()],
     decoy_reasons={
@@ -33,6 +34,7 @@ It leaves these alone:
         "supported_recommendation": "the recommendation is backed by evidence the document gives",
         "factual_policy_mention": "it factually describes what a policy says",
         "skipped_section": "it sits in a section the check skips",
+        "cover_boilerplate": "it is cover-page or publisher boilerplate text",
         "descriptive_usage": "the word describes something rather than pushing a position",
     },
 )
