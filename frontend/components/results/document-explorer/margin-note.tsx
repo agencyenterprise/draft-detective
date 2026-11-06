@@ -9,6 +9,8 @@ import { IssueBody, IssueMeta, IssuePreview } from './issue-note';
 interface MarginNoteProps {
   issue: Issue;
   active: boolean;
+  /** Whether the pointer is on this issue's passage in the document. */
+  hovered?: boolean;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
   /**
@@ -29,7 +31,7 @@ interface MarginNoteProps {
  * it. Growing the row instead pushes the notes below it down and leaves the
  * anchored paragraph where it is, since the text cell sits at the row's top.
  */
-export function MarginNote({ issue, active, readOnly, onSelect, anchored = true }: MarginNoteProps) {
+export function MarginNote({ issue, active, hovered = false, readOnly, onSelect, anchored = true }: MarginNoteProps) {
   const resolved = isIssueResolved(issue);
   const style = useSeverityStyle()(issue.severity);
 
@@ -66,6 +68,7 @@ export function MarginNote({ issue, active, readOnly, onSelect, anchored = true 
         aria-expanded={false}
         className={cn(
           'hover:bg-accent/60 w-full cursor-pointer rounded-md px-2 py-1.5 text-left transition-colors',
+          hovered && 'bg-accent/60',
           resolved && 'opacity-60',
         )}
       >

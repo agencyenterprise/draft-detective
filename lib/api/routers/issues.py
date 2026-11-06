@@ -12,6 +12,7 @@ from pydantic import BaseModel, field_validator
 from lib.api.auth import get_current_user
 from lib.models.issue import Issue, IssueStatus
 from lib.models.issue_edit import IssueEditRead
+from lib.models.issue_passage import IssuePassageRead
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.services.issue_persistence import (
@@ -53,6 +54,7 @@ class IssueResponse(BaseModel):
     start_line: int | None
     end_line: int | None
     edits: list[IssueEditRead]
+    passage: IssuePassageRead | None
     status: IssueStatus
     resolved_by: UUID | None
     resolved_at: str | None

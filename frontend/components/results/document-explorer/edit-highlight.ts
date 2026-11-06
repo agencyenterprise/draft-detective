@@ -1,4 +1,4 @@
-import type { ProposedEdit } from './proposed-edit';
+import type { LocatedQuote } from './proposed-edit';
 
 /** The registry key the document's edit wash is filed under. */
 export const EDIT_HIGHLIGHT_NAME = 'proposed-edit';
@@ -168,39 +168,38 @@ export function blocksForLineRange(container: Element, start: number, end: numbe
 }
 
 /**
- * A Range for each edit whose quote could be found, in the blocks its lines
- * cover. An edit sits on one source line, so the narrowest block carrying the
- * quote is the right one.
+ * A Range over a located quote -- an edit's or an issue's passage -- in the
+ * blocks its lines cover, or null when none carries it. A quote sits on one
+ * source line, so the narrowest block carrying it is the right one.
  *
- * Which occurrence to mark comes off the edit itself: `display_occurrence`
- * counted the repeats on the edit's own source line when the issue was
+ * Which occurrence to mark comes off the quote itself: `display_occurrence`
+ * counted the repeats on the quote's own source line when the issue was
  * reported, so it only applies to a block that is exactly that line. A block
  * covering several source lines -- a paragraph written across two lines, a
  * list -- is a different haystack, and the count would not be its own; there
  * the quote is marked only when the block carries it once, and left unmarked
  * rather than marked in the wrong place.
  *
- * The DOCX export settles a repeat in such a paragraph the same way, and says
- * so in the issue's comment: see `_resolve_span` in
- * `lib/services/docx/tracked_changes/placement.py`. Keeping the two on one
+ * The DOCX export settles a repeat in such a paragraph the same way, for a
+ * redline and for a comment's anchor: see `resolve_quote_span` in
+ * `lib/services/docx/tracked_changes/quote_span.py`. Keeping the two on one
  * rule is the point -- an author who sees a span highlighted here should get
- * that span redlined, and no span marked where none is redlined.
+ * that span redlined or commented, and no span marked where none is.
  */
-export function editRanges(container: Element, edits: ProposedEdit[]): Range[] {
-  const ranges: Range[] = [];
-  for (const edit of edits) {
-    for (const block of blocksForLineRange(container, edit.start_line, edit.end_line)) {
-      const blockStart = Number(block.getAttribute('data-line-start'));
-      const blockEnd = Number(block.getAttribute('data-line-end'));
-      const isOwnLine = blockStart === edit.start_line && blockEnd === edit.start_line;
-      const range = rangeInElement(block, edit.display_text, isOwnLine ? edit.display_occurrence : undefined);
-      if (range) {
-        ranges.push(range);
-        break;
-      }
-    }
+export function quoteRange(container: Element, quote: LocatedQuote): Range | null {
+  for (const block of blocksForLineRange(container, quote.start_line, quote.end_line)) {
+    const blockStart = Number(block.getAttribute('data-line-start'));
+    const blockEnd = Number(block.getAttribute('data-line-end'));
+    const isOwnLine = blockStart === quote.start_line && blockEnd === quote.start_line;
+    const range = rangeInElement(block, quote.display_text, isOwnLine ? quote.display_occurrence : undefined);
+    if (range) return range;
   }
-  return ranges;
+  return null;
+}
+
+/** A Range for each quote that could be found, in order; the rest are skipped. */
+export function quoteRanges(container: Element, quotes: LocatedQuote[]): Range[] {
+  return quotes.map((quote) => quoteRange(container, quote)).filter((range): range is Range => range !== null);
 }
 
 /**
@@ -217,24 +216,43 @@ export function supportsHighlightApi(): boolean {
   );
 }
 
-/** Adds the highlight's style rule to the page once, when it is first needed. */
-export function ensureEditHighlightStyle(doc: Document = document): void {
-  if (doc.getElementById(EDIT_HIGHLIGHT_STYLE_ID)) return;
+/** Adds a highlight's style rule to the page once, when it is first needed. */
+export function ensureStyle(id: string, css: string, doc: Document = document): void {
+  if (doc.getElementById(id)) return;
   const style = doc.createElement('style');
-  style.id = EDIT_HIGHLIGHT_STYLE_ID;
-  style.textContent = EDIT_HIGHLIGHT_CSS;
+  style.id = id;
+  style.textContent = css;
   doc.head.appendChild(style);
 }
 
-/** Paints `ranges` as the edit highlight, replacing whatever was there. */
-export function setEditHighlight(ranges: Range[]): void {
+/** Adds the edit highlight's style rule to the page once, when it is first needed. */
+export function ensureEditHighlightStyle(doc: Document = document): void {
+  ensureStyle(EDIT_HIGHLIGHT_STYLE_ID, EDIT_HIGHLIGHT_CSS, doc);
+}
+
+/**
+ * Paints `ranges` under `name`, replacing whatever was there; no ranges takes it
+ * off. Where highlights overlap the higher `priority` is painted on top.
+ */
+export function setHighlight(name: string, ranges: Range[], priority: number): void {
   if (!supportsHighlightApi()) return;
   if (ranges.length === 0) {
-    CSS.highlights.delete(EDIT_HIGHLIGHT_NAME);
+    CSS.highlights.delete(name);
     return;
   }
-  ensureEditHighlightStyle();
-  CSS.highlights.set(EDIT_HIGHLIGHT_NAME, new Highlight(...ranges));
+  const highlight = new Highlight(...ranges);
+  highlight.priority = priority;
+  CSS.highlights.set(name, highlight);
+}
+
+/**
+ * Paints `ranges` as the edit highlight, replacing whatever was there. Above
+ * any passage mark: on words an edit changes, "this changes" is the news.
+ */
+export function setEditHighlight(ranges: Range[]): void {
+  if (!supportsHighlightApi()) return;
+  if (ranges.length > 0) ensureEditHighlightStyle();
+  setHighlight(EDIT_HIGHLIGHT_NAME, ranges, 3);
 }
 
 /** Takes the edit highlight off the document. */

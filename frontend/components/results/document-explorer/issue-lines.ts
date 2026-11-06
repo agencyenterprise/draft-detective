@@ -12,6 +12,16 @@ export function issueLineRange(issue: Issue): [number, number] | null {
   return [start, end];
 }
 
+/**
+ * Where to bring an issue into view: its passage's line when it has one, since
+ * that is where its highlight and margin note sit, else its whole range. The
+ * range stays what the issue selects; only the scroll target moves.
+ */
+export function issueScrollRange(issue: Issue): [number, number] | null {
+  const line = issue.passage?.start_line;
+  return typeof line === 'number' ? [line, line] : issueLineRange(issue);
+}
+
 /** The line an issue starts on, even when its end line is missing. */
 export function issueStartLine(issue: Issue): number | null {
   const { start_line: start } = issue;

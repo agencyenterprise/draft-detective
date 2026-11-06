@@ -11,11 +11,24 @@ import tempfile
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
 TRACKED_CHANGE_AUTHOR = "Draft Detective"
+
+
+class LocatedQuoteLike(Protocol):
+    """A quote located on one markdown line: an edit's, or an issue's passage.
+
+    The fields the export reads to find the quote in a Word paragraph, as both
+    `IssueEdit` and `IssuePassageRead` carry them.
+    """
+
+    original_text: str
+    display_text: str
+    display_occurrence: int
+    start_line: int
 
 
 EditOutcomeStatus = Literal[

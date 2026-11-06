@@ -5,7 +5,7 @@ import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { DocumentIssues } from './document-issues';
 import { issueStartLine } from './issue-lines';
 import { MarginNote } from './margin-note';
-import { Slot, stackNotes } from './margin-stack';
+import { Slot, stackNotes, visualOrder } from './margin-stack';
 
 interface MarginLayerProps {
   /** Issues anchored to a line, in the order they appear in the document. */
@@ -13,6 +13,13 @@ interface MarginLayerProps {
   /** Issues about the document rather than a place in it. */
   documentIssues: Issue[];
   activeIssueId: string | null;
+  /** The issue whose passage is under the pointer, whose note answers it. */
+  hoveredIssueId?: string | null;
+  /**
+   * Where an issue's passage sits in the page, or null. A note with one sits
+   * level with its words instead of its paragraph's top.
+   */
+  passageRange?: (issue: Issue) => Range | null;
   readOnly: boolean;
   onSelect: (issue: Issue) => void;
 }
@@ -40,7 +47,15 @@ interface Entry {
  * height, and a paragraph's height depends on wrapping, images and maths that
  * only the browser knows.
  */
-export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, onSelect }: MarginLayerProps) {
+export function MarginLayer({
+  issues,
+  documentIssues,
+  activeIssueId,
+  hoveredIssueId = null,
+  passageRange,
+  readOnly,
+  onSelect,
+}: MarginLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const noteRefs = useRef(new Map<string, HTMLElement>());
   const [tops, setTops] = useState<Record<string, number>>({});
@@ -92,6 +107,11 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       const height = noteRefs.current.get(entry.id)?.offsetHeight ?? 0;
       if (entry.line === null) return { wanted: null, height };
 
+      // Level with its words when it has a passage on the page.
+      const passage = entry.issue && passageRange?.(entry.issue);
+      const words = passage?.getClientRects()[0];
+      if (words) return { wanted: words.top - bodyTop, height };
+
       // Where it would like to be: level with the top of its paragraph.
       while (owner < owners.length && owners[owner].end < entry.line) owner += 1;
       const anchor = owners[owner];
@@ -101,15 +121,21 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       return { wanted: owned ? anchor.element.getBoundingClientRect().top - bodyTop : null, height };
     });
 
-    const pivot = entries.findIndex((entry) => entry.id === activeRef.current);
-    const tops = stackNotes(slots, pivot);
+    // Stacked in the order the notes appear down the page, which a passage
+    // below its issue's first line can change; see visualOrder.
+    const order = visualOrder(slots);
+    const pivot = order.findIndex((index) => entries[index].id === activeRef.current);
+    const tops = stackNotes(
+      order.map((index) => slots[index]),
+      pivot,
+    );
     const next: Record<string, number> = {};
-    entries.forEach((entry, index) => {
-      next[entry.id] = tops[index];
+    order.forEach((index, position) => {
+      next[entries[index].id] = tops[position];
     });
 
     setTops((previous) => (sameTops(previous, next) ? previous : next));
-  }, [entries]);
+  }, [entries, passageRange]);
 
   // Watching is separate from laying out, so that choosing a note re-runs the
   // one and leaves the other alone: rebuilding an observation over every note
@@ -139,6 +165,7 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
       // Only the notes take clicks; the column itself must not cover the
       // document's own right edge.
       className="pointer-events-none absolute inset-y-0 right-0 hidden w-[calc(26rem_+_1px)] pl-4 xl:block"
+      data-margin-layer
     >
       {entries.map((entry) => (
         <div
@@ -161,6 +188,7 @@ export function MarginLayer({ issues, documentIssues, activeIssueId, readOnly, o
             <MarginNote
               issue={entry.issue!}
               active={activeIssueId === entry.issue!.id}
+              hovered={hoveredIssueId === entry.issue!.id && activeIssueId !== entry.issue!.id}
               readOnly={readOnly}
               onSelect={onSelect}
             />

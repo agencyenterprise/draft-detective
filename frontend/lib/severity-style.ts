@@ -3,6 +3,8 @@ import { SeverityEnum } from './generated-api';
 export interface SeverityStyle {
   /** Severity marker: the dot beside a note and the rule in the document gutter. */
   dot: string;
+  /** Underline colour for a paragraph marked as a whole, in the dot's colour. */
+  decoration: string;
   /** Border of an open note. */
   edge: string;
   /** Fill for the selected block and the open note. */
@@ -19,6 +21,7 @@ export interface SeverityStyle {
 export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
   [SeverityEnum.High]: {
     dot: 'bg-red-500',
+    decoration: 'decoration-red-500',
     edge: 'border-red-400 dark:border-red-700',
     wash: 'bg-red-50 dark:bg-red-950/30',
     label: 'High',
@@ -26,6 +29,7 @@ export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
   },
   [SeverityEnum.Medium]: {
     dot: 'bg-amber-500',
+    decoration: 'decoration-amber-500',
     edge: 'border-amber-400 dark:border-amber-700',
     wash: 'bg-amber-50 dark:bg-amber-950/30',
     label: 'Medium',
@@ -33,6 +37,7 @@ export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
   },
   [SeverityEnum.Low]: {
     dot: 'bg-blue-500',
+    decoration: 'decoration-blue-500',
     edge: 'border-blue-400 dark:border-blue-700',
     wash: 'bg-blue-50 dark:bg-blue-950/30',
     label: 'Low',
@@ -40,6 +45,7 @@ export const SEVERITY: Record<SeverityEnum, SeverityStyle> = {
   },
   [SeverityEnum.None]: {
     dot: 'bg-green-500',
+    decoration: 'decoration-green-500',
     edge: 'border-green-400 dark:border-green-700',
     wash: 'bg-green-50 dark:bg-green-950/30',
     label: 'Passing',

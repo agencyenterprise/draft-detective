@@ -229,26 +229,18 @@ class SeverityEnum(StrEnum):
         }[self]
 
 
-class ProposedEdit(BaseModel):
-    """A concrete, mechanical text replacement an author could apply.
+class LocatedQuote(BaseModel):
+    """Words quoted verbatim from one line of the main document, already located.
 
-    Optional detail on an issue: a fix that is fully determined by the document
-    text plus the finding, expressed as one replacement of a quoted span. An
-    insertion is expressed as replacing a span with that span plus the new text,
-    and a deletion as replacing it with the empty string. A span sits on one
-    line of the markdown (one Word paragraph), so start_line equals end_line.
+    The shared half of a passage and a proposed edit: both quote the document,
+    and both are found, highlighted in the app and anchored in the Word export
+    by the same fields. A quote sits on one line of the markdown (one Word
+    paragraph), so start_line equals end_line.
     """
 
     original_text: str = Field(
         description=(
-            "The exact text quoted from the main document markdown that this edit "
-            "replaces. Never empty."
-        )
-    )
-    replacement_text: str = Field(
-        description=(
-            "The text that takes the place of original_text. An empty string "
-            "deletes the quoted span."
+            "The exact text quoted from the main document markdown. Never empty."
         )
     )
     start_line: int = Field(
@@ -256,9 +248,6 @@ class ProposedEdit(BaseModel):
     )
     end_line: int = Field(
         description="1-indexed last line of the main document markdown containing original_text",
-    )
-    rationale: str = Field(
-        description="One short sentence explaining why this replacement resolves the issue."
     )
     display_text: str = Field(
         description=(
@@ -271,6 +260,27 @@ class ProposedEdit(BaseModel):
             "0-based index of display_text among its occurrences in the "
             "rendered line, since rendering can turn a unique quote into a repeat."
         )
+    )
+
+
+class ProposedEdit(LocatedQuote):
+    """A concrete, mechanical text replacement an author could apply.
+
+    Optional detail on an issue: a fix that is fully determined by the document
+    text plus the finding, expressed as one replacement of a quoted span. An
+    insertion is expressed as replacing a span with that span plus the new text,
+    and a deletion as replacing it with the empty string. An edit is a located
+    quote with a replacement: `original_text` is the span it replaces.
+    """
+
+    replacement_text: str = Field(
+        description=(
+            "The text that takes the place of original_text. An empty string "
+            "deletes the quoted span."
+        )
+    )
+    rationale: str = Field(
+        description="One short sentence explaining why this replacement resolves the issue."
     )
     display_replacement: str = Field(
         description=(
@@ -319,6 +329,13 @@ class DocumentIssue(BaseModel):
             "issue. Empty when no fix is fully determined by the document text."
         ),
     )
+    passage: LocatedQuote | None = Field(
+        default=None,
+        description=(
+            "Optional exact words of the document this issue is about, on one "
+            "line. None when the issue concerns its whole line range."
+        ),
+    )
 
     @model_validator(mode="after")
     def generate_id(self) -> Self:
@@ -327,8 +344,9 @@ class DocumentIssue(BaseModel):
         if self.id:
             return self
 
-        # Edits are deliberately excluded: the hash identifies the issue, not
-        # its fix, so attaching or revising an edit must not mint a new issue.
+        # Edits and the passage are deliberately excluded: the hash identifies
+        # the issue, not its fix or its highlight, so attaching or revising
+        # either must not mint a new issue.
         hash_input = (
             f"{self.type.value}|{self.title}|{self.description}|"
             f"{self.severity.value}|{self.start_line}|{self.end_line}"

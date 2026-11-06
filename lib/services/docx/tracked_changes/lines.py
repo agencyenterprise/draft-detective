@@ -12,7 +12,7 @@ from difflib import SequenceMatcher
 
 from lib.models.issue_edit import IssueEdit
 from lib.services.docx.edit_text import is_table_row
-from lib.services.docx.tracked_changes.models import EditOutcome
+from lib.services.docx.tracked_changes.models import EditOutcome, LocatedQuoteLike
 from lib.services.text.location import normalize_whitespace
 from lib.services.text.markdown_rendering import render_line_text
 
@@ -40,11 +40,11 @@ _MIN_SIMILARITY = 0.9
 _MIN_COMPARABLE_LENGTH = 20
 
 
-def source_line(edit: IssueEdit, document_lines: Sequence[str]) -> str | None:
-    """The markdown line the edit was anchored to, if the document still has it."""
-    if edit.start_line < 1 or edit.start_line > len(document_lines):
+def source_line(quote: LocatedQuoteLike, document_lines: Sequence[str]) -> str | None:
+    """The markdown line the quote was anchored to, if the document still has it."""
+    if quote.start_line < 1 or quote.start_line > len(document_lines):
         return None
-    return document_lines[edit.start_line - 1]
+    return document_lines[quote.start_line - 1]
 
 
 def footnote_references(text: str) -> list[str]:
@@ -134,27 +134,32 @@ def _rendered_line(line: str) -> str:
     return normalize_whitespace(render_line_text(_without_footnote_references(line)))
 
 
-def membership_outcome(
-    edit: IssueEdit, paragraph_text: str, document_lines: Sequence[str]
-) -> EditOutcome | None:
-    """Why the edit's line is not the mapped paragraph's, or None when it is."""
-    line = source_line(edit, document_lines)
+TABLE_ROW = "the edit sits in a table, which the export cannot redline"
+NOT_THE_PARAGRAPH = (
+    "the edit's line is not part of the mapped paragraph (a table or nested block)"
+)
+
+
+def membership_refusal(
+    quote: LocatedQuoteLike, paragraph_text: str, document_lines: Sequence[str]
+) -> str | None:
+    """Why the quote's line is not the mapped paragraph's, or None when it is."""
+    line = source_line(quote, document_lines)
     # Before any comparison with the paragraph: a row repeating the prose above
     # it word for word would pass the containment test below, and its redline
     # would land on the paragraph instead of the cell.
     if line is not None and is_table_row(line):
-        return EditOutcome(
-            edit_id=edit.id,
-            status="unlocatable",
-            detail="the edit sits in a table, which the export cannot redline",
-        )
+        return TABLE_ROW
     if not line_belongs_to_paragraph(line, paragraph_text):
-        return EditOutcome(
-            edit_id=edit.id,
-            status="unlocatable",
-            detail=(
-                "the edit's line is not part of the mapped paragraph "
-                "(a table or nested block)"
-            ),
-        )
+        return NOT_THE_PARAGRAPH
     return None
+
+
+def membership_outcome(
+    edit: IssueEdit, paragraph_text: str, document_lines: Sequence[str]
+) -> EditOutcome | None:
+    """Why the edit's line is not the mapped paragraph's, or None when it is."""
+    detail = membership_refusal(edit, paragraph_text, document_lines)
+    if detail is None:
+        return None
+    return EditOutcome(edit_id=edit.id, status="unlocatable", detail=detail)

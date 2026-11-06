@@ -3,8 +3,8 @@
 Declared by ``skills/writing-consistency/SKILL.md``; runs through the API like
 every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form: the
 inconsistent terms, spellings, tenses, tones and house-style compounds a
-correct run reports, one issue per inconsistency anchored at the first
-minority occurrence, and one per verb in the wrong tense for its own sentence
+correct run reports, one issue per line that carries an inconsistency's
+minority form, and one per verb in the wrong tense for its own sentence
 (a finished time with the present perfect, *since* with the simple past, a
 research summary in the simple past), plus decoys, one ``no_fp_<reason>`` metric per
 legitimate variation the skill must leave alone (different names for
@@ -17,8 +17,8 @@ reported speech, proper names, a sentence already in the document's settled
 form).
 
 Each report covers at most one expected issue (``one_to_one`` pairing), since
-the skill reports one issue per inconsistency and one per sentence for a
-verb's tense: a run that merges two of them misses the second. Titles carry
+the skill reports one issue per line of an inconsistency and one per
+sentence for a verb's tense: a run that merges two of them misses the second. Titles carry
 the variants after a colon (``Inconsistent Term: form A / form
 B``), so the inventory names the stable prefix, matched as whole words within
 the reported title; a pair that could fairly be called spelling or number
@@ -56,7 +56,7 @@ from evals_inspectai.e2e.writing_consistency.criteria import (
 WORKFLOW_TYPE = "writing_consistency"
 DATASET = Path(__file__).parent / "dataset.yaml"
 GROUND_TRUTH = (
-    "Inventory: one expected issue per inconsistency, anchored at the first minority occurrence, with "
+    "Inventory: one expected issue per line carrying an inconsistency's minority form, with "
     "edit expectations, plus decoy sentences whose variation is legitimate. A NaN metric value means the "
     "sample gave that check nothing to judge."
 )

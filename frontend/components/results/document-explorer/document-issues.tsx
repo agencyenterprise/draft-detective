@@ -1,6 +1,5 @@
 'use client';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Issue } from '@/lib/generated-api';
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -18,7 +17,9 @@ interface DocumentIssuesProps {
 
 /**
  * The findings that are about the document rather than a place in it, gathered
- * at the top of the margin. They are folded after a few: this block sits above
+ * at the top of the margin with no heading of their own: each card says what it
+ * is about with a globe where a line label would be (see `IssueMeta`). They are
+ * folded after a few: this block sits above
  * the first paragraph, so a long one pushes the document itself off the screen —
  * the opposite of what the margin is for.
  */
@@ -34,19 +35,6 @@ export function DocumentIssues({ issues, activeIssueId, readOnly, onSelect }: Do
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <p className="mb-1.5 flex w-fit cursor-help items-center gap-1.5 font-mono text-[9.5px] tracking-wide text-muted-foreground uppercase">
-            About the whole document
-            {issues.length > COLLAPSED_COUNT && <span className="tabular-nums">{issues.length}</span>}
-          </p>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">
-          These findings are about the document as a whole rather than any particular passage, so they name no lines and
-          sit here instead of beside the text.
-        </TooltipContent>
-      </Tooltip>
-
       {shown.map((issue) => (
         <MarginNote
           key={issue.id}

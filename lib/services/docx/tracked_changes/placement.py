@@ -6,7 +6,7 @@ part of the mapped paragraph at all (`lines` answers that one),
 which of the paragraph's spans does the quote mean, and can the replacement be
 written as a tracked insertion.
 
-The middle one is the awkward one, and `_resolve_span` says why: a paragraph
+The middle one is the awkward one, and `quote_span.resolve_quote_span` says why: a paragraph
 that covers several markdown lines cannot be indexed by an occurrence counted
 in one of them, so a quote it repeats is reported instead of placed.
 
@@ -32,110 +32,15 @@ from lib.services.docx.tracked_changes.footnotes import (
 from lib.services.docx.tracked_changes.lines import membership_outcome
 from lib.services.docx.tracked_changes.models import (
     EditOutcome,
-    EditOutcomeStatus,
     PlannedEdit,
 )
-from lib.services.text.location import all_offsets, locate_in_paragraph
+from lib.services.docx.tracked_changes.quote_span import resolve_quote_span
+from lib.services.text.location import all_offsets
 from lib.services.text.markdown_rendering import link_destinations
 
 # Word cannot show a C0 control character as a reviewable redline, and
 # docx-editor refuses one outright. Anything carrying one is reported instead.
 _CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
-
-
-# Why a repeat inside a paragraph that covers several markdown lines is left
-# alone. `display_occurrence` was counted on the edit's own line, so it does
-# not index the paragraph, and every way of rebasing it was wrong in a
-# different way (see `_resolve_span`).
-REPEATS_ACROSS_LINES = (
-    "the quoted text repeats inside a paragraph that spans several lines "
-    "of the document"
-)
-
-
-def _spans_several_lines(
-    edit: IssueEdit,
-    paragraph_range: tuple[int, int],
-    document_lines: Sequence[str],
-) -> bool:
-    """Whether the paragraph really covers markdown lines besides the edit's.
-
-    Measured in content, not in line numbers. The line-range mapper runs a
-    paragraph's range up to the line before the next paragraph starts, and
-    converted markdown puts a blank line between paragraphs -- so an ordinary
-    one-line paragraph is handed the range ``(1, 2)`` with line 2 empty.
-    Reading that as "several lines" would throw away `display_occurrence` on
-    every paragraph in the document and report each repeated quote as
-    ambiguous.
-    """
-    first = max(1, paragraph_range[0])
-    last = min(len(document_lines), paragraph_range[1])
-    return any(
-        number != edit.start_line and document_lines[number - 1].strip()
-        for number in range(first, last + 1)
-    )
-
-
-def _resolve_span(
-    edit: IssueEdit,
-    paragraph_text: str,
-    paragraph_range: tuple[int, int],
-    document_lines: Sequence[str],
-) -> tuple[tuple[int, int] | None, EditOutcomeStatus, str | None]:
-    """Locate the edit's quote in the Word paragraph.
-
-    `display_text` is the quote as the document renders it, worked out when the
-    edit was reported, so nothing has to be stripped here. What is left is
-    which of the paragraph's spans the edit meant, and that depends on how much
-    of the document the paragraph covers.
-
-    A paragraph that is the edit's line and nothing else answers it directly:
-    `display_occurrence` counted the rendered repeats of that line, so it is
-    the paragraph's own index. `**Figure 3**` is a unique quote of ``Figure 3
-    and **Figure 3**`` and the second of two identical spans once the page has
-    it.
-
-    A paragraph covering several markdown lines *of content* is a different
-    matter -- blank separators do not count, or every paragraph in the document
-    would qualify. A hard line break inside a Word paragraph converts to one
-    markdown line per break, and Word keeps *nothing* where the break was -- no separator to
-    rebuild the join from. `display_occurrence` was counted in one line and the
-    paragraph is several, so it cannot be used as it stands, and every attempt
-    to rebase it onto the paragraph failed somewhere else:
-
-    - adding up the quote's occurrences on the lines ahead misses a match that
-      straddles the join, since ``First cohort rose 14% `` and ``in 2019; ...``
-      put a ``14% in`` in the paragraph that neither line carries;
-    - locating the edit's own line and counting inside it misses the case
-      where an earlier line *contains* the later one, so ``Group A: 14%
-      increase.`` swallows the whole of ``14% increase.``;
-    - walking the lines in document order behind a cursor fixes both and still
-      leaves the boundaries to conversion drift, with no way to tell a
-      mislocated line from a line the paragraph never carried.
-
-    So a repeat in such a paragraph is reported rather than placed. It costs
-    little: paragraphs spanning several markdown lines are about 4.5% of the
-    converted DOCX paragraphs, and almost all of them are reference entries
-    and author blocks -- passages an edit rarely needs to reach, and where
-    guessing wrong would redline the wrong author's name. A quote the
-    paragraph carries once is applied as it always was, drift or no drift.
-    """
-    if not edit.display_text:
-        return None, "not_found", None
-    spans = locate_in_paragraph(paragraph_text, edit.display_text)
-    if not spans:
-        return None, "not_found", None
-
-    if _spans_several_lines(edit, paragraph_range, document_lines):
-        if len(spans) == 1:
-            return spans[0], "applied", None
-        return None, "ambiguous", REPEATS_ACROSS_LINES
-
-    if len(spans) == 1:
-        return spans[0], "applied", None
-    if edit.display_occurrence >= len(spans):
-        return None, "ambiguous", None
-    return spans[edit.display_occurrence], "applied", None
 
 
 def _with_boundary_whitespace(
@@ -188,7 +93,7 @@ def _locate(
                 edit_id=edit.id, status="unsupported", detail=placed.detail
             )
         return EditOutcome(edit_id=edit.id, status="not_found")
-    span, status, detail = _resolve_span(
+    span, status, detail = resolve_quote_span(
         edit, paragraph_text, paragraph_range, document_lines
     )
     if span is None:

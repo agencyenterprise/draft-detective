@@ -85,7 +85,7 @@ These issues carry no proposed text edits: a new header or opener is wording the
 
 ### Volume and coverage
 
-Every section header is checked, to the last section of the document; report every qualifying header up to 30 header issues. If the document has more, keep the vague and mismatched headers and those of the highest-level sections, and summarize the rest in one issue titled `"Header Lacks Takeaway: Further Headers"`, listing each remaining header with its line. Report up to 15 lead-sentence issues; when a document uses topic-label openers throughout, report the first 15 and list the lines of the rest in a final issue titled `"Lead Sentence Lacks Takeaway: Recurring Pattern"`.
+Every section header is checked, to the last section of the document; report every qualifying header up to 30 header issues. If the document has more, keep the vague and mismatched headers and those of the highest-level sections, and summarize the rest in one issue titled `"Header Lacks Takeaway: Further Headers"`, on the line of the first remaining header, listing each remaining header with its line. Report up to 15 lead-sentence issues; when a document uses topic-label openers throughout, report the first 15 and list the lines of the rest in a final issue titled `"Lead Sentence Lacks Takeaway: Recurring Pattern"`, on the line of the first of them.
 
 ## Report
 

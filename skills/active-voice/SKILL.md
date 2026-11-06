@@ -94,7 +94,7 @@ When you can attach proposed edits to an issue, attach one edit per sentence who
 
 ### Volume and coverage
 
-Report every qualifying paragraph up to 40 `"Passive Voice"` issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Passive Voice: Section Summary"`, anchored to the section's first reportable paragraph and spanning the section: quote each reported sentence with its rewrite or request, and attach edits as above. The document's every section is covered either way; nothing is left to a summary that names sections without sentences. Ambiguous-actor and indirect summary issues are never consolidated.
+Report every qualifying paragraph up to 40 `"Passive Voice"` issues; when a long document is split into parts, the limit applies to each part. If there are more, report the remainder one issue per section, titled `"Passive Voice: Section Summary"`, on the line of the section's first reportable paragraph: quote each reported sentence with its line and its rewrite or request, and attach edits only for the sentences on that first line. The document's every section is covered either way; nothing is left to a summary that names sections without sentences. Ambiguous-actor and indirect summary issues are never consolidated.
 
 ## Report
 

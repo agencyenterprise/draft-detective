@@ -5,6 +5,7 @@ import uuid
 from typing import Literal
 
 from lib.models.workflow_run import WorkflowRunType
+from lib.services.docx.comment_anchors import plan_comment_anchors
 from lib.services.docx.edit_export import (
     EditExport,
     describe_edit_export,
@@ -174,6 +175,15 @@ async def generate_docx(
                 share_token_for_comments = None
             workspace_root = str(docx_manipulator_service.get_output_dir())
             comment_type = docx_type
+            # Located against the original file, before anything is written,
+            # like the redlines' pre-flight.
+            anchors = await plan_comment_anchors(
+                issues=issues,
+                markdown=main_file.markdown or "",
+                docx_path=docx_path,
+                paragraph_line_ranges=paragraph_line_ranges,
+                workspace_root=workspace_root,
+            )
 
             async def write_comments(edit_export: EditExport) -> str:
                 # A fresh output id per call, so concurrent exports never collide
@@ -188,6 +198,7 @@ async def generate_docx(
                             share_token_for_comments,
                             edit_notes=edit_export.notes_for(issue.id),
                             show_severity=project.group_by_severity,
+                            comment_anchor=anchors.get(issue.id),
                         )
                     )
                 ]

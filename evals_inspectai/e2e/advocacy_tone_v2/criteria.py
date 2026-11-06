@@ -2,8 +2,8 @@
 
 The skill fixes two things about every issue it reports, so they are checked
 deterministically over all reported issues, not only the ones matched to an
-expected issue: the title is one of its three, and the issue brackets a single
-sentence, which in these documents is a single line. Severity is the agent's
+expected issue: the title is one of its three, and the issue's line range is the
+offending sentence's, which in these documents is a single line. Severity is the agent's
 judgment, so it is not scored.
 It also names the sections to skip; no reported issue may sit in one.
 
@@ -155,7 +155,7 @@ JUDGE_DESCRIPTIONS = {
 }
 OWN_DESCRIPTIONS = {
     "known_titles": "Share of reported issues titled exactly as one of the skill's three kinds; NaN when nothing was reported.",
-    "one_line_range": "Share of reported issues whose line range is a single line: the skill brackets the offending sentence, and every paragraph here is one line. NaN when nothing was reported.",
+    "one_line_range": "Share of reported issues whose line range is a single line: the skill puts the issue on the offending sentence's line, and every paragraph here is one line. NaN when nothing was reported.",
     "skipped_sections_untouched": "1 when no reported issue reaches into a section whose heading contains author, reference, bibliography, appendix or acknowledgment (subsections included); NaN when the document has none.",
 }
 
