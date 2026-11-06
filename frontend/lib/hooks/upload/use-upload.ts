@@ -55,19 +55,6 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
     uppy.use(Tus, createTusOptions());
 
-    uppy.on('file-added', (file) => {
-      const meta: Record<string, string> = {
-        filename: file.name ?? '',
-        filetype: file.type ?? '',
-        project_id: projectId,
-        role: fileRole,
-      };
-      if (referenceId) {
-        meta.reference_id = referenceId;
-      }
-      uppy.setFileMeta(file.id, meta);
-    });
-
     uppy.on('upload-progress', (file, progress) => {
       if (!file) return;
       const entry = fileMapRef.current.get(file.id);
@@ -88,7 +75,8 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
           progress: createProgress(file.size ?? 0, file.size ?? 0),
         });
         callbackRefs.current.onFileComplete?.(entry.file, file);
-        queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+        // The project the file went to, set by addFiles from the render that added it.
+        queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(String(file.meta.project_id)) });
       }
     });
 
@@ -119,7 +107,7 @@ export function useUpload(options: UseUploadOptions): UseUploadReturn {
 
     uppyRef.current = uppy;
     return uppy;
-  }, [projectId, fileRole, referenceId, queryClient, updateFileState]);
+  }, [projectId, queryClient, updateFileState]);
 
   const addFiles = useCallback(
     (newFiles: File[]) => {

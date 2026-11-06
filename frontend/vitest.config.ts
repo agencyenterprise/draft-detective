@@ -30,6 +30,7 @@ export default defineConfig({
         '**/*.test.{ts,tsx}',
         'lib/generated-api/**',
         'lib/test-render.tsx',
+        'lib/hooks/upload/fake-tus.ts',
         'vitest.config.ts',
         'openapi-ts.config.ts',
       ],
