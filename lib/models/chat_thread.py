@@ -1,9 +1,14 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel
+
+# A running turn stamps ``turn_seen_at`` every few seconds (``turn_claims.keep``). A
+# claim not stamped for this long is a turn that died without releasing it: a worker
+# restart. Long turns stay claimed for as long as they run.
+STALE_TURN = timedelta(minutes=2)
 
 
 class ChatThread(SQLModel, table=True):
@@ -12,7 +17,8 @@ class ChatThread(SQLModel, table=True):
     What was said lives in the LangGraph checkpointer, keyed by this row's id
     (see ``lib/services/chat/history.py``). This table holds what the
     checkpointer cannot: who owns the thread, its title, and whether it is
-    archived. Its id is its row's in ``conversations``
+    archived, and whether a turn is running on it now (see
+    ``lib/services/chat/turn_claims.py``). Its id is its row's in ``conversations``
     (``lib/models/conversation.py``); deleting the thread deletes that row, and
     this one with it.
     """
@@ -60,3 +66,29 @@ class ChatThread(SQLModel, table=True):
             nullable=False,
         ),
     )
+    turn_started_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description=(
+            "When the turn running now began, if one is; also the claim's token "
+            "(``turn_claims.claim``)"
+        ),
+    )
+    turn_seen_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="When the running turn last showed it was alive",
+    )
+    cancel_requested_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), nullable=True),
+        description="When someone asked the running turn to stop",
+    )
+
+    @property
+    def is_running(self) -> bool:
+        """Whether a turn holds the thread now: claimed, and not gone stale."""
+
+        if self.turn_started_at is None or self.turn_seen_at is None:
+            return False
+        return self.turn_seen_at > datetime.now(UTC) - STALE_TURN
