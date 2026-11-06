@@ -1,6 +1,13 @@
 import { SeverityEnum, WorkflowRunType, type Issue } from '@/lib/generated-api';
 import { describe, expect, it } from 'vitest';
-import { formatLineLabel, issueLineRange, issueStartLine, lineLabel, rangesOverlap } from './issue-lines';
+import {
+  formatLineLabel,
+  issueLineRange,
+  issueScrollRange,
+  issueStartLine,
+  lineLabel,
+  rangesOverlap,
+} from './issue-lines';
 
 function issue(overrides: Partial<Issue> = {}): Issue {
   return {
@@ -49,6 +56,18 @@ describe('issueLineRange', () => {
 
   it('returns null when the lines are explicitly null', () => {
     expect(issueLineRange(issue({ start_line: null, end_line: null }))).toBeNull();
+  });
+});
+
+describe('issueScrollRange', () => {
+  it('brings a long issue into view at its passage, not its first line', () => {
+    const passage = { original_text: 'x', display_text: 'x', display_occurrence: 0, start_line: 100, end_line: 100 };
+    expect(issueScrollRange(issue({ start_line: 1, end_line: 100, passage }))).toEqual([100, 100]);
+  });
+
+  it('falls back to the issue range without a passage', () => {
+    expect(issueScrollRange(issue({ start_line: 4, end_line: 9 }))).toEqual([4, 9]);
+    expect(issueScrollRange(issue())).toBeNull();
   });
 });
 
