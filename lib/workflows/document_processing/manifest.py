@@ -4,7 +4,11 @@ from langgraph.graph import StateGraph
 
 from lib.models.file import FileRole
 from lib.services.files.document import FileDocument
-from lib.services.files.service import get_files_by_project_id, load_file_document
+from lib.services.files.service import (
+    find_main_file,
+    get_files_by_project_id,
+    load_file_document,
+)
 from lib.workflows.document_processing.graph import build_document_processing_graph
 from lib.workflows.document_processing.state import (
     DocumentProcessingState,
@@ -38,21 +42,10 @@ class DocumentProcessingManifest(
         prior_self_state: DocumentProcessingState | None = None,
     ) -> DocumentProcessingState:
         """Create and return the initial state of the workflow."""
-        project_files = await get_files_by_project_id(
-            config.project_id,
-            roles=[
-                FileRole.MAIN,
-                FileRole.SUPPORT,
-            ],
-            revision=revision,
+        main_file = await find_main_file(config.project_id, revision)
+        supporting_files = await get_files_by_project_id(
+            config.project_id, roles=[FileRole.SUPPORT], revision=revision
         )
-        main_file = next(
-            (file for file in project_files if file.role == FileRole.MAIN),
-            None,
-        )
-        supporting_files = [
-            file for file in project_files if file.role == FileRole.SUPPORT
-        ]
         assert main_file is not None, "No main file found for project"
         main_file_document = await load_file_document(main_file)
         assert main_file_document is not None, "Failed to load main file"
