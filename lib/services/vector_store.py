@@ -35,15 +35,10 @@ _splitter = RecursiveCharacterTextSplitter.from_language(
 
 
 class RetrievedPassage(BaseModel):
-    """Represents a passage retrieved from vector store."""
+    """Where a passage retrieved from the vector store sits in its document."""
 
-    content: str = Field(description="The text content of the retrieved passage")
-    source_file: str = Field(description="Name of the source file")
     start_line: int = Field(description="1-indexed start line of the chunk")
     end_line: int = Field(description="1-indexed end line of the chunk")
-    cosine_distance: float = Field(
-        description="Cosine distance (0-1, lower = more similar)"
-    )
 
 
 def _char_offset_to_line(text: str, char_offset: int) -> int:
@@ -279,9 +274,7 @@ class VectorStoreService:
 
             await self._rate_limiter.aacquire()
             try:
-                results = await vectorstore.asimilarity_search_with_score(
-                    query, k=top_k
-                )
+                results = await vectorstore.asimilarity_search(query, k=top_k)
             except Exception as e:
                 log_embedding_error(
                     e,
@@ -300,14 +293,11 @@ class VectorStoreService:
             )
 
             passages = []
-            for doc, score in results:
+            for doc in results:
                 passages.append(
                     RetrievedPassage(
-                        content=doc.page_content,
-                        source_file=doc.metadata.get("file_name", "unknown"),
                         start_line=doc.metadata.get("start_line", 1),
                         end_line=doc.metadata.get("end_line", 1),
-                        cosine_distance=float(score),
                     )
                 )
 
