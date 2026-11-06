@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.7.1] - 2026-11-06
+
+### Changed
+- Improved DOCX export performance by avoiding LibreOffice chart rendering when mapping export lines, reducing chart-heavy export times.
+- DOCX exports now retain comments for projects whose stored markdown has no chart lines.
+
+### Fixed
+- Advocacy & Tone now skips cover-page and publisher boilerplate text, including release notices, disclaimers, permission-to-cite lines, and copyright and trademark lines.
+
+
 ## [v2.7.0] - 2026-11-06
 
 ### Added
