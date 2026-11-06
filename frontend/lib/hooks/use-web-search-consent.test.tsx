@@ -25,8 +25,11 @@ describe('useWebSearchConsent', () => {
     expect(a.current()[0]).toBe(true);
     await a.view.unmount();
 
+    // Another project never inherits project-a's consent.
     const b = await mount('project-b');
+    expect(b.current()[0]).toBe(false);
     await act(async () => b.current()[1](false));
+    expect(b.current()[0]).toBe(false);
     await b.view.unmount();
 
     // A fresh mount reads storage, as the workflow dialog does after the wizard.
