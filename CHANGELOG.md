@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.7.2] - 2026-11-06
+
+### Changed
+- Updated main-file lookup to ensure shared files are not treated as revision-specific main files.
+
+### Fixed
+- Fixed uploads to use the latest project, role, and reference properties for each file.
+- Fixed the failed-upload dialog so it can be closed after all uploads have completed or failed.
+- Fixed backend containers rebuilding the project and requiring PyPI access when starting with `uv run`.
+
+
 ## [v2.7.1] - 2026-11-06
 
 ### Changed
