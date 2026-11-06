@@ -39,8 +39,8 @@ interface Entry {
  * row as tall as its notes: a one-line paragraph carrying four issues opened a
  * hole in the text column the height of four cards. Word and Google Docs solve
  * this the same way, and so does this — the notes are taken out of the flow and
- * placed against the measured top of the paragraph they belong to, then pushed
- * out of the way only as far as their neighbours require. The open note is the
+ * placed against the measured top of their passage, or of the paragraph they
+ * belong to, then pushed out of the way only as far as their neighbours require. The open note is the
  * one that stays put; see stackNotes for how the others make room for it.
  *
  * Positions are measured rather than derived: line numbers say nothing about
@@ -61,9 +61,9 @@ export function MarginLayer({
   const [tops, setTops] = useState<Record<string, number>>({});
 
   const entries = useMemo<Entry[]>(() => {
-    // Sorted by line, not by whatever order the list arrives in. The stack only
-    // ever pushes a note *down*, so one out-of-place note near the top would
-    // drag every note after it away from the paragraph it belongs to.
+    // Sorted by line, not by whatever order the list arrives in: layout walks
+    // these and the paragraphs together with one index, and a note with no
+    // place of its own takes its neighbour's (see visualOrder).
     const anchored = issues
       .map((issue) => ({
         id: issue.id,

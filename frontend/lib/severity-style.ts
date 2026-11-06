@@ -1,7 +1,7 @@
 import { SeverityEnum } from './generated-api';
 
 export interface SeverityStyle {
-  /** Severity marker: the dot beside a note and the rule in the document gutter. */
+  /** Severity marker: the dot beside an issue, and the leader of an open margin note. */
   dot: string;
   /** Underline colour for a paragraph marked as a whole, in the dot's colour. */
   decoration: string;

@@ -39,15 +39,8 @@ def make_summary(
     )
 
 
-def make_candidate(
-    doc_index: int,
-    summary: FileSummary,
-    score: float = 0.9,
-    file_id: str | None = None,
-):
-    return CandidateMatch(
-        doc_index=doc_index, similarity_score=score, summary=summary, file_id=file_id
-    )
+def make_candidate(summary: FileSummary, file_id: str | None = None):
+    return CandidateMatch(summary=summary, file_id=file_id)
 
 
 def make_match(ref_idx: int, candidate: str, confidence: str = "high"):
@@ -206,7 +199,7 @@ class TestResolveMatch:
     """Tests for _resolve_match helper function."""
 
     def test_returns_no_match_for_none_candidate(self):
-        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        candidates = [make_candidate(make_summary("Paper"), file_id="file-id-1")]
         assert _resolve_match("NONE", candidates) is None
 
     def test_returns_no_match_for_empty_candidates(self):
@@ -214,24 +207,24 @@ class TestResolveMatch:
 
     def test_resolves_letter_to_document(self):
         candidates = [
-            make_candidate(0, make_summary("A"), file_id="file-id-a"),
-            make_candidate(1, make_summary("B"), file_id="file-id-b"),
+            make_candidate(make_summary("A"), file_id="file-id-a"),
+            make_candidate(make_summary("B"), file_id="file-id-b"),
         ]
 
         assert _resolve_match("A", candidates) == "file-id-a"
         assert _resolve_match("B", candidates) == "file-id-b"
 
     def test_handles_lowercase_letter(self):
-        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        candidates = [make_candidate(make_summary("Paper"), file_id="file-id-1")]
         assert _resolve_match("a", candidates) == "file-id-1"
 
     def test_returns_no_match_for_invalid_letter(self):
-        candidates = [make_candidate(0, make_summary("Paper"), file_id="file-id-1")]
+        candidates = [make_candidate(make_summary("Paper"), file_id="file-id-1")]
         assert _resolve_match("Z", candidates) is None
 
     def test_resolves_with_none_file_id(self):
         """Test that file_id can be None when candidate doesn't have one."""
-        candidates = [make_candidate(0, make_summary("Paper"))]  # No file_id
+        candidates = [make_candidate(make_summary("Paper"))]  # No file_id
         assert _resolve_match("A", candidates) is None
 
 
@@ -246,7 +239,7 @@ class TestTwoStageMatching:
         runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
-            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
+            candidates_per_ref=[[make_candidate(summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "A")],
         ) as (MockEmbed, _):
             result = await match_supporting_docs_node(state, runtime)
@@ -270,7 +263,7 @@ class TestTwoStageMatching:
         runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
-            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
+            candidates_per_ref=[[make_candidate(summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "NONE", "none")],
         ):
             result = await match_supporting_docs_node(state, runtime)
@@ -294,14 +287,14 @@ class TestTwoStageMatching:
         with mock_two_stage_matching(
             candidates_per_ref=[
                 [
-                    make_candidate(0, summaries[0], file_id="file-id-0"),
-                    make_candidate(1, summaries[1], file_id="file-id-1"),
+                    make_candidate(summaries[0], file_id="file-id-0"),
+                    make_candidate(summaries[1], file_id="file-id-1"),
                 ],
                 [
-                    make_candidate(1, summaries[1], file_id="file-id-1"),
-                    make_candidate(0, summaries[0], file_id="file-id-0"),
+                    make_candidate(summaries[1], file_id="file-id-1"),
+                    make_candidate(summaries[0], file_id="file-id-0"),
                 ],
-                [make_candidate(0, summaries[0], file_id="file-id-0")],
+                [make_candidate(summaries[0], file_id="file-id-0")],
             ],
             matches=[
                 make_match(0, "A"),
@@ -329,7 +322,7 @@ class TestTwoStageMatching:
         runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching_error(
-            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
+            candidates_per_ref=[[make_candidate(summaries[0], file_id="file-id-0")]],
             error=Exception("API Error"),
         ):
             result = await match_supporting_docs_node(state, runtime)
@@ -362,7 +355,7 @@ class TestMatchSupportingDocsNode:
         runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
 
         with mock_two_stage_matching(
-            candidates_per_ref=[[make_candidate(0, summaries[0], file_id="file-id-0")]],
+            candidates_per_ref=[[make_candidate(summaries[0], file_id="file-id-0")]],
             matches=[make_match(0, "A")],
         ):
             result = await match_supporting_docs_node(state, runtime)

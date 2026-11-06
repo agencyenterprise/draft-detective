@@ -33,12 +33,6 @@ interface PassageDocumentProps {
   className?: string;
 }
 
-/**
- * An example document rendered the way the document explorer renders a draft:
- * the same line gutter, text column and type. The passage being judged is
- * marked in the text, and its paragraph carries the wash and gutter rule a
- * selected finding gets in the explorer.
- */
 /** The row holding the passage: where the highlight landed, else the row for its source line. */
 export function passageRow(container: HTMLElement, line?: number | null): HTMLElement | null {
   const marked = container.querySelector<HTMLElement>(ANCHOR_SELECTOR);
@@ -50,6 +44,12 @@ export function passageRow(container: HTMLElement, line?: number | null): HTMLEl
   return null;
 }
 
+/**
+ * An example document rendered the way the document explorer renders a draft:
+ * the same line gutter, text column and type. The passage being judged is
+ * marked in the text, and its row is washed and its gutter rule coloured, both
+ * in amber. The explorer itself no longer colours that rule.
+ */
 export function PassageDocument({ document, anchor, line, className }: PassageDocumentProps) {
   const rehypePlugins: PluggableList = useMemo(
     () => [...REHYPE_PLUGINS, [rehypeHighlightAnchor, { anchor }]],

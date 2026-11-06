@@ -70,7 +70,6 @@ def image(tmp_path: Path, name: str) -> ExtractedImage:
         mime_type="image/png",
         file_size=len(name),
         content_hash=f"{name}-{uuid.uuid4()}",
-        line_number=1,
     )
 
 

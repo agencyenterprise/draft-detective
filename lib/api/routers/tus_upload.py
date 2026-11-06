@@ -14,7 +14,7 @@ from lib.models.file import FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.services.files.finalization import finalize_file_from_path
-from lib.services.files.service import get_files_by_project_id
+from lib.services.files.service import find_main_file
 from lib.services.projects.service import get_project_access
 from lib.services.references.service import add_file_to_reference
 from lib.workflows.reference_file_matching.state import MatchSource
@@ -106,16 +106,16 @@ def _get_completion_hook(
 
         revision = _resolve_file_revision(metadata, role, project)
 
-        if role == FileRole.MAIN:
-            # Validate: only one MAIN file per revision
-            existing_main = await get_files_by_project_id(
-                uuid.UUID(project_id), roles=[FileRole.MAIN], revision=revision
+        # Only one MAIN file per revision.
+        if (
+            role == FileRole.MAIN
+            and revision is not None
+            and await find_main_file(project_id, revision)
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail="Project already has a main document for the current revision. Create a new revision first.",
             )
-            if existing_main:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Project already has a main document for the current revision. Create a new revision first.",
-                )
 
         file_record, was_deduplicated = await finalize_file_from_path(
             file_path=file_path,

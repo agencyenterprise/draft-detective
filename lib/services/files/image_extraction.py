@@ -113,7 +113,6 @@ class ExtractedImage(BaseModel):
     mime_type: str
     file_size: int
     content_hash: str
-    line_number: int
     alt: str = ""
 
 
@@ -192,7 +191,6 @@ async def extract_data_uri_images(
             mime_type=mime_type,
             file_size=len(content),
             content_hash=content_hash,
-            line_number=markdown.count("\n", 0, match.start()) + 1,
             alt=match.group("alt"),
         )
         images.append(image)

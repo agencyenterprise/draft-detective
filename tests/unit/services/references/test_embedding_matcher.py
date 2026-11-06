@@ -72,12 +72,8 @@ async def test_candidates_are_ranked_by_cosine_similarity(embeddings):
 
     [candidates] = await matcher.find_candidates(["a reference"], top_k=3)
 
-    assert [c.doc_index for c in candidates] == [1, 2, 0]
     assert [c.file_id for c in candidates] == ["file-1", "file-2", "file-0"]
     assert candidates[0].summary == SUMMARIES[1]
-    scores = [c.similarity_score for c in candidates]
-    assert scores == sorted(scores, reverse=True)
-    assert scores[0] <= 1.0
 
 
 @pytest.mark.asyncio
@@ -87,8 +83,8 @@ async def test_each_reference_gets_its_own_top_k(embeddings):
 
     first, second = await matcher.find_candidates(["ref a", "ref b"], top_k=1)
 
-    assert [c.doc_index for c in first] == [2]
-    assert [c.doc_index for c in second] == [0]
+    assert [c.file_id for c in first] == ["file-2"]
+    assert [c.file_id for c in second] == ["file-0"]
 
 
 @pytest.mark.asyncio
@@ -98,7 +94,7 @@ async def test_top_k_is_capped_at_the_number_of_indexed_documents(embeddings):
 
     [candidates] = await matcher.find_candidates(["ref"], top_k=50)
 
-    assert sorted(c.doc_index for c in candidates) == [0, 1, 2]
+    assert sorted(c.file_id for c in candidates) == ["file-0", "file-1", "file-2"]
 
 
 @pytest.mark.asyncio

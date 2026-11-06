@@ -58,7 +58,6 @@ def _extracted(alt: str = "") -> ExtractedImage:
         mime_type="image/png",
         file_size=123,
         content_hash="abc",
-        line_number=7,
         alt=alt,
     )
 
