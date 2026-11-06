@@ -19,15 +19,15 @@ export async function fetchThreadMessages(threadId: string): Promise<ChatMessage
  * One check on a thread's turn, for a turn this page isn't streaming: one started
  * before a reload, in another tab, or whose stream ended while it ran on.
  *
- * While the turn runs, and once more after it ends, the history is refreshed from
- * the checkpointer. The thread is read first, so the history fetched after it says
- * "not running" is the final one.
+ * Every check refreshes the history from the checkpointer. The thread is read
+ * first, so the history read after it says "not running" is the final one. A
+ * history request already in flight was sent earlier and may predate the turn's
+ * end, so it is cancelled rather than allowed to overwrite this one.
  */
 export async function followThread(queryClient: QueryClient, threadId: string): Promise<boolean> {
-  const wasRunning = queryClient.getQueryData<boolean>(threadRunningQueryKey(threadId)) === true;
   const thread = await getThreadApiChatThreadsThreadIdGet({ path: { thread_id: threadId } });
-  if (thread.is_running || wasRunning) {
-    queryClient.setQueryData(threadMessagesQueryKey(threadId), await fetchThreadMessages(threadId));
-  }
+  const key = threadMessagesQueryKey(threadId);
+  await queryClient.cancelQueries({ queryKey: key });
+  queryClient.setQueryData(key, await fetchThreadMessages(threadId));
   return thread.is_running;
 }

@@ -91,6 +91,8 @@ function useChatThreadRuntime(): AssistantRuntime {
     enabled: remoteId !== undefined && !isStreaming,
     queryKey: threadRunningQueryKey(remoteId),
     queryFn: () => followThread(queryClient, remoteId!),
+    // Every time a stream ends, ask again: a cached "idle" may predate the turn.
+    staleTime: 0,
     refetchInterval: (query) => (query.state.data ? FOLLOW_INTERVAL_MS : false),
   });
   const isRunning = isStreaming || remoteRunning.data === true;
