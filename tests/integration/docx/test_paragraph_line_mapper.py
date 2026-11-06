@@ -1,11 +1,21 @@
 """Tests for the docx paragraph → markdown line-range mapper."""
 
+import copy
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from docx import Document
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
+from PIL import Image
 
 from lib.services.converters.markitdown import markitdown_converter
+from lib.services.docx.drawing_rasterization import (
+    CHART_GRAPHIC_URI,
+    rasterize_docx_drawings,
+    stub_docx_drawings,
+)
 from lib.services.docx.manipulator import (
     CommentSeverity,
     DocxComment,
@@ -138,3 +148,122 @@ async def test_build_paragraph_line_ranges_matches_markdown_with_or_without_equa
     assert len(ranges) == len(paragraphs)
     for i, (start, _end) in ranges.items():
         assert persisted_lines[start - 1].startswith(paragraphs[i].split()[0])
+
+
+def _chart_paragraph():
+    return parse_xml(
+        f"<w:p {nsdecls('w', 'wp', 'a', 'r', 'c')}><w:r><w:drawing><wp:inline>"
+        '<wp:extent cx="914400" cy="457200"/>'
+        f'<a:graphic><a:graphicData uri="{CHART_GRAPHIC_URI}">'
+        '<c:chart r:id="rId999"/></a:graphicData></a:graphic>'
+        "</wp:inline></w:drawing></w:r></w:p>"
+    )
+
+
+def _write_docx_with_charts(path: Path) -> str:
+    document = Document()
+    chart = _chart_paragraph()
+    for i in range(3):
+        document.add_paragraph(f"Paragraph {i} before chart {i}.")
+        document.element.body.get_or_add_sectPr().addprevious(copy.deepcopy(chart))
+    document.add_paragraph("Closing paragraph.")
+    document.save(str(path))
+    return str(path)
+
+
+async def _markdown_with_rendered_charts(docx_path: str, tmp_path: Path) -> str:
+    """The markdown ingestion stores when LibreOffice rendered the charts."""
+    renders = []
+    for i in range(3):
+        render = tmp_path / f"render-{i}.png"
+        Image.new("RGB", (20, 10), "navy").save(render, format="PNG")
+        renders.append(str(render))
+    render_dir = tmp_path / "render-dir"
+    render_dir.mkdir()
+    with patch(
+        "lib.services.docx.drawing_rasterization._render_drawings_to_images",
+        new=AsyncMock(return_value=(str(render_dir), renders)),
+    ):
+        rasterized = await rasterize_docx_drawings(docx_path)
+    assert rasterized is not None
+    try:
+        return await markitdown_converter.convert_to_markdown(rasterized)
+    finally:
+        Path(rasterized).unlink()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("charts_rendered_at_ingestion", [True, False])
+async def test_build_paragraph_line_ranges_with_charts_never_renders_them(
+    tmp_path: Path, charts_rendered_at_ingestion: bool
+):
+    """Charts take markdown lines only when ingestion rendered them. The mapper
+    anchors against either markdown, and never starts LibreOffice to do so."""
+    docx_path = _write_docx_with_charts(tmp_path / "charts.docx")
+    if charts_rendered_at_ingestion:
+        persisted = await _markdown_with_rendered_charts(docx_path, tmp_path)
+    else:
+        persisted = await markitdown_converter.convert_to_markdown(docx_path)
+    persisted_lines = persisted.splitlines()
+
+    with patch(
+        "lib.services.docx.drawing_rasterization._render_drawings_to_images"
+    ) as render_mock:
+        ranges = await build_paragraph_line_ranges(
+            docx_path, expected_line_count=persisted.count("\n") + 1
+        )
+
+    render_mock.assert_not_called()
+    paragraphs = [p.text for p in Document(docx_path).paragraphs if p.text.strip()]
+    assert len(ranges) == len(paragraphs)
+    for i, (start, _end) in ranges.items():
+        assert persisted_lines[start - 1] == paragraphs[i]
+
+
+@pytest.mark.asyncio
+async def test_build_paragraph_line_ranges_converts_once_when_charts_were_rendered(
+    tmp_path: Path,
+):
+    """The usual export, charts rendered at ingestion, costs one conversion."""
+    docx_path = _write_docx_with_charts(tmp_path / "charts.docx")
+    persisted = await _markdown_with_rendered_charts(docx_path, tmp_path)
+
+    with patch.object(
+        markitdown_converter,
+        "convert_to_markdown",
+        wraps=markitdown_converter.convert_to_markdown,
+    ) as convert:
+        ranges = await build_paragraph_line_ranges(
+            docx_path, expected_line_count=persisted.count("\n") + 1
+        )
+
+    assert ranges
+    assert convert.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_build_paragraph_line_ranges_refuses_a_chart_and_equation_tie(
+    tmp_path: Path,
+):
+    """Stubbed charts with equations dropped can come to the same line count
+    as equations kept without charts, while placing paragraphs differently.
+    The mapper must not anchor against either."""
+    docx_path = write_docx_with_equations(tmp_path / "mixed.docx")
+    document = Document(docx_path)
+    document.paragraphs[0]._element.addprevious(_chart_paragraph())
+    document.save(docx_path)
+    # Stored as when ingestion could not render the chart but kept equations.
+    persisted = await markitdown_converter.convert_to_markdown(docx_path)
+    stub = stub_docx_drawings(docx_path)
+    assert stub is not None
+    try:
+        tie = await markitdown_converter.convert_to_markdown(stub, keep_equations=False)
+    finally:
+        Path(stub).unlink()
+    assert tie.count("\n") == persisted.count("\n")  # the tie under test
+
+    ranges = await build_paragraph_line_ranges(
+        docx_path, expected_line_count=persisted.count("\n") + 1
+    )
+
+    assert ranges == {}
