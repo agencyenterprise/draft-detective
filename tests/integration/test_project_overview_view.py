@@ -6,6 +6,7 @@ Word, the share status for the owner) and no run state.
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 import pytest
 from fastapi import HTTPException
@@ -16,6 +17,7 @@ from lib.api.routers.public import get_shared_resource
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel
+from lib.models.workflow_run import WorkflowRun
 from lib.workflows.models import WorkflowRunType
 from tests.integration.project_page_support import (  # noqa: F401  # `page` is a fixture
     ASSESSMENT,
@@ -141,3 +143,41 @@ async def test_public_share_serves_only_projects(page):
     with pytest.raises(HTTPException) as exc:
         await get_shared_resource(page["other_token"])
     assert exc.value.status_code == 400
+
+
+async def _set_assessment_error(page, error: str, *, move_version: bool) -> None:
+    """Rewrite the assessment's state, moving its version like a real write or not."""
+    run_id = page["assessment_id"]
+    values: dict[str, Any] = {
+        "state_json": {
+            "type": ASSESSMENT.value,
+            "errors": [{"task_name": "t", "error": error, "workflow_run_id": run_id}],
+        }
+    }
+    if not move_version:
+        values["last_updated_at"] = col(WorkflowRun.last_updated_at)
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(WorkflowRun).where(col(WorkflowRun.id) == run_id).values(**values)
+        )
+        await session.commit()
+
+
+def _assessment_errors(overview) -> list[str]:
+    summary = next(s for s in overview.workflow_runs if s.run.type == ASSESSMENT)
+    return [error.error for error in summary.errors]
+
+
+@pytest.mark.asyncio
+async def test_a_poll_reads_only_the_states_whose_version_moved(page):
+    assert _assessment_errors(await overview_of(page)) == ["mine"]
+
+    # Same version: the poll serves what it read before instead of
+    # decompressing the state again. No real writer does this; it is how the
+    # test sees that the state was not read.
+    await _set_assessment_error(page, "unseen", move_version=False)
+    assert _assessment_errors(await overview_of(page)) == ["mine"]
+
+    # Every real state write moves last_updated_at, and the next poll reads it.
+    await _set_assessment_error(page, "new", move_version=True)
+    assert _assessment_errors(await overview_of(page)) == ["new"]

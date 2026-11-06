@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import Select, case, func, select, tuple_
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -24,6 +24,11 @@ from lib.models.issue import Issue, IssueStatus
 from lib.models.project import AccessLevel, Project
 from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
 from lib.services.files.service import get_project_files_list_items
+from lib.services.projects.overview_state_cache import (
+    CachedRunState,
+    RunStateCache,
+    RunStateFields,
+)
 from lib.services.projects.revisions import resolve_revision
 from lib.services.projects.share_links import ShareStatusResponse, get_share_status
 from lib.services.workflow_runs.service import latest_run_per_type_stmt
@@ -37,6 +42,8 @@ logger = logging.getLogger(__name__)
 
 _STATE = col(WorkflowRun.state_json)
 _DOCX_EXTENSIONS = (".docx", ".doc")
+# Each run's state fields, per version, so a poll only reads changed states.
+_state_cache = RunStateCache()
 
 
 class WorkflowRunSummary(BaseModel):
@@ -136,41 +143,94 @@ def _only_for(workflow_type: WorkflowRunType, expr: Any) -> Any:
     return case((col(WorkflowRun.type) == workflow_type, expr), else_=None)
 
 
-def _overview_runs_stmt(project_id: str, revision: int) -> Select[Any]:
-    """The latest run per type, with the few state fields the overview reads."""
+def _unless_known(known: list[tuple[uuid.UUID, datetime]], expr: Any) -> Any:
+    """`expr`, or NULL on a run whose state at this version was already read.
+
+    CASE stops at the first branch that holds, so a known run's state is never
+    decompressed.
+    """
+    if not known:
+        return expr
+    is_known = tuple_(col(WorkflowRun.id), col(WorkflowRun.last_updated_at)).in_(known)
+    return case((is_known, None), else_=expr)
+
+
+def _overview_runs_stmt(
+    project_id: str,
+    revision: int,
+    known: list[tuple[uuid.UUID, datetime]] | None = None,
+) -> Select[Any]:
+    """The latest run per type, with the few state fields the overview reads.
+
+    `known` lists the `(run id, last_updated_at)` versions whose fields are
+    already cached: those rows come back with NULL in their place.
+    """
+    known = known or []
     ref_count = _json_array_length(_STATE["extracted_references"])
     main_file_path = _STATE["file"]["file_path"].astext
     return (
         latest_run_per_type_stmt(project_id, revision)
         .add_columns(
-            _STATE["errors"].label("errors"),
-            _only_for(WorkflowRunType.REFERENCE_EXTRACTION, ref_count).label(
-                "ref_count"
-            ),
-            _only_for(WorkflowRunType.DOCUMENT_PROCESSING, main_file_path).label(
-                "main_file_path"
-            ),
+            _unless_known(known, _STATE["errors"]).label("errors"),
+            _unless_known(
+                known, _only_for(WorkflowRunType.REFERENCE_EXTRACTION, ref_count)
+            ).label("ref_count"),
+            _unless_known(
+                known, _only_for(WorkflowRunType.DOCUMENT_PROCESSING, main_file_path)
+            ).label("main_file_path"),
         )
         .order_by(col(WorkflowRun.created_at).asc())
     )
 
 
+def _state_fields(
+    run: WorkflowRun,
+    known: dict[uuid.UUID, CachedRunState],
+    raw_errors: Any,
+    ref_count: int | None,
+    main_file_path: str | None,
+) -> CachedRunState:
+    """The run's state fields: cached at this version, or read from the row."""
+    cached = known.get(run.id)
+    if cached is not None and cached.version == run.last_updated_at:
+        return cached
+    fields = RunStateFields(
+        errors=tuple(current_run_errors(run.id, raw_errors)),
+        ref_count=ref_count,
+        main_file_path=main_file_path,
+    )
+    return CachedRunState(version=run.last_updated_at, fields=fields)
+
+
 async def _overview_runs(project_id: str, revision: int) -> _OverviewRuns:
-    stmt = _overview_runs_stmt(project_id, revision)
+    key = (project_id, revision)
+    known = _state_cache.known(key)
+    versions = [(run_id, cached.version) for run_id, cached in known.items()]
+    stmt = _overview_runs_stmt(project_id, revision, versions)
     async with get_async_db_session() as session:
         rows = (await session.execute(stmt)).all()
 
     result = _OverviewRuns(summaries=[])
-    for run, raw_errors, ref_count, main_file_path in rows:
+    read: dict[uuid.UUID, CachedRunState] = {}
+    for run, *state_columns in rows:
+        read[run.id] = _state_fields(run, known, *state_columns)
         # A run whose workflow no longer has a manifest is never surfaced.
-        if not is_available_workflow_type(run.type):
-            continue
-        result.summaries.append(_summary(run, raw_errors))
-        if run.type == WorkflowRunType.REFERENCE_EXTRACTION:
-            result.reference_count = ref_count or 0
-        elif run.type == WorkflowRunType.DOCUMENT_PROCESSING and main_file_path:
-            result.has_docx = main_file_path.lower().endswith(_DOCX_EXTENSIONS)
+        if is_available_workflow_type(run.type):
+            _add_run(result, run, read[run.id].fields)
+    _state_cache.store(key, read)
     return result
+
+
+def _add_run(result: _OverviewRuns, run: WorkflowRun, fields: RunStateFields) -> None:
+    result.summaries.append(
+        WorkflowRunSummary(
+            run=WorkflowRunPublic.model_validate(run), errors=list(fields.errors)
+        )
+    )
+    if run.type == WorkflowRunType.REFERENCE_EXTRACTION:
+        result.reference_count = fields.ref_count or 0
+    elif run.type == WorkflowRunType.DOCUMENT_PROCESSING and fields.main_file_path:
+        result.has_docx = fields.main_file_path.lower().endswith(_DOCX_EXTENSIONS)
 
 
 async def get_issues_version(project_id: uuid.UUID, revision: int) -> str:
