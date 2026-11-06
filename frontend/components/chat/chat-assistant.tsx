@@ -16,7 +16,14 @@ import {
   type ChatAttachmentMeta,
   type ChatMessage,
 } from '@/lib/chat/turn';
-import { listMessagesApiChatThreadsThreadIdMessagesGet, type ChatAttachment } from '@/lib/generated-api';
+import {
+  FOLLOW_INTERVAL_MS,
+  fetchThreadMessages,
+  followThread,
+  threadMessagesQueryKey,
+  threadRunningQueryKey,
+} from '@/lib/chat/follow';
+import { cancelChatTurnApiChatThreadsThreadIdCancelPost, type ChatAttachment } from '@/lib/generated-api';
 import {
   AssistantRuntimeProvider,
   useAui,
@@ -37,13 +44,6 @@ const attachmentAdapter = new DocumentAttachmentAdapter();
 // Module scope, so Thread's message subtrees don't re-render with this component.
 const THREAD_COMPONENTS: ThreadComponents = { Welcome: ChatWelcome, ReasoningGroup: ReasoningSteps };
 
-export const threadMessagesQueryKey = (threadId: string | undefined) =>
-  ['chat', 'thread', threadId, 'messages'] as const;
-
-async function fetchThreadMessages(threadId: string): Promise<ChatMessage[]> {
-  return (await listMessagesApiChatThreadsThreadIdMessagesGet({ path: { thread_id: threadId } })) as ChatMessage[];
-}
-
 function messageText(message: AppendMessage): string {
   return message.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
 }
@@ -62,7 +62,10 @@ function messageAttachments(message: AppendMessage): TurnAttachment[] {
 /**
  * The runtime for one thread. History is the checkpointer's, fetched from the
  * backend; the turn in flight is accumulated locally from the stream and
- * replaced by the server's copy once the turn is over. Editing and regenerating
+ * replaced by the server's copy once the turn is over. The turn runs on the
+ * server whether or not this page listens: a turn this page isn't streaming (one
+ * running before a reload, or whose stream ended early) is followed by polling
+ * the stored history until it ends. Editing and regenerating
  * are not offered: with server-owned history they would mean forking a
  * checkpoint, which this page does not do yet.
  */
@@ -80,11 +83,27 @@ function useChatThreadRuntime(): AssistantRuntime {
   });
 
   const [inflight, setInflight] = useState<ChatMessage[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const runtimeRef = useRef<AssistantRuntime | null>(null);
 
-  const messages = useMemo(() => [...(history.data ?? []), ...inflight], [history.data, inflight]);
+  const remoteRunning = useQuery({
+    enabled: remoteId !== undefined && !isStreaming,
+    queryKey: threadRunningQueryKey(remoteId),
+    queryFn: () => followThread(queryClient, remoteId!),
+    // Every time a stream ends, ask again: a cached "idle" may predate the turn.
+    staleTime: 0,
+    refetchInterval: (query) => (query.state.data ? FOLLOW_INTERVAL_MS : false),
+  });
+  const isRunning = isStreaming || remoteRunning.data === true;
+
+  // A message both stored and still held locally (a stopped turn the server went
+  // on to store) is shown once, from the store.
+  const messages = useMemo(() => {
+    const stored = history.data ?? [];
+    const storedIds = new Set(stored.map((message) => message.id));
+    return [...stored, ...inflight.filter((message) => !message.id || !storedIds.has(message.id))];
+  }, [history.data, inflight]);
   const threadMessages = useExternalMessageConverter({ callback: convertChatMessage, messages, isRunning });
 
   const onNew = async (message: AppendMessage) => {
@@ -103,11 +122,12 @@ function useChatThreadRuntime(): AssistantRuntime {
     // would take that over and leave the thread untitled.
     flushSync(() => {
       setInflight(turn.messages);
-      setIsRunning(true);
+      setIsStreaming(true);
     });
     const { remoteId: threadId } = await aui.threadListItem().initialize();
 
     let completed = false;
+    let detached = false;
     try {
       const events = streamChatTurn({
         threadId,
@@ -118,6 +138,10 @@ function useChatThreadRuntime(): AssistantRuntime {
         signal: controller.signal,
       });
       for await (const event of events) {
+        if (event.t === 'detached') {
+          detached = true;
+          break;
+        }
         setInflight(turn.apply(event));
         if (event.t === 'error') throw new Error(event.v);
       }
@@ -133,9 +157,22 @@ function useChatThreadRuntime(): AssistantRuntime {
       // its status showing what happened.
       const stored = await fetchThreadMessages(threadId).catch(() => null);
       if (stored) queryClient.setQueryData(threadMessagesQueryKey(threadId), stored);
-      setInflight(completed && stored ? [] : turn.assistantMessages);
-      setIsRunning(false);
+      // A detached turn keeps what streamed: the store may not hold it yet, and
+      // `messages` drops each local copy once the history has it.
+      setInflight(completed && !detached && stored ? [] : turn.assistantMessages);
+      // A detached turn is still running: keep showing it, and follow the history.
+      if (detached) queryClient.setQueryData(threadRunningQueryKey(threadId), true);
+      setIsStreaming(false);
     }
+  };
+
+  // Aborting the stream only stops listening; the turn itself is stopped on the
+  // server, from whichever worker runs it.
+  const onCancel = async () => {
+    abortRef.current?.abort();
+    if (!remoteId) return;
+    await cancelChatTurnApiChatThreadsThreadIdCancelPost({ path: { thread_id: remoteId } }).catch(() => undefined);
+    await queryClient.invalidateQueries({ queryKey: threadRunningQueryKey(remoteId) });
   };
 
   const runtime = useExternalStoreRuntime({
@@ -143,7 +180,7 @@ function useChatThreadRuntime(): AssistantRuntime {
     isLoading: history.isLoading,
     messages: threadMessages,
     onNew,
-    onCancel: async () => abortRef.current?.abort(),
+    onCancel,
     adapters: { attachments: attachmentAdapter },
   });
   useLayoutEffect(() => {

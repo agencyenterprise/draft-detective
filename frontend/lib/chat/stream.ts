@@ -17,6 +17,8 @@ export type ChatStreamEvent =
   /** `name` is the tool's: the call it answers may be in the stored history, not this stream. */
   | { t: 'tool_result'; id: string; result: unknown; isError?: boolean; mid?: string; name?: string }
   | { t: 'error'; v: string }
+  /** The stream ends, but the turn runs on: follow it in the stored history (`lib/chat/follow.ts`). */
+  | { t: 'detached' }
   /** The run paused to ask the person something; each value is what a tool asked. */
   | { t: 'interrupt'; v: unknown[] };
 

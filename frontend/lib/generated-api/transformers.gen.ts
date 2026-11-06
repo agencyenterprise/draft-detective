@@ -13,6 +13,7 @@ import type {
   GetProjectWorkflowRunsByTypeEndpointApiProjectProjectIdWorkflowRunsGetResponse,
   GetSharedResourceApiPublicShareTokenGetResponse,
   GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponse,
+  GetThreadApiChatThreadsThreadIdGetResponse,
   GetWorkflowStateApiWorkflowsWorkflowRunIdGetResponse,
   ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse,
   ListLogsApiAdminLogsGetResponse,
@@ -104,6 +105,13 @@ export const listThreadsApiChatThreadsGetResponseTransformer = async (
 export const createThreadApiChatThreadsPostResponseTransformer = async (
   data: any,
 ): Promise<CreateThreadApiChatThreadsPostResponse> => {
+  data = chatThreadResponseSchemaResponseTransformer(data);
+  return data;
+};
+
+export const getThreadApiChatThreadsThreadIdGetResponseTransformer = async (
+  data: any,
+): Promise<GetThreadApiChatThreadsThreadIdGetResponse> => {
   data = chatThreadResponseSchemaResponseTransformer(data);
   return data;
 };
