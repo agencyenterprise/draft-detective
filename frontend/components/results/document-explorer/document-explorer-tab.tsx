@@ -26,7 +26,7 @@ import { Columns2, ListFilter, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { DocumentHeader, DocumentView, DocumentViewHandle } from './document-view';
 import { IssuesColumn, IssuesColumnHandle, issueCountLabel } from './issues-column';
-import { issueLineRange } from './issue-lines';
+import { issueLineRange, issueScrollRange } from './issue-lines';
 import { IssueNav, useIssueShortcuts } from './issue-nav';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { OutlineRail } from './outline-rail';
@@ -168,7 +168,7 @@ export function DocumentExplorerTab({
       issuesRef.current?.scrollToIssue(issue);
       if (range) {
         selectLineRange(range);
-        documentRef.current?.scrollToLineRange(range);
+        documentRef.current?.scrollToLineRange(issueScrollRange(issue) ?? range);
       } else {
         clearLineSelection();
       }
@@ -218,7 +218,7 @@ export function DocumentExplorerTab({
       issuesRef.current?.scrollToIssue(issue);
       if (range) {
         selectLineRange(range);
-        documentRef.current?.scrollToLineRange(range);
+        documentRef.current?.scrollToLineRange(issueScrollRange(issue) ?? range);
         return;
       }
       // Nothing anchors this one, so the margin keeps it above the first

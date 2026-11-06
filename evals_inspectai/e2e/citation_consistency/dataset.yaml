@@ -452,6 +452,13 @@
     line: 89
     severity: high
     edit_expected: false
+  # One issue per line that cites the missing source: Okafor (2021) is cited again on line 317.
+  - id: long_missing_okafor_again
+    title: Citation Not in Reference List
+    anchor: (Okafor, 2021)
+    line: 317
+    severity: high
+    edit_expected: false
   - id: long_page_word
     title: Citation Format
     anchor: (Yamamoto, 2016, page 41)
@@ -505,7 +512,7 @@
     long enough for the skill's sub-agent path. The planted errors sit in their own paragraphs from
     Chapter 3 on (11 faulty citations), weighted to the back half, where a single pass gives the text less attention.
     Okafor 2021, absent from the list, is cited in Chapter 2 and again in Chapter 7, which land in different
-    sub-agent parts, and a correct run reports it once, on its first citation. Generated once from a seeded
+    sub-agent parts, and a correct run reports it on each line that cites it. Generated once from a seeded
     script and committed as plain markdown; Novak and Moreau are listed
     but never cited, and the two Davis and Patel 2022 entries are reached only by the ambiguous citation.
     In an author-date document the replacement for an ibid. note is the author's wording, so no edit

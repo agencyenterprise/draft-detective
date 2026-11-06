@@ -15,6 +15,7 @@ from lib.services.file_artifacts_service.file_artifacts_service_type import (
 from lib.services.files.conversion import convert_file_document_to_markdown
 from lib.services.files.document import FileDocument
 from lib.services.files.service import (
+    find_main_file,
     get_file_by_id,
     get_files_by_project_id,
     load_file_document,
@@ -177,20 +178,6 @@ class FileArtifactsService(FileArtifactsServiceType):
             f"No file document found with id {file_id} for project {self.project_id}"
         )
 
-    async def _load_main_files(self, revision: int | None = None) -> list[File] | None:
-        """Return the revision's MAIN files from DB (or None if DB read fails).
-
-        Defaults to the service's own revision; pass ``revision`` to read a
-        different (e.g. earlier) revision's files.
-        """
-        rev = revision if revision is not None else self.revision
-        return await self._try_load(
-            f"main files for {self.project_id}",
-            lambda: get_files_by_project_id(
-                self.project_id, roles=[FileRole.MAIN], revision=rev
-            ),
-        )
-
     async def _load_file_document_with_markdown(self, file: File) -> FileDocument:
         """Load a File row into a FileDocument, converting markdown on demand.
 
@@ -222,8 +209,10 @@ class FileArtifactsService(FileArtifactsServiceType):
         current revision.
         """
         rev = revision if revision is not None else self.revision
-        main_files = await self._load_main_files(rev)
-        main_file = main_files[0] if main_files else None
+        main_file = await self._try_load(
+            f"main file for {self.project_id}",
+            lambda: find_main_file(self.project_id, rev),
+        )
 
         if revision is not None:
             if main_file is None:

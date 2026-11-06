@@ -21,6 +21,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  GlobeIcon,
   LightbulbIcon,
   PencilLineIcon,
   ThumbsDownIcon,
@@ -141,10 +142,26 @@ export function IssueMeta({ issue }: { issue: Issue }) {
       )}
       {feedbackVisible && issue.id && <IssueFeedbackIndicator issueId={issue.id} />}
       {editCount > 0 && <IssueEditIndicator count={editCount} />}
-      {line && (
+      {line ? (
         <span className="ml-auto shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">{line}</span>
+      ) : (
+        <WholeDocumentMark />
       )}
     </span>
+  );
+}
+
+/** Where a line label would be, for an issue about the whole document: it names no lines. */
+function WholeDocumentMark() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="ml-auto shrink-0 cursor-help text-muted-foreground">
+          <GlobeIcon className="size-3" aria-label="About the whole document" />
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>About the whole document, not a specific passage</TooltipContent>
+    </Tooltip>
   );
 }
 

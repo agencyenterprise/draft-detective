@@ -10,11 +10,13 @@ import httpx
 import pytest
 
 from lib.workflows.reference_downloader.tools import download_file_from_url as dl
+from lib.workflows.reference_downloader.tools import url_guard
 
 URL = "https://publisher.example.org/paper"
 JINA_HOST = "r.jina.ai"
 PDF_BYTES = b"%PDF-1.7 fake pdf body"
 MARKDOWN = "# Paper title\n\nFull text."
+PUBLIC_IP = "93.184.215.14"
 
 Handler = Callable[[httpx.Request], httpx.Response]
 
@@ -60,12 +62,23 @@ def install(tmp_path: Path) -> Iterator[Callable[[FakeWeb], FakeWeb]]:
     real_client = httpx.AsyncClient
 
     def client_factory(**kwargs: Any) -> httpx.AsyncClient:
-        return real_client(transport=httpx.MockTransport(web[0].handle), **kwargs)
+        mock = httpx.MockTransport(web[0].handle)
+        transport = kwargs.pop("transport", None)
+        if isinstance(transport, url_guard.PinnedTransport):
+            transport.new_inner = lambda: mock
+        # A proxy mount answers from the same mock, addressed to the original host.
+        mounts = kwargs.pop("mounts", None) or {}
+        kwargs["mounts"] = {k: None if v is None else mock for k, v in mounts.items()}
+        return real_client(transport=transport or mock, **kwargs)
 
     with (
         patch.object(dl.httpx, "AsyncClient", client_factory),
         patch.object(dl.jina_rate_limiter, "aacquire", AsyncMock(return_value=True)),
         patch.object(dl.config, "FILE_UPLOADS_MOUNT_PATH", str(tmp_path)),
+        # No real DNS in tests: every host resolves to a public address.
+        # No proxy unless a test sets one: on macOS this reads system settings too.
+        patch.object(url_guard, "get_environment_proxies", return_value={}),
+        patch.object(url_guard, "_resolve", AsyncMock(return_value=[PUBLIC_IP])),
     ):
 
         def _install(fake: FakeWeb) -> FakeWeb:

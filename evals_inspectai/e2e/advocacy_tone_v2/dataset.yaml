@@ -1,6 +1,6 @@
 # Eval samples for the advocacy_tone_v2 workflow, in inventory form (see
 # evals_inspectai/common/issue_inventory.py). The workflow reports one issue per genuine occurrence,
-# bracketing the offending sentence, titled by kind: "Trigger Words Detected", "Advocacy
+# on the line of the offending sentence, titled by kind: "Trigger Words Detected", "Advocacy
 # Language Detected" or "Subjective Tone Detected"; the agent judges severity. A sentence the skill must leave alone
 # is a decoy tagged with the carve-out that applies. A sentence that fairly reads as a second kind as well
 # carries that second kind as an optional expected issue (`required: false`). The workflow proposes no

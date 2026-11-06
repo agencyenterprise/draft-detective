@@ -1,18 +1,15 @@
 """Feedback writes: the upsert key, the ownership gate and delete.
 
-The upsert finds an existing row by issue_id for issue feedback and by entity_path
-(a JSONB equality) for everything else, so these run against Postgres rather than
-mocks.
+The upsert finds an existing row by issue and user, and takes the run from the
+issue, so these run against Postgres rather than mocks.
 """
 
 import uuid
-from collections.abc import Awaitable, Callable
 
 import pytest
 import pytest_asyncio
 from fastapi import HTTPException
 from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -23,8 +20,6 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services import feedback_service
 from lib.workflows.models import SeverityEnum
-
-CLAIM_PATH = {"chunk_index": 0, "claim_index": 1}
 
 
 async def _add(record: object) -> None:
@@ -70,7 +65,6 @@ def _make_issue(run: WorkflowRun, title: str) -> Issue:
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0],
     )
 
 
@@ -119,8 +113,7 @@ async def run(author):
 
 @pytest_asyncio.fixture
 async def issues(run):
-    """Two issues on the same run. Their feedback rows share entity_path={}, so
-    only issue_id tells them apart."""
+    """Two issues on the same run, so only issue_id tells their feedback apart."""
     first, second = _make_issue(run, "First"), _make_issue(run, "Second")
     await _add(first)
     await _add(second)
@@ -128,22 +121,18 @@ async def issues(run):
 
 
 async def _upsert(
-    run: WorkflowRun,
+    issue: Issue,
     user: User,
     feedback_type: FeedbackType,
-    entity_path: dict | None = None,
-    issue_id: uuid.UUID | None = None,
     feedback_text: str | None = None,
 ) -> Feedback:
     async with get_async_db_session() as session:
         return await feedback_service.create_or_update_feedback(
             session=session,
-            workflow_run_id=run.id,
-            entity_path=entity_path if entity_path is not None else {},
+            issue_id=issue.id,
             feedback_type=feedback_type,
             user=user,
             feedback_text=feedback_text,
-            issue_id=issue_id,
         )
 
 
@@ -156,13 +145,9 @@ async def _upsert(
 async def test_issue_feedback_is_updated_in_place(run, author, issues):
     issue, _ = issues
     first = await _upsert(
-        run,
-        author,
-        FeedbackType.THUMBS_DOWN,
-        issue_id=issue.id,
-        feedback_text="wrong page",
+        issue, author, FeedbackType.THUMBS_DOWN, feedback_text="wrong page"
     )
-    second = await _upsert(run, author, FeedbackType.THUMBS_UP, issue_id=issue.id)
+    second = await _upsert(issue, author, FeedbackType.THUMBS_UP)
 
     assert second.id == first.id
     rows = await _feedback_rows(run.id)
@@ -172,10 +157,18 @@ async def test_issue_feedback_is_updated_in_place(run, author, issues):
 
 
 @pytest.mark.asyncio
+async def test_feedback_takes_its_run_from_the_issue(run, author, issues):
+    issue, _ = issues
+    created = await _upsert(issue, author, FeedbackType.THUMBS_UP)
+
+    assert created.workflow_run_id == run.id
+
+
+@pytest.mark.asyncio
 async def test_each_issue_on_a_run_keeps_its_own_feedback(run, author, issues):
     first_issue, second_issue = issues
-    await _upsert(run, author, FeedbackType.THUMBS_UP, issue_id=first_issue.id)
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=second_issue.id)
+    await _upsert(first_issue, author, FeedbackType.THUMBS_UP)
+    await _upsert(second_issue, author, FeedbackType.THUMBS_DOWN)
 
     by_issue = {row.issue_id: row.feedback_type for row in await _feedback_rows(run.id)}
     assert by_issue == {
@@ -184,101 +177,31 @@ async def test_each_issue_on_a_run_keeps_its_own_feedback(run, author, issues):
     }
 
 
-@pytest.mark.asyncio
-async def test_entity_feedback_matches_the_path_regardless_of_key_order(run, author):
-    """JSONB equality ignores key order, so the same claim addressed with its keys
-    swapped is still the same row."""
-    first = await _upsert(run, author, FeedbackType.THUMBS_DOWN, entity_path=CLAIM_PATH)
-    swapped = {"claim_index": 1, "chunk_index": 0}
-    second = await _upsert(run, author, FeedbackType.THUMBS_UP, entity_path=swapped)
-
-    assert second.id == first.id
-    assert len(await _feedback_rows(run.id)) == 1
-
-
-@pytest.mark.asyncio
-async def test_a_different_entity_path_creates_a_new_row(run, author):
-    await _upsert(run, author, FeedbackType.THUMBS_DOWN, entity_path=CLAIM_PATH)
-    await _upsert(run, author, FeedbackType.THUMBS_UP, entity_path={"chunk_index": 0})
-
-    paths = [row.entity_path for row in await _feedback_rows(run.id)]
-    assert sorted(paths, key=len) == [{"chunk_index": 0}, CLAIM_PATH]
-
-    async with get_async_db_session() as session:
-        found = await feedback_service.get_feedback(
-            session=session, workflow_run_id=run.id, entity_path=CLAIM_PATH, user=author
-        )
-    assert found is not None
-    assert found.feedback_type == FeedbackType.THUMBS_DOWN
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("rated", [1, 2], ids=["one-rated-issue", "two-rated-issues"])
-async def test_run_level_feedback_leaves_issue_feedback_alone(
-    rated, run, author, issues
-):
-    """Issue feedback is stored with entity_path={} too, so run-level feedback must
-    not match it. It used to silently overwrite and unlink a single rated issue's
-    row, and fail with MultipleResultsFound once two were rated."""
-    rated_issues = issues[:rated]
-    for issue in rated_issues:
-        await _upsert(run, author, FeedbackType.THUMBS_DOWN, issue_id=issue.id)
-    created = await _upsert(run, author, FeedbackType.THUMBS_UP)
-    updated = await _upsert(run, author, FeedbackType.THUMBS_UP, feedback_text="meh")
-
-    assert updated.id == created.id
-    by_issue = {row.issue_id: row.feedback_type for row in await _feedback_rows(run.id)}
-    assert by_issue == {
-        **{issue.id: FeedbackType.THUMBS_DOWN for issue in rated_issues},
-        None: FeedbackType.THUMBS_UP,
-    }
-
-    async with get_async_db_session() as session:
-        found = await feedback_service.get_feedback(
-            session=session, workflow_run_id=run.id, entity_path={}, user=author
-        )
-    assert found is not None and found.id == created.id
-
-
 # ---------------------------------------------------------------------------
 # Ownership gate
 # ---------------------------------------------------------------------------
 
-RunCall = Callable[[AsyncSession, uuid.UUID, User], Awaitable[object]]
-
-RUN_SCOPED_CALLS: dict[str, RunCall] = {
-    "create_or_update": lambda session, run_id, user: (
-        feedback_service.create_or_update_feedback(
-            session=session,
-            workflow_run_id=run_id,
-            entity_path={},
-            feedback_type=FeedbackType.THUMBS_UP,
-            user=user,
-        )
-    ),
-    "get_feedback": lambda session, run_id, user: feedback_service.get_feedback(
-        session=session, workflow_run_id=run_id, entity_path={}, user=user
-    ),
-}
-
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("call", RUN_SCOPED_CALLS.values(), ids=RUN_SCOPED_CALLS.keys())
-async def test_a_stranger_is_refused_on_someone_elses_run(call, run, stranger):
+async def test_a_stranger_cannot_rate_someone_elses_issue(run, stranger, issues):
+    issue, _ = issues
     with pytest.raises(HTTPException) as excinfo:
-        async with get_async_db_session() as session:
-            await call(session, run.id, stranger)
+        await _upsert(issue, stranger, FeedbackType.THUMBS_UP)
 
     assert excinfo.value.status_code == 403
     assert await _feedback_rows(run.id) == []
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("call", RUN_SCOPED_CALLS.values(), ids=RUN_SCOPED_CALLS.keys())
-async def test_an_unknown_run_is_a_404(call, author):
+async def test_rating_an_unknown_issue_is_a_404(author):
     with pytest.raises(HTTPException) as excinfo:
         async with get_async_db_session() as session:
-            await call(session, uuid.uuid4(), author)
+            await feedback_service.create_or_update_feedback(
+                session=session,
+                issue_id=uuid.uuid4(),
+                feedback_type=FeedbackType.THUMBS_UP,
+                user=author,
+            )
 
     assert excinfo.value.status_code == 404
 
@@ -291,9 +214,7 @@ async def test_an_unknown_run_is_a_404(call, author):
 @pytest.mark.asyncio
 async def test_feedback_by_issue_returns_the_authors_row(run, author, issues):
     first_issue, second_issue = issues
-    created = await _upsert(
-        run, author, FeedbackType.THUMBS_UP, issue_id=first_issue.id
-    )
+    created = await _upsert(first_issue, author, FeedbackType.THUMBS_UP)
 
     async with get_async_db_session() as session:
         found = await feedback_service.get_feedback_by_issue(
@@ -336,8 +257,8 @@ async def test_feedback_by_unknown_issue_is_a_404(author):
 
 
 @pytest.mark.asyncio
-async def test_the_author_deletes_their_feedback(run, author):
-    created = await _upsert(run, author, FeedbackType.THUMBS_UP, entity_path=CLAIM_PATH)
+async def test_the_author_deletes_their_feedback(run, author, issues):
+    created = await _upsert(issues[0], author, FeedbackType.THUMBS_UP)
 
     async with get_async_db_session() as session:
         deleted = await feedback_service.delete_feedback(
@@ -349,8 +270,10 @@ async def test_the_author_deletes_their_feedback(run, author):
 
 
 @pytest.mark.asyncio
-async def test_deleting_someone_elses_feedback_is_refused(run, author, stranger):
-    created = await _upsert(run, author, FeedbackType.THUMBS_UP, entity_path=CLAIM_PATH)
+async def test_deleting_someone_elses_feedback_is_refused(
+    run, author, stranger, issues
+):
+    created = await _upsert(issues[0], author, FeedbackType.THUMBS_UP)
 
     with pytest.raises(HTTPException) as excinfo:
         async with get_async_db_session() as session:

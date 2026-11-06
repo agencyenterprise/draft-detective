@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from lib.models.issue import Issue
+from lib.services.docx.comment_anchors import CommentAnchor
 from lib.services.docx.edit_export import EditExport
 from lib.services.docx.edit_notes import EditNote
 from lib.services.docx.manipulator import (
@@ -18,7 +19,7 @@ from lib.services.docx.manipulator import (
     count_unanchorable_issues,
     issue_to_comment,
 )
-from lib.services.docx.service import _resolved_revision, generate_docx
+from lib.services.docx.service import generate_docx
 from lib.workflows.models import SeverityEnum, WorkflowRunType
 
 _SERVICE = "lib.services.docx.service"
@@ -33,7 +34,6 @@ def _make_issue(
     description: str,
     severity: SeverityEnum,
     workflow_type: WorkflowRunType,
-    chunk_indices: list[int] | None = None,
     start_line: int | None = None,
     end_line: int | None = None,
     long_description: str | None = None,
@@ -52,7 +52,6 @@ def _make_issue(
         suggested_action=suggested_action,
         severity=severity,
         workflow_type=workflow_type,
-        chunk_indices=chunk_indices,
         start_line=start_line,
         end_line=end_line,
         created_at=now,
@@ -83,6 +82,29 @@ class TestIssueToComment:
         assert "This claim lacks evidence" in comment.comment_text
         assert comment.severity == CommentSeverity.HIGH
         assert comment.get_author() == "🚨 High Priority"
+
+    def test_a_passage_anchor_moves_the_comment_to_the_passage_paragraph(self):
+        issue = _make_issue(
+            title="Trigger word",
+            description="Certainty language",
+            severity=SeverityEnum.MEDIUM,
+            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
+            start_line=1,
+            end_line=5,
+        )
+        anchor = CommentAnchor(
+            paragraph_index=1,
+            find="certainly",
+            occurrence=0,
+            paragraph_text="It will certainly work.",
+        )
+
+        comment = issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}, comment_anchor=anchor)
+
+        assert comment is not None
+        assert comment.paragraph_index == 1
+        assert comment.anchor == anchor
+        assert issue_to_comment(issue, {0: (1, 2), 1: (3, 5)}).anchor is None  # type: ignore[union-attr]
 
     def test_without_severity_the_comment_names_no_priority(self):
         """A project that doesn't group by severity exports plain Draft Detective comments."""
@@ -209,25 +231,6 @@ class TestIssueToComment:
         assert comment is not None
         assert comment.comment_text.endswith("This claim lacks evidence")
 
-    def test_legacy_chunk_indices_issue_is_dropped(self):
-        """An issue carrying only chunk_indices can no longer be placed.
-
-        Those rows pre-date workflows emitting line ranges, and the chunk data
-        that used to translate them went with the chunk_splitting workflow. The
-        export drops them rather than guessing at a paragraph; the caller logs
-        how many were omitted.
-        """
-        issue = _make_issue(
-            title="Legacy issue",
-            description="Only has chunk_indices",
-            severity=SeverityEnum.MEDIUM,
-            workflow_type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-            chunk_indices=[1],
-        )
-        paragraph_line_ranges = {0: (1, 2), 1: (3, 5)}
-
-        assert issue_to_comment(issue, paragraph_line_ranges) is None
-
     def test_returns_none_when_line_range_unresolvable(self):
         issue = _make_issue(
             title="Invalid reference",
@@ -329,13 +332,6 @@ class TestUnanchorableIssueAccounting:
                 start_line=3,
                 end_line=5,
             ),
-            _make_issue(  # legacy: chunk_indices only
-                title="legacy",
-                description="d",
-                severity=SeverityEnum.LOW,
-                workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
-                chunk_indices=[1],
-            ),
             _make_issue(  # no location at all
                 title="locationless",
                 description="d",
@@ -357,7 +353,7 @@ class TestUnanchorableIssueAccounting:
             self._mixed_issues(), self.PARAGRAPHS
         )
 
-        assert (no_range, unmatched) == (2, 1)
+        assert (no_range, unmatched) == (1, 1)
 
     def test_total_matches_what_the_comments_path_drops(self):
         issues = self._mixed_issues()
@@ -612,18 +608,3 @@ class TestGenerateDocxWithoutTrackedChanges:
         run_ids = {call.kwargs["workflow_run_id"] for call in calls}
         assert len(calls) == 2
         assert len(run_ids) == 2
-
-
-class TestResolvedRevision:
-    def test_none_falls_back_to_the_current_revision(self):
-        assert _resolved_revision(None, 3) == 3
-
-    def test_a_revision_the_project_has_is_kept(self):
-        assert _resolved_revision(1, 3) == 1
-        assert _resolved_revision(3, 3) == 3
-
-    def test_anything_outside_the_range_is_refused(self):
-        with pytest.raises(ValueError, match="revisions 1 to 3"):
-            _resolved_revision(4, 3)
-        with pytest.raises(ValueError, match="revisions 1 to 3"):
-            _resolved_revision(0, 3)

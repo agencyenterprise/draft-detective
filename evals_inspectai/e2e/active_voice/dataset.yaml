@@ -616,6 +616,114 @@
     reason: generic
   notes: The Draft Detective demo report. Findings and decoys come from reviewing two Active Voice runs on it.
 
+# ---- indirect summary sentences ----
+- input: |
+    # Library Digital Literacy Pilot
+
+    ## Findings
+
+    Three themes emerged from the interviews with librarians. Demand exceeded class capacity at every branch, older patrons preferred small groups, and most patrons wanted help with a specific task rather than a general course. Table 2 summarizes attendance by branch.
+
+    ## Recommendations
+
+    Several key recommendations emerged from the analysis of class attendance data, interviews with librarians, and a review of comparable programs. We list them in order of cost.
+
+    First, the library should offer evening classes at the two branches with the longest waitlists. Second, it should train volunteers to give one-on-one help.
+  expected_issues:
+  - id: recommendations_emerged
+    title: Indirect Summary Sentence
+    anchor: Several key recommendations emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  decoys:
+  - anchor: Three themes emerged from the interviews with librarians.
+    reason: emergent_finding
+  - anchor: Table 2 summarizes attendance by branch.
+    reason: active
+  - anchor: We list them in order of cost.
+    reason: active
+  notes: Themes emerge from interview data; recommendations are the authors' own and do not.
+- input: |
+    # County Court Text Reminder Evaluation
+
+    ## Results
+
+    It is in Table 4 that the reminder costs for each county are presented. What the analysis showed across the four counties was a steady decline in missed court dates after reminders began. Missed court dates fell from 21 percent to 14 percent in the first year.
+
+    ## Conclusions
+
+    A number of conclusions arose from comparing the four counties' court records. We discuss each below, starting with cost.
+  expected_issues:
+  - id: cleft_table
+    title: Passive Voice
+    anchor: It is in Table 4 that the reminder costs
+    edit_expected: true
+    edit:
+      must_include:
+      - Table 4
+      must_not_include:
+      - It is in Table 4
+  - id: conclusions_arose
+    title: Indirect Summary Sentence
+    anchor: A number of conclusions arose from comparing
+    edit_expected: true
+    edit:
+      must_not_include:
+      - arose
+  decoys:
+  - anchor: What the analysis showed across the four counties
+    reason: other_check
+  - anchor: Missed court dates fell from 21 percent to 14 percent in the first year.
+    reason: active
+  notes: The cleft wraps a signposting passive, which takes the table as its subject. The pseudo-cleft "What the
+    analysis showed... was" is a placeholder lead-in, which Concision owns.
+- input: |
+    # Regional Transit Fare Study
+
+    ## Findings
+
+    If we assume that fares rose by 10 percent, it is possible to estimate the effect on ridership for each of the four routes. A summary of the ridership changes for each route is shown in Figure 3. This summary suggests that the express routes would lose the most riders unless the authority adds off-peak service. These numbers are reflective of two patterns in the data. The section below contains several tables to illustrate the changes by route.
+
+    ## Conclusions
+
+    It is in Table 5 that the cost of each option is compared. Several lessons emerged from the authority's ridership counts and rider surveys. The first concerns off-peak service.
+  expected_issues:
+  - id: summary_shown
+    title: Passive Voice
+    anchor: A summary of the ridership changes for each route is shown in Figure 3.
+    edit_expected: true
+    edit:
+      must_not_include:
+      - is shown in
+  - id: cleft_table_5
+    title: Passive Voice
+    anchor: It is in Table 5 that the cost of each option is compared.
+    edit_expected: true
+    edit:
+      must_not_include:
+      - It is in Table 5
+  - id: lessons_emerged_authority
+    title: Indirect Summary Sentence
+    anchor: Several lessons emerged from the authority's ridership counts
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
+  decoys:
+  - anchor: it is possible to estimate the effect on ridership
+    reason: other_check
+  - anchor: This summary suggests that the express routes would lose the most riders
+    reason: active
+  - anchor: These numbers are reflective of two patterns in the data.
+    reason: other_check
+  - anchor: The section below contains several tables to illustrate the changes by route.
+    reason: active
+  notes: Indirect lead-ins of several kinds. The cleft and the passive figure lead-in are signposting passives, the
+    lessons said to emerge are an indirect summary sentence, the placeholder and wordy lead-ins are Concision's, and the hedged "suggests" sentence must stay its own
+    sentence, not merged into the Figure 3 edit as "Figure 3 shows...".
+
 # ---- interior patterns in long paragraphs (reviewer feedback) ----
 - input: file://files/writing_style/pathways_short.md
   expected_issues:
@@ -633,6 +741,13 @@
     edit:
       must_not_include:
       - was further compounded by
+  - id: lessons_emerged
+    title: Indirect Summary Sentence
+    anchor: Several important lessons emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
   decoys:
   - anchor: Pathways is located in three service hubs
     reason: stative
@@ -661,6 +776,13 @@
     edit:
       must_not_include:
       - was further compounded by
+  - id: lessons_emerged
+    title: Indirect Summary Sentence
+    anchor: Several important lessons emerged from the analysis
+    edit_expected: true
+    edit:
+      must_not_include:
+      - emerged
   - id: filler_01
     title: Passive Voice
     anchor: Each year, a large number of
@@ -1461,6 +1583,13 @@
     edit:
       must_not_include:
       - was made wider by
+  - id: lessons_emerged
+    title: Indirect Summary Sentence
+    anchor: A number of key lessons surfaced from the review
+    edit_expected: true
+    edit:
+      must_not_include:
+      - surfaced
   decoys:
   - anchor: Harbor's main office is based in
     reason: stative

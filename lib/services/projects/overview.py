@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import case, func, select
+from sqlalchemy import Select, case, func, select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -126,16 +126,37 @@ class _OverviewRuns(BaseModel):
     has_docx: bool = False
 
 
-async def _overview_runs(project_id: str, revision: int) -> _OverviewRuns:
-    stmt = (
+def _only_for(workflow_type: WorkflowRunType, expr: Any) -> Any:
+    """`expr` on runs of one type, NULL on the rest.
+
+    Each path read from `state_json` decompresses the whole value, which runs to
+    several MB for document processing, so a path one run type needs is never
+    evaluated on the others.
+    """
+    return case((col(WorkflowRun.type) == workflow_type, expr), else_=None)
+
+
+def _overview_runs_stmt(project_id: str, revision: int) -> Select[Any]:
+    """The latest run per type, with the few state fields the overview reads."""
+    ref_count = _json_array_length(_STATE["extracted_references"])
+    main_file_path = _STATE["file"]["file_path"].astext
+    return (
         latest_run_per_type_stmt(project_id, revision)
         .add_columns(
             _STATE["errors"].label("errors"),
-            _json_array_length(_STATE["extracted_references"]).label("ref_count"),
-            _STATE["file"]["file_path"].astext.label("main_file_path"),
+            _only_for(WorkflowRunType.REFERENCE_EXTRACTION, ref_count).label(
+                "ref_count"
+            ),
+            _only_for(WorkflowRunType.DOCUMENT_PROCESSING, main_file_path).label(
+                "main_file_path"
+            ),
         )
         .order_by(col(WorkflowRun.created_at).asc())
     )
+
+
+async def _overview_runs(project_id: str, revision: int) -> _OverviewRuns:
+    stmt = _overview_runs_stmt(project_id, revision)
     async with get_async_db_session() as session:
         rows = (await session.execute(stmt)).all()
 

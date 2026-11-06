@@ -11,6 +11,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { HelpTopicId } from '@/components/help/topics';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { useExperimentalFeatures } from '@/context/experimental-features-context';
 import { GlobalFormValidationError, useForm } from '@tanstack/react-form';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
@@ -151,8 +152,10 @@ export function WorkflowConfigDialog({
   return (
     <Dialog open={isOpen} onOpenChange={onCancel}>
       {/* The list scrolls inside the dialog while the title and the run button
-          stay put, so the action is never below the fold of a dozen rows. */}
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-4xl">
+          stay put, so the action is never below the fold of a dozen rows. With
+          the full picker the height is fixed rather than capped: the list fills
+          it anyway, and a search narrowing the rows must not resize the dialog. */}
+      <DialogContent className={cn('flex flex-col gap-0 p-0 sm:max-w-4xl', type ? 'max-h-[90vh]' : 'h-[90vh]')}>
         <DialogHeader className="border-b px-6 pt-6 pb-4">
           <DialogTitle>{title ?? (assessmentName ? `Run ${assessmentName}` : 'Run assessments')}</DialogTitle>
           <DialogDescription>
@@ -166,43 +169,47 @@ export function WorkflowConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          {showPublicationDateField && (
-            <form.Field name="publicationDate">
+        {/* Top padding lives inside the scroller, not on it, so the picker's
+            sticky search box can sit flush against the header. */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
+          <div className="space-y-4 pt-4">
+            {showPublicationDateField && (
+              <form.Field name="publicationDate">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="publication-date" required>
+                      Document Publication Date
+                    </Label>
+                    <Input
+                      id="publication-date"
+                      type="date"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      error={!field.state.meta.isValid}
+                      required={true}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      The publication date of the document. For unpublished documents, use the date of the last update
+                      or the current date.
+                    </p>
+                  </div>
+                )}
+              </form.Field>
+            )}
+
+            <form.Field name="workflowTypes">
               {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="publication-date" required>
-                    Document Publication Date
-                  </Label>
-                  <Input
-                    id="publication-date"
-                    type="date"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    error={!field.state.meta.isValid}
-                    required={true}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    The publication date of the document. For unpublished documents, use the date of the last update or
-                    the current date.
-                  </p>
-                </div>
+                <WorkflowTypeSelector
+                  restrictToType={type}
+                  projectId={projectId}
+                  selectedTypes={field.state.value}
+                  onSelectionChange={field.handleChange}
+                  disabledTypes={type ? [type] : undefined}
+                  runningTypes={runningTypes}
+                />
               )}
             </form.Field>
-          )}
-
-          <form.Field name="workflowTypes">
-            {(field) => (
-              <WorkflowTypeSelector
-                restrictToType={type}
-                projectId={projectId}
-                selectedTypes={field.state.value}
-                onSelectionChange={field.handleChange}
-                disabledTypes={type ? [type] : undefined}
-                runningTypes={runningTypes}
-              />
-            )}
-          </form.Field>
+          </div>
         </div>
 
         {/* The consent sits with the run button rather than at the end of the

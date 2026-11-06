@@ -52,7 +52,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 |------|-------------|
 | `e2e/abbreviation_checker` | Abbreviation compliance checks, run via the full workflow. A second task, `abbreviation_checker_report_e2e.py`, runs the same checks on a full-length report and nine variants of it with definitions removed; it is kept separate because its samples are long. |
 | `e2e/about_this_ger` | Validates the preface / "About This" section and author biographies against publication requirements. Its workflow is retired from the picker in favour of Structural Checks (GER). |
-| `e2e/active_voice` | Flags passive voice and sentences that hide who acts, with active rewrites. `active_voice_judge_calibration.py` checks the edit judge against human-labelled pairs; it calls no API, only the grader. |
+| `e2e/active_voice` | Flags passive voice, sentences that hide who acts, and recommendations or conclusions said to emerge by themselves, with active rewrites. `active_voice_judge_calibration.py` checks the edit judge against human-labelled pairs; it calls no API, only the grader. |
 | `e2e/advocacy_tone_v2` | Flags trigger words, advocacy language, and subjective tone. |
 | `e2e/audience_fit` | Checks that the document names a specific audience and that its vocabulary suits it. |
 | `e2e/citation_consistency` | Checks in-text and note citations against the document's own reference list and house citation style, with no web access. |
@@ -75,7 +75,7 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/reviewer_coverage_report` | Review Assistant: the coverage report on how a revised draft answers each reviewer point. |
 | `e2e/reviewer_response_memos` | Review Assistant: the author's response memo to each reviewer. |
 | `e2e/revision_planning_summary` | Review Assistant: the revision-planning summary of a draft's reviewer memos. |
-| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions, faulty parallelism and indirect summary sentences, with restructured rewrites. |
+| `e2e/sentence_structure` | Flags incomplete sentences, broken shared constructions and faulty parallelism, with restructured rewrites. |
 | `e2e/structural_checks_ger` | Checks required sections, the preface's elements and each author biography in one pass (Structural Checks (GER)), on the samples of the two suites it replaces. |
 | `e2e/writing_consistency` | Checks terms, spellings, tenses, tone and house-style compounds are consistent across the document. |
 

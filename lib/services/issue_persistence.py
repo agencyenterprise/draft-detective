@@ -17,7 +17,12 @@ from lib.config.database import get_async_db_session
 from lib.models.issue import Issue, IssueStatus
 from lib.models.issue_edit import IssueEdit
 from lib.services.text.sanitization import strip_control_chars
-from lib.workflows.models import DocumentIssue, ProposedEdit, WorkflowRunType
+from lib.workflows.models import (
+    DocumentIssue,
+    LocatedQuote,
+    ProposedEdit,
+    WorkflowRunType,
+)
 from lib.workflows.registry import available_workflow_type_values
 
 logger = logging.getLogger(__name__)
@@ -54,6 +59,23 @@ def _edit_rows(edits: list[ProposedEdit]) -> list[IssueEdit]:
     ]
 
 
+def _passage_columns(passage: LocatedQuote | None) -> dict[str, str | int | None]:
+    """The `passage_*` column values for an issue's passage, all None without one."""
+    if passage is None:
+        return {
+            "passage_text": None,
+            "passage_display_text": None,
+            "passage_display_occurrence": None,
+            "passage_line": None,
+        }
+    return {
+        "passage_text": strip_control_chars(passage.original_text),
+        "passage_display_text": strip_control_chars(passage.display_text),
+        "passage_display_occurrence": passage.display_occurrence,
+        "passage_line": passage.start_line,
+    }
+
+
 async def persist_workflow_issues(
     workflow_run_id: uuid.UUID,
     project_id: uuid.UUID,
@@ -68,9 +90,7 @@ async def persist_workflow_issues(
     Archives existing active issues of the same workflow type for the project
     and revision, then creates new issues from the provided DocumentIssue list.
 
-    Issues carry the line range their workflow reported. `chunk_indices` is only
-    ever set on rows written before workflows moved to line ranges; nothing
-    populates it now.
+    Issues carry the line range their workflow reported.
     """
     async with get_async_db_session() as session:
         await session.execute(
@@ -97,11 +117,11 @@ async def persist_workflow_issues(
                 suggested_action=_strip_control_chars(doc_issue.suggested_action),
                 severity=doc_issue.severity,
                 workflow_type=doc_issue.type,
-                chunk_indices=doc_issue.chunk_indices,
                 start_line=doc_issue.start_line,
                 end_line=doc_issue.end_line,
                 status=IssueStatus.ACTIVE,
                 revision=revision,
+                **_passage_columns(doc_issue.passage),
             )
             issue.edit_rows = _edit_rows(doc_issue.edits)
             session.add(issue)

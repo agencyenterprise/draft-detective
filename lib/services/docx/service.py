@@ -5,6 +5,7 @@ import uuid
 from typing import Literal
 
 from lib.models.workflow_run import WorkflowRunType
+from lib.services.docx.comment_anchors import plan_comment_anchors
 from lib.services.docx.edit_export import (
     EditExport,
     describe_edit_export,
@@ -23,27 +24,11 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import get_project_issues
+from lib.services.projects.revisions import resolve_existing_revision
 from lib.services.projects.service import get_project_by_id
 from lib.workflows.models import SeverityEnum
 
 logger = logging.getLogger(__name__)
-
-
-def _resolved_revision(requested: int | None, current: int) -> int:
-    """The revision to export, defaulting to the project's current one.
-
-    A revision the project does not have is refused rather than silently
-    served as the current one: the caller asked for a specific document, and
-    the issues and counts it is paired with belong to that revision.
-    """
-    if requested is None:
-        return current
-    if requested < 1 or requested > current:
-        raise ValueError(
-            f"Revision {requested} does not exist for this project "
-            f"(it has revisions 1 to {current})"
-        )
-    return requested
 
 
 async def generate_docx(
@@ -83,7 +68,9 @@ async def generate_docx(
     project = await get_project_by_id(project_id)
     if project is None:
         raise ValueError(f"Project {project_id} not found")
-    revision = _resolved_revision(revision, project.current_revision)
+    # A revision the project does not have is refused rather than served as
+    # the current one: the issues and counts it is paired with belong to it.
+    revision = resolve_existing_revision(project, revision)
 
     file_artifacts = FileArtifactsService(project_id, revision=revision)
     # Asked for by name, not left to the service's default: without an explicit
@@ -146,9 +133,9 @@ async def generate_docx(
             docx_type = DocxManipulatorType.COMMENTS
 
         # The export silently skips issues it cannot tie to a paragraph, so account
-        # for them here. Two causes: no
-        # line range at all (typically a legacy row carrying only chunk_indices, from
-        # before workflows emitted line ranges), or a range overlapping no paragraph.
+        # for them here. Two causes: no line range at all (typically a legacy row
+        # from before workflows emitted line ranges), or a range overlapping no
+        # paragraph.
         no_range, unmatched = count_unanchorable_issues(issues, paragraph_line_ranges)
         if no_range or unmatched:
             logger.warning(
@@ -188,6 +175,15 @@ async def generate_docx(
                 share_token_for_comments = None
             workspace_root = str(docx_manipulator_service.get_output_dir())
             comment_type = docx_type
+            # Located against the original file, before anything is written,
+            # like the redlines' pre-flight.
+            anchors = await plan_comment_anchors(
+                issues=issues,
+                markdown=main_file.markdown or "",
+                docx_path=docx_path,
+                paragraph_line_ranges=paragraph_line_ranges,
+                workspace_root=workspace_root,
+            )
 
             async def write_comments(edit_export: EditExport) -> str:
                 # A fresh output id per call, so concurrent exports never collide
@@ -202,6 +198,7 @@ async def generate_docx(
                             share_token_for_comments,
                             edit_notes=edit_export.notes_for(issue.id),
                             show_severity=project.group_by_severity,
+                            comment_anchor=anchors.get(issue.id),
                         )
                     )
                 ]

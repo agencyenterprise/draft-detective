@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lib.workflows.models import (
     DocumentIssue,
+    LocatedQuote,
     ProposedEdit,
     SeverityEnum,
     WorkflowRunType,
@@ -55,6 +56,13 @@ class IssueItem(BaseModel):
         description=(
             "Proposed edits resolving this issue, already located in the document. "
             "Empty unless the agent proposed one and it passed validation."
+        ),
+    )
+    passage: LocatedQuote | None = Field(
+        default=None,
+        description=(
+            "The exact words this issue is about, already located in the "
+            "document. None when the issue concerns its whole line range."
         ),
     )
 
@@ -169,11 +177,7 @@ def issues_from_agent_result(
     result: AgentCheckResult | DeepAgentResult,
     workflow_type: WorkflowRunType,
 ) -> list[DocumentIssue]:
-    """Convert a result's issues into DocumentIssue objects.
-
-    Emits line ranges only; ``chunk_indices`` is left unset and derived at
-    persistence time from the line range.
-    """
+    """Convert a result's issues into DocumentIssue objects."""
 
     return [
         DocumentIssue(
@@ -186,6 +190,7 @@ def issues_from_agent_result(
             start_line=issue.start_line,
             end_line=issue.end_line,
             edits=list(issue.edits),
+            passage=issue.passage,
         )
         for issue in result.issues
     ]

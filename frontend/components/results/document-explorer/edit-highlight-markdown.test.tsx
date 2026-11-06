@@ -3,7 +3,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReactMarkdown, { type ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { editRanges } from './edit-highlight';
+import { quoteRanges } from './edit-highlight';
 import type { ProposedEdit } from './proposed-edit';
 
 /** Stands in for the document view's paragraph block. */
@@ -53,7 +53,7 @@ describe('edit highlights over real ReactMarkdown output', () => {
   it('finds a quote that ends in a DOCX footnote reference', () => {
     const container = render('Intro.\n\nThe protocol was applied to the second cohort [[1]](#footnote-2).');
 
-    const [range] = editRanges(container, [edit('second cohort [[1]](#footnote-2)', 'second cohort [1]', 3)]);
+    const [range] = quoteRanges(container, [edit('second cohort [[1]](#footnote-2)', 'second cohort [1]', 3)]);
 
     expect(range.toString()).toBe('second cohort [1]');
   });
@@ -61,7 +61,7 @@ describe('edit highlights over real ReactMarkdown output', () => {
   it('keeps a mid-line year that reads like a list marker', () => {
     const container = render('Smith et al. 2019. Annual report.');
 
-    const [range] = editRanges(container, [edit('2019. Annual report', '2019. Annual report', 1)]);
+    const [range] = quoteRanges(container, [edit('2019. Annual report', '2019. Annual report', 1)]);
 
     expect(range.toString()).toBe('2019. Annual report');
   });
@@ -73,7 +73,7 @@ describe('edit highlights over real ReactMarkdown output', () => {
 
     expect(container.textContent).toContain('2 * 3');
 
-    const [range] = editRanges(container, [edit('2 * 3', '2 * 3', 1)]);
+    const [range] = quoteRanges(container, [edit('2 * 3', '2 * 3', 1)]);
 
     expect(range.toString()).toBe('2 * 3');
   });
@@ -84,7 +84,7 @@ describe('edit highlights over real ReactMarkdown output', () => {
 
     expect(container.textContent).toContain('**strict**');
 
-    const [range] = editRanges(container, [edit('`**strict**` flag', '**strict** flag', 1)]);
+    const [range] = quoteRanges(container, [edit('`**strict**` flag', '**strict** flag', 1)]);
 
     expect(range.toString()).toBe('**strict** flag');
   });
@@ -92,7 +92,7 @@ describe('edit highlights over real ReactMarkdown output', () => {
   it('marks the bold repeat rather than the plain one before it', () => {
     const container = render('Figure 3 and **Figure 3** close the section.');
 
-    const [range] = editRanges(container, [edit('**Figure 3**', 'Figure 3', 1, 1)]);
+    const [range] = quoteRanges(container, [edit('**Figure 3**', 'Figure 3', 1, 1)]);
 
     expect(range.startContainer.parentElement?.tagName).toBe('STRONG');
   });

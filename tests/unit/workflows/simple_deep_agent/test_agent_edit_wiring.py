@@ -15,7 +15,7 @@ from deepagents.backends.utils import create_file_data
 from langchain_core.messages import AIMessage
 from langchain_core.tools import BaseTool
 
-from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent, _main_document_text
+from lib.workflows.simple_deep_agent.agent import SimpleDeepAgent, main_document_text
 from lib.workflows.simple_deep_agent.agent_types import MAIN_DOCUMENT_PATH
 
 _DOCUMENT = "# Title\n\nThe CBT protocol was applied."
@@ -54,9 +54,9 @@ def _report_issue(tools: list[BaseTool]) -> BaseTool:
 
 
 def test_main_document_text_reads_the_backend_file_or_none():
-    assert _main_document_text({}) is None
+    assert main_document_text({}) is None
     files = {MAIN_DOCUMENT_PATH: create_file_data(_DOCUMENT)}
-    assert _main_document_text(files) == _DOCUMENT
+    assert main_document_text(files) == _DOCUMENT
 
 
 @pytest.mark.asyncio

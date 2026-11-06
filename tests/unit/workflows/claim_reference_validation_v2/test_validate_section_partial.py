@@ -14,10 +14,12 @@ from lib.agents.citation_validator import (
     SectionValidationResult,
 )
 from lib.agents.claim_verifier import EvidenceAlignmentLevel
+from lib.workflows.claim_reference_validation_v2.manifest import _build_issue
 from lib.workflows.claim_reference_validation_v2.nodes import validate_sections
 from lib.workflows.claim_reference_validation_v2.state import (
     SectionVerificationStatus,
 )
+from lib.workflows.models import WorkflowRunType
 
 SECTION_INPUT = {
     "section_index": 8,
@@ -46,9 +48,18 @@ def _partial_error() -> PartialSectionValidationError:
     return error
 
 
+# The cited sentence sits on line 91, where the assessment says it does.
+_MARKDOWN = "\n".join(
+    ["Filler line."] * 90
+    + ["Competition is fierce. AI development is decentralized (The Economist, 2024)."]
+)
+
+
 def _runtime() -> SimpleNamespace:
     file_artifacts_service = SimpleNamespace(
-        get_main_file=AsyncMock(return_value=SimpleNamespace(file_id="main-file")),
+        get_main_file=AsyncMock(
+            return_value=SimpleNamespace(file_id="main-file", markdown=_MARKDOWN)
+        ),
         get_references=AsyncMock(return_value=[]),
         get_project_files=AsyncMock(return_value=[]),
     )
@@ -77,6 +88,13 @@ async def test_truncated_response_is_recorded_as_partial_with_its_issues():
     assert item.section_index == 8
     assert item.num_citations == 1
     assert item.issues[0].quoted_text.startswith("AI development is decentralized")
+    # The cited text is located as the issue's passage, on its own line.
+    passage = item.issues[0].passage
+    assert passage is not None
+    assert passage.start_line == 91
+    assert passage.display_text == (
+        "AI development is decentralized (The Economist, 2024)."
+    )
 
 
 @pytest.mark.asyncio
@@ -101,3 +119,16 @@ async def test_unsalvageable_failure_is_still_a_hard_error():
     assert item.error == "boom"
     assert item.error_details is not None
     assert item.error_details.error_type == "RuntimeError"
+
+
+def test_the_located_cited_text_becomes_the_issue_passage():
+    lines = _MARKDOWN.split("\n")
+    assessment = _partial_error().result.issues[0]
+
+    located = validate_sections._assessment_to_issue(assessment, lines)
+    issue = _build_issue(located, None, WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2)
+    assert issue is not None
+    assert issue.passage == located.passage
+
+    elsewhere = assessment.model_copy(update={"line_start": 1, "line_end": 1})
+    assert validate_sections._assessment_to_issue(elsewhere, lines).passage is None

@@ -13,6 +13,9 @@ on plain strings.
 
 FIRST_LINE_ONLY = "the replacement spans more than one paragraph"
 NO_TABS = "the replacement contains a tab"
+UNCHANGED_ONCE_RENDERED = (
+    "the replacement matches the current text once formatting is removed"
+)
 LINK_DESTINATION_CHANGED = (
     "it changes a link destination, which the export cannot write"
 )

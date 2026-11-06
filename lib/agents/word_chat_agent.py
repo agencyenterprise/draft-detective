@@ -47,7 +47,11 @@ from lib.agents.tools.word_suggestions import (
 )
 from lib.agents.word_chat_prompt import SYSTEM_PROMPT
 from lib.services.chat.events import ChatEvent, stream_chat_events
-from lib.services.chat.thread_state import READER_API_KEY, load_thread_snapshot
+from lib.services.chat.thread_state import (
+    READER_API_KEY,
+    files_to_mount,
+    load_thread_snapshot,
+)
 from lib.services.microsoft.graph.documents import LoadedDocument
 from lib.skills import skill_backend_files
 
@@ -135,6 +139,7 @@ def turn_input(turn: WordChatTurn) -> dict[str, Any]:
 
     Skills are mounted every turn, as /chat does; the files channel merges, so the
     document from an earlier turn stays until a newer copy replaces it.
+    ``run_word_chat_turn`` then drops what the thread already has (``files_to_mount``).
     """
 
     files = skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
@@ -164,8 +169,12 @@ async def run_word_chat_turn(
 
     async with get_checkpointer() as saver:
         agent = build_word_chat_agent(saver, target, api_key=api_key)
+        graph_input = turn_input(turn)
+        graph_input["files"] = await files_to_mount(
+            agent, str(turn.thread_id), graph_input["files"]
+        )
         async for event in stream_chat_events(
-            agent, turn_input(turn), run_config(turn.thread_id, target.requester.oid)
+            agent, graph_input, run_config(turn.thread_id, target.requester.oid)
         ):
             yield event
 

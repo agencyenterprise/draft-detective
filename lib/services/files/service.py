@@ -207,8 +207,8 @@ async def get_files_by_project_id(
         return list(files)
 
 
-async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
-    """Id of the revision's MAIN file, read from the file table.
+async def find_main_file(project_id: uuid.UUID | str, revision: int) -> File | None:
+    """The revision's MAIN file, or None when nothing was uploaded for it yet.
 
     MAIN rows always carry a revision; the query also returns shared rows
     (revision IS NULL), so filter explicitly rather than trust the first hit.
@@ -216,12 +216,17 @@ async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
     files = await get_files_by_project_id(
         project_id, roles=[FileRole.MAIN], revision=revision
     )
-    main_files = [f for f in files if f.revision == revision]
-    if not main_files:
+    return next((f for f in files if f.revision == revision), None)
+
+
+async def get_main_file_id(project_id: uuid.UUID | str, revision: int) -> str:
+    """Id of the revision's MAIN file, read from the file table."""
+    main_file = await find_main_file(project_id, revision)
+    if main_file is None:
         raise ValueError(
             f"No main file found for project {project_id} revision {revision}"
         )
-    return str(main_files[0].id)
+    return str(main_file.id)
 
 
 async def get_processed_supporting_file_ids(
@@ -256,8 +261,11 @@ async def get_project_files_list_items(
     during reference downloading) and derived artifacts (extracted images).
     """
     project_id = ensure_uuid(project_id, "project ID")
+    # Only the list item's columns: the project overview polls this, and full
+    # rows would carry every file's markdown and summary along with them.
+    list_columns = [col(getattr(File, name)) for name in FileListItem.model_fields]
     async with get_async_db_session() as session:
-        stmt = select(File).where(
+        stmt = select(*list_columns).where(
             col(File.project_id) == project_id,
             col(File.role).in_(
                 [
@@ -269,9 +277,8 @@ async def get_project_files_list_items(
                 ]
             ),
         )
-        result = await session.execute(stmt)
-        files = result.scalars().all()
-        return [FileListItem.model_validate(f, from_attributes=True) for f in files]
+        rows = (await session.execute(stmt)).mappings().all()
+        return [FileListItem.model_validate(dict(row)) for row in rows]
 
 
 async def get_supporting_candidate_files(project_id: uuid.UUID | str) -> list[File]:

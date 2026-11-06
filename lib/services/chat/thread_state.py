@@ -12,7 +12,7 @@ to its agent): a graph is
 never asked to read state shaped by another agent's tools and middleware.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, cast
 
 from deepagents.backends.protocol import FileData
@@ -66,6 +66,40 @@ async def read_thread_file(
     if not isinstance(data, dict):
         return None
     return file_data_to_string(cast(FileData, data))
+
+
+async def files_to_mount(
+    graph: CompiledStateGraph, thread_id: str, files: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The files a turn still has to write: those the thread does not already hold.
+
+    Agents mount their skills on every turn so a deploy reaches running threads. The
+    ``files`` channel keeps deltas, so each mount stays in the thread's history and
+    every later read of its state replays it: 27 skill files, ~330 KB, per turn.
+    Leaving out what is already there keeps the state the same and the history short.
+    Equal means same content and encoding; the timestamps are when it was written.
+    A ``None`` (a deletion) is always kept.
+
+    Callers pass the result even when it is empty: an empty write still counts
+    towards the channel's next snapshot (every 50 updates), and that snapshot is
+    what ends the replay of copies written before this check existed.
+    """
+
+    snapshot = await graph.aget_state(thread_config(thread_id))
+    held = (snapshot.values or {}).get("files") or {}
+    return {
+        path: data
+        for path, data in files.items()
+        if data is None or not _same_file(held.get(path), data)
+    }
+
+
+def _same_file(held: Any, data: Mapping[str, Any]) -> bool:
+    return (
+        isinstance(held, Mapping)
+        and held.get("content") == data.get("content")
+        and held.get("encoding") == data.get("encoding")
+    )
 
 
 async def delete_thread_state(thread_id: str) -> None:

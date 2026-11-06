@@ -1,13 +1,14 @@
 """Integration tests for get_project_files_list_items (returns all revisions)."""
 
 import uuid
+from typing import Any
 
 import pytest
 import pytest_asyncio
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlmodel import col
 
-from lib.config.database import get_async_db_session
+from lib.config.database import async_engine, get_async_db_session
 from lib.models.file import File, FileRole
 from lib.models.project import Project
 from lib.models.user import User, UserRole
@@ -40,6 +41,8 @@ async def project_with_revisions():
             role=role,
             uploaded_by=user.id,
             revision=revision,
+            markdown=f"# {name}",
+            summary={"title": name},
         )
 
     files = [
@@ -93,3 +96,23 @@ async def test_returns_every_main_revision_and_supports(project_with_revisions):
     # other MAIN file is a previous revision.
     mains = {i.file_name: i.revision for i in items if i.role == FileRole.MAIN}
     assert mains == {"main_v1.pdf": 1, "main_v2.pdf": 2}
+
+
+@pytest.mark.asyncio
+async def test_never_reads_the_heavy_columns(project_with_revisions: Project) -> None:
+    """The overview polls this list: markdown and summary must stay in the database."""
+    statements: list[str] = []
+
+    def _record(_conn: Any, _cursor: Any, statement: str, *_: Any) -> None:
+        statements.append(statement)
+
+    event.listen(async_engine.sync_engine, "before_cursor_execute", _record)
+    try:
+        items = await get_project_files_list_items(project_with_revisions.id)
+    finally:
+        event.remove(async_engine.sync_engine, "before_cursor_execute", _record)
+
+    assert len(items) == 3
+    selects = [s for s in statements if "FROM files" in s]
+    assert selects
+    assert not [s for s in selects if "files.markdown" in s or "files.summary" in s]

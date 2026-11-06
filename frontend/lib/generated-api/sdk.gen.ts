@@ -1066,16 +1066,12 @@ export const downloadFileApiFilesDownloadFileIdGet = <ThrowOnError extends boole
 /**
  * Get Feedback
  *
- * Get feedback for a specific entity or issue
- *
- * Examples:
- * - GET /api/feedback?workflow_run_id=xxx&entity_path={"chunk_index":0,"claim_index":1}
- * - GET /api/feedback?issue_id=xxx
+ * Get the current user's feedback on an issue
  */
 export const getFeedbackApiFeedbackGet = <ThrowOnError extends boolean = true>(
-  options?: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>,
+  options: Options<GetFeedbackApiFeedbackGetData, ThrowOnError>,
 ): RequestResult<GetFeedbackApiFeedbackGetResponses, GetFeedbackApiFeedbackGetErrors, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<
+  (options.client ?? client).get<
     GetFeedbackApiFeedbackGetResponses,
     GetFeedbackApiFeedbackGetErrors,
     ThrowOnError,
@@ -1090,7 +1086,7 @@ export const getFeedbackApiFeedbackGet = <ThrowOnError extends boolean = true>(
 /**
  * Submit Feedback
  *
- * Submit or update feedback for any entity
+ * Submit or update the current user's feedback on an issue
  */
 export const submitFeedbackApiFeedbackPost = <ThrowOnError extends boolean = true>(
   options: Options<SubmitFeedbackApiFeedbackPostData, ThrowOnError>,

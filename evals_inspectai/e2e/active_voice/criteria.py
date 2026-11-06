@@ -99,7 +99,11 @@ MEANING_CRITERION = (
     "tense and purpose, including its scope and qualifications, without asserting that the aim was achieved. "
     "This exception does not permit dropping a designer the text names, treating a choice made for "
     "someone else's reasons as the chosen thing's aim, or making an action seem to happen by itself. "
-    "Outside this exception, every claim must survive. In all cases every qualifier, "
+    "Outside this exception, every claim must survive. A sentence that says the authors' recommendations, "
+    "conclusions or lessons emerged, arose or surfaced by themselves is correctly rewritten with the authors "
+    'as "we" drawing them, or, in a report not written in the first person, as "The following [content] '
+    'draw on [sources]"; either form preserves meaning when the content keeps its own word (lessons stay '
+    "lessons) and every source the original listed survives. In all cases every qualifier, "
     "number, date, citation and footnote marker in the original survives with the same meaning, no other "
     "information is added, and the actor is not a guess the text does not support."
 )

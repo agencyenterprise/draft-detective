@@ -92,3 +92,65 @@ async def test_deleting_a_thread_deletes_its_checkpoints() -> None:
     with reader, graph:
         await thread_state.delete_thread_state("t-1")
         assert await thread_state.load_thread_messages("t-1", reader=CHAT) == []
+
+
+class TestFilesToMount:
+    """Re-mounting what a thread holds would add a copy to its history every turn,
+    and every later read of the thread replays each copy."""
+
+    @pytest.mark.asyncio
+    async def test_a_new_thread_gets_everything(self) -> None:
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=InMemorySaver()
+        )
+        files = {"/skills/a.md": create_file_data("a")}
+
+        mounted = await thread_state.files_to_mount(agent, "t-new", files)
+
+        assert mounted == files
+
+    @pytest.mark.asyncio
+    async def test_what_the_thread_holds_unchanged_is_left_out(
+        self,
+    ) -> None:
+        saver = InMemorySaver()
+        await _run_turns(saver, "t-1")
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=saver
+        )
+        files = {
+            # Same text as the thread holds, written again (new timestamps).
+            "/attachments/a.md": create_file_data("one\ntwo"),
+            "/attachments/b.md": create_file_data("new"),
+            "/attachments/gone.md": None,
+        }
+
+        mounted = await thread_state.files_to_mount(agent, "t-1", files)
+
+        assert set(mounted) == {"/attachments/b.md", "/attachments/gone.md"}
+
+    @pytest.mark.parametrize(
+        "changed",
+        [
+            create_file_data("one\ntwo, edited"),
+            create_file_data("one\ntwo", encoding="base64"),
+        ],
+        ids=["content", "encoding"],
+    )
+    @pytest.mark.asyncio
+    async def test_a_file_the_thread_holds_differently_is_written_again(
+        self, changed: dict[str, Any]
+    ) -> None:
+        """How a skill edited by a deploy reaches a running thread."""
+
+        saver = InMemorySaver()
+        await _run_turns(saver, "t-1")
+        agent = create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=saver
+        )
+
+        mounted = await thread_state.files_to_mount(
+            agent, "t-1", {"/attachments/a.md": changed}
+        )
+
+        assert mounted == {"/attachments/a.md": changed}

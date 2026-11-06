@@ -1,13 +1,17 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { WorkflowRunType, WorkflowTypeDescription } from '@/lib/generated-api';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWorkflowDurationEstimates } from '@/lib/hooks/use-workflow-duration-estimates';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 import { WorkflowTypeCheckbox } from './workflow-type-checkbox';
 import { WorkflowPresetChips } from './workflow-presets';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
+import { filterWorkflowGroups } from '@/lib/workflow-search';
 
 interface WorkflowTypeSelectorProps {
   /** When set, only this workflow type is listed (e.g. config dialog for a specific analysis). */
@@ -32,6 +36,8 @@ export function WorkflowTypeSelector({
   const { workflowTypes: allTypes, getWorkflowTypeName, isPending: isLoadingWorkflowTypes } = useWorkflowTypes();
   const { getEstimatedSeconds } = useWorkflowDurationEstimates(projectId);
   const { visibleGroups: allVisibleGroups, presets } = useVisibleWorkflowTypes();
+  const [query, setQuery] = useState('');
+  const isSearching = query.trim() !== '';
 
   const workflowTypes = useMemo(() => {
     if (restrictToType) {
@@ -42,11 +48,14 @@ export function WorkflowTypeSelector({
 
   // Memoised so the derived lists below get a stable reference to depend on.
   const visibleGroups = useMemo(() => (restrictToType ? [] : allVisibleGroups), [restrictToType, allVisibleGroups]);
+  // The groups after the search box: what the list below actually draws.
+  const shownGroups = useMemo(() => filterWorkflowGroups(visibleGroups, query), [visibleGroups, query]);
 
-  // Exactly the checkboxes the render path below produces. The header count and
-  // the bulk actions both work off this, so neither can drift from what is on
-  // screen — `selectedTypes` may legitimately hold types this picker does not
-  // list, and counting those would show nonsense like "12/11 selected".
+  // Exactly the checkboxes the picker offers, search aside. The header count
+  // works off this so it cannot drift from the list — `selectedTypes` may
+  // legitimately hold types this picker does not list, and counting those
+  // would show nonsense like "12/11 selected". A search hides rows without
+  // unselecting them, so the count keeps covering every row.
   const renderedTypes = useMemo(
     () =>
       restrictToType
@@ -54,8 +63,14 @@ export function WorkflowTypeSelector({
         : visibleGroups.flatMap((group) => group.workflows.map((wt) => wt.type)),
     [restrictToType, workflowTypes, visibleGroups],
   );
+  const shownTypes = useMemo(
+    () => (restrictToType ? renderedTypes : shownGroups.flatMap((group) => group.workflows.map((wt) => wt.type))),
+    [restrictToType, renderedTypes, shownGroups],
+  );
 
   const visibleCount = renderedTypes.length;
+  // Search and presets only make sense over the full, loaded list.
+  const showListTools = restrictToType === undefined && !isLoadingWorkflowTypes && visibleCount > 0;
   const isSelected = (type: WorkflowRunType) => selectedTypes.includes(type) && !runningTypes.includes(type);
   const selectedVisibleCount = renderedTypes.filter(isSelected).length;
 
@@ -73,13 +88,14 @@ export function WorkflowTypeSelector({
     }
   };
 
-  // Bulk actions only ever touch the checkboxes actually on screen and enabled.
-  // Anything else already in `selectedTypes` is left alone, so a caller that
-  // seeds the selection with a type this list does not offer keeps it.
-  const bulkSelectableTypes = useMemo(
-    () => renderedTypes.filter((type) => !disabledTypes.includes(type) && !runningTypes.includes(type)),
-    [renderedTypes, disabledTypes, runningTypes],
-  );
+  const isSelectable = (type: WorkflowRunType) => !disabledTypes.includes(type) && !runningTypes.includes(type);
+  // Presets choose from every enabled row, whatever the search shows.
+  const selectableTypes = renderedTypes.filter(isSelectable);
+  // Bulk actions only ever touch the checkboxes actually on screen and enabled,
+  // so during a search they act on the matches. Anything else already in
+  // `selectedTypes` is left alone, so a caller that seeds the selection with a
+  // type this list does not offer keeps it.
+  const bulkSelectableTypes = shownTypes.filter(isSelectable);
 
   const selectedBulkCount = bulkSelectableTypes.filter((type) => selectedTypes.includes(type)).length;
 
@@ -107,53 +123,78 @@ export function WorkflowTypeSelector({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-4">
-        <h2 className="text-sm font-medium">
-          Assessments
-          <span className="text-destructive ml-1">*</span>
-          {visibleCount > 0 && (
-            <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
-              {selectedVisibleCount}/{visibleCount} selected
-            </span>
-          )}
-        </h2>
+      {/* The whole header is two rows that stick to the top of whatever
+          scrolls the list, so the count, the search, the bulk actions and the
+          presets stay in reach halfway down a long list. Row one is what is
+          picked and how to narrow it; row two is the named sets and the bulk actions. Single-type
+          mode has nothing to search or choose between, so it neither sticks
+          nor shows them. */}
+      <div className={cn('space-y-2', showListTools && 'sticky top-0 z-10 bg-background py-1')}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h2 className="shrink-0 text-sm font-medium">
+            Assessments
+            <span className="text-destructive ml-1">*</span>
+            {visibleCount > 0 && (
+              <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
+                {selectedVisibleCount}/{visibleCount} selected
+              </span>
+            )}
+          </h2>
 
-        {bulkSelectableTypes.length > 1 && (
-          <div className="flex shrink-0 items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={handleSelectAll}
-              disabled={isLoadingWorkflowTypes || selectedBulkCount === bulkSelectableTypes.length}
-            >
-              Select all
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={handleDeselectAll}
-              disabled={isLoadingWorkflowTypes || selectedBulkCount === 0}
-            >
-              Deselect all
-            </Button>
+          {showListTools && (
+            <div className="relative min-w-48 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search assessments"
+                aria-label="Search assessments"
+                className="h-8 pl-7 text-xs"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Presets on the left: a department picks its set here and the rows
+            below show what that set is. Bulk actions on the right. */}
+        {((showListTools && presets.length > 0) || selectableTypes.length > 1) && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {showListTools && presets.length > 0 && (
+              <WorkflowPresetChips
+                presets={presets}
+                selectedTypes={selectedTypes}
+                offeredTypes={selectableTypes}
+                onSelectionChange={commitSelection}
+                disabled={isLoadingWorkflowTypes}
+                getWorkflowTypeName={getWorkflowTypeName}
+              />
+            )}
+            {selectableTypes.length > 1 && (
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleSelectAll}
+                  disabled={isLoadingWorkflowTypes || selectedBulkCount === bulkSelectableTypes.length}
+                >
+                  {isSearching ? 'Select matches' : 'Select all'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleDeselectAll}
+                  disabled={isLoadingWorkflowTypes || selectedBulkCount === 0}
+                >
+                  {isSearching ? 'Deselect matches' : 'Deselect all'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
-      {/* Presets sit between the header and the list: a department picks its
-          set here and the rows below show what that set is. Never in
-          single-type mode, where there is nothing to choose between. */}
-      {restrictToType === undefined && !isLoadingWorkflowTypes && presets.length > 0 && (
-        <WorkflowPresetChips
-          presets={presets}
-          selectedTypes={selectedTypes}
-          offeredTypes={bulkSelectableTypes}
-          onSelectionChange={commitSelection}
-          disabled={isLoadingWorkflowTypes}
-          getWorkflowTypeName={getWorkflowTypeName}
-        />
-      )}
 
       <div className="space-y-4">
         {isLoadingWorkflowTypes ? (
@@ -166,11 +207,13 @@ export function WorkflowTypeSelector({
           ) : (
             <p className="text-sm text-muted-foreground">This assessment is not available for your account.</p>
           )
+        ) : shownGroups.length === 0 && isSearching ? (
+          <p className="px-2 text-sm text-muted-foreground">No assessments match “{query.trim()}”.</p>
         ) : (
           // One column of rail-style rows under each category, in the same
           // voice as the assessments tab: the rows are dense enough that the
           // list no longer needs to go two-up to fit.
-          visibleGroups.map(({ category, workflows }) => (
+          shownGroups.map(({ category, workflows }) => (
             <section key={category.slug} aria-label={category.label}>
               <h3 className="px-2 font-mono text-[10px] tracking-wide text-muted-foreground uppercase">
                 {category.label}

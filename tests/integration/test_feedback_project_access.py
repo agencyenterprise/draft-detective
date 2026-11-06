@@ -104,14 +104,12 @@ async def feedback(author, project):
         severity=SeverityEnum.HIGH,
         workflow_type=WorkflowRunType.RECOMMENDATION_CHECK,
         status=IssueStatus.ACTIVE,
-        chunk_indices=[0],
     )
     record = Feedback(
         id=uuid.uuid4(),
         workflow_run_id=run.id,
         user_id=author.id,
         issue_id=issue.id,
-        entity_path={},
         feedback_type=FeedbackType.THUMBS_DOWN,
         feedback_text="not useful",
     )

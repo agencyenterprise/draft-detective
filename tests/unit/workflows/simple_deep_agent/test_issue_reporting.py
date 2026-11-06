@@ -169,6 +169,35 @@ def test_every_edit_is_kept_in_the_order_it_was_proposed():
         _issue_with_edits(
             [
                 {
+                    "original_text": "**old phrase**",
+                    "replacement_text": "**new phrase**",
+                    "rationale": "r",
+                },
+                {
+                    "original_text": "the cohort",
+                    "replacement_text": "the second cohort",
+                    "rationale": "r",
+                },
+            ]
+        )
+    )
+
+    edits = reporter.issues[0].edits
+    assert [e.replacement_text for e in edits] == [
+        "**new phrase**",
+        "the second cohort",
+    ]
+    assert [(e.start_line, e.end_line) for e in edits] == [(10, 10), (10, 10)]
+
+
+def test_edits_on_separate_lines_are_one_issue_per_line():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    rejected = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
                     "original_text": "# Title",
                     "replacement_text": "# Report",
                     "rationale": "r",
@@ -182,12 +211,31 @@ def test_every_edit_is_kept_in_the_order_it_was_proposed():
         )
     )
 
-    edits = reporter.issues[0].edits
-    assert [e.replacement_text for e in edits] == [
-        "# Report",
-        "second cohort (n = 40).",
-    ]
-    assert [(e.start_line, e.end_line) for e in edits] == [(1, 1), (4, 4)]
+    assert rejected == (
+        "Issue was not recorded: its edits sit on lines 1, 4. Report one issue "
+        "per line instead, each with the edits and passage of its own line."
+    )
+    assert reporter.issues == []
+
+
+def test_a_passage_and_edits_on_different_lines_are_refused():
+    reporter = IssueReporter(propose_edits=True, document_text=_DOCUMENT)
+    report_issue = _tools(reporter)["report_issue"]
+
+    rejected = report_issue.invoke(
+        _issue_with_edits(
+            [
+                {
+                    "original_text": "# Title",
+                    "replacement_text": "# Report",
+                    "rationale": "r",
+                }
+            ],
+            passage="The CBT protocol",
+        )
+    )
+
+    assert "its passage is on line 3 and its edits on line 1" in rejected
 
 
 def test_edit_whose_quote_is_absent_is_rejected_with_an_excerpt():

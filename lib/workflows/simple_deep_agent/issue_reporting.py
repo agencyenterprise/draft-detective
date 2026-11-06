@@ -22,17 +22,12 @@ from langchain_core.tools import BaseTool, tool
 from pydantic import BaseModel, Field
 
 from lib.agents.tools.view_image import redact_image_blocks
-from lib.services.text.location import locate_in_paragraph, normalize_whitespace
-from lib.services.text.markdown_rendering import (
-    rendered_replacement_in_context,
-    rendered_span,
-)
-from lib.workflows.models import ProposedEdit
+from lib.services.text.markdown_rendering import rendered_replacement_in_context
+from lib.workflows.models import LocatedQuote, ProposedEdit
 from lib.workflows.simple_deep_agent.agent_types import DeepAgentRun, IssueItem
 from lib.workflows.simple_deep_agent.edit_anchoring import (
     document_lines,
-    find_quote_lines,
-    range_excerpt,
+    match_quote,
 )
 
 
@@ -97,46 +92,24 @@ def resolve_edit(
             "display math (`$$...$$`); the export cannot place equations."
         )
 
-    matches = find_quote_lines(lines, start_line, end_line, edit.original_text)
-    if not matches:
-        return (
-            f"{label}: original_text was not found on any single line of lines "
-            f"{start_line}-{end_line}. Quote it verbatim from one line of the "
-            f"document. Lines {start_line}-{end_line} read: "
-            f"{range_excerpt(lines, start_line, end_line)!r}"
-        )
-    if len(matches) > 1:
-        return (
-            f"{label}: original_text appears {len(matches)} times in lines "
-            f"{start_line}-{end_line}. Quote a longer span that appears only "
-            "once (up to the whole line) and make the replacement inside it."
-        )
-    line = matches[0]
-
-    # The rendered form is settled here, once, and stored with the edit:
-    # the in-app highlight and the DOCX redline both look for the
-    # characters the reader sees, and neither should have to re-derive
-    # them from the markdown.
-    spans = locate_in_paragraph(
-        lines[line - 1], normalize_whitespace(edit.original_text)
+    match = match_quote(
+        lines,
+        edit.original_text,
+        f"{label}: original_text",
+        start_line,
+        end_line,
+        "Quote a longer span that appears only once (up to the whole line) and "
+        "make the replacement inside it.",
     )
-    rendered = (
-        rendered_span(lines[line - 1], spans[0][0], spans[0][1])
-        if len(spans) == 1
-        else None
-    )
-    if rendered is None:
-        return (
-            f"{label}: original_text must start and end on plain text, not "
-            "inside a link address or a formatting marker. Quote whole "
-            "words from the line, including any markup that surrounds them."
-        )
+    if isinstance(match, str):
+        return match
+    line = lines[match.line - 1]
 
     # Rendered where the quote sat, not on its own: the quote may open or
     # close inside formatting that carries on around it, and so does the
     # replacement that takes its place.
     replacement = rendered_replacement_in_context(
-        lines[line - 1], spans[0][0], spans[0][1], edit.replacement_text
+        line, match.start, match.end, edit.replacement_text
     )
     if replacement is None:
         return (
@@ -149,19 +122,71 @@ def resolve_edit(
         original_text=edit.original_text,
         replacement_text=edit.replacement_text,
         rationale=edit.rationale,
-        start_line=line,
-        end_line=line,
-        display_text=rendered.display_text,
-        display_occurrence=rendered.display_occurrence,
+        start_line=match.line,
+        end_line=match.line,
+        display_text=match.display_text,
+        display_occurrence=match.display_occurrence,
         display_replacement=replacement,
     )
+
+
+def resolve_passage(
+    lines: Sequence[str], passage: str, start_line: int, end_line: int
+) -> LocatedQuote | str:
+    """Turn an issue's quoted passage into a located quote, or a corrective message."""
+    match = match_quote(
+        lines,
+        passage,
+        "passage",
+        start_line,
+        end_line,
+        "Quote a longer span that appears only once (up to the whole line), or "
+        "omit passage if the issue concerns the whole line.",
+        "If the issue concerns more than one line, omit passage.",
+    )
+    if isinstance(match, str):
+        return match
+    return LocatedQuote(
+        original_text=passage,
+        start_line=match.line,
+        end_line=match.line,
+        display_text=match.display_text,
+        display_occurrence=match.display_occurrence,
+    )
+
+
+def separate_places(
+    edits: Sequence[ProposedEdit], passage: LocatedQuote | None
+) -> str | None:
+    """Why the quotes of one issue point at separate places, or None.
+
+    An issue is about one place, so its edits sit on one line and its passage,
+    when it has one, on that same line. A fix needed on several lines is one
+    issue per line: grouping them would leave the issue spread over the lines
+    in between, highlighted and anchored on none of them.
+    """
+    lines = sorted({edit.start_line for edit in edits})
+    if len(lines) > 1:
+        listed = ", ".join(str(line) for line in lines)
+        return (
+            f"its edits sit on lines {listed}. Report one issue per line instead, "
+            "each with the edits and passage of its own line."
+        )
+    if passage is not None and lines and passage.start_line != lines[0]:
+        return (
+            f"its passage is on line {passage.start_line} and its edits on line "
+            f"{lines[0]}. Put them on the same line, or report one issue per line."
+        )
+    return None
 
 
 class IssueReporter:
     """Collect validated issues through tools scoped to one agent invocation.
 
-    With ``propose_edits`` the tool accepts proposed edits, which requires
-    ``document_text`` (the markdown under review) to check the quotes against.
+    Every variant takes an optional passage, the exact words the issue is
+    about, checked against ``document_text`` (the markdown under review). With
+    ``propose_edits`` the tool also accepts proposed edits, which requires the
+    document text to check their quotes against.
     """
 
     def __init__(
@@ -169,6 +194,7 @@ class IssueReporter:
     ) -> None:
         if propose_edits and document_text is None:
             raise ValueError("Proposed edits need the document text to check against.")
+        self._document_text = document_text
         self._lines: list[str] = document_lines(document_text or "")
         self._issues: list[IssueItem] = []
         self._issue_ids: dict[str, str] = {}
@@ -191,6 +217,7 @@ class IssueReporter:
         end_line: int,
         long_description: str | None,
         suggested_action: str | None,
+        passage: str | None = None,
         edits: list[ProposedEditInput] | None = None,
     ) -> str:
         """Validate and record one issue; shared by both tool variants."""
@@ -206,9 +233,16 @@ class IssueReporter:
                 "equal to start_line."
             )
 
+        located = self._resolve_passage(passage, start_line, end_line)
+        if isinstance(located, str):
+            return f"Issue was not recorded: {located}"
+
         resolution = self._resolve_edits(edits, start_line, end_line)
         if resolution.rejection is not None:
             return f"Issue was not recorded: {resolution.rejection}"
+        separate = separate_places(resolution.edits, located)
+        if separate is not None:
+            return f"Issue was not recorded: {separate}"
 
         issue = IssueItem(
             title=title,
@@ -219,11 +253,14 @@ class IssueReporter:
             long_description=long_description,
             suggested_action=suggested_action,
             edits=resolution.edits,
+            passage=located,
         )
-        # Edits are excluded so the fingerprint identifies the finding, not
-        # its fix: the same issue reported twice is a duplicate whether or
-        # not the second call carried edits.
-        fingerprint = issue.model_dump_json(exclude_none=False, exclude={"edits"})
+        # Edits and the passage are excluded so the fingerprint identifies the
+        # finding, not its fix or its highlight: the same issue reported twice
+        # is a duplicate whether or not the second call carried either.
+        fingerprint = issue.model_dump_json(
+            exclude_none=False, exclude={"edits", "passage"}
+        )
 
         with self._lock:
             existing_id = self._issue_ids.get(fingerprint)
@@ -234,6 +271,21 @@ class IssueReporter:
             self._issues.append(issue)
             self._issue_ids[fingerprint] = issue_id
             return f"Recorded {issue_id}: {issue.title}"
+
+    def _resolve_passage(
+        self, passage: str | None, start_line: int, end_line: int
+    ) -> LocatedQuote | str | None:
+        """Locate the issue's passage, None without one, or explain what is wrong.
+
+        An empty string counts as no passage: a model filling every optional
+        argument writes one for a whole-line issue, and refusing it would only
+        cost a retry.
+        """
+        if passage is None or not passage.strip():
+            return None
+        if self._document_text is None:
+            return "passage cannot be checked here; omit it."
+        return resolve_passage(self._lines, passage, start_line, end_line)
 
     def _resolve_edits(
         self, edits: list[ProposedEditInput] | None, start_line: int, end_line: int
@@ -264,6 +316,7 @@ class IssueReporter:
             end_line: int,
             long_description: str | None = None,
             suggested_action: str | None = None,
+            passage: str | None = None,
         ) -> str:
             """Report one verified issue in the document under review.
 
@@ -281,6 +334,19 @@ class IssueReporter:
                 end_line: 1-indexed last relevant line; not before start_line.
                 long_description: Optional extended markdown detail.
                 suggested_action: Optional direct recommendation for the author.
+                passage: Optional exact quote of the words this issue is
+                    about, copied verbatim from one line of the document inside
+                    start_line-end_line and appearing there only once. It is
+                    what users see highlighted for this issue, and what the
+                    issue is attached to wherever it is shown (in the app and
+                    in the comment of an exported Word file), so pick the words
+                    a reader should look at. Without a passage, the issue's
+                    whole line range is highlighted instead. Make it
+                    as long as the issue needs, from a phrase up to the whole
+                    line, so it covers everything the issue is about. Set it
+                    when the issue concerns specific words within a paragraph;
+                    omit it when the issue concerns the whole line, spans more
+                    than one line, or is about something absent.
 
             Returns:
                 A confirmation containing the recorded issue identifier, or a
@@ -294,6 +360,7 @@ class IssueReporter:
                 end_line,
                 long_description,
                 suggested_action,
+                passage,
             )
 
         return report_issue
@@ -310,6 +377,7 @@ class IssueReporter:
             end_line: int,
             long_description: str | None = None,
             suggested_action: str | None = None,
+            passage: str | None = None,
             edits: list[ProposedEditInput] | None = None,
         ) -> str:
             """Report one verified issue in the document under review.
@@ -328,6 +396,19 @@ class IssueReporter:
                 end_line: 1-indexed last relevant line; not before start_line.
                 long_description: Optional extended markdown detail.
                 suggested_action: Optional direct recommendation for the author.
+                passage: Optional exact quote of the words this issue is
+                    about, copied verbatim from one line of the document inside
+                    start_line-end_line and appearing there only once. It is
+                    what users see highlighted for this issue, and what the
+                    issue is attached to wherever it is shown (in the app and
+                    in the comment of an exported Word file), so pick the words
+                    a reader should look at. Without a passage, the issue's
+                    whole line range is highlighted instead. Make it
+                    as long as the issue needs, from a phrase up to the whole
+                    line, so it covers everything the issue is about. Set it
+                    when the issue concerns specific words within a paragraph;
+                    omit it when the issue concerns the whole line, spans more
+                    than one line, or is about something absent.
                 edits: Optional list of mechanical text replacements that resolve
                     this issue, each with `original_text` (the text to replace,
                     quoted verbatim from the document under review and inside
@@ -342,6 +423,9 @@ class IssueReporter:
                     leave those to `suggested_action` alone. Keep each
                     `original_text` short (a phrase or one sentence) and within
                     one line of the document -- it must not cross a line break.
+                    All of an issue's edits sit on one line, the line of its
+                    passage; a fix needed on several lines is one issue per
+                    line.
                     Edits carry their part of the fix, so `suggested_action`
                     covers only what they do not (a passage with no edit, a
                     question for the author, a caveat to check); omit it when
@@ -359,6 +443,7 @@ class IssueReporter:
                 end_line,
                 long_description,
                 suggested_action,
+                passage,
                 edits,
             )
 

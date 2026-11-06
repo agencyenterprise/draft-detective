@@ -61,6 +61,7 @@ from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
 from lib.config.env import config
 from lib.config.llm_models import LLMModel
 from lib.services import conversations, users
+from lib.services.chat.thread_state import files_to_mount
 from lib.services.microsoft import linked_users
 from lib.services.microsoft.graph import client as graph_client
 from lib.services.microsoft.graph.client import GraphError
@@ -352,12 +353,16 @@ async def answer_question(
             )
 
             with propagate_attributes(user_id=user_id):
+                # Skills only. Documents arrive through the tool and stay in the
+                # thread's own files; skills have to be mounted up front because a
+                # tool cannot add them later. Those the thread holds already are left
+                # out, so its history does not grow by a copy each question.
+                skills = await files_to_mount(
+                    agent, thread_id, skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
+                )
                 result = await agent.ainvoke(
                     agent_input(
-                        # Skills only. Documents arrive through the tool and stay in the
-                        # thread's own files; skills have to be mounted up front because
-                        # a tool cannot add them later.
-                        files=skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS),
+                        files=skills,
                         messages=[HumanMessage(content=prompt)],
                     ),
                     config=run_config,

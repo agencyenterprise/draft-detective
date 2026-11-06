@@ -12,6 +12,7 @@ from lib.workflows.models import (
     BaseWorkflowConfig,
     BaseWorkflowState,
     ErrorDetails,
+    LocatedQuote,
     WorkflowRunType,
 )
 from lib.workflows.reducers import Reducer, upsert_by
@@ -39,6 +40,10 @@ class CitationIssueItem(BaseModel):
     feedback: str = ""
     evidence_sources: list[ClaimEvidenceSource] = Field(default_factory=list)
     citation_to_file_mapping: str | None = None
+    # The cited text, located on one line of the document; None when it could
+    # not be (it spans lines, repeats, or is not verbatim), and for states
+    # stored before passages existed.
+    passage: LocatedQuote | None = None
 
 
 class ClaimReferenceValidationV2Config(BaseWorkflowConfig):

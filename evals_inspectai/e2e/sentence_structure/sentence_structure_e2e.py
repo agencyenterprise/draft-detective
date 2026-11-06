@@ -2,13 +2,12 @@
 
 Declared by ``skills/sentence-structure/SKILL.md``; runs through the API like
 every other e2e eval. Ground truth is ``dataset.yaml`` in inventory form: the
-incomplete sentences, broken shared constructions, faulty parallelism and
-indirect summary sentences a correct run reports under four titles, anchored
+incomplete sentences, broken shared constructions and faulty parallelism a
+correct run reports under three titles, anchored
 by verbatim quotes with edit expectations, plus decoy sentences it must leave
 alone, one ``no_fp_<reason>`` metric per exclusion the skill states
 (grammatical shared constructions, correct correlatives, parallel series,
-*as well as* on its own, list and caption fragments, emergent findings, direct
-lead-ins, long sentences that parse, quoted wording, and problems another
+*as well as* on its own, list and caption fragments, direct lead-ins, long sentences that parse, quoted wording, and problems another
 Writing Style check owns).
 
 Scorers: the reusable ``issue_checks`` (detection and edit hygiene, paired

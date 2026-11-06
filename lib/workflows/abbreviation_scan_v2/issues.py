@@ -132,6 +132,7 @@ def _not_defined_at_first_use_issue(item: AbbreviationItem) -> DocumentIssue:
         type=_WORKFLOW_TYPE,
         start_line=item.line_start,
         end_line=item.line_end,
+        passage=item.passage,
     )
 
 
@@ -146,6 +147,7 @@ def _missing_from_section_issue(item: AbbreviationItem) -> DocumentIssue:
         type=_WORKFLOW_TYPE,
         start_line=item.line_start,
         end_line=item.line_end,
+        passage=item.passage,
     )
 
 
@@ -162,6 +164,7 @@ def _definition_mismatch_issue(item: AbbreviationItem) -> DocumentIssue:
         type=_WORKFLOW_TYPE,
         start_line=item.line_start,
         end_line=item.line_end,
+        passage=item.passage,
     )
 
 
@@ -178,4 +181,5 @@ def _ambiguous_issue(item: AbbreviationItem, prior_definition: str) -> DocumentI
         type=_WORKFLOW_TYPE,
         start_line=item.line_start,
         end_line=item.line_end,
+        passage=item.passage,
     )
