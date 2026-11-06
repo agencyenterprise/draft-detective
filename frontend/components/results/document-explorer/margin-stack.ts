@@ -31,7 +31,7 @@ export function visualOrder(slots: Slot[]): number[] {
  * Where each note goes, given where it would like to go.
  *
  * With nothing selected the notes are stacked top to bottom: each sits level
- * with its paragraph unless the note above it reaches further down, in which
+ * with its words unless the note above it reaches further down, in which
  * case it is pushed under that note. That alone is not enough. A run of short
  * paragraphs carrying many notes drags the stack past the paragraphs below, so
  * the note the reader just opened lands nowhere near its paragraph.

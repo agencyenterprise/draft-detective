@@ -22,14 +22,14 @@ interface MarginNoteProps {
 }
 
 /**
- * One issue in the document's margin, on the same grid row as the paragraph it
- * belongs to. Collapsed it is two lines, so a document with a hundred issues
- * stays readable; open it carries everything the issue list does.
+ * One issue in the document's margin, placed by `MarginLayer` level with its
+ * passage or its paragraph. Collapsed it is two lines, so a document with a
+ * hundred issues stays readable; open it carries everything the issue list does.
  *
  * The open note expands in place rather than floating over its neighbours. A
  * paragraph can carry several issues, and a floating card hid the ones beneath
- * it. Growing the row instead pushes the notes below it down and leaves the
- * anchored paragraph where it is, since the text cell sits at the row's top.
+ * it. Instead the layer keeps the open note level with its words and moves the
+ * others out of its way (see `stackNotes`).
  */
 export function MarginNote({ issue, active, hovered = false, readOnly, onSelect, anchored = true }: MarginNoteProps) {
   const resolved = isIssueResolved(issue);
