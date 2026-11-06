@@ -379,4 +379,19 @@ describe('ChatAssistant, a turn running on the server', () => {
     await until(() => !isRunning());
     expect(texts()).toEqual(['user: Long research', 'assistant: Part one. Part two.']);
   });
+  it('keeps the text streamed before a detach on screen until the history has it', async () => {
+    await mount();
+    serve([...reply('a1', 'Part one.'), { t: 'detached' }]);
+    running = true;
+    await send('Long research');
+    // The server has not stored the assistant message yet: it is mid-answer.
+    await flush();
+    expect(texts()).toEqual(['user: Long research', 'assistant: Part one.']);
+    expect(isRunning()).toBe(true);
+
+    stored = [...stored, { id: 'a1', type: 'ai', content: 'Part one. And more.' }];
+    running = false;
+    await until(() => !isRunning());
+    expect(texts()).toEqual(['user: Long research', 'assistant: Part one. And more.']);
+  });
 });

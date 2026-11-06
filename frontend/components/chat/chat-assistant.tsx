@@ -155,7 +155,9 @@ function useChatThreadRuntime(): AssistantRuntime {
       // its status showing what happened.
       const stored = await fetchThreadMessages(threadId).catch(() => null);
       if (stored) queryClient.setQueryData(threadMessagesQueryKey(threadId), stored);
-      setInflight(completed && stored ? [] : turn.assistantMessages);
+      // A detached turn keeps what streamed: the store may not hold it yet, and
+      // `messages` drops each local copy once the history has it.
+      setInflight(completed && !detached && stored ? [] : turn.assistantMessages);
       // A detached turn is still running: keep showing it, and follow the history.
       if (detached) queryClient.setQueryData(threadRunningQueryKey(threadId), true);
       setIsStreaming(false);

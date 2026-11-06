@@ -8,6 +8,9 @@ from sqlmodel import Field, SQLModel
 # A running turn stamps ``turn_seen_at`` every few seconds (``turn_claims.keep``). A
 # claim not stamped for this long is a turn that died without releasing it: a worker
 # restart. Long turns stay claimed for as long as they run.
+# The stamp runs on the same event loop as the agent, so this assumes nothing in a
+# turn blocks the loop for this long (a sync parse or HTTP call in a tool). One that
+# did would let a second turn claim the thread while the first still writes to it.
 STALE_TURN = timedelta(minutes=2)
 
 
