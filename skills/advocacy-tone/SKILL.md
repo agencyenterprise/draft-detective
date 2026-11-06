@@ -30,6 +30,7 @@ You are a specialist document reviewer. Check whether the document uses neutral,
      - **Factual descriptions or quotations of existing obligations**, e.g. "under the current statute, agencies must report incidents within 24 hours".
      - Flag only when the word carries the author's own normative push — a recommendation, a sense of urgency, or an asserted obligation without cited evidence (e.g. "policymakers must act now", "it is urgent that funding be expanded").
    - **Skip ignored sections.** Do not flag matches inside sections whose heading contains `author`, `reference`, `bibliography`, `appendix`, or `acknowledgment`.
+   - **Skip cover and boilerplate text.** Do not flag matches on the cover or title page, or in the publisher's standard notices wherever they appear: the title, date and sponsor lines, release or clearance notices, disclaimers, permission-to-cite lines, and copyright or trademark notices. This text comes from the publisher's template, not from the authors.
 
 ## Reporting
 

@@ -66,10 +66,10 @@ LISTED_WORDS = (
 
 def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
-    assert len(records) == 26
+    assert len(records) == 27
     required = [e for r in records for e in r.expected_issues if e.required]
     assert Counter(e.title for e in required) == {
-        "Advocacy Language Detected": 16,
+        "Advocacy Language Detected": 17,
         "Trigger Words Detected": 8,
         "Subjective Tone Detected": 5,
     }
@@ -83,6 +83,7 @@ def test_dataset_is_well_formed():
         == 8
     ), "multi-finding reports"
     assert decoy_reasons(records) == (
+        "cover_boilerplate",
         "descriptive_usage",
         "existing_obligation",
         "factual_policy_mention",
@@ -133,7 +134,7 @@ def test_a_false_positive_under_another_title_costs_precision():
 
 def test_task_composes_the_inventory_scorers_own_checks_and_judge():
     t = advocacy_tone_v2_e2e()
-    assert len(t.scorer) == 4 and len(t.dataset) == 26
+    assert len(t.scorer) == 4 and len(t.dataset) == 27
     assert set(t.metadata["metrics"]) == {
         "issue_checks",
         "decoy_checks",

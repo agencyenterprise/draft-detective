@@ -504,6 +504,42 @@
     word sits under a heading containing acknowledgment, author, reference or appendix (A.1 is a subsection of
     Appendix A), which the skill says to skip.
 
+# ---- matches in cover-page boilerplate ----------------------------------------------------------
+- input: |
+    # Paying for Teacher Mentoring in Rural Districts
+
+    December 2026
+
+    Prepared for the Lakeside Education Foundation
+
+    ## Not Cleared for Public Release
+
+    This document has not been formally reviewed, edited, or cleared for public release. It must not be cited without the permission of the Northfield Institute. Northfield's publications do not necessarily reflect the opinions of its research clients and sponsors. Northfield® is a registered trademark.
+
+    ## Summary
+
+    We surveyed 140 rural districts about how they fund mentoring for first-year teachers.
+
+    ## Findings
+
+    Sixty-two percent of districts paid for mentoring from general funds rather than grants.
+
+    Districts that relied on grants dropped mentoring in 31 percent of years when the grant lapsed.
+
+    State legislatures must make mentoring funding permanent before another cohort of teachers leaves.
+  expected_issues:
+  - id: legislatures_must
+    title: Advocacy Language Detected
+    anchor: State legislatures must make mentoring funding permanent
+  decoys:
+  - anchor: It must not be cited without the permission
+    reason: cover_boilerplate
+  - anchor: is a registered trademark
+    reason: cover_boilerplate
+  notes: One finding in the body ('must' pushes the authors' own recommendation with urgency, advocacy). The
+    release notice under the cover's 'Not Cleared for Public Release' heading is the publisher's template text,
+    so its 'must' and its trademark line are left alone, as the skill's cover and boilerplate rule says.
+
 # ---- fully clean: every carve-out in one report -------------------------------------------------
 - input: |
     # Wait Times at Urgent Care Clinics in the Metro Region
