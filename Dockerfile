@@ -55,6 +55,12 @@ RUN mkdir -p /app/uploads && chown app:app /app/uploads
 
 USER app
 
+# Every platform starts this image through `uv run` (scripts/start_api.sh, Railway's
+# preDeployCommand, the Kubernetes migrate init container). By default `uv run` first syncs
+# the venv, which rebuilds the project and downloads its build backend from PyPI in each new
+# container: a start then fails without network access. The venv is complete, so skip it.
+ENV UV_NO_SYNC=1
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
