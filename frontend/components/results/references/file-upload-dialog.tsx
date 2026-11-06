@@ -126,23 +126,25 @@ export function FileUploadDialog({
   };
 
   const isUploading = uploadHook.isUploading || isStartingWorkflow;
-  const allCompleted = uploadHook.completedCount > 0 && uploadHook.completedCount === uploadHook.totalCount;
   // Once files have been handed to the uploader we switch from the file-picker
   // view to the progress view. Both share the same dialog shell.
   const showProgress = uploadHook.files.length > 0;
+  // Nothing is uploading or paused any more: every file finished or failed, so
+  // the progress view must offer a way out even when none succeeded.
+  const settled = showProgress && !isUploading && !uploadHook.files.some((f) => f.status === 'paused');
 
   return (
     <Dialog
       open={isOpen}
       onOpenChange={(open) => {
-        // The progress view can't be dismissed by clicking outside or pressing
-        // Escape; use its own controls (Cancel all / Done) instead.
-        if (!open && !showProgress && !isUploading) handleClose();
+        // While files are in flight the progress view can't be dismissed by
+        // clicking outside or pressing Escape; use Cancel all instead.
+        if (!open && (!showProgress || settled) && !isUploading) handleClose();
       }}
     >
       <DialogContent
         className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
-        showCloseButton={!showProgress}
+        showCloseButton={!showProgress || settled}
       >
         {showProgress ? (
           <>
@@ -172,7 +174,7 @@ export function FileUploadDialog({
               className="flex-1 min-h-0"
             />
 
-            {allCompleted && !isStartingWorkflow && (
+            {settled && (
               <DialogFooter className="flex-shrink-0">
                 <Button onClick={handleClose}>Done</Button>
               </DialogFooter>
