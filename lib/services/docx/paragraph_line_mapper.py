@@ -87,26 +87,6 @@ def _line_count(markdown: str) -> int:
     return markdown.count("\n") + 1
 
 
-async def _convert_like_persisted(
-    docx_path: str, expected_line_count: int | None
-) -> str:
-    """Convert the marked copy the way the persisted markdown was converted.
-
-    Markdown stored before equations were converted one at a time lost every
-    equation whenever one of them failed. When today's conversion does not
-    match its line count, try that older conversion before giving up.
-    """
-    markdown = await markitdown_converter.convert_to_markdown(docx_path)
-    if expected_line_count is None or _line_count(markdown) == expected_line_count:
-        return markdown
-    legacy = await markitdown_converter.convert_to_markdown(
-        docx_path, keep_equations=False
-    )
-    if _line_count(legacy) == expected_line_count:
-        return legacy
-    return markdown
-
-
 def _remove(path: str) -> None:
     try:
         os.unlink(path)
@@ -114,22 +94,90 @@ def _remove(path: str) -> None:
         pass
 
 
-async def _marked_markdown(
-    docx_path: str, expected_line_count: int | None
-) -> tuple[str, int]:
-    """The document's markdown with a marker on every non-empty paragraph, and
-    how many markers were injected (no conversion when there are none)."""
+def _save_marked_copy(docx_path: str, marked_path: str) -> int:
+    """Save `docx_path` with a marker on every non-empty paragraph; return
+    how many were injected."""
     doc = Document(docx_path)
     injected = _inject_markers(doc)
-    if injected == 0:
-        return "", 0
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
-        tmp_path = tmp.name
-    try:
-        doc.save(tmp_path)
-        return await _convert_like_persisted(tmp_path, expected_line_count), injected
-    finally:
-        _remove(tmp_path)
+    doc.save(marked_path)
+    return injected
+
+
+async def _conversion_matching(
+    marked: list[str], expected_line_count: int
+) -> tuple[str | None, list[int]]:
+    """The marked conversion the persisted markdown was made with, and the
+    line counts of every conversion tried.
+
+    `marked` is the marked copy with drawings stubbed, then (when there were
+    drawings) the untouched one. Each is tried with equations converted one at
+    a time and then the older way, which lost every equation whenever one
+    failed. Stubbing and keeping equations only ever add lines, so the first
+    candidate is the longest: when it matches, nothing else can match with
+    different paragraph positions, and it is taken at once. A later match is
+    checked against the remaining candidates, since stubbed charts without
+    equations can tie with equations without charts: when two conversions
+    match the count but place paragraphs differently, neither can be trusted
+    and the result is None.
+    """
+    counts: list[int] = []
+    match: str | None = None
+    for keep_equations in (True, False):
+        for path in marked:
+            markdown = await markitdown_converter.convert_to_markdown(
+                path, keep_equations=keep_equations
+            )
+            counts.append(_line_count(markdown))
+            if counts[-1] != expected_line_count:
+                continue
+            if match is None:
+                if len(counts) == 1:
+                    return markdown, counts
+                match = markdown
+            elif _extract_marker_positions(markdown) != _extract_marker_positions(
+                match
+            ):
+                logger.warning(
+                    "Paragraph line-range mapper: two conversions match the "
+                    "persisted markdown's %d lines but place paragraphs "
+                    "differently; refusing to anchor",
+                    expected_line_count,
+                )
+                return None, counts
+    return match, counts
+
+
+async def _marked_markdown(
+    docx_path: str, expected_line_count: int | None
+) -> tuple[str | None, int]:
+    """The markdown with paragraph markers that matches the persisted one, and
+    how many markers were injected. None when no conversion can be trusted."""
+    stubbed_path = await asyncio.to_thread(stub_docx_drawings, docx_path)
+    sources = [path for path in (stubbed_path, docx_path) if path]
+    with tempfile.TemporaryDirectory(prefix="line-mapper-") as workdir:
+        try:
+            marked = [
+                os.path.join(workdir, f"marked-{i}.docx") for i in range(len(sources))
+            ]
+            injected = 0
+            for source, target in zip(sources, marked):
+                injected = await asyncio.to_thread(_save_marked_copy, source, target)
+        finally:
+            if stubbed_path:
+                _remove(stubbed_path)
+        if injected == 0:
+            return "", 0
+        if expected_line_count is None:
+            return await markitdown_converter.convert_to_markdown(marked[0]), injected
+        markdown, counts = await _conversion_matching(marked, expected_line_count)
+    if markdown is None:
+        logger.warning(
+            "Paragraph line-range mapper: the persisted markdown has %d lines; "
+            "the conversions tried produced %s — refusing to anchor",
+            expected_line_count,
+            counts,
+        )
+    return markdown, injected
 
 
 async def build_paragraph_line_ranges(
@@ -146,38 +194,17 @@ async def build_paragraph_line_ranges(
     indexed against. The drawings the main conversion rasterizes are stubbed
     here, which matches it whenever rasterization succeeded at ingestion; when
     it did not (LibreOffice missing, timeout), the persisted markdown has no
-    lines for them, so the untouched document is converted instead. On a
-    mismatch either way the map is empty — unanchorable issues are skipped and
-    logged, which beats anchoring them to the wrong paragraphs.
+    lines for them, so the untouched document is converted instead. When no
+    conversion matches, or two match ambiguously, the map is empty —
+    unanchorable issues are skipped and logged, which beats anchoring them to
+    the wrong paragraphs.
     """
-    stubbed_path = await asyncio.to_thread(stub_docx_drawings, docx_path)
-    try:
-        markdown_with_markers, injected = await _marked_markdown(
-            stubbed_path or docx_path, expected_line_count
-        )
-    finally:
-        if stubbed_path:
-            _remove(stubbed_path)
-    if injected == 0:
+    markdown_with_markers, injected = await _marked_markdown(
+        docx_path, expected_line_count
+    )
+    if markdown_with_markers is None or injected == 0:
         return {}
-    stubbed_lines = _line_count(markdown_with_markers) if stubbed_path else None
-    if stubbed_lines is not None and expected_line_count not in (None, stubbed_lines):
-        markdown_with_markers, injected = await _marked_markdown(
-            docx_path, expected_line_count
-        )
-
     total_lines = _line_count(markdown_with_markers)
-    if expected_line_count is not None and total_lines != expected_line_count:
-        logger.warning(
-            "Paragraph line-range mapper: the persisted markdown has %d lines, but "
-            "the conversion with drawings stubbed produced %s and the one without "
-            "them %d — the conversions are structurally different; refusing to "
-            "anchor",
-            expected_line_count,
-            stubbed_lines if stubbed_lines is not None else "n/a (no drawings)",
-            total_lines,
-        )
-        return {}
 
     start_lines = _extract_marker_positions(markdown_with_markers)
     if len(start_lines) < injected:
