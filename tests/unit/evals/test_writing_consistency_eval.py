@@ -34,7 +34,7 @@ def test_dataset_is_well_formed():
     records = load_inventory_records(DATASET)
     assert len(records) == 21
     expected = [e for r in records for e in r.expected_issues]
-    assert len(expected) == 41
+    assert len(expected) == 45
     assert sum(e.required for e in expected) == 33
     prefixes = {e.title for e in expected}
     assert prefixes == {

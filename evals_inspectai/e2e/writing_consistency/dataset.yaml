@@ -365,6 +365,22 @@
     title: Inconsistent
     anchor: case tracking system during the first year
     required: false
+  - id: long_case_tracking_system_2
+    title: Inconsistent
+    anchor: recorded in the case tracking system for
+    required: false
+  - id: long_case_tracking_system_3
+    title: Inconsistent
+    anchor: entered into the case tracking system by
+    required: false
+  - id: long_case_tracking_system_4
+    title: Inconsistent
+    anchor: enter referrals into the case tracking system
+    required: false
+  - id: long_case_tracking_system_5
+    title: Inconsistent
+    anchor: data from the case tracking system and
+    required: false
   - id: long_board
     title: Inconsistent
     anchor: Several board members have asked
