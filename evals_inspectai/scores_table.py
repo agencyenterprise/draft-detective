@@ -110,35 +110,54 @@ def row_text(num: str, name: str, note: str, log: str, run: RunSummary) -> str:
     )
 
 
-def record(logs: list[Path], lines: list[str]) -> list[str]:
-    """Copy each new log into `docs/evals/` and point its eval's row at it."""
+class Recording(BaseModel):
+    """New runs to record: the table pointing at them, and what they replace."""
+
+    lines: list[str]
+    sources: dict[str, Path]
+    replaced: list[str]
+
+
+def _row_index(lines: list[str], task: str) -> int:
+    for index, line in enumerate(lines):
+        if (match := ROW.match(line)) and match["name"] == task:
+            return index
+    raise SystemExit(f"No row for `{task}` in {DOC}: add it by hand first.")
+
+
+def plan_recording(logs: list[Path], lines: list[str]) -> Recording:
+    """Point each new log's row at it, touching no file yet.
+
+    Every log is read and matched to its row before anything is copied or
+    deleted, so a bad log on the command line leaves the report as it was.
+    """
+    lines = list(lines)
+    sources: dict[str, Path] = {}
+    replaced: list[str] = []
     for log in logs:
-        task = summarize(log).task
-        index = next(
-            (
-                i
-                for i, line in enumerate(lines)
-                if (m := ROW.match(line)) and m["name"] == task
-            ),
-            None,
-        )
-        if index is None:
-            raise SystemExit(f"No row for `{task}` in {DOC}: add it by hand first.")
-        old = ROW.match(lines[index])["log"]  # type: ignore[index]  # matched above
-        shutil.copy2(log, LOG_DIR / log.name)
+        index = _row_index(lines, summarize(log).task)
+        old = ROW.match(lines[index])["log"]  # type: ignore[index]  # matched in _row_index
+        if old in sources:
+            raise SystemExit(f"Two logs given for the row of {log.name}.")
         lines[index] = lines[index].replace(old, log.name)
-        if old != log.name and (LOG_DIR / old).exists():
-            (LOG_DIR / old).unlink()
-    return lines
+        sources[log.name] = log
+        if old != log.name:
+            replaced.append(old)
+    return Recording(lines=lines, sources=sources, replaced=replaced)
 
 
-def regenerate(lines: list[str]) -> list[str]:
-    """Rewrite every row, the mean row and the header totals from the logs."""
+def regenerate(lines: list[str], sources: dict[str, Path] | None = None) -> list[str]:
+    """Rewrite every row, the mean row and the header totals from the logs.
+
+    A row's log is read from `docs/evals/`, or from `sources` when it is a new
+    run not copied there yet.
+    """
+    sources = sources or {}
     runs: list[RunSummary] = []
     out: list[str] = []
     for line in lines:
         if m := ROW.match(line):
-            run = summarize(LOG_DIR / m["log"])
+            run = summarize(sources.get(m["log"], LOG_DIR / m["log"]))
             runs.append(run)
             line = row_text(m["num"], m["name"], m["note"] or "", m["log"], run)
         elif MEAN_ROW.match(line) and runs:
@@ -173,15 +192,26 @@ def main() -> None:
         "--check", action="store_true", help="exit 1 if the table is stale"
     )
     args = parser.parse_args()
+    if args.check and args.record:
+        parser.error("--check reads the table as it is; it cannot take --record")
     current = DOC.read_text().splitlines()
-    updated = regenerate(record(args.record, list(current)) if args.record else current)
     if args.check:
-        if updated != current:
+        if regenerate(current) != current:
             sys.exit(
                 f"{DOC} is stale: run `uv run python -m evals_inspectai.scores_table`."
             )
         return
+    recording = plan_recording(args.record, current)
+    updated = regenerate(recording.lines, recording.sources)
+    # Only now, with every log read and the table computed, touch the files:
+    # copy the new logs in, write the table, then drop the logs it no longer
+    # links to.
+    for name, source in recording.sources.items():
+        if source.resolve() != (LOG_DIR / name).resolve():
+            shutil.copy2(source, LOG_DIR / name)
     DOC.write_text("\n".join(updated) + "\n")
+    for name in recording.replaced:
+        (LOG_DIR / name).unlink(missing_ok=True)
     print(f"Updated {DOC} ({date.today()}).")
 
 
