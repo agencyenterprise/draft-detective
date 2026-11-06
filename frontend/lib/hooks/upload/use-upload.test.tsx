@@ -268,17 +268,28 @@ describe('useUpload', () => {
     expect(onAllComplete).toHaveBeenCalledOnce();
   });
 
-  // Bug: the Uppy instance's `file-added` handler keeps the project, role and
-  // reference from the render that created it and overwrites the metadata
-  // addFiles sets, so a changed prop only takes effect after reset(). Today's
-  // callers reset whenever their dialog opens, so no user path reaches it yet.
-  it.fails('sends the reference from the latest render', async () => {
+  it('sends the project, role and reference of the render that added the file, without a reset', async () => {
     mounted = await mount({ referenceId: 'ref-A' });
     await step(() => mounted!.current().addFiles([pdf('first.pdf')]));
+    const invalidate = vi.spyOn(mounted.client, 'invalidateQueries');
 
-    await mounted.rerender({ projectId: PROJECT, referenceId: 'ref-B' });
+    await mounted.rerender({ projectId: 'project-2', fileRole: FileRole.ReviewInput, referenceId: 'ref-B' });
     await step(() => mounted!.current().startUpload([pdf('second.pdf')]));
 
-    expect(held('second.pdf').meta.reference_id).toBe('ref-B');
+    expect(held('first.pdf').meta).toMatchObject({
+      project_id: PROJECT,
+      role: FileRole.Support,
+      reference_id: 'ref-A',
+    });
+    expect(held('second.pdf').meta).toMatchObject({
+      project_id: 'project-2',
+      role: FileRole.ReviewInput,
+      reference_id: 'ref-B',
+    });
+
+    // Each finished upload refreshes the project it went to.
+    await step(() => held('second.pdf').succeed());
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: projectQueryKeys.all('project-2') });
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: projectQueryKeys.all(PROJECT) });
   });
 });
