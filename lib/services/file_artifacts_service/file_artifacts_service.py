@@ -6,7 +6,7 @@ from typing import Any, Literal, overload
 from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
-from lib.models.file import File, FileRole
+from lib.models.file import UPLOADED_ROLES, File, FileRole
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
     LoadedDocuments,
@@ -39,16 +39,6 @@ from lib.workflows.reference_file_matching.state import ReferenceFileMatchingSta
 from lib.workflows.util import run_type_of
 
 logger = logging.getLogger(__name__)
-
-
-# Every role a person uploads, as opposed to the files the app derives.
-_UPLOADED_ROLES = [
-    FileRole.MAIN,
-    FileRole.SUPPORT,
-    FileRole.REVIEWER_MEMO,
-    FileRole.RESPONSE_MEMO,
-    FileRole.REVIEW_INPUT,
-]
 
 
 def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
@@ -426,7 +416,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         upload does not cost the caller the rest. Order follows ``file_ids``.
         """
         files = await get_files_by_project_id(
-            self.project_id, roles=_UPLOADED_ROLES, file_ids=_as_uuids(file_ids)
+            self.project_id, roles=UPLOADED_ROLES, file_ids=_as_uuids(file_ids)
         )
         by_id = {str(file.id): file for file in files}
         loaded = LoadedDocuments(documents=[])

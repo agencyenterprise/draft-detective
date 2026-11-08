@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.file import FileRole
+from lib.models.file import UPLOADED_ROLES
 from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
 from lib.services.files.service import get_files_by_project_id
 from lib.services.projects.overview import current_run_errors
@@ -28,15 +28,6 @@ from lib.workflows.review_assistant.state import (
     ReviewAssistantOutput,
     ReviewAssistantState,
 )
-
-# What a request may read: anything a person uploaded to the project.
-_READABLE_ROLES = [
-    FileRole.MAIN,
-    FileRole.SUPPORT,
-    FileRole.REVIEWER_MEMO,
-    FileRole.RESPONSE_MEMO,
-    FileRole.REVIEW_INPUT,
-]
 
 
 class StartReviewAssistantRequest(BaseModel):
@@ -73,7 +64,7 @@ async def assert_project_files(project_id: str, file_ids: Sequence[str]) -> None
     """400 unless every id is a document uploaded to this project."""
     files = await get_files_by_project_id(
         project_id,
-        roles=_READABLE_ROLES,
+        roles=UPLOADED_ROLES,
         file_ids=[ensure_uuid(file_id, "file ID") for file_id in file_ids],
     )
     known = {str(file.id) for file in files}

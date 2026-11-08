@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.file import File, FileRole
+from lib.models.file import UPLOADED_ROLES, File
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import (
@@ -303,15 +303,7 @@ async def get_project_files(project_id: str) -> list[File]:
             select(File)
             .where(
                 col(File.project_id) == project.id,
-                col(File.role).in_(
-                    [
-                        FileRole.MAIN,
-                        FileRole.SUPPORT,
-                        FileRole.REVIEWER_MEMO,
-                        FileRole.RESPONSE_MEMO,
-                        FileRole.REVIEW_INPUT,
-                    ]
-                ),
+                col(File.role).in_(UPLOADED_ROLES),
             )
             .order_by(col(File.created_at).asc())
         )
