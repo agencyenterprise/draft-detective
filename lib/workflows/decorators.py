@@ -30,6 +30,7 @@ from lib.workflows.context import ContextSchema, current_progress_id
 from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import (
     BaseWorkflowState,
+    WorkflowAbortedError,
     WorkflowCancelledError,
 )
 
@@ -145,7 +146,8 @@ def register_node(name: str):
     Decorator to control the execution of a workflow node.
 
     - Logs the start and end of the node, during execution
-    - Handles errors and updates the state with a WorkflowError object, during execution
+    - Handles errors and updates the state with a WorkflowError object, during execution,
+      except WorkflowAbortedError, which propagates so the run ends FAILED
 
     Args:
         name: A human-readable name of the node.
@@ -189,6 +191,10 @@ def register_node(name: str):
                 func_logger.info(
                     f"{func.__name__} ({project_id}): node skipped — workflow was cancelled"
                 )
+                raise
+
+            except WorkflowAbortedError as e:
+                func_logger.error(f"{func.__name__} ({project_id}): aborted run: {e}")
                 raise
 
             except Exception as e:

@@ -11,7 +11,7 @@ from lib.workflows.context import ContextSchema
 from lib.workflows.decorators import register_node
 from lib.workflows.document_processing.state import DocumentProcessingState
 from lib.workflows.error_details import build_workflow_error
-from lib.workflows.models import WorkflowError
+from lib.workflows.models import WorkflowAbortedError, WorkflowError
 
 logger = logging.getLogger(__name__)
 
@@ -24,14 +24,17 @@ async def convert_to_markdown(
     supporting = state.supporting_files or []
 
     # Main file first (sequentially) — the rest of the pipeline can't proceed
-    # without it, so a failure here must abort the workflow.
+    # without it, so a failure here must abort the workflow: the run ends
+    # FAILED and its dependents are cancelled before they spend model calls.
     main_result = await _convert_and_persist(main_file, role=FileRole.MAIN)
     if isinstance(main_result, Exception):
-        logger.error(
-            f"Main document conversion failed for {main_file.file_name} "
-            f"(file_id={main_file.file_id}): {main_result}"
+        raise WorkflowAbortedError(
+            f"Could not convert the main document {main_file.file_name}: {main_result}"
+        ) from main_result
+    if not main_result.markdown.strip():
+        raise WorkflowAbortedError(
+            f"The main document {main_file.file_name} has no text to review."
         )
-        raise main_result
     converted_main = main_result
 
     workflow_run_id = runtime.context.workflow_run_id
