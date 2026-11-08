@@ -6,6 +6,8 @@ import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-a
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { useProjectFeedback } from '@/lib/hooks/use-project-feedback';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { getErrorMessage } from '@/lib/api-error';
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
 
 interface SubmitFeedbackParams {
@@ -62,6 +64,9 @@ export function ProjectFeedbackProvider({
         // Only the project's own fields changed, which the overview carries.
         queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
         doSubmit(pendingParams);
+      } catch (error) {
+        // The dialog does not await this handler, so an error left here would vanish with the rating.
+        toast.error(getErrorMessage(error, 'Failed to save your feedback privacy choice'));
       } finally {
         setIsSavingVisibility(false);
         setPendingParams(null);
