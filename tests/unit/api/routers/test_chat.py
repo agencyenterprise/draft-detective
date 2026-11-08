@@ -19,6 +19,7 @@ from docx import Document
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, HumanMessage
+from starlette.datastructures import UploadFile
 
 from lib.agents import chat_agent as chat_agent_module
 from lib.api.auth import get_current_user
@@ -390,12 +391,21 @@ class TestExtract:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(chat, "MAX_ATTACHMENT_BYTES", 1024)
+        read_sizes: list[int] = []
+        read = UploadFile.read
+
+        async def recording_read(self: UploadFile, size: int = -1) -> bytes:
+            read_sizes.append(size)
+            return await read(self, size)
+
+        monkeypatch.setattr(UploadFile, "read", recording_read)
         with patch.object(chat, "extract_markdown", AsyncMock(return_value="x")) as ex:
             response = _client().post(
-                "/api/chat/extract", files={"file": ("big.docx", b"x" * 1025)}
+                "/api/chat/extract", files={"file": ("big.docx", b"x" * 10_000)}
             )
         assert response.status_code == 413
         ex.assert_not_awaited()
+        assert read_sizes == [1025]
 
     def test_a_document_at_the_cap_is_converted(
         self, monkeypatch: pytest.MonkeyPatch
