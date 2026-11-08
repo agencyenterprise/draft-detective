@@ -15,8 +15,8 @@ import {
 
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
 
-/** What already succeeded for the current draft, so Continue after a failure resumes instead of starting over. */
-type Attempt = { project: Project; uploaded: boolean };
+/** What already succeeded for a draft, so Continue after a failure resumes instead of starting over. */
+type Attempt = { file: File; project: Project; uploaded: boolean };
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -62,15 +62,18 @@ export function useStepUpload(onComplete: () => void) {
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
-      // A retry reuses the project and upload a failed attempt left behind, instead of creating a duplicate.
-      if (!attempt.current) {
+      // A retry of the same draft reuses the project and upload a failed attempt left behind, instead of creating a
+      // duplicate. `current` stays local so picking another draft mid-flight can't pull the attempt from under it.
+      let current = attempt.current;
+      if (current?.file !== mainDocument) {
         setUploadStage('creating');
         const { project } = await createProjectEndpointApiProjectsPost({ body: { title: mainDocument.name } });
-        attempt.current = { project, uploaded: false };
+        current = { file: mainDocument, project, uploaded: false };
+        attempt.current = current;
       }
-      const { project } = attempt.current;
+      const { project } = current;
 
-      if (!attempt.current.uploaded) {
+      if (!current.uploaded) {
         setUploadStage('uploading');
         setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
         await uploadSingleFile(mainDocument, {
@@ -78,7 +81,7 @@ export function useStepUpload(onComplete: () => void) {
           fileRole: FileRole.Main,
           onProgress: setUploadProgress,
         });
-        attempt.current.uploaded = true;
+        current.uploaded = true;
       }
 
       setUploadStage('processing');
@@ -109,7 +112,6 @@ export function useStepUpload(onComplete: () => void) {
   const handleDocumentChange = useCallback(
     (files: File[]) => {
       setMainDocument(files[0] || null);
-      attempt.current = null;
       setUploadStage('idle');
       setUploadProgress(null);
     },

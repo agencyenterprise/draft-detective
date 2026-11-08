@@ -210,6 +210,26 @@ describe('useStepUpload', () => {
     await view.unmount();
   });
 
+  it('finishes the upload in flight when another draft is picked meanwhile', async () => {
+    let land!: () => void;
+    mocks.upload.mockImplementationOnce(() => new Promise<void>((resolve) => (land = resolve)));
+    const { onComplete, view, step } = await mountStep();
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => step().handleContinue());
+    await flush();
+
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => land());
+    await flush();
+
+    expect(mocks.start).toHaveBeenCalledWith(
+      expect.objectContaining({ body: expect.objectContaining({ project_id: 'p-1' }) }),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(onComplete).toHaveBeenCalledOnce();
+    await view.unmount();
+  });
+
   it('groups by severity when the new project does not say', async () => {
     mocks.create.mockResolvedValue({ project: { id: 'p-2', group_by_severity: null } });
     const { view, step, wizard } = await mountStep();
