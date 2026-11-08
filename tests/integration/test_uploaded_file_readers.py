@@ -1,7 +1,8 @@
 """Every reader of a project's uploaded documents sees the same roles.
 
-One file per role, so a role added to the uploads, or a reader that drifts
-from the others, shows up as a file missing from (or leaking into) a list.
+One file per role, so a reader that drifts from the others shows up as a file
+missing from (or leaking into) its list. A new role left out of
+UPLOADED_ROLES is not caught here: every reader leaves it out alike.
 """
 
 import uuid
