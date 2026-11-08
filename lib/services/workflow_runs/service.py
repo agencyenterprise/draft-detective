@@ -107,9 +107,10 @@ async def persist_workflow_run_state(
 ) -> None:
     """Snapshot the workflow state onto the WorkflowRun row.
 
-    Called after every node yield in the runner so a crashed/cancelled run still
-    has its last-good state inspectable on the row itself. `state_json` is the
-    single source of truth for workflow state.
+    The runner calls it after every streamed chunk (each superstep and each task
+    completion) so a crashed/cancelled run still has its last-good state
+    inspectable on the row itself. `state_json` is the single source of truth
+    for workflow state.
     """
     payload = sanitize_for_postgres(state.model_dump(mode="json"))
     async with get_async_db_session() as session:
@@ -303,9 +304,10 @@ async def update_workflow_run_status(
     reaper just produced (race window: heartbeat lag → reap → runner finishes
     its last node → COMPLETED write), and racing failure paths could
     overwrite each other's failure_reason / failure_message. The guard is
-    application-level (SELECT-then-UPDATE inside one transaction); when two
-    pods race, last writer wins for non-terminal transitions, which is
-    benign because non-terminal writes are idempotent.
+    application-level: a SELECT that skips terminal rows, then an UPDATE by id,
+    with no row lock. It stops any write that starts after a terminal one has
+    committed, but two writers whose SELECTs both run before either commits
+    both write, and the last one wins.
 
     `failure_reason` and `failure_message` are persisted only when transitioning
     to FAILED; they are ignored for other statuses.
@@ -497,7 +499,7 @@ async def get_project_workflow_run_by_type(
         if active_run:
             return active_run
 
-        # No active run found, get the latest completed run
+        # No active run found, get the latest run (all remaining ones are terminal)
         stmt = (
             select(WorkflowRun)
             .where(

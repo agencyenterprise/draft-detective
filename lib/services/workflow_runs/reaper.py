@@ -239,7 +239,7 @@ async def _reap_once_locked(
             )
 
         try:
-            # PENDING runs never reached run_workflow, so there's no checkpoint
+            # PENDING runs never reached run_workflow, so they have no persisted
             # state for the manifest to clean up; the on_cancel call is a no-op
             # in that case (state is None). Still cheap, and keeps the path
             # uniform.

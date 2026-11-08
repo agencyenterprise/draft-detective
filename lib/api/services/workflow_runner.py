@@ -156,7 +156,7 @@ def _should_skip_existing(
     explicitly, or whose manifest says it always runs, is never skipped. A
     completed dependency is skipped. Reference extraction is additionally
     skipped while still in flight (PENDING/RUNNING/AWAITING_APPROVAL), since
-    it runs once per project; only a CANCELLED or FAILED attempt is redone.
+    it runs once per revision; only a CANCELLED or FAILED attempt is redone.
     """
     if existing_run is None or workflow_type in requested:
         return False
@@ -164,7 +164,7 @@ def _should_skip_existing(
         return False
     if existing_run.status == WorkflowRunStatus.COMPLETED:
         return True
-    # Reference extraction is expensive and runs only once per project, so
+    # Reference extraction is expensive and runs only once per revision, so
     # skip it while it's completed or still in-flight. But allow a re-run when
     # the prior attempt was cancelled or failed — otherwise dependents that
     # need its output get stuck.
@@ -559,10 +559,13 @@ async def start_multiple_workflow_runs(
     background_tasks: BackgroundTasks,
 ) -> list[str]:
     """
-    Start multiple workflows immediately as PENDING.
+    Start multiple workflows and their dependencies in the background.
 
-    Each workflow will check its dependencies and wait for them to complete
-    before starting execution. Workflows run in parallel while still respecting dependencies.
+    Ready workflows are created PENDING and scheduled; one held behind an
+    unapproved gate is created AWAITING_APPROVAL (or its waiting run is reused),
+    and a dependency that _should_skip_existing skips gets no new run. Each
+    scheduled workflow waits for its own dependencies, so they run in parallel
+    while still respecting dependencies.
 
     Args:
         workflow_types: List of workflow types to run
@@ -570,8 +573,13 @@ async def start_multiple_workflow_runs(
         user: User running the workflows
         background_tasks: FastAPI background tasks
 
+    Returns:
+        The IDs of every run this batch owns, including those awaiting approval
+
     Raises:
-        HTTPException: If project_id is missing or project doesn't exist
+        HTTPException: 404 if the project doesn't exist, 403 without write
+            access, 422 if it has no main file, no API key is available or the
+            model override is not allowed
     """
     (
         _,
@@ -621,8 +629,9 @@ async def run_multiple_workflows_blocking(
         workflow_types: List of workflow types to run (dependencies resolved automatically)
         request: Request containing project_id and optional openai_api_key
         user: User running the workflows
-        approve_human_steps: When True, treat any unsatisfied human-trigger
-            dependency as approved by the caller and run it inline. When False
+        approve_human_steps: When True, record every unsatisfied approval gate
+            of the resolved workflows as approved by the user, for the
+            project's revision, and run the gated workflows inline. When False
             (default), raises WorkflowGateRequiredError so the caller can
             prompt the user to confirm before retrying with approval.
         approve_web_search: When True, treat any workflow with
@@ -703,8 +712,10 @@ async def approve_project_gate(
     Approve a gate for the project's current revision and schedule every run
     that was awaiting it.
 
-    Idempotent: approving an already-approved gate releases nothing new and
-    returns an empty list.
+    Idempotent: approving an already-approved gate records nothing new. It
+    still releases any run whose gates are now all approved, such as one left
+    waiting when the MCP path recorded the approval for other workflows, and
+    returns an empty list when there is none.
 
     Returns:
         The IDs of the runs released from AWAITING_APPROVAL and scheduled.
