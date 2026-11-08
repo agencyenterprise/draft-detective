@@ -297,10 +297,10 @@ async def update_workflow_run_status(
     failure_reason: WorkflowRunFailureReason | None = None,
     failure_message: str | None = None,
 ) -> None:
-    """Update an existing workflow run's status. Never overwrites a terminal status.
+    """Update an existing workflow run's status, unless it already committed a terminal one.
 
-    Terminal statuses (CANCELLED, COMPLETED, FAILED) are write-once. Without
-    this guard the runner's COMPLETED write could clobber a FAILED row the
+    Terminal statuses (CANCELLED, COMPLETED, FAILED) are meant to be
+    write-once. Without this guard the runner's COMPLETED write could clobber a FAILED row the
     reaper just produced (race window: heartbeat lag → reap → runner finishes
     its last node → COMPLETED write), and racing failure paths could
     overwrite each other's failure_reason / failure_message. The guard is

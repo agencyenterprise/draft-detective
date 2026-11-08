@@ -561,7 +561,8 @@ async def start_multiple_workflow_runs(
     """
     Start multiple workflows and their dependencies in the background.
 
-    Ready workflows are created PENDING and scheduled; one held behind an
+    Ready workflows get a new PENDING run (or their run that was awaiting
+    approval is released to PENDING) and are scheduled; one held behind an
     unapproved gate is created AWAITING_APPROVAL (or its waiting run is reused),
     and a dependency that _should_skip_existing skips gets no new run. Each
     scheduled workflow waits for its own dependencies, so they run in parallel
