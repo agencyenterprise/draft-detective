@@ -95,8 +95,27 @@ def test_refuses_archive_expanding_past_upload_limit(
 ):
     bomb = _docx(tmp_path / "bomb.docx", media=10 * _MIB)
 
-    with pytest.raises(ArchiveTooLargeError):
+    with (
+        patch.object(archive_limits, "_may_be_xml") as inspect_part,
+        pytest.raises(ArchiveTooLargeError),
+    ):
         check_archive_expansion(str(bomb))
+    inspect_part.assert_not_called()
+
+
+def test_refuses_archive_with_too_many_parts(tmp_path: Path):
+    archive = tmp_path / "parts.docx"
+    with zipfile.ZipFile(archive, "w") as package:
+        for index in range(11):
+            package.writestr(f"word/part{index}.xml", b"<a/>")
+
+    with (
+        patch.object(archive_limits, "MAX_MEMBERS", 10),
+        patch.object(archive_limits, "_may_be_xml") as inspect_part,
+        pytest.raises(ArchiveTooLargeError),
+    ):
+        check_archive_expansion(str(archive))
+    inspect_part.assert_not_called()
 
 
 @pytest.mark.asyncio
