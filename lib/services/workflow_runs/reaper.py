@@ -239,10 +239,11 @@ async def _reap_once_locked(
             )
 
         try:
-            # PENDING runs never reached run_workflow, so they have no persisted
-            # state for the manifest to clean up; the on_cancel call is a no-op
-            # in that case (state is None). Still cheap, and keeps the path
-            # uniform.
+            # PENDING runs never reached run_workflow, so most have no persisted
+            # state and the on_cancel call is a no-op (state is None). Some
+            # still carry one written at request time (the Review Assistant
+            # records its request on the run before the task starts), and
+            # those get the hook like any other run.
             await _run_manifest_on_cancel(run)
             await fail_workflow_run(
                 str(run.id),
