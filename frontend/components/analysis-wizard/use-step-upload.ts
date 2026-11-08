@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
@@ -10,9 +10,13 @@ import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   WorkflowRunType,
   FileRole,
+  Project,
 } from '@/lib/generated-api';
 
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
+
+/** What already succeeded for the current draft, so Continue after a failure resumes instead of starting over. */
+type Attempt = { project: Project; uploaded: boolean };
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -52,24 +56,30 @@ export function useStepUpload(onComplete: () => void) {
 
   const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
   const formatStatus = validateDocument(mainDocument);
+  const attempt = useRef<Attempt | null>(null);
 
   const createProjectAndProcess = useMutation({
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
-      setUploadStage('creating');
-      const { project } = await createProjectEndpointApiProjectsPost({
-        body: { title: mainDocument.name },
-      });
+      // A retry reuses the project and upload a failed attempt left behind, instead of creating a duplicate.
+      if (!attempt.current) {
+        setUploadStage('creating');
+        const { project } = await createProjectEndpointApiProjectsPost({ body: { title: mainDocument.name } });
+        attempt.current = { project, uploaded: false };
+      }
+      const { project } = attempt.current;
 
-      setUploadStage('uploading');
-      setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
-
-      await uploadSingleFile(mainDocument, {
-        projectId: project.id,
-        fileRole: FileRole.Main,
-        onProgress: setUploadProgress,
-      });
+      if (!attempt.current.uploaded) {
+        setUploadStage('uploading');
+        setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
+        await uploadSingleFile(mainDocument, {
+          projectId: project.id,
+          fileRole: FileRole.Main,
+          onProgress: setUploadProgress,
+        });
+        attempt.current.uploaded = true;
+      }
 
       setUploadStage('processing');
 
@@ -99,6 +109,7 @@ export function useStepUpload(onComplete: () => void) {
   const handleDocumentChange = useCallback(
     (files: File[]) => {
       setMainDocument(files[0] || null);
+      attempt.current = null;
       setUploadStage('idle');
       setUploadProgress(null);
     },
