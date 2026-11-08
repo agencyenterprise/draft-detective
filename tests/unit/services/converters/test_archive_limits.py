@@ -18,9 +18,12 @@ from lib.services.files.conversion import convert_docx
 _MIB = 1024 * 1024
 
 
-def _docx(path: Path, padding: int = 0, media: int = 0) -> Path:
+def _docx(
+    path: Path, padding: int = 0, media: int = 0, body_name: str = "document.xml"
+) -> Path:
     """A real docx, its body padded with ``padding`` bytes of whitespace and an
-    extra ``media`` bytes of zeros as a picture: both deflate to almost nothing."""
+    extra ``media`` bytes of zeros as a PNG: both deflate to almost nothing.
+    ``body_name`` renames the main part, its relationships following."""
     source = path.with_suffix(".src.docx")
     document = docx.Document()
     document.add_paragraph("hello")
@@ -30,12 +33,17 @@ def _docx(path: Path, padding: int = 0, media: int = 0) -> Path:
         zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as dst,
     ):
         for item in src.infolist():
-            data = src.read(item.filename)
-            if item.filename == "word/document.xml":
+            name, data = item.filename, src.read(item.filename)
+            if name == "word/document.xml":
+                name = f"word/{body_name}"
                 data = data.replace(b"<w:body>", b"<w:body>" + b" " * padding)
-            dst.writestr(item.filename, data)
+            elif name == "word/_rels/document.xml.rels":
+                name = f"word/_rels/{body_name}.rels"
+            elif name in ("_rels/.rels", "[Content_Types].xml"):
+                data = data.replace(b"document.xml", body_name.encode())
+            dst.writestr(name, data)
         if media:
-            dst.writestr("word/media/image1.png", b"\0" * media)
+            dst.writestr("word/media/image1.png", b"\x89PNG" + b"\0" * media)
     return path
 
 
@@ -65,6 +73,18 @@ async def test_conversion_refuses_xml_bomb(tmp_path: Path, small_limits: None):
 async def test_markitdown_refuses_xml_bomb(tmp_path: Path, small_limits: None):
     """Covers the routes that reach markitdown without ``convert_docx``."""
     bomb = _docx(tmp_path / "bomb.docx", padding=4 * _MIB)
+
+    with pytest.raises(ArchiveTooLargeError):
+        await markitdown_converter.convert_to_markdown(str(bomb))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body_name", ["document.dat", "media/image9.png"])
+async def test_xml_cap_holds_for_a_renamed_body(
+    tmp_path: Path, small_limits: None, body_name: str
+):
+    """Readers find the body through its relationships, not its name or folder."""
+    bomb = _docx(tmp_path / "bomb.docx", padding=4 * _MIB, body_name=body_name)
 
     with pytest.raises(ArchiveTooLargeError):
         await markitdown_converter.convert_to_markdown(str(bomb))
