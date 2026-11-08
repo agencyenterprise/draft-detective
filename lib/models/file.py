@@ -41,6 +41,18 @@ class FileRole(str, Enum):
     EXTRACTED_IMAGE = "extracted_image"
 
 
+# Every role a person uploads, as opposed to the files the app derives or
+# fetches (supporting candidates, extracted images). The project's file lists
+# and the Review Assistant's inputs read these; a new upload role goes here.
+UPLOADED_ROLES: tuple[FileRole, ...] = (
+    FileRole.MAIN,
+    FileRole.SUPPORT,
+    FileRole.REVIEWER_MEMO,
+    FileRole.RESPONSE_MEMO,
+    FileRole.REVIEW_INPUT,
+)
+
+
 class File(SQLModel, table=True):
     __tablename__ = "files"
     # One MAIN document per (project, revision), enforced at the DB layer so
