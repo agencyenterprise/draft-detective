@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from docx import Document
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -384,3 +385,26 @@ class TestExtract:
             "/api/chat/extract", files={"file": ("blank.docx", buffer.getvalue())}
         )
         assert response.status_code == 422
+
+    def test_a_document_past_the_cap_is_refused_unread(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(chat, "MAX_ATTACHMENT_BYTES", 1024)
+        with patch.object(chat, "extract_markdown", AsyncMock(return_value="x")) as ex:
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("big.docx", b"x" * 1025)}
+            )
+        assert response.status_code == 413
+        ex.assert_not_awaited()
+
+    def test_a_document_at_the_cap_is_converted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(chat, "MAX_ATTACHMENT_BYTES", 1024)
+        with patch.object(chat, "extract_markdown", AsyncMock(return_value="x")) as ex:
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("ok.docx", b"x" * 1024)}
+            )
+        assert response.status_code == 200
+        assert ex.await_args is not None
+        assert len(ex.await_args.args[1]) == 1024
