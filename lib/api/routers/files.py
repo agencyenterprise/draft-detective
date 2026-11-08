@@ -13,6 +13,23 @@ from lib.services.files.service import (
 
 router = APIRouter(tags=["files"])
 
+# Types a browser shows without running anything the file carries. A file's
+# type comes from its bytes (libmagic on upload, the document for an extracted
+# image, the remote server for a downloaded reference), so anything else, HTML
+# and SVG above all, is sent as a download: rendered inline through the
+# frontend's same-origin proxy, its script would run with the viewer's session.
+_INLINE_TYPES = frozenset(
+    {
+        "application/pdf",
+        "image/png",
+        "image/jpeg",
+        "image/gif",
+        "image/webp",
+        "image/bmp",
+        "text/plain",
+    }
+)
+
 
 @router.get("/api/files/download/{file_id}")
 async def download_file(
@@ -58,9 +75,11 @@ async def download_file(
 
     # Named after the upload, or the browser names it after the URL (the file's
     # id). Inline, so a PDF or image still opens in the tab the link opens.
+    inline = file.file_type in _INLINE_TYPES
     return FileResponse(
         path=file.file_path,
         media_type=file.file_type,
         filename=file.file_name,
-        content_disposition_type="inline",
+        content_disposition_type="inline" if inline else "attachment",
+        headers={"X-Content-Type-Options": "nosniff"},
     )
