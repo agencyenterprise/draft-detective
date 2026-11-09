@@ -53,15 +53,8 @@ _BLOCK_TAGS = frozenset(
 _WHITESPACE = re.compile(r"\s+")
 
 
-_HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
-
-
 class _TextExtractor(HTMLParser):
-    """Flattens an HTML document into text, tracking quote nesting.
-
-    Also records where each heading begins, so a section can be located by its
-    heading rather than by any mention of its name in the prose.
-    """
+    """Flattens an HTML document into text, tracking quote nesting."""
 
     def __init__(
         self,
@@ -79,10 +72,6 @@ class _TextExtractor(HTMLParser):
         self._skip_depth = 0
         self._quote_depth = 0
         self._length = 0
-        self._heading_start: int | None = None
-        self._heading_buffer: list[str] = []
-        # (offset into the flattened text, heading text) in document order.
-        self.headings: list[tuple[int, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list) -> None:
         if self._breaks_page(dict(attrs)):
@@ -91,9 +80,6 @@ class _TextExtractor(HTMLParser):
             self._skip_depth += 1
         if tag in _QUOTE_TAGS:
             self._quote_depth += 1
-        if tag in _HEADING_TAGS:
-            self._heading_start = self._length
-            self._heading_buffer = []
         if tag in _BLOCK_TAGS:
             self._emit("\n")
 
@@ -102,17 +88,12 @@ class _TextExtractor(HTMLParser):
             self._skip_depth -= 1
         if tag in _QUOTE_TAGS and self._quote_depth:
             self._quote_depth -= 1
-        if tag in _HEADING_TAGS and self._heading_start is not None:
-            self.headings.append((self._heading_start, "".join(self._heading_buffer)))
-            self._heading_start = None
         if tag in _BLOCK_TAGS:
             self._emit("\n")
 
     def handle_data(self, data: str) -> None:
         if self._skip_depth:
             return
-        if self._heading_start is not None:
-            self._heading_buffer.append(data)
         self._emit(data)
 
     def _breaks_page(self, attrs: dict) -> bool:
@@ -155,8 +136,6 @@ class HtmlReport:
         raw_text / raw_unquoted_text: The same text with whitespace collapsed
             but no character folding, for checks about the characters
             themselves (see `voice_tells`).
-        headings: (offset, normalised text) for every heading, in document
-            order, used to locate a section by its heading.
     """
 
     def __init__(self, html: str) -> None:
@@ -166,8 +145,8 @@ class HtmlReport:
         parser.close()
 
         self.html = html
-        # The uncollapsed concatenation. `break_offsets` and heading offsets
-        # index into this, so it is the only string the part split can be cut
+        # The uncollapsed concatenation. `break_offsets` indexes into
+        # this, so it is the only string the part split can be cut
         # from -- `text` and `raw_text` have had their whitespace collapsed and
         # no longer line up with the offsets the parser recorded.
         self._raw = parser.text
@@ -177,7 +156,6 @@ class HtmlReport:
         self.raw_text = _WHITESPACE.sub(" ", parser.text).strip()
         self.raw_unquoted_text = _WHITESPACE.sub(" ", parser.unquoted_text).strip()
         self._text_length = parser._length
-        self.headings = [(offset, normalize(text)) for offset, text in parser.headings]
         self.break_offsets = parser.break_offsets
 
     @property
@@ -233,15 +211,6 @@ class HtmlReport:
     def quotes(self, snippet: str) -> bool:
         """Whether `snippet` appears inside a marked quote."""
         return normalize(snippet) in self.quoted_text
-
-    def heading_offset(self, pattern: re.Pattern[str]) -> float | None:
-        """Where the first heading matching `pattern` sits, as a document fraction."""
-        if not self._text_length:
-            return None
-        for offset, text in self.headings:
-            if pattern.match(text):
-                return offset / self._text_length
-        return None
 
     @property
     def part_boundary(self) -> float | None:
@@ -403,10 +372,6 @@ class PointId(str):
     @property
     def number(self) -> int:
         return int(self[1:].split(".")[0])
-
-    @property
-    def is_subpoint(self) -> bool:
-        return "." in self
 
 
 def find_point_ids(text: str) -> list[PointId]:
