@@ -21,11 +21,12 @@ from lib.services.workflow_runs.progress import (
     increment_and_complete_if_done,
 )
 
-# `workflow_runs` is imported lazily inside the functions below: importing
-# it here would form a circular chain (workflow_runs → registry → manifest
-# → graph → nodes → decorators), and Python errors out before the module
-# finishes initializing. The functions only need the helpers at call time,
-# so deferring is safe.
+# `workflow_runs.service` is imported lazily inside the functions below:
+# importing it here would form a circular chain (workflow_runs.service →
+# registry → manifest → graph → nodes → decorators), and Python errors out
+# before the module finishes initializing. `workflow_runs.progress`, imported
+# above, is not part of that chain. The functions only need the service
+# helpers at call time, so deferring is safe.
 from lib.workflows.context import ContextSchema, current_progress_id
 from lib.workflows.error_details import build_workflow_error
 from lib.workflows.models import (
@@ -120,7 +121,9 @@ async def _run_node_with_cancellation(
     try:
         return await node_task
     except asyncio.CancelledError as e:
-        # Confirm the cancellation came from our supervisor and not an external event loop shutdown
+        # Only a user cancel becomes WorkflowCancelledError. The supervisor also
+        # cancels the node when the run ended FAILED (the reaper, a parallel
+        # failure path); that, like an event loop shutdown, re-raises as is.
         status = await get_workflow_run_status(workflow_run_id)
         if status == WorkflowRunStatus.CANCELLED:
             raise WorkflowCancelledError(
@@ -146,8 +149,11 @@ def register_node(name: str):
     Decorator to control the execution of a workflow node.
 
     - Logs the start and end of the node, during execution
+    - Tracks the node's progress entry, and runs the node under `_supervise_node`,
+      which cancels it once the run reaches a terminal status
     - Handles errors and updates the state with a WorkflowError object, during execution,
-      except WorkflowAbortedError, which propagates so the run ends FAILED
+      except WorkflowCancelledError, which propagates so the run stays CANCELLED,
+      and WorkflowAbortedError, which propagates so the run ends FAILED
 
     Args:
         name: A human-readable name of the node.

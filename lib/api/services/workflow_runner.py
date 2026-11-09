@@ -485,18 +485,26 @@ async def start_workflow_run(
     config: WorkflowConfig, user: User, background_tasks: BackgroundTasks
 ):
     """
-    Start a workflow run, by creating a workflow run object, setting it to PENDING and adding a background task to run the workflow with dependency check.
+    Start a workflow run: create a PENDING run and add a background task that
+    runs it with the dependency check. A workflow held behind an unapproved
+    gate instead gets an AWAITING_APPROVAL run and no task.
 
     A run of the same type already awaiting approval on this revision is reused
     rather than duplicated: it is returned as is while its gate is unapproved,
-    and released and scheduled once the gate is approved. A PENDING or RUNNING
-    run doesn't stop a new one, which queues behind it on the same-type lock.
-    Independent-run workflows always get a new run.
+    and claimed, released and scheduled once the gate is approved. When a
+    concurrent approve_project_gate claimed it first, that run is returned
+    without scheduling it again; when it was cancelled or deleted meanwhile, a
+    new run starts. A PENDING or RUNNING run doesn't stop a new one, which
+    queues behind it on the same-type lock. Independent-run workflows always
+    get a new run.
 
     Args:
         config: The workflow config to run
         user: The user running the workflow
         background_tasks: The background tasks to run the workflow in
+
+    Returns:
+        The ID of the run that serves this start
     """
 
     project, _ = await get_project_access(
@@ -580,9 +588,11 @@ async def start_multiple_workflow_runs(
     Ready workflows get a new PENDING run (or their run that was awaiting
     approval is released to PENDING) and are scheduled; one held behind an
     unapproved gate is created AWAITING_APPROVAL (or its waiting run is reused),
-    and a dependency that _should_skip_existing skips gets no new run. Each
-    scheduled workflow waits for its own dependencies, so they run in parallel
-    while still respecting dependencies.
+    and a dependency that _should_skip_existing skips gets no new run. A
+    waiting run that a concurrent approve_project_gate claimed first is
+    already scheduled there, so the batch keeps its ID but doesn't run it.
+    Each scheduled workflow waits for its own dependencies, so they run in
+    parallel while still respecting dependencies.
 
     Args:
         workflow_types: List of workflow types to run
@@ -640,8 +650,11 @@ async def run_multiple_workflows_blocking(
     Uses the same dependency resolution, skip logic and concurrent execution as
     start_multiple_workflow_runs, but awaits the batch instead of handing it to
     a background task. Intended for callers that need the final state
-    synchronously (e.g. MCP tools). A workflow that fails is logged and left
-    FAILED on its run record; it does not abort the rest of the batch or this call.
+    synchronously (e.g. MCP tools). Runs a concurrent approve_project_gate
+    scheduled are not run here, but the call waits for them to end too (up
+    to DEPENDENCY_WAIT_TIMEOUT, after which it returns anyway). A
+    workflow that fails is logged and left FAILED on its run record; it does
+    not abort the rest of the batch or this call.
 
     Args:
         workflow_types: List of workflow types to run (dependencies resolved automatically)
@@ -658,12 +671,14 @@ async def run_multiple_workflows_blocking(
             WorkflowGateRequiredError so the caller can prompt the user.
 
     Returns:
-        A tuple of (project, list of workflow_run_ids for all created runs)
+        A tuple of (project, the IDs of every run this batch owns: new runs,
+        reused runs awaiting approval and runs a concurrent approval scheduled)
 
     Raises:
         WorkflowGateRequiredError: when one or more required consent gates
             (human approval, web-search) are unsatisfied for the resolved
             workflows.
+        HTTPException: as start_multiple_workflow_runs does
     """
     (
         project,
