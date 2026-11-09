@@ -29,6 +29,6 @@ describe('isNewFeature', () => {
   it('looks the feature up in the registry', () => {
     const now = new Date('2026-11-01T00:00:00Z');
     expect(isNewFeature('workflow:citation_consistency', now)).toBe(true);
-    expect(isNewFeature('workflow:active_voice', now)).toBe(false);
+    expect(isNewFeature('workflow:no_such_check', now)).toBe(false);
   });
 });

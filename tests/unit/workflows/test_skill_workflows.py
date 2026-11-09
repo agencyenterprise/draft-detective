@@ -74,7 +74,7 @@ def test_active_voice_is_registered_from_its_skill_alone():
     assert manifest.name == "Active Voice & Clear Actors"
     assert manifest.category == "language"
     assert manifest.icon == "pen-line"
-    assert manifest.is_experimental is True
+    assert manifest.is_experimental is False
     assert manifest.required_dependencies == [WorkflowRunType.DOCUMENT_PROCESSING]
     assert manifest.propose_edits is True
     # No hand-written manifest module exists for it.

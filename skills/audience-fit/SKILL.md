@@ -6,7 +6,7 @@ metadata:
     title: Audience Fit
     description: Is it clear who the document is for, and are its words theirs? Flags a missing, vague or contradictory target audience and, for policy or practitioner readers, technical language in the main body, with a plain-language alternative or a move to an appendix for each.
     category: language
-    experimental: true
+    experimental: false
     icon: users
     presets: [editorial_review]
 ---

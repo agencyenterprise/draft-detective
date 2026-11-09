@@ -6,7 +6,7 @@ metadata:
     title: Narrative & Synthesis
     description: Does the report make its case as one connected argument? Flags data reported without its takeaway, sections out of logical order, missing answers to why it matters, what is new and what happens next, points restated across sections, and a main body too long for its reader.
     category: technical_compliance
-    experimental: true
+    experimental: false
     icon: waypoints
     presets: [editorial_review]
 ---

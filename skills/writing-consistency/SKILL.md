@@ -6,7 +6,7 @@ metadata:
     title: Writing Consistency
     description: Does the document read as one voice? Flags terms, spellings, hyphenation, verb tense and tone that change between chapters, verbs in the wrong tense for their sentence, and compound terms that break house style, with the consistent form for each.
     category: language
-    experimental: true
+    experimental: false
     icon: spell-check
     propose_edits: true
     presets: [editorial_review]
