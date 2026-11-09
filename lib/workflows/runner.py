@@ -59,7 +59,8 @@ async def run_workflow_with_dependency_check(
     Run a workflow after checking and waiting for its dependencies to complete.
 
     This function:
-    1. Waits for any same-type workflow and dependencies to complete
+    1. Waits for any unfinished same-type run (unless the workflow has
+       independent_runs) and for its dependencies to end
     2. Executes the workflow
 
     Args:
