@@ -285,13 +285,15 @@ async def link_reference_file_endpoint(
     )
     if not linked:
         # add_file_to_reference returns False when the reference is unknown for
-        # this revision, or when references have not been extracted yet.
+        # this revision, when references have not been extracted yet, or when
+        # the stored file matches no longer validate (it won't overwrite them).
         raise HTTPException(
             status_code=409,
             detail=(
                 "Could not link the file to that reference. The reference is "
-                "unknown for the current revision, or reference extraction has "
-                "not run yet."
+                "unknown for the current revision, reference extraction has "
+                "not run yet, or the stored reference links can no longer be "
+                "read."
             ),
         )
 
