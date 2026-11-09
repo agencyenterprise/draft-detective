@@ -170,13 +170,13 @@ async def cancel_workflow_progress(
     """
     Mark all incomplete progress entries for a project + workflow type as completed.
 
-    Called when a workflow run is cancelled. Clears progress across all runs for the
-    same project and workflow type so that stuck entries from previous runs are also
-    resolved, not just those belonging to the currently-cancelled run.
+    Called when a workflow run is cancelled or failed. Clears progress across all
+    runs for the same project and workflow type so that stuck entries from previous
+    runs are also resolved, not just those belonging to the run being ended.
 
     Args:
-        project_id: ID of the project whose workflow is being cancelled
-        workflow_type: Type of the workflow being cancelled
+        project_id: ID of the project whose workflow run is being ended
+        workflow_type: Type of the workflow run being ended
         only_run_id: Clear only this run's entries, for a workflow whose runs
             go on side by side, where the others' progress is still live
     """
