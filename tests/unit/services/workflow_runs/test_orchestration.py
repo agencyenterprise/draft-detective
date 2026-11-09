@@ -9,6 +9,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunT
 from lib.services.workflow_runs.orchestration import (
     DEPENDENCY_WAIT_TIMEOUT,
     wait_for_dependencies,
+    wait_for_runs_to_end,
 )
 from lib.workflows.models import DependencyWaitTimeoutError, WorkflowCancelledError
 
@@ -595,3 +596,55 @@ async def test_required_dependency_awaiting_approval_blocks_until_released():
         await wait_for_dependencies(WorkflowRunType.REFERENCE_VALIDATION_V2, project_id)
 
     assert mock_sleep.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# wait_for_runs_to_end
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_wait_for_runs_to_end_returns_once_every_run_ended_or_vanished():
+    statuses = {
+        "a": [
+            WorkflowRunStatus.PENDING,
+            WorkflowRunStatus.RUNNING,
+            WorkflowRunStatus.COMPLETED,
+        ],
+        "b": [WorkflowRunStatus.RUNNING, WorkflowRunStatus.FAILED],
+        "c": [None],
+    }
+
+    async def status_of(run_id: str) -> WorkflowRunStatus | None:
+        return statuses[run_id].pop(0)
+
+    sleep = AsyncMock()
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_run_status",
+            new=AsyncMock(side_effect=status_of),
+        ),
+        patch("lib.services.workflow_runs.orchestration.asyncio.sleep", new=sleep),
+    ):
+        await wait_for_runs_to_end(["a", "b", "c"])
+
+    assert statuses == {"a": [], "b": [], "c": []}
+    assert sleep.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_wait_for_runs_to_end_gives_up_after_the_timeout():
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_run_status",
+            new=AsyncMock(return_value=WorkflowRunStatus.RUNNING),
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.time.monotonic",
+            side_effect=[0.0, DEPENDENCY_WAIT_TIMEOUT + 1],
+        ),
+    ):
+        await wait_for_runs_to_end(["a"])
