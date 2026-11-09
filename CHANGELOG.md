@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.8.0] - 2026-11-09
+
+### Added
+- Released seven Writing Style checks to all users and marked them as New for 30 days.
+- Added support for chat turns to continue running after a client disconnects, with running-state tracking, history polling, and cancellation.
+
+### Fixed
+- Prevented reference links from overwriting stored file matches when their state can no longer be validated.
+- Fixed invalid nested paragraph markup in the unmatched-references confirmation dialog.
+- Prevented duplicate scheduling of gated workflow runs and protected terminal workflow statuses from concurrent overwrites.
+- Failed document processing with a specific message when the main document cannot be converted or contains no text, cancelling dependent workflows before model calls.
+- Reused an existing project when retrying a failed wizard upload or initial workflow start.
+- Displayed an error when saving feedback visibility fails instead of silently losing the rating.
+
+### Security
+- Restricted LibreOffice document conversion from following linked content and limited direct reference downloads to 100 MB and 180 seconds.
+- Limited chat attachment extraction reads in memory to 80 MB.
+- Served active file types as downloads with content-type sniffing protection.
+- Rejected oversized zip-based documents before they are expanded.
+
+
 ## [v2.7.2] - 2026-11-06
 
 ### Changed
