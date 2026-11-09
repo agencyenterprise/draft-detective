@@ -307,6 +307,28 @@ async def generate_thread_title(
     )
 
 
+# The largest main document the project upload form accepts
+# (frontend/components/analysis-form/upload-section.tsx), so any draft a user can
+# review in a project can also be attached in the chat.
+MAX_ATTACHMENT_BYTES = 80 * 1024 * 1024
+
+
+async def _read_attachment(file: UploadFile) -> bytes:
+    """The upload's bytes, refusing one past ``MAX_ATTACHMENT_BYTES`` with a 413.
+
+    Starlette has already spooled the upload to disk with no cap of its own, so
+    this bounds what is read into memory and converted, not what was sent.
+    """
+
+    data = await file.read(MAX_ATTACHMENT_BYTES + 1)
+    if len(data) > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"The document exceeds {MAX_ATTACHMENT_BYTES // (1024 * 1024)} MB.",
+        )
+    return data
+
+
 @router.post("/extract", response_model=ExtractResponse)
 async def extract_attachment_text(
     file: UploadFile,
@@ -315,7 +337,7 @@ async def extract_attachment_text(
     """Markdown text of an attached PDF or DOCX, for the message that sends it."""
 
     try:
-        text = await extract_markdown(file.filename or "", await file.read())
+        text = await extract_markdown(file.filename or "", await _read_attachment(file))
     except UnsupportedDocumentError as error:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(error)
