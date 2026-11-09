@@ -1,6 +1,7 @@
 """Any direct-fetch failure falls back to Jina, and Jina is called at most once."""
 
 import asyncio
+import gzip
 import uuid
 from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
@@ -259,3 +260,82 @@ async def test_error_answer_keeps_its_body_for_the_log(
 
     assert raised.value.response.status_code == 403
     assert "body='Access denied'" in dl._describe_error(raised.value)
+
+
+@pytest.mark.asyncio
+async def test_redirect_body_is_left_unread(
+    install: Callable[[FakeWeb], FakeWeb], tmp_path: Path
+) -> None:
+    body = _Drip(chunks=100, chunk_size=1024, content_type="text/html")
+
+    def direct(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/final.pdf":
+            return _respond(200, PDF_BYTES, "application/pdf")(request)
+        redirect = body(request)
+        redirect.status_code = 302
+        redirect.headers["Location"] = "/final.pdf"
+        return redirect
+
+    web = install(FakeWeb(direct=direct, jina=JINA_OK))
+
+    saved = await dl._download_direct_url(URL)
+
+    assert body.served <= 1
+    assert (tmp_path / saved.filename).read_bytes() == PDF_BYTES
+    assert (web.direct_calls, web.jina_calls) == (2, 0)
+
+
+@pytest.mark.asyncio
+async def test_too_many_redirects_fall_back_to_jina(
+    install: Callable[[FakeWeb], FakeWeb],
+) -> None:
+    def loop(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(302, headers={"Location": "/again"})
+
+    web = install(FakeWeb(direct=loop, jina=JINA_OK))
+
+    saved = await dl._download_direct_url(URL)
+
+    assert saved.content_type == "text/markdown"
+    assert web.direct_calls == direct_fetch.MAX_REDIRECTS + 1
+    assert web.jina_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_compressed_answer_is_not_decompressed(
+    install: Callable[[FakeWeb], FakeWeb], tmp_path: Path
+) -> None:
+    sent: list[httpx.Request] = []
+
+    def direct(request: httpx.Request) -> httpx.Response:
+        sent.append(request)
+        headers = {"Content-Type": "application/pdf", "Content-Encoding": "gzip"}
+        return httpx.Response(200, content=gzip.compress(PDF_BYTES), headers=headers)
+
+    web = install(FakeWeb(direct=direct, jina=JINA_OK))
+
+    saved = await dl._download_direct_url(URL)
+
+    assert sent[0].headers["Accept-Encoding"] == "identity"
+    assert saved.content_type == "text/markdown"
+    assert not list(tmp_path.glob("*.pdf"))
+    assert web.jina_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_compressed_error_answer_is_not_decompressed(
+    install: Callable[[FakeWeb], FakeWeb],
+) -> None:
+    def direct(request: httpx.Request) -> httpx.Response:
+        headers = {"Content-Type": "text/plain", "Content-Encoding": "gzip"}
+        return httpx.Response(
+            403, content=gzip.compress(b"\0" * 1_000_000), headers=headers
+        )
+
+    install(FakeWeb(direct=direct, jina=JINA_OK))
+
+    with pytest.raises(httpx.HTTPStatusError) as raised:
+        await direct_fetch.fetch_pdf_directly(URL)
+
+    assert raised.value.response.status_code == 403
+    assert raised.value.response.content == b""
