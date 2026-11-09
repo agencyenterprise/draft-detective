@@ -7,6 +7,7 @@ empty default and persist that over the row, dropping every earlier match.
 """
 
 import uuid
+from collections.abc import AsyncIterator
 
 import pytest
 import pytest_asyncio
@@ -54,7 +55,7 @@ def _run(project_id: uuid.UUID, type: WorkflowRunType, state_json: dict) -> Work
 
 
 @pytest_asyncio.fixture
-async def drifted_project():
+async def drifted_project() -> AsyncIterator[tuple[uuid.UUID, uuid.UUID]]:
     """A project whose matching run holds a drifted state with one match."""
     project = Project(id=uuid.uuid4(), title="Drifted matching state")
     main = File(
@@ -102,7 +103,9 @@ async def drifted_project():
 
 
 @pytest.mark.asyncio
-async def test_link_does_not_overwrite_a_state_that_fails_to_validate(drifted_project):
+async def test_link_does_not_overwrite_a_state_that_fails_to_validate(
+    drifted_project: tuple[uuid.UUID, uuid.UUID],
+) -> None:
     project_id, matching_run_id = drifted_project
 
     linked = await add_file_to_reference(
@@ -117,7 +120,7 @@ async def test_link_does_not_overwrite_a_state_that_fails_to_validate(drifted_pr
     async with get_async_db_session() as session:
         stored = (
             await session.execute(
-                select(WorkflowRun.state_json).where(
+                select(col(WorkflowRun.state_json)).where(
                     col(WorkflowRun.id) == matching_run_id
                 )
             )
