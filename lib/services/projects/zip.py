@@ -6,6 +6,7 @@ import re
 import unicodedata
 import uuid
 import zipfile
+from collections.abc import Sequence
 
 from fastapi import HTTPException
 
@@ -14,6 +15,10 @@ from lib.models.file import File, FileRole
 from lib.services.files.service import get_files_by_project_id
 
 logger = logging.getLogger(__name__)
+
+# What "download all" bundles when the caller names no roles: the main
+# document and its supporting files. The route's query default reads this too.
+DEFAULT_DOWNLOAD_ROLES: tuple[FileRole, ...] = (FileRole.MAIN, FileRole.SUPPORT)
 
 # List of file extensions that are already compressed, so we don't need to compress them again.
 _COMPRESSED_EXTENSIONS = frozenset(
@@ -88,14 +93,14 @@ def _entry_name(file_name: str, taken: set[str]) -> str:
 
 async def create_project_files_zip(
     project_id: uuid.UUID | str,
-    roles: list[FileRole] | None = None,
+    roles: Sequence[FileRole] | None = None,
 ) -> tuple[io.BytesIO, int]:
     """
     Create a ZIP archive containing all files for a project.
 
     Args:
         project_id: UUID of the project
-        roles: Optional list of file roles to filter by. If None, main and support files are included by default.
+        roles: The file roles to include. None means ``DEFAULT_DOWNLOAD_ROLES``.
 
     Returns:
         Tuple of (BytesIO buffer containing the ZIP file, number of files added)
@@ -104,7 +109,7 @@ async def create_project_files_zip(
         HTTPException: 404 if no files found or no accessible files
     """
     if roles is None:
-        roles = [FileRole.MAIN, FileRole.SUPPORT]
+        roles = DEFAULT_DOWNLOAD_ROLES
 
     files = await get_files_by_project_id(project_id, roles=roles)
 

@@ -51,9 +51,9 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
   const [uploadOpen, setUploadOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
 
-  // Every role this table lists, not the hook's default of main and support:
-  // memos are rows here too, and "Download all" would otherwise hand back a zip
-  // quietly missing them.
+  // Every role this table lists, not the endpoint's default of main and
+  // support: memos are rows here too, and "Download all" would otherwise hand
+  // back a zip quietly missing them.
   const { downloadAll, isDownloading } = useDownloadAllProjectFiles(projectId, [
     FileRole.Main,
     FileRole.Support,
