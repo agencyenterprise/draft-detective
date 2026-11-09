@@ -6,7 +6,7 @@ metadata:
     title: Sentence Structure
     description: Does every sentence hold together? Flags sentences missing a verb, verbs or prepositions forced to share one object, and pairs and lists that are not parallel, with a restructured rewrite for each.
     category: language
-    experimental: true
+    experimental: false
     icon: blocks
     propose_edits: true
     presets: [editorial_review]

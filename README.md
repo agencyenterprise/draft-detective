@@ -113,10 +113,16 @@ Analyses are grouped by category (shown here in app order). See the in-app **Abo
 - **Abbreviation Scan** — verifies each abbreviation is defined at first use and listed in an Abbreviations section.
 - **Figures & Tables Check** — verifies every figure and table is titled, consistently numbered, cited in the body, and that all body-text references resolve.
 - **Structural Checks (GER)** — checks that required sections are present (About This, About the Authors, Acknowledgements, Methods, Results, Conclusion, References, Appendix when referenced), that the preface covers its required elements, and that each author bio meets the requirements.
+- **Headers & Skimmability** — checks for a bottom line up front, headers that state each section's point rather than label it, bold lead sentences that carry a takeaway, and a key findings box that stays short.
+- **Narrative & Synthesis** — flags data reported without its takeaway, sections out of logical order, missing answers to why it matters and what comes next, and points restated across sections.
 
 **Language**
 - **Advocacy & Tone** — flags trigger words, advocacy language, and subjective tone that departs from a neutral, objective voice.
-- **Active Voice & Clear Actors** (experimental) — flags passive-voice sentences and sentences whose inanimate subject hides who is responsible, with an active rewrite proposed for each.
+- **Active Voice & Clear Actors** — flags passive-voice sentences and sentences whose inanimate subject hides who is responsible, with an active rewrite proposed for each.
+- **Concision & Precision** — flags wordy constructions, run-on sentences, filler, vague references and empty framing, with a tighter rewrite for each.
+- **Writing Consistency** — flags terms, spellings, hyphenation, tense and tone that change between chapters, and compound terms that break house style.
+- **Audience Fit** — checks that the document names a specific audience and that its vocabulary suits it, offering plain-language alternatives for technical terms.
+- **Sentence Structure** — flags sentences missing a verb, verbs or prepositions forced to share one object, and lists that are not parallel, with a restructured rewrite for each.
 
 Some analyses are experimental and hidden by default in the web app (enable "Experimental Features" in your profile menu).
 

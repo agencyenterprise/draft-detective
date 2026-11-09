@@ -6,7 +6,7 @@ metadata:
     title: Active Voice & Clear Actors
     description: Does your prose say who does what? Flags passive-voice sentences, sentences whose inanimate subject hides the responsible party, and recommendations or conclusions said to emerge by themselves, with an active rewrite for each.
     category: language
-    experimental: true
+    experimental: false
     icon: pen-line
     propose_edits: true
     presets: [editorial_review]
