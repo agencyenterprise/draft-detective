@@ -68,17 +68,6 @@ export function requiresGate(type: WorkflowRunType, gate: WorkflowGate, workflow
 }
 
 /**
- * Checks if any of the selected workflow types need the user to review the
- * reference list (and supply source files) before they can run.
- */
-export function hasReferenceReviewRequirement(
-  selectedTypes: WorkflowRunType[],
-  workflowTypes?: WorkflowTypeDescription[],
-): boolean {
-  return selectedTypes.some((type) => requiresGate(type, WorkflowGate.ReferenceReview, workflowTypes));
-}
-
-/**
  * Whether the project is waiting on the user's reference review: an assessment
  * gated on it is awaiting approval.
  */

@@ -310,7 +310,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         2. ReferenceFileMatchingState - provides file matches (may not exist)
 
         Returns:
-            A list of BibliographyItem objects with file matching info if available.
+            A list of BibliographyItem objects, with the matched file's id if any.
 
         Raises:
             ValueError: If no reference extraction workflow run or state is found
@@ -329,43 +329,19 @@ class FileArtifactsService(FileArtifactsServiceType):
             raise_exception=False,
         )
 
-        # Build lookup of reference_id -> file info
         ref_to_file: dict[str, str] = {}
-        file_names: dict[str, str] = {}
-        file_indices: dict[str, int] = {}
-
         if matching_state is not None:
             for match in matching_state.matches:
                 ref_to_file[match.reference_id] = match.file_id
 
-            # Load file names for matched files
-            supporting_files = await self.get_project_files([FileRole.SUPPORT])
-            for idx, f in enumerate(supporting_files):
-                file_names[f.file_id] = f.file_name
-                file_indices[f.file_id] = idx + 1  # 1-based index
-
-        # Build BibliographyItem objects
-        references: list[BibliographyItem] = []
-        for ref in extracted_refs:
-            file_id = ref_to_file.get(ref.id)
-            has_match = file_id is not None
-
-            references.append(
-                BibliographyItem(
-                    text=ref.text,
-                    has_associated_supporting_document=has_match,
-                    index_of_associated_supporting_document=(
-                        file_indices.get(file_id, -1) if file_id else -1
-                    ),
-                    name_of_associated_supporting_document=(
-                        file_names.get(file_id, "") if file_id else ""
-                    ),
-                    file_id=file_id,
-                    reference_id=ref.id,
-                )
+        return [
+            BibliographyItem(
+                text=ref.text,
+                file_id=ref_to_file.get(ref.id),
+                reference_id=ref.id,
             )
-
-        return references
+            for ref in extracted_refs
+        ]
 
     async def get_deepagent_backend_files(
         self,
