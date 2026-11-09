@@ -35,17 +35,19 @@ export function UnmatchedReferencesApproveDialog({
             </div>
             <AlertDialogTitle>Some references are missing source documents</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="space-y-3">
-            <p>
-              <strong>
-                {unmatchedCount} reference{unmatchedCount === 1 ? '' : 's'}
-              </strong>{' '}
-              {unmatchedCount === 1 ? "doesn't" : "don't"} have sources yet.
-            </p>
-            <p>
-              Without source documents, we won&apos;t be able to fully verify claims that cite these references. You can
-              still run the assessment, but results may be incomplete.
-            </p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3">
+              <p>
+                <strong>
+                  {unmatchedCount} reference{unmatchedCount === 1 ? '' : 's'}
+                </strong>{' '}
+                {unmatchedCount === 1 ? "doesn't" : "don't"} have sources yet.
+              </p>
+              <p>
+                Without source documents, we won&apos;t be able to fully verify claims that cite these references. You
+                can still run the assessment, but results may be incomplete.
+              </p>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row gap-2 sm:justify-end">
