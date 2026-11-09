@@ -79,6 +79,15 @@ async def _get_file_matching_workflow_state(
     )
     if state is not None:
         return run, state
+    if run is not None and run.state_json is not None:
+        # The stored state no longer validates (schema drift). A default would
+        # look like "no matches", and a writer appending to it would overwrite
+        # the stored matches, so report no usable state instead.
+        logger.warning(
+            f"File matching state for project {project_id} revision {revision} "
+            f"(run {run.id}) no longer validates; leaving it untouched"
+        )
+        return run, None
 
     # State doesn't exist - construct a default one from the file table
     logger.info(
@@ -122,12 +131,9 @@ async def _get_file_matching_workflow_state(
         if run is not None:
             await persist_workflow_run_state(str(run.id), default_state)
         logger.info(f"Created new file matching workflow run for project {project_id}")
-    elif run.state_json is None:
-        # Existing run whose row has no persisted state yet — seed the default.
-        # Guard on `state_json IS NULL` (the loader above loads it with the run),
-        # NOT on "the loader returned no state": the latter is also true
-        # when state_json is present but fails to hydrate (schema drift), and we
-        # must not clobber that existing payload with an empty default.
+    else:
+        # Existing run whose row has no persisted state yet (a drifted one
+        # returned above): seed the default.
         await persist_workflow_run_state(str(run.id), default_state)
 
     return run, default_state
