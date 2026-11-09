@@ -4,10 +4,8 @@ import { downloadAllProjectFilesApiProjectProjectIdFilesDownloadAllGet, FileRole
 import { useShare } from '@/context/share-context';
 import { filenameFromContentDisposition } from '@/lib/file-download';
 
-export function useDownloadAllProjectFiles(
-  projectId: string | null | undefined,
-  roles: FileRole[] = [FileRole.Main, FileRole.Support],
-) {
+/** Every caller names its roles: the files tab wants every uploaded role, the references tabs only sources. */
+export function useDownloadAllProjectFiles(projectId: string | null | undefined, roles: FileRole[]) {
   const { shareToken } = useShare();
   const [isDownloading, setIsDownloading] = useState(false);
 

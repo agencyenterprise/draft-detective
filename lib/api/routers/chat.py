@@ -36,6 +36,9 @@ from lib.api.auth import get_current_user
 from lib.models.chat_thread import ChatThread
 from lib.models.user import User
 from lib.services import chat_thread_service
+from lib.services.chat import turn_claims
+from lib.services.chat.detached_turn import TurnAlreadyRunning, start_turn
+from lib.services.chat.events import detached_event
 from lib.services.chat.extract import (
     EmptyDocumentError,
     UnsupportedDocumentError,
@@ -50,9 +53,13 @@ from lib.services.chat.thread_state import (
     read_thread_file,
 )
 from lib.services.chat.title import generate_title
+from lib.services.converters.archive_limits import ArchiveTooLargeError
 from lib.services.users import get_user_decrypted_api_key
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+
+# Sent with a 409 while another turn runs on the thread (``turn_claims.claim``).
+STILL_ANSWERING = "Draft Detective is still answering in this thread."
 
 
 class ChatThreadResponse(BaseModel):
@@ -61,6 +68,9 @@ class ChatThreadResponse(BaseModel):
     id: uuid.UUID
     title: str | None
     is_archived: bool
+    is_running: bool = Field(
+        description="Whether a turn is running on the thread now, on any worker."
+    )
     created_at: datetime
     last_updated_at: datetime
 
@@ -132,6 +142,16 @@ async def create_thread(
     return await chat_thread_service.create_thread(
         user=current_user, title=request.title
     )
+
+
+@router.get("/threads/{thread_id}", response_model=ChatThreadResponse)
+async def get_thread(
+    thread_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+) -> ChatThread:
+    """One thread; the page polls it while a turn runs (``is_running``)."""
+
+    return await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
 
 
 @router.patch("/threads/{thread_id}", response_model=ChatThreadResponse)
@@ -227,6 +247,11 @@ async def stream_chat_turn(
     Each ``data:`` frame is one JSON event: ``text`` and ``reasoning`` deltas,
     ``tool`` calls, ``tool_result``s, or a terminal ``error``. Comment lines are
     heartbeats.
+
+    The turn runs detached from this request (``detached_turn``): a client that
+    goes away stops only its stream, and the turn keeps running and
+    checkpointing. A stream that has to end before the turn does ends with a
+    ``detached`` event. 409 while another turn runs on the thread.
     """
 
     if not request.message.strip() and not request.attachments:
@@ -247,11 +272,32 @@ async def stream_chat_turn(
         attachments=request.attachments,
         message_id=request.message_id,
     )
+    try:
+        turn = await start_turn(thread.id, events)
+    except TurnAlreadyRunning as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=STILL_ANSWERING
+        ) from error
     return StreamingResponse(
-        sse_stream(events),
+        sse_stream(turn.events(), timeout_event=detached_event()),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post("/threads/{thread_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_chat_turn(
+    thread_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+) -> Response:
+    """Ask the thread's running turn to stop, whichever worker runs it.
+
+    The turn notices within a few seconds. Asking when nothing runs does nothing.
+    """
+
+    await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
+    await turn_claims.request_cancel(thread_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --- Catalogues, titles, attachments -------------------------------------------
@@ -306,6 +352,28 @@ async def generate_thread_title(
     )
 
 
+# The largest main document the project upload form accepts
+# (frontend/components/analysis-form/upload-section.tsx), so any draft a user can
+# review in a project can also be attached in the chat.
+MAX_ATTACHMENT_BYTES = 80 * 1024 * 1024
+
+
+async def _read_attachment(file: UploadFile) -> bytes:
+    """The upload's bytes, refusing one past ``MAX_ATTACHMENT_BYTES`` with a 413.
+
+    Starlette has already spooled the upload to disk with no cap of its own, so
+    this bounds what is read into memory and converted, not what was sent.
+    """
+
+    data = await file.read(MAX_ATTACHMENT_BYTES + 1)
+    if len(data) > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"The document exceeds {MAX_ATTACHMENT_BYTES // (1024 * 1024)} MB.",
+        )
+    return data
+
+
 @router.post("/extract", response_model=ExtractResponse)
 async def extract_attachment_text(
     file: UploadFile,
@@ -314,7 +382,7 @@ async def extract_attachment_text(
     """Markdown text of an attached PDF or DOCX, for the message that sends it."""
 
     try:
-        text = await extract_markdown(file.filename or "", await file.read())
+        text = await extract_markdown(file.filename or "", await _read_attachment(file))
     except UnsupportedDocumentError as error:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(error)
@@ -322,5 +390,9 @@ async def extract_attachment_text(
     except EmptyDocumentError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
+        ) from error
+    except ArchiveTooLargeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(error)
         ) from error
     return ExtractResponse(text=text)

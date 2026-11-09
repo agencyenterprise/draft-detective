@@ -17,6 +17,13 @@ export interface NewFeatureRelease {
  */
 export const NEW_FEATURES: Record<string, NewFeatureRelease> = {
   'workflow:citation_consistency': { releasedAt: '2026-10-29' },
+  'workflow:active_voice': { releasedAt: '2026-11-09' },
+  'workflow:audience_fit': { releasedAt: '2026-11-09' },
+  'workflow:concision_precision': { releasedAt: '2026-11-09' },
+  'workflow:headers_skimmability': { releasedAt: '2026-11-09' },
+  'workflow:narrative_synthesis': { releasedAt: '2026-11-09' },
+  'workflow:sentence_structure': { releasedAt: '2026-11-09' },
+  'workflow:writing_consistency': { releasedAt: '2026-11-09' },
 };
 
 /** Whether the release is inside its badge window at `now`. */

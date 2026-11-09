@@ -53,6 +53,7 @@ from lib.services.chat.events import ChatEvent
 from lib.services.chat.history import to_ui_messages
 from lib.services.chat.sse import sse_stream
 from lib.services.chat.thread_state import load_thread_messages, read_thread_file
+from lib.services.converters.archive_limits import ArchiveTooLargeError
 from lib.services.files import images as file_images
 from lib.services.microsoft import linked_users
 from lib.services.microsoft.graph.documents import LoadedDocument
@@ -349,6 +350,10 @@ async def _read_document(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=f"The document could not be read: {error}",
+        ) from error
+    except ArchiveTooLargeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(error)
         ) from error
 
 

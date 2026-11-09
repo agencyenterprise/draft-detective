@@ -37,6 +37,7 @@ import logging
 import os
 import shutil
 import tempfile
+from pathlib import Path
 from typing import IO, Any
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
@@ -44,6 +45,11 @@ from docx import Document
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 from PIL import Image
+
+from lib.services.converters.libreoffice_profile import (
+    locked_down_profile,
+    soffice_env,
+)
 
 # PDFium is not thread-safe; every pypdfium2 use in the codebase serializes on
 # this lock (see lib/services/converters/pypdfium.py).
@@ -356,13 +362,12 @@ async def _render_drawings_to_images(
             )
             return None
 
-        profile_dir = os.path.join(tmp_dir, "lo-profile")
         process = await asyncio.create_subprocess_exec(
             libreoffice_cmd,
             "--headless",
             # A private user profile per invocation: concurrent soffice
             # instances sharing the default profile silently fail.
-            f"-env:UserInstallation=file://{profile_dir}",
+            locked_down_profile(Path(tmp_dir) / "lo-profile"),
             "--convert-to",
             "pdf",
             "--outdir",
@@ -370,6 +375,7 @@ async def _render_drawings_to_images(
             render_source,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=soffice_env(),
         )
         _, stderr = await asyncio.wait_for(
             process.communicate(), timeout=_RENDER_TIMEOUT

@@ -87,7 +87,7 @@ async def _load_unmatched_references(
     return [
         ReferenceDownloaderInputItem(reference_id=ref.reference_id, text=ref.text)
         for ref in references
-        if not ref.has_associated_supporting_document and ref.reference_id is not None
+        if ref.file_id is None and ref.reference_id is not None
     ]
 
 

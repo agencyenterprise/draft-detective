@@ -26,11 +26,11 @@ from lib.services.workflow_runs.gates import (
     get_unsatisfied_gates,
     release_runs_awaiting_approval,
 )
+from lib.services.workflow_runs.orchestration import wait_for_runs_to_end
 from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     get_workflow_run_status,
-    update_workflow_run_status,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
@@ -156,7 +156,7 @@ def _should_skip_existing(
     explicitly, or whose manifest says it always runs, is never skipped. A
     completed dependency is skipped. Reference extraction is additionally
     skipped while still in flight (PENDING/RUNNING/AWAITING_APPROVAL), since
-    it runs once per project; only a CANCELLED or FAILED attempt is redone.
+    it runs once per revision; only a CANCELLED or FAILED attempt is redone.
     """
     if existing_run is None or workflow_type in requested:
         return False
@@ -164,7 +164,7 @@ def _should_skip_existing(
         return False
     if existing_run.status == WorkflowRunStatus.COMPLETED:
         return True
-    # Reference extraction is expensive and runs only once per project, so
+    # Reference extraction is expensive and runs only once per revision, so
     # skip it while it's completed or still in-flight. But allow a re-run when
     # the prior attempt was cancelled or failed — otherwise dependents that
     # need its output get stuck.
@@ -236,6 +236,7 @@ async def _prepare_workflow_items(
     list[AutoRunWorkflowItem],
     list[WorkflowRunType],
     list[WorkflowRunType],
+    list[tuple[WorkflowRunType, str]],
 ]:
     """
     Resolve dependencies, apply skip logic, create run records, and build the
@@ -251,6 +252,9 @@ async def _prepare_workflow_items(
       (only populated when raise_on_pending_gates=True)
     - pending_web_search: workflows blocked by missing web-search consent
       (only populated when raise_on_pending_gates=True)
+    - scheduled_elsewhere: (type, run id) of each awaiting run a concurrent
+      gate approval released and scheduled first; the batch must not run
+      them, but a caller that blocks must wait for them
     """
     project, _ = await get_project_access(
         request.project_id, user=user, required_level=AccessLevel.WRITE
@@ -275,6 +279,7 @@ async def _prepare_workflow_items(
     auto_run_items: list[AutoRunWorkflowItem] = []
     pending_human_triggers: list[WorkflowRunType] = []
     pending_web_search: list[WorkflowRunType] = []
+    scheduled_elsewhere: list[tuple[WorkflowRunType, str]] = []
     # Workflows deferred behind the web-search consent gate (the gated
     # workflow itself plus anything downstream of it). Only the MCP path uses
     # this; resolved_workflow_types is in topological order, so a single
@@ -375,6 +380,19 @@ async def _prepare_workflow_items(
             )
             continue
 
+        if awaiting_run is not None and not await claim_run_awaiting_approval(
+            str(awaiting_run.id)
+        ):
+            # Someone else moved the row first. Never schedule the same run twice.
+            status = await get_workflow_run_status(str(awaiting_run.id))
+            if status is not None and status != WorkflowRunStatus.CANCELLED:
+                # A concurrent approve_project_gate released and scheduled it.
+                workflow_run_ids.append(str(awaiting_run.id))
+                scheduled_elsewhere.append((workflow_type, str(awaiting_run.id)))
+                continue
+            # It was cancelled or deleted meanwhile: start a fresh run instead.
+            awaiting_run = None
+
         # A run already waiting keeps the model it was created with, the one its
         # row records, as it does when approve_project_gate releases it.
         workflow_config = create_workflow_config(
@@ -385,11 +403,8 @@ async def _prepare_workflow_items(
         )
 
         if awaiting_run is not None:
-            # Its gate was approved while it waited: release this row
-            # rather than create a second run of the same type.
-            await update_workflow_run_status(
-                str(awaiting_run.id), WorkflowRunStatus.PENDING
-            )
+            # Its gate was approved while it waited and this call claimed the
+            # row: run it rather than create a second run of the same type.
             thread_id = awaiting_run.langgraph_thread_id
             workflow_run_id = str(awaiting_run.id)
         else:
@@ -422,6 +437,7 @@ async def _prepare_workflow_items(
         auto_run_items,
         pending_human_triggers,
         pending_web_search,
+        scheduled_elsewhere,
     )
 
 
@@ -469,18 +485,26 @@ async def start_workflow_run(
     config: WorkflowConfig, user: User, background_tasks: BackgroundTasks
 ):
     """
-    Start a workflow run, by creating a workflow run object, setting it to PENDING and adding a background task to run the workflow with dependency check.
+    Start a workflow run: create a PENDING run and add a background task that
+    runs it with the dependency check. A workflow held behind an unapproved
+    gate instead gets an AWAITING_APPROVAL run and no task.
 
     A run of the same type already awaiting approval on this revision is reused
     rather than duplicated: it is returned as is while its gate is unapproved,
-    and released and scheduled once the gate is approved. A PENDING or RUNNING
-    run doesn't stop a new one, which queues behind it on the same-type lock.
-    Independent-run workflows always get a new run.
+    and claimed, released and scheduled once the gate is approved. When a
+    concurrent approve_project_gate claimed it first, that run is returned
+    without scheduling it again; when it was cancelled or deleted meanwhile, a
+    new run starts. A PENDING or RUNNING run doesn't stop a new one, which
+    queues behind it on the same-type lock. Independent-run workflows always
+    get a new run.
 
     Args:
         config: The workflow config to run
         user: The user running the workflow
         background_tasks: The background tasks to run the workflow in
+
+    Returns:
+        The ID of the run that serves this start
     """
 
     project, _ = await get_project_access(
@@ -559,10 +583,16 @@ async def start_multiple_workflow_runs(
     background_tasks: BackgroundTasks,
 ) -> list[str]:
     """
-    Start multiple workflows immediately as PENDING.
+    Start multiple workflows and their dependencies in the background.
 
-    Each workflow will check its dependencies and wait for them to complete
-    before starting execution. Workflows run in parallel while still respecting dependencies.
+    Ready workflows get a new PENDING run (or their run that was awaiting
+    approval is released to PENDING) and are scheduled; one held behind an
+    unapproved gate is created AWAITING_APPROVAL (or its waiting run is reused),
+    and a dependency that _should_skip_existing skips gets no new run. A
+    waiting run that a concurrent approve_project_gate claimed first is
+    already scheduled there, so the batch keeps its ID but doesn't run it.
+    Each scheduled workflow waits for its own dependencies, so they run in
+    parallel while still respecting dependencies.
 
     Args:
         workflow_types: List of workflow types to run
@@ -570,14 +600,20 @@ async def start_multiple_workflow_runs(
         user: User running the workflows
         background_tasks: FastAPI background tasks
 
+    Returns:
+        The IDs of every run this batch owns, including those awaiting approval
+
     Raises:
-        HTTPException: If project_id is missing or project doesn't exist
+        HTTPException: 404 if the project doesn't exist, 403 without write
+            access, 422 if it has no main file, no API key is available or the
+            model override is not allowed
     """
     (
         _,
         revision,
         workflow_run_ids,
         auto_run_items,
+        _,
         _,
         _,
     ) = await _prepare_workflow_items(workflow_types, request, user)
@@ -614,15 +650,19 @@ async def run_multiple_workflows_blocking(
     Uses the same dependency resolution, skip logic and concurrent execution as
     start_multiple_workflow_runs, but awaits the batch instead of handing it to
     a background task. Intended for callers that need the final state
-    synchronously (e.g. MCP tools). A workflow that fails is logged and left
-    FAILED on its run record; it does not abort the rest of the batch or this call.
+    synchronously (e.g. MCP tools). Runs a concurrent approve_project_gate
+    scheduled are not run here, but the call waits for them to end too (up
+    to DEPENDENCY_WAIT_TIMEOUT, after which it returns anyway). A
+    workflow that fails is logged and left FAILED on its run record; it does
+    not abort the rest of the batch or this call.
 
     Args:
         workflow_types: List of workflow types to run (dependencies resolved automatically)
         request: Request containing project_id and optional openai_api_key
         user: User running the workflows
-        approve_human_steps: When True, treat any unsatisfied human-trigger
-            dependency as approved by the caller and run it inline. When False
+        approve_human_steps: When True, record every unsatisfied approval gate
+            of the resolved workflows as approved by the user, for the
+            project's revision, and run the gated workflows inline. When False
             (default), raises WorkflowGateRequiredError so the caller can
             prompt the user to confirm before retrying with approval.
         approve_web_search: When True, treat any workflow with
@@ -631,12 +671,14 @@ async def run_multiple_workflows_blocking(
             WorkflowGateRequiredError so the caller can prompt the user.
 
     Returns:
-        A tuple of (project, list of workflow_run_ids for all created runs)
+        A tuple of (project, the IDs of every run this batch owns: new runs,
+        reused runs awaiting approval and runs a concurrent approval scheduled)
 
     Raises:
         WorkflowGateRequiredError: when one or more required consent gates
             (human approval, web-search) are unsatisfied for the resolved
             workflows.
+        HTTPException: as start_multiple_workflow_runs does
     """
     (
         project,
@@ -645,6 +687,7 @@ async def run_multiple_workflows_blocking(
         auto_run_items,
         pending_human_triggers,
         pending_web_search,
+        scheduled_elsewhere,
     ) = await _prepare_workflow_items(
         workflow_types,
         request,
@@ -662,9 +705,15 @@ async def run_multiple_workflows_blocking(
     await _run_multiple_workflows_concurrently(
         items=auto_run_items, user=user, revision=revision
     )
+    # Runs a concurrent gate approval scheduled are part of this request too:
+    # return only once they have ended.
+    await wait_for_runs_to_end([run_id for _, run_id in scheduled_elsewhere])
 
     if pending_human_triggers or pending_web_search:
-        completed, unsuccessful = await _batch_outcomes(auto_run_items)
+        completed, unsuccessful = await _batch_outcomes(
+            [(item.config.type, item.workflow_run_id) for item in auto_run_items]
+            + scheduled_elsewhere
+        )
         raise WorkflowGateRequiredError(
             project_id=str(project.id),
             pending_human_approval=pending_human_triggers,
@@ -677,19 +726,19 @@ async def run_multiple_workflows_blocking(
 
 
 async def _batch_outcomes(
-    items: list[AutoRunWorkflowItem],
+    runs: list[tuple[WorkflowRunType, str]],
 ) -> tuple[list[WorkflowRunType], dict[WorkflowRunType, WorkflowRunStatus]]:
     """Split a finished batch into completed types and type → terminal status
     for the rest. The concurrent runner absorbs per-item failures, so this is
     read back from the run records rather than inferred."""
     completed: list[WorkflowRunType] = []
     unsuccessful: dict[WorkflowRunType, WorkflowRunStatus] = {}
-    for item in items:
-        status = await get_workflow_run_status(item.workflow_run_id)
+    for workflow_type, run_id in runs:
+        status = await get_workflow_run_status(run_id)
         if status == WorkflowRunStatus.COMPLETED:
-            completed.append(item.config.type)
+            completed.append(workflow_type)
         else:
-            unsuccessful[item.config.type] = status or WorkflowRunStatus.FAILED
+            unsuccessful[workflow_type] = status or WorkflowRunStatus.FAILED
     return completed, unsuccessful
 
 
@@ -703,8 +752,10 @@ async def approve_project_gate(
     Approve a gate for the project's current revision and schedule every run
     that was awaiting it.
 
-    Idempotent: approving an already-approved gate releases nothing new and
-    returns an empty list.
+    Idempotent: approving an already-approved gate records nothing new. It
+    still releases any run whose gates are now all approved, such as one left
+    waiting when the MCP path recorded the approval for other workflows, and
+    returns an empty list when there is none.
 
     Returns:
         The IDs of the runs released from AWAITING_APPROVAL and scheduled.

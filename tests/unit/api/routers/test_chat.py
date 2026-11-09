@@ -9,21 +9,24 @@ attachment extraction fails.
 
 import io
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from docx import Document
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage, HumanMessage
+from starlette.datastructures import UploadFile
 
 from lib.agents import chat_agent as chat_agent_module
 from lib.api.auth import get_current_user
 from lib.api.routers import chat
 from lib.models.chat_thread import ChatThread
 from lib.models.user import User, UserRole
+from lib.services.converters import archive_limits
 
 USER = User(
     id=uuid.uuid4(),
@@ -95,6 +98,20 @@ class TestCatalogues:
         assert names.isdisjoint(chat_agent_module.EXCLUDED_CHAT_SKILLS)
 
 
+@pytest.fixture
+def claims() -> Iterator[AsyncMock]:
+    """The thread's claim, free unless a test takes it (``turn_claims``)."""
+
+    claim = AsyncMock(return_value=datetime.now(UTC))
+    with (
+        patch.object(chat.turn_claims, "claim", claim),
+        patch.object(chat.turn_claims, "keep", AsyncMock(return_value=True)),
+        patch.object(chat.turn_claims, "release", AsyncMock()),
+    ):
+        yield claim
+
+
+@pytest.mark.usefixtures("claims")
 class TestStream:
     EVENTS: list[dict[str, Any]] = [
         {"t": "reasoning", "v": "hm"},
@@ -207,6 +224,52 @@ class TestStream:
             )
         assert response.status_code == 200
         assert _frames(response.text)[-1] == 'data: {"t": "error", "v": "rate limited"}'
+
+    def test_a_second_turn_on_a_running_thread_is_refused(
+        self, claims: AsyncMock
+    ) -> None:
+        claims.return_value = None
+        calls: list[dict[str, Any]] = []
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(chat, "run_chat_turn", _turn(self.EVENTS, calls)),
+        ):
+            response = _client().post(
+                f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "hi"}
+            )
+        assert response.status_code == 409
+        assert response.json()["detail"] == chat.STILL_ANSWERING
+
+
+class TestRunningTurn:
+    def test_the_thread_says_whether_a_turn_runs(self) -> None:
+        running = _thread()
+        running.turn_started_at = running.turn_seen_at = datetime.now(UTC)
+        with patch.object(
+            chat.chat_thread_service, "get_thread", AsyncMock(return_value=running)
+        ):
+            response = _client().get(f"/api/chat/threads/{THREAD_ID}")
+        assert response.status_code == 200 and response.json()["is_running"] is True
+
+    def test_cancel_asks_the_running_turn_to_stop(self) -> None:
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ) as owned,
+            patch.object(
+                chat.turn_claims, "request_cancel", AsyncMock(return_value=True)
+            ) as cancel,
+        ):
+            response = _client().post(f"/api/chat/threads/{THREAD_ID}/cancel")
+        assert response.status_code == 204
+        owned.assert_awaited_once()
+        cancel.assert_awaited_once_with(THREAD_ID)
 
 
 class TestHistory:
@@ -384,3 +447,46 @@ class TestExtract:
             "/api/chat/extract", files={"file": ("blank.docx", buffer.getvalue())}
         )
         assert response.status_code == 422
+
+    def test_a_document_past_the_cap_is_refused_unread(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(chat, "MAX_ATTACHMENT_BYTES", 1024)
+        read_sizes: list[int] = []
+        read = UploadFile.read
+
+        async def recording_read(self: UploadFile, size: int = -1) -> bytes:
+            read_sizes.append(size)
+            return await read(self, size)
+
+        monkeypatch.setattr(UploadFile, "read", recording_read)
+        with patch.object(chat, "extract_markdown", AsyncMock(return_value="x")) as ex:
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("big.docx", b"x" * 10_000)}
+            )
+        assert response.status_code == 413
+        ex.assert_not_awaited()
+        assert read_sizes == [1025]
+
+    def test_a_document_at_the_cap_is_converted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(chat, "MAX_ATTACHMENT_BYTES", 1024)
+        with patch.object(chat, "extract_markdown", AsyncMock(return_value="x")) as ex:
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("ok.docx", b"x" * 1024)}
+            )
+        assert response.status_code == 200
+        assert ex.await_args is not None
+        assert len(ex.await_args.args[1]) == 1024
+
+    def test_a_document_expanding_past_the_limit_is_refused(self) -> None:
+        document = Document()
+        document.add_paragraph("x " * 200_000)
+        buffer = io.BytesIO()
+        document.save(buffer)
+        with patch.object(archive_limits, "MAX_XML_BYTES", 1024 * 1024):
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("bomb.docx", buffer.getvalue())}
+            )
+        assert response.status_code == 413

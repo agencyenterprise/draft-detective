@@ -181,7 +181,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({ isEmpty, aut
 
   return (
     <ThreadPrimitive.Root
-      className={cn('aui-root aui-thread-root bg-background @container flex h-full flex-col', className)}
+      className={cn('aui-root aui-thread-root bg-background @container flex h-full flex-col text-sm', className)}
       style={{
         // Draft Detective: wider than upstream's 44rem, for review output.
         ['--thread-max-width' as string]: '56rem',
@@ -471,7 +471,7 @@ const Composer: FC<{ autoFocus: boolean }> = ({ autoFocus }) => {
             <ComposerPrimitive.Input
               // Draft Detective: our placeholder.
               placeholder={composerPlaceholder}
-              className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base leading-6 outline-none"
+              className="aui-composer-input caret-primary placeholder:text-muted-foreground/60 max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-sm leading-6 outline-none"
               rows={1}
               autoFocus={autoFocus}
               enterKeyHint="send"
@@ -825,7 +825,7 @@ const EditComposer: FC = () => {
     >
       <ComposerPrimitive.Root className="aui-edit-composer-root border-foreground/10 focus-within:border-foreground/25 ms-auto flex w-full max-w-[85%] cursor-text flex-col rounded-(--composer-radius) border bg-(--composer-bg) transition-[border-color]">
         <ComposerPrimitive.Input
-          className="aui-edit-composer-input text-foreground min-h-14 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base outline-none"
+          className="aui-edit-composer-input text-foreground min-h-14 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-sm outline-none"
           autoFocus
         />
         <div className="aui-edit-composer-footer mx-2.5 mb-2.5 flex items-center gap-1.5 self-end">

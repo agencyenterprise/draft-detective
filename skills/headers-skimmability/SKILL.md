@@ -6,7 +6,7 @@ metadata:
     title: Headers & Skimmability
     description: Can a reader skim your document and still get its key takeaways? Flags a missing bottom line up front, headers that label a section instead of stating its point, bold lead sentences that only name a topic, and a key findings box that runs long, with suggested wording for each header.
     category: technical_compliance
-    experimental: true
+    experimental: false
     icon: heading
     presets: [editorial_review]
 ---

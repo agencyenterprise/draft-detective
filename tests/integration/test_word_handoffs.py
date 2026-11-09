@@ -126,7 +126,9 @@ async def test_a_handoff_is_stored_under_whoever_asked(ana: Account) -> None:
 @pytest.mark.asyncio
 async def test_the_newest_handoff_is_listed_first(ana: Account) -> None:
     older = await ask(ana)
-    await age(older, timedelta(hours=1))
+    # A minute apart is enough to order them. Kept well under the one-hour week the
+    # expiry test sets in its own worker, whose sweep deletes anyone's older rows.
+    await age(older, timedelta(minutes=1))
     newer = await ask(ana)
 
     assert [row.id for row in await handoffs.pending_for(ana)] == [newer, older]
@@ -209,7 +211,9 @@ async def test_a_dismissed_handoff_is_closed_without_an_outcome(ana: Account) ->
 @pytest.mark.asyncio
 async def test_a_handoff_past_its_week_is_unusable_and_swept(ana: Account) -> None:
     # Its week is an hour in this process only. Other tests' sweeps keep the real week,
-    # so nothing but the calls below can skip or delete this two-hour-old handoff.
+    # so nothing but the calls below can skip or delete this two-hour-old handoff. The
+    # other way round, its sweep deletes anyone's handoff over an hour old: no other
+    # test may age one that far.
     handoff_id = await ask(ana)
     await age(handoff_id, timedelta(hours=2))
 

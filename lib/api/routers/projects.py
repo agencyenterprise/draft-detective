@@ -39,7 +39,7 @@ from lib.services.projects.service import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.projects.zip import create_project_files_zip
+from lib.services.projects.zip import DEFAULT_DOWNLOAD_ROLES, create_project_files_zip
 from lib.services.references.service import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_runs.progress import get_project_workflow_progress
@@ -285,13 +285,15 @@ async def link_reference_file_endpoint(
     )
     if not linked:
         # add_file_to_reference returns False when the reference is unknown for
-        # this revision, or when references have not been extracted yet.
+        # this revision, when references have not been extracted yet, or when
+        # the stored file matches no longer validate (it won't overwrite them).
         raise HTTPException(
             status_code=409,
             detail=(
                 "Could not link the file to that reference. The reference is "
-                "unknown for the current revision, or reference extraction has "
-                "not run yet."
+                "unknown for the current revision, reference extraction has "
+                "not run yet, or the stored reference links can no longer be "
+                "read."
             ),
         )
 
@@ -308,7 +310,7 @@ async def download_all_project_files(
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
     roles: list[FileRole] | None = Query(
-        default=[FileRole.MAIN, FileRole.SUPPORT],
+        default=list(DEFAULT_DOWNLOAD_ROLES),
         description="Filter files by role(s). If not provided, main and support files are included by default.",
     ),
 ):

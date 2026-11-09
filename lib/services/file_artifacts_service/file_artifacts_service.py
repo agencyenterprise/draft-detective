@@ -6,7 +6,7 @@ from typing import Any, Literal, overload
 from deepagents.backends.utils import create_file_data
 
 from lib.models.bibliography_item import BibliographyItem
-from lib.models.file import File, FileRole
+from lib.models.file import UPLOADED_ROLES, File, FileRole
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
     LoadedDocuments,
@@ -39,16 +39,6 @@ from lib.workflows.reference_file_matching.state import ReferenceFileMatchingSta
 from lib.workflows.util import run_type_of
 
 logger = logging.getLogger(__name__)
-
-
-# Every role a person uploads, as opposed to the files the app derives.
-_UPLOADED_ROLES = [
-    FileRole.MAIN,
-    FileRole.SUPPORT,
-    FileRole.REVIEWER_MEMO,
-    FileRole.RESPONSE_MEMO,
-    FileRole.REVIEW_INPUT,
-]
 
 
 def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
@@ -320,7 +310,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         2. ReferenceFileMatchingState - provides file matches (may not exist)
 
         Returns:
-            A list of BibliographyItem objects with file matching info if available.
+            A list of BibliographyItem objects, with the matched file's id if any.
 
         Raises:
             ValueError: If no reference extraction workflow run or state is found
@@ -339,43 +329,19 @@ class FileArtifactsService(FileArtifactsServiceType):
             raise_exception=False,
         )
 
-        # Build lookup of reference_id -> file info
         ref_to_file: dict[str, str] = {}
-        file_names: dict[str, str] = {}
-        file_indices: dict[str, int] = {}
-
         if matching_state is not None:
             for match in matching_state.matches:
                 ref_to_file[match.reference_id] = match.file_id
 
-            # Load file names for matched files
-            supporting_files = await self.get_project_files([FileRole.SUPPORT])
-            for idx, f in enumerate(supporting_files):
-                file_names[f.file_id] = f.file_name
-                file_indices[f.file_id] = idx + 1  # 1-based index
-
-        # Build BibliographyItem objects
-        references: list[BibliographyItem] = []
-        for ref in extracted_refs:
-            file_id = ref_to_file.get(ref.id)
-            has_match = file_id is not None
-
-            references.append(
-                BibliographyItem(
-                    text=ref.text,
-                    has_associated_supporting_document=has_match,
-                    index_of_associated_supporting_document=(
-                        file_indices.get(file_id, -1) if file_id else -1
-                    ),
-                    name_of_associated_supporting_document=(
-                        file_names.get(file_id, "") if file_id else ""
-                    ),
-                    file_id=file_id,
-                    reference_id=ref.id,
-                )
+        return [
+            BibliographyItem(
+                text=ref.text,
+                file_id=ref_to_file.get(ref.id),
+                reference_id=ref.id,
             )
-
-        return references
+            for ref in extracted_refs
+        ]
 
     async def get_deepagent_backend_files(
         self,
@@ -426,7 +392,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         upload does not cost the caller the rest. Order follows ``file_ids``.
         """
         files = await get_files_by_project_id(
-            self.project_id, roles=_UPLOADED_ROLES, file_ids=_as_uuids(file_ids)
+            self.project_id, roles=UPLOADED_ROLES, file_ids=_as_uuids(file_ids)
         )
         by_id = {str(file.id): file for file in files}
         loaded = LoadedDocuments(documents=[])

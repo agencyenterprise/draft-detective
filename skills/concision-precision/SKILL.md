@@ -6,7 +6,7 @@ metadata:
     title: Concision & Precision
     description: Does every sentence earn its length and say something specific? Flags wordy constructions, run-on sentences, filler, vague references and empty framing, with a tighter rewrite for each.
     category: language
-    experimental: true
+    experimental: false
     icon: scissors-line-dashed
     propose_edits: true
     presets: [editorial_review]

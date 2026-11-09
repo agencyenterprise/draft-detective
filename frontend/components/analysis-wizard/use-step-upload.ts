@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
@@ -10,9 +10,13 @@ import {
   startMultipleWorkflowsApiWorkflowsStartMultiplePost,
   WorkflowRunType,
   FileRole,
+  Project,
 } from '@/lib/generated-api';
 
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
+
+/** What already succeeded for a draft, so Continue after a failure resumes instead of starting over. */
+type Attempt = { file: File; project: Project; uploaded: boolean };
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -52,24 +56,33 @@ export function useStepUpload(onComplete: () => void) {
 
   const fileSizeLabel = mainDocument ? formatBytes(mainDocument.size) : '';
   const formatStatus = validateDocument(mainDocument);
+  const attempt = useRef<Attempt | null>(null);
 
   const createProjectAndProcess = useMutation({
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
-      setUploadStage('creating');
-      const { project } = await createProjectEndpointApiProjectsPost({
-        body: { title: mainDocument.name },
-      });
+      // A retry of the same draft reuses the project and upload a failed attempt left behind, instead of creating a
+      // duplicate. `current` stays local so picking another draft mid-flight can't pull the attempt from under it.
+      let current = attempt.current;
+      if (current?.file !== mainDocument) {
+        setUploadStage('creating');
+        const { project } = await createProjectEndpointApiProjectsPost({ body: { title: mainDocument.name } });
+        current = { file: mainDocument, project, uploaded: false };
+        attempt.current = current;
+      }
+      const { project } = current;
 
-      setUploadStage('uploading');
-      setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
-
-      await uploadSingleFile(mainDocument, {
-        projectId: project.id,
-        fileRole: FileRole.Main,
-        onProgress: setUploadProgress,
-      });
+      if (!current.uploaded) {
+        setUploadStage('uploading');
+        setUploadProgress({ uploaded_size: 0, total_size: mainDocument.size, progress_percent: 0 });
+        await uploadSingleFile(mainDocument, {
+          projectId: project.id,
+          fileRole: FileRole.Main,
+          onProgress: setUploadProgress,
+        });
+        current.uploaded = true;
+      }
 
       setUploadStage('processing');
 

@@ -24,18 +24,10 @@ from lib.models.file import FileRole
 from lib.services.files.service import create_file_record
 from lib.services.postgres_rate_limiter import PostgresRateLimiter
 from lib.workflows.context import ContextSchema
-from lib.workflows.reference_downloader.tools.url_guard import (
-    BlockedUrlError,
-    direct_client,
-)
+from lib.workflows.reference_downloader.tools.direct_fetch import fetch_pdf_directly
+from lib.workflows.reference_downloader.tools.url_guard import BlockedUrlError
 
 logger = logging.getLogger(__name__)
-
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.google.com/",
-}
 
 # Jina Reader rate limits (requests per minute): 20 anonymously, per source IP;
 # 500 with an API key, per key. https://jina.ai/api-dashboard/rate-limit
@@ -167,7 +159,7 @@ async def _download_direct_url(url: str) -> SavedFile:
     handed to Jina either, so an internal address never leaves the deployment.
     """
     try:
-        response = await _fetch_pdf_directly(url)
+        pdf = await fetch_pdf_directly(url)
     except BlockedUrlError:
         raise
     except Exception as exc:
@@ -178,44 +170,18 @@ async def _download_direct_url(url: str) -> SavedFile:
         )
         return await _download_with_jina_api(url)
 
-    if response is None:
+    if pdf is None:
         return await _download_with_jina_api(url)
 
-    filename = await _save_content(response.content, "pdf")
+    filename = await _save_content(pdf.content, "pdf")
     logger.info(
         "Saved PDF from %s (%d bytes, final URL %s) as %s",
         url,
-        len(response.content),
-        response.url,
+        len(pdf.content),
+        pdf.final_url,
         filename,
     )
     return SavedFile(filename=filename, content_type="application/pdf")
-
-
-async def _fetch_pdf_directly(url: str) -> httpx.Response | None:
-    """GET the URL; return the response if it is a non-empty PDF, None if it is not a PDF.
-
-    Raises on any fetch failure, including an empty PDF body, and with
-    ``BlockedUrlError`` when the URL or a redirect hop is not a public address.
-    """
-    async with direct_client(timeout=30.0, headers=headers) as client:
-        logger.info("Downloading %s", url)
-        response = await client.get(url, follow_redirects=True)
-        response.raise_for_status()
-
-    content_type = response.headers.get("Content-Type", "").lower()
-    if not content_type.startswith("application/pdf"):
-        logger.info(
-            "Non-PDF content from %s (Content-Type %r, HTTP %d); converting via Jina",
-            url,
-            content_type or "missing",
-            response.status_code,
-        )
-        return None
-
-    if not response.content:
-        raise ValueError(f"Downloaded PDF from {url} is empty")
-    return response
 
 
 def _describe_error(exc: Exception) -> str:

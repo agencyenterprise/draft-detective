@@ -130,6 +130,17 @@ export function isWorkflowFailed(workflowRun: RunLike | undefined): boolean {
 }
 
 /**
+ * Why the document could not be processed, or null while processing has not
+ * failed. Every assessment depends on document processing, so its failure
+ * explains the empty document and the stopped assessments.
+ */
+export function getDocumentProcessingFailure(workflowRuns: RunLike[]): string | null {
+  const documentProcessing = findRunByType(workflowRuns, WorkflowRunType.DocumentProcessing);
+  if (!documentProcessing || !isWorkflowFailed(documentProcessing)) return null;
+  return documentProcessing.run.failure_message || 'Try uploading the document again.';
+}
+
+/**
  * Whether assessments are actively working, as opposed to waiting on the user.
  * A run in AwaitingApproval is not processing, so it doesn't count.
  */

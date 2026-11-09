@@ -17,6 +17,8 @@ export type ChatStreamEvent =
   /** `name` is the tool's: the call it answers may be in the stored history, not this stream. */
   | { t: 'tool_result'; id: string; result: unknown; isError?: boolean; mid?: string; name?: string }
   | { t: 'error'; v: string }
+  /** The stream ends, but the turn runs on: follow it in the stored history (`lib/chat/follow.ts`). */
+  | { t: 'detached' }
   /** The run paused to ask the person something; each value is what a tool asked. */
   | { t: 'interrupt'; v: unknown[] };
 
@@ -60,10 +62,21 @@ export async function* streamChatTurn({
   });
 
   if (!response.ok || !response.body) {
-    throw new Error(await errorDetail(response));
+    throw new ChatRequestError(response.status, await errorDetail(response));
   }
 
   yield* parseEventStream(response.body);
+}
+
+/** The backend refused the turn (a 409 while another runs, a 401, a 5xx): no turn started. */
+export class ChatRequestError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ChatRequestError';
+  }
 }
 
 export async function errorDetail(response: Response): Promise<string> {

@@ -41,9 +41,10 @@ async def _project_lock(project_id: str):
     """
     Acquire a lock for a specific project to prevent race conditions.
 
-    This ensures that concurrent operations on the same project's reference
-    state are serialized, while operations on different projects can proceed
-    in parallel.
+    This serializes the functions in this module that update a project's
+    reference state, while operations on different projects can proceed in
+    parallel. The lock lives in this process and covers only these functions:
+    a running workflow persisting its own state does not take it.
     """
     lock = _get_project_lock(project_id)
     async with lock:
@@ -55,24 +56,38 @@ async def _get_file_matching_workflow_state(
     revision: int,
 ) -> tuple[WorkflowRun | None, ReferenceFileMatchingState | None]:
     """
-    Get the ReferenceFileMatching workflow run and state for a project.
+    Get the ReferenceFileMatching workflow run and state for a project revision.
 
-    If the workflow run exists but has no state, or if there's no workflow run,
-    creates a new workflow run and constructs a default ReferenceFileMatchingState
-    with empty matches from the project's file table.
+    When the run holds no usable state, builds a default ReferenceFileMatchingState
+    with empty matches from the revision's main and processed supporting files.
+    With no run, it first creates a COMPLETED run and persists that default on
+    it; a run with no state_json gets the default persisted. A run whose
+    state_json fails to hydrate keeps its payload, and the default is returned
+    without being saved.
 
     Args:
         project_id: The project ID
+        revision: The project revision
 
     Returns:
-        Tuple of (workflow_run, state) or (run, None) if the revision has no
-        main file to construct a default state from
+        Tuple of (workflow_run, state), or (run, None) when there is no state
+        and the revision has no main file to build a default from (the run is
+        then None if none existed)
     """
     run, state = await get_project_workflow_run_with_state(
         project_id, ReferenceFileMatchingState, revision
     )
     if state is not None:
         return run, state
+    if run is not None and run.state_json is not None:
+        # The stored state no longer validates (schema drift). A default would
+        # look like "no matches", and a writer appending to it would overwrite
+        # the stored matches, so report no usable state instead.
+        logger.warning(
+            f"File matching state for project {project_id} revision {revision} "
+            f"(run {run.id}) no longer validates; leaving it untouched"
+        )
+        return run, None
 
     # State doesn't exist - construct a default one from the file table
     logger.info(
@@ -116,12 +131,9 @@ async def _get_file_matching_workflow_state(
         if run is not None:
             await persist_workflow_run_state(str(run.id), default_state)
         logger.info(f"Created new file matching workflow run for project {project_id}")
-    elif run.state_json is None:
-        # Existing run whose row has no persisted state yet — seed the default.
-        # Guard on `state_json IS NULL` (the loader above loads it with the run),
-        # NOT on "the loader returned no state": the latter is also true
-        # when state_json is present but fails to hydrate (schema drift), and we
-        # must not clobber that existing payload with an empty default.
+    else:
+        # Existing run whose row has no persisted state yet (a drifted one
+        # returned above): seed the default.
         await persist_workflow_run_state(str(run.id), default_state)
 
     return run, default_state
@@ -149,6 +161,7 @@ async def remove_file_from_references(
     Args:
         project_id: The project ID
         file_id: The file ID to remove from matches
+        revision: The project revision
 
     Returns:
         List of reference IDs that were unlinked (empty if no update was needed)
@@ -190,7 +203,7 @@ async def remove_fetch_result_for_file(
     Called when a user deletes a file so the stale fetch result (e.g. "Source Found"
     pointing at a file that no longer exists) does not linger in workflow state.
 
-    Returns the number of fetch_references entries that were removed.
+    Returns the number of fetched_references entries that were removed.
     """
     async with _project_lock(project_id):
         run, state = await get_project_workflow_run_with_state(
@@ -234,9 +247,16 @@ async def add_file_to_reference(
         project_id: The project ID
         file_id: The file ID to link to the reference
         reference_id: The ID of the reference to link the file to
+        source: How the file came to be linked (manual upload, auto-fetched, ...)
+        revision: The project revision
 
     Returns:
-        True if the reference was linked, False if no update was made
+        True if the reference was linked; False, with no link made, when the
+        revision has no main file or no reference extraction state, or the
+        extraction has no reference with this ID. A False can still follow the
+        default matching state being created or seeded by
+        _get_file_matching_workflow_state. Any earlier match for the reference
+        is replaced.
     """
     async with _project_lock(project_id):
         # Get file matching state

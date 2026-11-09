@@ -5,7 +5,9 @@ Two pages read them, /chat and the Word add-in's chat pane; ``ChatStreamEvent`` 
 ``message`` and ``message_end`` marking an assistant message and carrying the id it
 is checkpointed under, ``text`` and ``reasoning`` deltas, a ``tool`` call with its
 complete arguments, a ``tool_result`` (with the id of the stored tool message), an
-``interrupt`` and an ``error``. The ids matter: the page shows a turn from these
+``interrupt``, an ``error``, and ``detached`` when /chat's stream ends
+while its turn runs on (``lib/services/chat/detached_turn.py``). The ids
+matter: the page shows a turn from these
 events while it streams and from the checkpointer afterwards, and the same ids are
 what stop assistant-ui from treating the two as different messages. This module
 produces them from a graph streamed with ``stream_mode=["messages", "updates"]``:
@@ -100,6 +102,12 @@ def tool_result_event(
 
 def error_event(message: str) -> ChatEvent:
     return {"t": "error", "v": message}
+
+
+def detached_event() -> ChatEvent:
+    """The stream ends here, but the turn goes on: follow it in the stored history."""
+
+    return {"t": "detached"}
 
 
 def interrupt_event(values: list[Any]) -> ChatEvent:

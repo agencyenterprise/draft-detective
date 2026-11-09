@@ -107,9 +107,10 @@ async def persist_workflow_run_state(
 ) -> None:
     """Snapshot the workflow state onto the WorkflowRun row.
 
-    Called after every node yield in the runner so a crashed/cancelled run still
-    has its last-good state inspectable on the row itself. `state_json` is the
-    single source of truth for workflow state.
+    The runner calls it after every streamed chunk (each superstep and each task
+    completion) so a crashed/cancelled run still has its last-good state
+    inspectable on the row itself. `state_json` is the single source of truth
+    for workflow state.
     """
     payload = sanitize_for_postgres(state.model_dump(mode="json"))
     async with get_async_db_session() as session:
@@ -296,26 +297,30 @@ async def update_workflow_run_status(
     failure_reason: WorkflowRunFailureReason | None = None,
     failure_message: str | None = None,
 ) -> None:
-    """Update an existing workflow run's status. Never overwrites a terminal status.
+    """Update an existing workflow run's status, unless it already committed a terminal one.
 
-    Terminal statuses (CANCELLED, COMPLETED, FAILED) are write-once. Without
-    this guard the runner's COMPLETED write could clobber a FAILED row the
+    Terminal statuses (CANCELLED, COMPLETED, FAILED) are meant to be
+    write-once. Without this guard the runner's COMPLETED write could clobber a FAILED row the
     reaper just produced (race window: heartbeat lag → reap → runner finishes
     its last node → COMPLETED write), and racing failure paths could
-    overwrite each other's failure_reason / failure_message. The guard is
-    application-level (SELECT-then-UPDATE inside one transaction); when two
-    pods race, last writer wins for non-terminal transitions, which is
-    benign because non-terminal writes are idempotent.
+    overwrite each other's failure_reason / failure_message. The SELECT that
+    skips terminal rows locks the row (FOR UPDATE), so a concurrent writer
+    waits for this one to commit and then re-checks the status: once a
+    terminal status commits, no later write changes it.
 
     `failure_reason` and `failure_message` are persisted only when transitioning
     to FAILED; they are ignored for other statuses.
     """
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(
-            and_(
-                col(WorkflowRun.id) == workflow_run_id,
-                col(WorkflowRun.status).not_in(TERMINAL_WORKFLOW_RUN_STATUSES),
+        stmt = (
+            select(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.id) == workflow_run_id,
+                    col(WorkflowRun.status).not_in(TERMINAL_WORKFLOW_RUN_STATUSES),
+                )
             )
+            .with_for_update()
         )
         run = (await session.execute(stmt)).scalar_one_or_none()
         if run:
@@ -497,7 +502,7 @@ async def get_project_workflow_run_by_type(
         if active_run:
             return active_run
 
-        # No active run found, get the latest completed run
+        # No active run found, get the latest run (all remaining ones are terminal)
         stmt = (
             select(WorkflowRun)
             .where(

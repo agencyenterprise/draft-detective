@@ -52,8 +52,8 @@ def walk_state_for_usage(state: Any) -> list[UsageRecord]:
     """Recursively walk a workflow state and collect token usage from all messages.
 
     Handles:
-    - Live BaseMessage instances (during runtime)
-    - Serialized message dicts (loaded from checkpointer)
+    - BaseMessage instances
+    - Serialized message dicts (any dict carrying a usage_metadata key)
     - Messages nested anywhere: top-level lists, dicts, Pydantic models
     """
     records: list[UsageRecord] = []
