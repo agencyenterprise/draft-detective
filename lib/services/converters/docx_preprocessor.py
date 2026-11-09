@@ -4,6 +4,11 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from lib.services.converters.libreoffice_profile import (
+    locked_down_profile,
+    soffice_env,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -66,7 +71,7 @@ class DocxPreprocessor:
             process = await asyncio.create_subprocess_exec(
                 libreoffice_cmd,
                 "--headless",
-                f"-env:UserInstallation={profile_dir.as_uri()}",
+                locked_down_profile(profile_dir),
                 "--convert-to",
                 output_format,
                 "--outdir",
@@ -74,6 +79,7 @@ class DocxPreprocessor:
                 str(file_path),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                env=soffice_env(),
             )
 
             _, stderr = await asyncio.wait_for(
