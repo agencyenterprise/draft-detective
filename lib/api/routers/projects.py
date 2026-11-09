@@ -39,7 +39,7 @@ from lib.services.projects.service import (
     get_user_projects,
     update_user_project,
 )
-from lib.services.projects.zip import create_project_files_zip
+from lib.services.projects.zip import DEFAULT_DOWNLOAD_ROLES, create_project_files_zip
 from lib.services.references.service import MatchSource, add_file_to_reference
 from lib.services.uuid_utils import ensure_uuid
 from lib.services.workflow_runs.progress import get_project_workflow_progress
@@ -308,7 +308,7 @@ async def download_all_project_files(
         description="Share token for shared projects. If not provided, the current user must be the owner of the project.",
     ),
     roles: list[FileRole] | None = Query(
-        default=[FileRole.MAIN, FileRole.SUPPORT],
+        default=list(DEFAULT_DOWNLOAD_ROLES),
         description="Filter files by role(s). If not provided, main and support files are included by default.",
     ),
 ):
