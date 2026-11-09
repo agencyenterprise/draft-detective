@@ -7,8 +7,11 @@ Three facts of the deployment shape this, all checked before it was written:
   invisible until the server writes. A heartbeat every few seconds bounds how
   long an abandoned turn keeps spending tokens.
 - **Railway closes a response after 5 minutes with no bytes, and after 15
-  minutes regardless.** The heartbeat covers the first; the turn cap ends a
-  run cleanly before the proxy cuts it.
+  minutes regardless.** The heartbeat covers the first; the time cap ends the
+  stream cleanly before the proxy cuts it, with ``timeout_event``. Where the
+  stream owns the turn (the Word add-in) that ends the turn too, as an error.
+  Where the turn runs detached (/chat, ``detached_turn``), only the stream ends,
+  with a ``detached`` event telling the page to follow the stored history.
 - **The graph has to run in a task this generator owns.** Cancelling a
   generator that is merely awaiting the graph does stop it; but a heartbeat
   loop that races the graph against a timer leaks the graph unless the loop
@@ -52,11 +55,14 @@ async def sse_stream(
     *,
     heartbeat_seconds: float = HEARTBEAT_SECONDS,
     turn_timeout_seconds: float = TURN_TIMEOUT_SECONDS,
+    timeout_event: ChatEvent | None = None,
 ) -> AsyncGenerator[str]:
     """Encode ``events`` as SSE, with heartbeats while the producer is quiet.
 
-    A producer failure or timeout becomes an ``error`` event and ends the stream;
-    the HTTP status is already 200 by then, so the event is the only channel.
+    A producer failure becomes an ``error`` event and ends the stream; the HTTP
+    status is already 200 by then, so the event is the only channel. Past
+    ``turn_timeout_seconds`` the producer is cancelled and the stream ends with
+    ``timeout_event``, by default an ``error`` saying the turn was stopped.
     """
 
     queue: asyncio.Queue[object] = asyncio.Queue()
@@ -67,7 +73,7 @@ async def sse_stream(
                 async for event in events:
                     queue.put_nowait(event)
         except TimeoutError:
-            queue.put_nowait(error_event(TIMEOUT_MESSAGE))
+            queue.put_nowait(timeout_event or error_event(TIMEOUT_MESSAGE))
         except Exception as error:  # noqa: BLE001 - reported to the client as an event
             logger.exception("chat turn failed")
             queue.put_nowait(error_event(str(error) or "The turn failed."))

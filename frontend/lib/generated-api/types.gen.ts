@@ -1333,6 +1333,12 @@ export type ChatThreadResponse = {
    */
   is_archived: boolean;
   /**
+   * Is Running
+   *
+   * Whether a turn is running on the thread now, on any worker.
+   */
+  is_running: boolean;
+  /**
    * Created At
    */
   created_at: Date;
@@ -6023,6 +6029,38 @@ export type DeleteThreadApiChatThreadsThreadIdDeleteResponses = {
 export type DeleteThreadApiChatThreadsThreadIdDeleteResponse =
   DeleteThreadApiChatThreadsThreadIdDeleteResponses[keyof DeleteThreadApiChatThreadsThreadIdDeleteResponses];
 
+export type GetThreadApiChatThreadsThreadIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}';
+};
+
+export type GetThreadApiChatThreadsThreadIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetThreadApiChatThreadsThreadIdGetError =
+  GetThreadApiChatThreadsThreadIdGetErrors[keyof GetThreadApiChatThreadsThreadIdGetErrors];
+
+export type GetThreadApiChatThreadsThreadIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: ChatThreadResponse;
+};
+
+export type GetThreadApiChatThreadsThreadIdGetResponse =
+  GetThreadApiChatThreadsThreadIdGetResponses[keyof GetThreadApiChatThreadsThreadIdGetResponses];
+
 export type UpdateThreadApiChatThreadsThreadIdPatchData = {
   body: UpdateThreadRequest;
   path: {
@@ -6158,6 +6196,38 @@ export type StreamChatTurnApiChatThreadsThreadIdStreamPostResponses = {
    */
   200: unknown;
 };
+
+export type CancelChatTurnApiChatThreadsThreadIdCancelPostData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/chat/threads/{thread_id}/cancel';
+};
+
+export type CancelChatTurnApiChatThreadsThreadIdCancelPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CancelChatTurnApiChatThreadsThreadIdCancelPostError =
+  CancelChatTurnApiChatThreadsThreadIdCancelPostErrors[keyof CancelChatTurnApiChatThreadsThreadIdCancelPostErrors];
+
+export type CancelChatTurnApiChatThreadsThreadIdCancelPostResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type CancelChatTurnApiChatThreadsThreadIdCancelPostResponse =
+  CancelChatTurnApiChatThreadsThreadIdCancelPostResponses[keyof CancelChatTurnApiChatThreadsThreadIdCancelPostResponses];
 
 export type ListChatModelsApiChatModelsGetData = {
   body?: never;

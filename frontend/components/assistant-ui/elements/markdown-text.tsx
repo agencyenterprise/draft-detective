@@ -82,25 +82,25 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
 const defaultComponents = memoizeMarkdownComponents({
   h1: ({ className, ...props }) => (
     <h1
-      className={cn('aui-md-h1 mt-5 mb-2 scroll-m-20 text-xl font-semibold first:mt-0 last:mb-0', className)}
+      className={cn('aui-md-h1 mt-5 mb-2 scroll-m-20 text-lg font-semibold first:mt-0 last:mb-0', className)}
       {...props}
     />
   ),
   h2: ({ className, ...props }) => (
     <h2
-      className={cn('aui-md-h2 mt-5 mb-2 scroll-m-20 text-lg font-semibold first:mt-0 last:mb-0', className)}
+      className={cn('aui-md-h2 mt-5 mb-2 scroll-m-20 text-base font-semibold first:mt-0 last:mb-0', className)}
       {...props}
     />
   ),
   h3: ({ className, ...props }) => (
     <h3
-      className={cn('aui-md-h3 mt-4 mb-1.5 scroll-m-20 text-base font-semibold first:mt-0 last:mb-0', className)}
+      className={cn('aui-md-h3 mt-4 mb-1.5 scroll-m-20 text-sm font-semibold first:mt-0 last:mb-0', className)}
       {...props}
     />
   ),
   h4: ({ className, ...props }) => (
     <h4
-      className={cn('aui-md-h4 mt-3.5 mb-1 scroll-m-20 text-base font-medium first:mt-0 last:mb-0', className)}
+      className={cn('aui-md-h4 mt-3.5 mb-1 scroll-m-20 text-sm font-medium first:mt-0 last:mb-0', className)}
       {...props}
     />
   ),

@@ -9,7 +9,7 @@ attachment extraction fails.
 
 import io
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -98,6 +98,20 @@ class TestCatalogues:
         assert names.isdisjoint(chat_agent_module.EXCLUDED_CHAT_SKILLS)
 
 
+@pytest.fixture
+def claims() -> Iterator[AsyncMock]:
+    """The thread's claim, free unless a test takes it (``turn_claims``)."""
+
+    claim = AsyncMock(return_value=datetime.now(UTC))
+    with (
+        patch.object(chat.turn_claims, "claim", claim),
+        patch.object(chat.turn_claims, "keep", AsyncMock(return_value=True)),
+        patch.object(chat.turn_claims, "release", AsyncMock()),
+    ):
+        yield claim
+
+
+@pytest.mark.usefixtures("claims")
 class TestStream:
     EVENTS: list[dict[str, Any]] = [
         {"t": "reasoning", "v": "hm"},
@@ -210,6 +224,52 @@ class TestStream:
             )
         assert response.status_code == 200
         assert _frames(response.text)[-1] == 'data: {"t": "error", "v": "rate limited"}'
+
+    def test_a_second_turn_on_a_running_thread_is_refused(
+        self, claims: AsyncMock
+    ) -> None:
+        claims.return_value = None
+        calls: list[dict[str, Any]] = []
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=_thread()),
+            ),
+            patch.object(chat, "run_chat_turn", _turn(self.EVENTS, calls)),
+        ):
+            response = _client().post(
+                f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "hi"}
+            )
+        assert response.status_code == 409
+        assert response.json()["detail"] == chat.STILL_ANSWERING
+
+
+class TestRunningTurn:
+    def test_the_thread_says_whether_a_turn_runs(self) -> None:
+        running = _thread()
+        running.turn_started_at = running.turn_seen_at = datetime.now(UTC)
+        with patch.object(
+            chat.chat_thread_service, "get_thread", AsyncMock(return_value=running)
+        ):
+            response = _client().get(f"/api/chat/threads/{THREAD_ID}")
+        assert response.status_code == 200 and response.json()["is_running"] is True
+
+    def test_cancel_asks_the_running_turn_to_stop(self) -> None:
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=_thread()),
+            ) as owned,
+            patch.object(
+                chat.turn_claims, "request_cancel", AsyncMock(return_value=True)
+            ) as cancel,
+        ):
+            response = _client().post(f"/api/chat/threads/{THREAD_ID}/cancel")
+        assert response.status_code == 204
+        owned.assert_awaited_once()
+        cancel.assert_awaited_once_with(THREAD_ID)
 
 
 class TestHistory:

@@ -17,6 +17,9 @@ import type {
   BotMessagesApiMicrosoftTeamsMessagesPostData,
   BotMessagesApiMicrosoftTeamsMessagesPostErrors,
   BotMessagesApiMicrosoftTeamsMessagesPostResponses,
+  CancelChatTurnApiChatThreadsThreadIdCancelPostData,
+  CancelChatTurnApiChatThreadsThreadIdCancelPostErrors,
+  CancelChatTurnApiChatThreadsThreadIdCancelPostResponses,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostData,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostErrors,
   CancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPostResponses,
@@ -146,6 +149,9 @@ import type {
   GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetData,
   GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetErrors,
   GetSuggestionApiMicrosoftWordChatSuggestionsSuggestionIdGetResponses,
+  GetThreadApiChatThreadsThreadIdGetData,
+  GetThreadApiChatThreadsThreadIdGetErrors,
+  GetThreadApiChatThreadsThreadIdGetResponses,
   GetThreadApiMicrosoftWordChatThreadGetData,
   GetThreadApiMicrosoftWordChatThreadGetErrors,
   GetThreadApiMicrosoftWordChatThreadGetResponses,
@@ -582,6 +588,31 @@ export const deleteThreadApiChatThreadsThreadIdDelete = <ThrowOnError extends bo
   });
 
 /**
+ * Get Thread
+ *
+ * One thread; the page polls it while a turn runs (``is_running``).
+ */
+export const getThreadApiChatThreadsThreadIdGet = <ThrowOnError extends boolean = true>(
+  options: Options<GetThreadApiChatThreadsThreadIdGetData, ThrowOnError>,
+): RequestResult<
+  GetThreadApiChatThreadsThreadIdGetResponses,
+  GetThreadApiChatThreadsThreadIdGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    GetThreadApiChatThreadsThreadIdGetResponses,
+    GetThreadApiChatThreadsThreadIdGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/chat/threads/{thread_id}',
+    ...options,
+  });
+
+/**
  * Update Thread
  */
 export const updateThreadApiChatThreadsThreadIdPatch = <ThrowOnError extends boolean = true>(
@@ -670,6 +701,11 @@ export const readThreadFileContentApiChatThreadsThreadIdFilesGet = <ThrowOnError
  * Each ``data:`` frame is one JSON event: ``text`` and ``reasoning`` deltas,
  * ``tool`` calls, ``tool_result``s, or a terminal ``error``. Comment lines are
  * heartbeats.
+ *
+ * The turn runs detached from this request (``detached_turn``): a client that
+ * goes away stops only its stream, and the turn keeps running and
+ * checkpointing. A stream that has to end before the turn does ends with a
+ * ``detached`` event. 409 while another turn runs on the thread.
  */
 export const streamChatTurnApiChatThreadsThreadIdStreamPost = <ThrowOnError extends boolean = true>(
   options: Options<StreamChatTurnApiChatThreadsThreadIdStreamPostData, ThrowOnError, unknown>,
@@ -688,6 +724,33 @@ export const streamChatTurnApiChatThreadsThreadIdStreamPost = <ThrowOnError exte
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Cancel Chat Turn
+ *
+ * Ask the thread's running turn to stop, whichever worker runs it.
+ *
+ * The turn notices within a few seconds. Asking when nothing runs does nothing.
+ */
+export const cancelChatTurnApiChatThreadsThreadIdCancelPost = <ThrowOnError extends boolean = true>(
+  options: Options<CancelChatTurnApiChatThreadsThreadIdCancelPostData, ThrowOnError>,
+): RequestResult<
+  CancelChatTurnApiChatThreadsThreadIdCancelPostResponses,
+  CancelChatTurnApiChatThreadsThreadIdCancelPostErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).post<
+    CancelChatTurnApiChatThreadsThreadIdCancelPostResponses,
+    CancelChatTurnApiChatThreadsThreadIdCancelPostErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/chat/threads/{thread_id}/cancel',
+    ...options,
   });
 
 /**
