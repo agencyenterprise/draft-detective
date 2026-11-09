@@ -9,6 +9,7 @@ from lib.models.workflow_run import (
 )
 from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
+    get_workflow_run_status,
     update_workflow_run_status,
 )
 from lib.workflows.models import (
@@ -199,3 +200,26 @@ async def _get_pending_workflow_dependencies(
             pending_dependencies.append(dep_type)
 
     return pending_dependencies
+
+
+async def wait_for_runs_to_end(run_ids: list[str]) -> None:
+    """Wait until every run has a terminal status or no longer exists.
+
+    For runs someone else scheduled. Gives up after DEPENDENCY_WAIT_TIMEOUT
+    and leaves the caller to read whatever status the runs then have.
+    """
+    started_at = time.monotonic()
+    pending = list(run_ids)
+    while pending:
+        statuses = [await get_workflow_run_status(run_id) for run_id in pending]
+        pending = [
+            run_id
+            for run_id, status in zip(pending, statuses, strict=True)
+            if status is not None and status not in TERMINAL_WORKFLOW_RUN_STATUSES
+        ]
+        if not pending:
+            return
+        if time.monotonic() - started_at > DEPENDENCY_WAIT_TIMEOUT:
+            logger.warning(f"Gave up waiting for runs {pending} to end")
+            return
+        await asyncio.sleep(DEPENDENCY_CHECK_INTERVAL)

@@ -26,6 +26,7 @@ from lib.services.workflow_runs.gates import (
     get_unsatisfied_gates,
     release_runs_awaiting_approval,
 )
+from lib.services.workflow_runs.orchestration import wait_for_runs_to_end
 from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
@@ -235,6 +236,7 @@ async def _prepare_workflow_items(
     list[AutoRunWorkflowItem],
     list[WorkflowRunType],
     list[WorkflowRunType],
+    list[tuple[WorkflowRunType, str]],
 ]:
     """
     Resolve dependencies, apply skip logic, create run records, and build the
@@ -250,6 +252,9 @@ async def _prepare_workflow_items(
       (only populated when raise_on_pending_gates=True)
     - pending_web_search: workflows blocked by missing web-search consent
       (only populated when raise_on_pending_gates=True)
+    - scheduled_elsewhere: (type, run id) of each awaiting run a concurrent
+      gate approval released and scheduled first; the batch must not run
+      them, but a caller that blocks must wait for them
     """
     project, _ = await get_project_access(
         request.project_id, user=user, required_level=AccessLevel.WRITE
@@ -274,6 +279,7 @@ async def _prepare_workflow_items(
     auto_run_items: list[AutoRunWorkflowItem] = []
     pending_human_triggers: list[WorkflowRunType] = []
     pending_web_search: list[WorkflowRunType] = []
+    scheduled_elsewhere: list[tuple[WorkflowRunType, str]] = []
     # Workflows deferred behind the web-search consent gate (the gated
     # workflow itself plus anything downstream of it). Only the MCP path uses
     # this; resolved_workflow_types is in topological order, so a single
@@ -382,6 +388,7 @@ async def _prepare_workflow_items(
             if status is not None and status != WorkflowRunStatus.CANCELLED:
                 # A concurrent approve_project_gate released and scheduled it.
                 workflow_run_ids.append(str(awaiting_run.id))
+                scheduled_elsewhere.append((workflow_type, str(awaiting_run.id)))
                 continue
             # It was cancelled or deleted meanwhile: start a fresh run instead.
             awaiting_run = None
@@ -430,6 +437,7 @@ async def _prepare_workflow_items(
         auto_run_items,
         pending_human_triggers,
         pending_web_search,
+        scheduled_elsewhere,
     )
 
 
@@ -597,6 +605,7 @@ async def start_multiple_workflow_runs(
         auto_run_items,
         _,
         _,
+        _,
     ) = await _prepare_workflow_items(workflow_types, request, user)
 
     if auto_run_items:
@@ -663,6 +672,7 @@ async def run_multiple_workflows_blocking(
         auto_run_items,
         pending_human_triggers,
         pending_web_search,
+        scheduled_elsewhere,
     ) = await _prepare_workflow_items(
         workflow_types,
         request,
@@ -680,9 +690,15 @@ async def run_multiple_workflows_blocking(
     await _run_multiple_workflows_concurrently(
         items=auto_run_items, user=user, revision=revision
     )
+    # Runs a concurrent gate approval scheduled are part of this request too:
+    # return only once they have ended.
+    await wait_for_runs_to_end([run_id for _, run_id in scheduled_elsewhere])
 
     if pending_human_triggers or pending_web_search:
-        completed, unsuccessful = await _batch_outcomes(auto_run_items)
+        completed, unsuccessful = await _batch_outcomes(
+            [(item.config.type, item.workflow_run_id) for item in auto_run_items]
+            + scheduled_elsewhere
+        )
         raise WorkflowGateRequiredError(
             project_id=str(project.id),
             pending_human_approval=pending_human_triggers,
@@ -695,19 +711,19 @@ async def run_multiple_workflows_blocking(
 
 
 async def _batch_outcomes(
-    items: list[AutoRunWorkflowItem],
+    runs: list[tuple[WorkflowRunType, str]],
 ) -> tuple[list[WorkflowRunType], dict[WorkflowRunType, WorkflowRunStatus]]:
     """Split a finished batch into completed types and type → terminal status
     for the rest. The concurrent runner absorbs per-item failures, so this is
     read back from the run records rather than inferred."""
     completed: list[WorkflowRunType] = []
     unsuccessful: dict[WorkflowRunType, WorkflowRunStatus] = {}
-    for item in items:
-        status = await get_workflow_run_status(item.workflow_run_id)
+    for workflow_type, run_id in runs:
+        status = await get_workflow_run_status(run_id)
         if status == WorkflowRunStatus.COMPLETED:
-            completed.append(item.config.type)
+            completed.append(workflow_type)
         else:
-            unsuccessful[item.config.type] = status or WorkflowRunStatus.FAILED
+            unsuccessful[workflow_type] = status or WorkflowRunStatus.FAILED
     return completed, unsuccessful
 
 
