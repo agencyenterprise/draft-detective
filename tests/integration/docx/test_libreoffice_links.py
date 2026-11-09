@@ -24,7 +24,10 @@ from docx.oxml.ns import nsdecls
 from PIL import Image
 
 from lib.services.converters.docx_preprocessor import docx_preprocessor
-from lib.services.converters.libreoffice_profile import locked_down_profile
+from lib.services.converters.libreoffice_profile import (
+    locked_down_profile,
+    soffice_env,
+)
 
 _SOFFICE = shutil.which("soffice") or shutil.which("libreoffice")
 
@@ -101,18 +104,20 @@ def _soffice(*args: str, profile: str) -> None:
         check=True,
         capture_output=True,
         timeout=120,
+        env=soffice_env(),
     )
 
 
 def _make_doc(docx: Path, workdir: Path) -> Path:
-    """Save ``docx`` as a Word 97 binary; the save itself does not follow links."""
+    """Save ``docx`` as a Word 97 binary, locked down so that the save does not
+    follow the link itself: only the conversion under test may reach the server."""
     _soffice(
         "--convert-to",
         "doc",
         "--outdir",
         str(docx.parent),
         str(docx),
-        profile=f"-env:UserInstallation={(workdir / 'make-doc').as_uri()}",
+        profile=locked_down_profile(workdir / "make-doc"),
     )
     return docx.with_suffix(".doc")
 
