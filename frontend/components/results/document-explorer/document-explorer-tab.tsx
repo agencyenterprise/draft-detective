@@ -17,6 +17,7 @@ import {
 import {
   findRunByType,
   getBlockingWorkflowErrors,
+  getDocumentProcessingFailure,
   isAnyWorkflowActive,
   isWorkflowProcessing,
 } from '@/lib/workflow-state';
@@ -107,6 +108,7 @@ export function DocumentExplorerTab({
   const documentRef = useRef<DocumentViewHandle>(null);
 
   const workflowErrors = useMemo(() => getBlockingWorkflowErrors(workflowDetails), [workflowDetails]);
+  const documentFailure = useMemo(() => getDocumentProcessingFailure(workflowDetails), [workflowDetails]);
   const outline = useMemo(() => extractOutline(mainDocumentMarkdown), [mainDocumentMarkdown]);
   const visibleIssues = useMemo(() => getVisibleIssues(issues, filter), [issues, filter]);
   const resolvedCount = useMemo(() => getResolvedCount(issues, null), [issues]);
@@ -306,7 +308,9 @@ export function DocumentExplorerTab({
   if (isDocumentProcessing && !mainDocumentMarkdown) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        {workflowErrors.length > 0 && <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} />}
+        {(workflowErrors.length > 0 || documentFailure) && (
+          <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} documentFailure={documentFailure} />
+        )}
         <div className="flex items-center justify-center py-12">
           <div className="space-y-3 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -319,7 +323,9 @@ export function DocumentExplorerTab({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg">
-      {workflowErrors.length > 0 && <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} />}
+      {(workflowErrors.length > 0 || documentFailure) && (
+        <ProcessingErrorsBanner onViewAssessments={onNavigateToAnalyses} documentFailure={documentFailure} />
+      )}
 
       <div className="flex min-h-0 flex-1">
         <Rail state={rail} label="Filters and outline">

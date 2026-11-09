@@ -13,6 +13,12 @@ class WorkflowCancelledError(Exception):
     """Raised when a workflow has been cancelled. Propagates through LangGraph without being converted to a WorkflowError."""
 
 
+class WorkflowAbortedError(Exception):
+    """Raised by a node when the run cannot go on. Unlike other node errors,
+    `register_node` lets it propagate, so the run ends FAILED with this message
+    and its dependents are cancelled instead of running on missing input."""
+
+
 class DependencyWaitTimeoutError(Exception):
     """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
 
