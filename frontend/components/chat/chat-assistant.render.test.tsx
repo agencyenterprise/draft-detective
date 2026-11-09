@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, useEffect, useLayoutEffect } from 'react';
 import { useAui, type CompleteAttachment, type ThreadMessage } from '@assistant-ui/react';
-import { streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
+import { ChatRequestError, streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
 import type { ChatMessage } from '@/lib/chat/turn';
 import {
   cancelChatTurnApiChatThreadsThreadIdCancelPost,
@@ -39,7 +39,10 @@ vi.mock('@/components/assistant-ui/elements/thread.aui', () => ({ Thread: Probe 
 vi.mock('@/components/assistant-ui/thread-list', () => ({ ThreadList: () => null }));
 vi.mock('@/components/chat/document-panel', () => ({ DocumentPanel: () => null }));
 vi.mock('@assistant-ui/react-devtools', () => ({ DevToolsModal: () => null }));
-vi.mock('@/lib/chat/stream', () => ({ streamChatTurn: vi.fn() }));
+vi.mock('@/lib/chat/stream', async (original) => ({
+  ...(await original<typeof import('@/lib/chat/stream')>()),
+  streamChatTurn: vi.fn(),
+}));
 // Follow a running turn quickly, so the tests need no fake timers.
 vi.mock('@/lib/chat/follow', async (original) => ({
   ...(await original<typeof import('@/lib/chat/follow')>()),
@@ -266,7 +269,7 @@ describe('ChatAssistant, a turn that ends early', () => {
   it('a request that fails before streaming shows the failure on an assistant message', async () => {
     await mount();
     stream.mockImplementationOnce(() => {
-      throw new Error('Chat request failed with status 503');
+      throw new ChatRequestError(503, 'Chat request failed with status 503');
     });
     await send('Hi');
 
@@ -284,7 +287,7 @@ describe('ChatAssistant, a turn that ends early', () => {
   it.fails('a request that fails before streaming keeps the user message on screen', async () => {
     await mount();
     stream.mockImplementationOnce(() => {
-      throw new Error('Chat request failed with status 503');
+      throw new ChatRequestError(503, 'Chat request failed with status 503');
     });
     await send('Hi');
 
@@ -379,6 +382,54 @@ describe('ChatAssistant, a turn running on the server', () => {
     await until(() => !isRunning());
     expect(texts()).toEqual(['user: Long research', 'assistant: Part one. Part two.']);
   });
+  it('a turn that streams to its end reads the stored history once', async () => {
+    await mount();
+    serve(reply('a1', 'One.'), [{ id: 'a1', type: 'ai', content: 'One.' }]);
+    await send('First');
+    await flush();
+    const before = listMessages.mock.calls.length;
+
+    serve(reply('a2', 'Two.'), [{ id: 'a2', type: 'ai', content: 'Two.' }]);
+    await send('Second');
+    await flush();
+
+    expect(listMessages.mock.calls.length - before).toBe(1);
+    expect(texts()).toEqual(['user: First', 'assistant: One.', 'user: Second', 'assistant: Two.']);
+  });
+
+  it('a stream lost before its first event gives way to the turn the server ran', async () => {
+    await mount();
+    stream.mockImplementationOnce(async function* (options: StreamOptions) {
+      stored = [...stored, { id: options.messageId, type: 'human', content: options.message }];
+      running = true;
+      throw new TypeError('network error');
+    });
+    await send('Long research');
+    await until(() => isRunning());
+    expect(shown().some((m) => 'status' in m)).toBe(false);
+
+    stored = [...stored, { id: 'a1', type: 'ai', content: 'The answer.' }];
+    running = false;
+    await until(() => !isRunning());
+    expect(texts()).toEqual(['user: Long research', 'assistant: The answer.']);
+    expect(shown().some((m) => 'status' in m)).toBe(false);
+  });
+
+  it('a refused request keeps its error even while another turn runs', async () => {
+    await mount();
+    running = true;
+    stream.mockImplementationOnce(() => {
+      throw new ChatRequestError(409, 'Draft Detective is still answering in this thread.');
+    });
+    await send('Hi');
+    await until(() => isRunning());
+
+    expect(shown().at(-1)).toMatchObject({
+      role: 'assistant',
+      status: { type: 'incomplete', reason: 'error', error: 'Draft Detective is still answering in this thread.' },
+    });
+  });
+
   it('keeps the text streamed before a detach on screen until the history has it', async () => {
     await mount();
     serve([...reply('a1', 'Part one.'), { t: 'detached' }]);

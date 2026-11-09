@@ -62,10 +62,21 @@ export async function* streamChatTurn({
   });
 
   if (!response.ok || !response.body) {
-    throw new Error(await errorDetail(response));
+    throw new ChatRequestError(response.status, await errorDetail(response));
   }
 
   yield* parseEventStream(response.body);
+}
+
+/** The backend refused the turn (a 409 while another runs, a 401, a 5xx): no turn started. */
+export class ChatRequestError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ChatRequestError';
+  }
 }
 
 export async function errorDetail(response: Response): Promise<string> {

@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from lib.services.chat import detached_turn
 from lib.services.chat.detached_turn import (
     TIMEOUT_MESSAGE,
     TurnAlreadyRunning,
@@ -152,6 +153,44 @@ async def test_a_turn_whose_stale_claim_was_taken_stops_without_freeing_the_new_
     await asyncio.wait_for(turn.task, timeout=1)
     assert agent.cancelled
     assert claims.held[THREAD] == taken
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("stamp", ["fails", "hangs"])
+async def test_a_turn_that_cannot_stamp_its_claim_stops_before_it_goes_stale(
+    claims: MemoryClaims, stamp: str
+) -> None:
+    async def broken_keep(thread_id: uuid.UUID, token: datetime) -> bool:
+        if stamp == "hangs":
+            await asyncio.sleep(10)
+        raise ConnectionError("database unavailable")
+
+    claims.keep = broken_keep  # type: ignore[method-assign]
+    agent = Agent(text("never"), delay=10)
+    turn = await start_turn(
+        THREAD, agent.run(), claims=claims, keep_seconds=0.02, lease_seconds=0.1
+    )
+
+    assert turn.task is not None
+    await asyncio.wait_for(turn.task, timeout=1)
+    assert agent.cancelled
+    assert THREAD not in claims.held
+
+
+@pytest.mark.asyncio
+async def test_a_listener_that_never_reads_holds_a_bounded_buffer(
+    claims: MemoryClaims, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(detached_turn, "MAX_BUFFERED_EVENTS", 3)
+    agent = Agent(*(text(str(i)) for i in range(10)))
+    turn = await start_turn(THREAD, agent.run(), claims=claims)
+
+    # The client left before reading anything; the turn runs to the end regardless.
+    assert turn.task is not None
+    await asyncio.wait_for(turn.task, timeout=1)
+    assert len(agent.sent) == 10
+    # A listener that does turn up is handed over to the stored history.
+    assert [event async for event in turn.events()] == [{"t": "detached"}]
 
 
 @pytest.mark.asyncio
