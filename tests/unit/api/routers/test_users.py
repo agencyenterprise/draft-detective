@@ -34,12 +34,14 @@ def _user(role: UserRole = UserRole.USER, key: str | None = None) -> User:
     )
 
 
-def _client(as_role: UserRole | None = UserRole.USER) -> TestClient:
+def _client(
+    as_role: UserRole | None = UserRole.USER, key: str | None = None
+) -> TestClient:
     """Just this router. `as_role=None` leaves authentication unstubbed: an anonymous request."""
     app = FastAPI()
     app.include_router(users.router)
     if as_role is not None:
-        app.dependency_overrides[get_current_user] = lambda: _user(as_role)
+        app.dependency_overrides[get_current_user] = lambda: _user(as_role, key)
     return TestClient(app, raise_server_exceptions=False)
 
 
@@ -145,11 +147,7 @@ def test_a_valid_key_is_stored_for_the_caller_and_never_sent_back(
 
 
 def test_the_caller_is_told_whether_a_key_is_stored_but_not_what_it_is() -> None:
-    app = FastAPI()
-    app.include_router(users.router)
-    app.dependency_overrides[get_current_user] = lambda: _user(key="encrypted-value")
-
-    response = TestClient(app).get("/api/users/me")
+    response = _client(key="encrypted-value").get("/api/users/me")
 
     assert response.json()["has_openai_api_key"] is True
     assert "encrypted-value" not in response.text
