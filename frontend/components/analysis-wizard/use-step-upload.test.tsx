@@ -151,6 +151,85 @@ describe('useStepUpload', () => {
     await view.unmount();
   });
 
+  it('retries a failed upload into the project it already created', async () => {
+    mocks.upload.mockRejectedValueOnce(new Error('Upload failed: network down'));
+    const { onComplete, view, step, wizard } = await mountStep();
+    await act(async () => step().handleDocumentChange([doc()]));
+
+    await act(async () => step().handleContinue());
+    await flush();
+    await act(async () => step().handleContinue());
+    await flush();
+
+    expect(mocks.create).toHaveBeenCalledOnce();
+    expect(mocks.upload).toHaveBeenCalledTimes(2);
+    expect(mocks.upload).toHaveBeenLastCalledWith(step().mainDocument, expect.objectContaining({ projectId: 'p-1' }));
+    expect(mocks.start).toHaveBeenCalledOnce();
+    expect(wizard().projectId).toBe('p-1');
+    expect(onComplete).toHaveBeenCalledOnce();
+    await view.unmount();
+  });
+
+  it('retries a failed workflow start without creating or uploading again', async () => {
+    mocks.start.mockRejectedValueOnce(new Error('Could not start workflows'));
+    const { onComplete, view, step } = await mountStep();
+    await act(async () => step().handleDocumentChange([doc()]));
+
+    await act(async () => step().handleContinue());
+    await flush();
+    await act(async () => step().handleContinue());
+    await flush();
+
+    expect(mocks.create).toHaveBeenCalledOnce();
+    expect(mocks.upload).toHaveBeenCalledOnce();
+    expect(mocks.start).toHaveBeenCalledTimes(2);
+    expect(mocks.start).toHaveBeenLastCalledWith(
+      expect.objectContaining({ body: expect.objectContaining({ project_id: 'p-1' }) }),
+    );
+    expect(onComplete).toHaveBeenCalledOnce();
+    await view.unmount();
+  });
+
+  it('creates a new project when a different draft is picked after a failure', async () => {
+    mocks.upload.mockRejectedValueOnce(new Error('Upload failed: network down'));
+    mocks.create
+      .mockResolvedValueOnce({ project: { id: 'p-1', group_by_severity: true } })
+      .mockResolvedValueOnce({ project: { id: 'p-2', group_by_severity: true } });
+    const { view, step, wizard } = await mountStep();
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => step().handleContinue());
+    await flush();
+
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => step().handleContinue());
+    await flush();
+
+    expect(mocks.create).toHaveBeenCalledTimes(2);
+    expect(mocks.upload).toHaveBeenLastCalledWith(step().mainDocument, expect.objectContaining({ projectId: 'p-2' }));
+    expect(wizard().projectId).toBe('p-2');
+    await view.unmount();
+  });
+
+  it('finishes the upload in flight when another draft is picked meanwhile', async () => {
+    let land!: () => void;
+    mocks.upload.mockImplementationOnce(() => new Promise<void>((resolve) => (land = resolve)));
+    const { onComplete, view, step } = await mountStep();
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => step().handleContinue());
+    await flush();
+
+    await act(async () => step().handleDocumentChange([doc()]));
+    await act(async () => land());
+    await flush();
+
+    expect(mocks.start).toHaveBeenCalledWith(
+      expect.objectContaining({ body: expect.objectContaining({ project_id: 'p-1' }) }),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(onComplete).toHaveBeenCalledOnce();
+    await view.unmount();
+  });
+
   it('groups by severity when the new project does not say', async () => {
     mocks.create.mockResolvedValue({ project: { id: 'p-2', group_by_severity: null } });
     const { view, step, wizard } = await mountStep();
