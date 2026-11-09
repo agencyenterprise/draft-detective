@@ -1,7 +1,8 @@
 """Any direct-fetch failure falls back to Jina, and Jina is called at most once."""
 
+import asyncio
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
+from lib.workflows.reference_downloader.tools import direct_fetch, url_guard
 from lib.workflows.reference_downloader.tools import download_file_from_url as dl
-from lib.workflows.reference_downloader.tools import url_guard
 
 URL = "https://publisher.example.org/paper"
 JINA_HOST = "r.jina.ai"
@@ -176,3 +177,85 @@ async def test_tool_reports_failure_when_the_file_record_cannot_be_saved(
 
     assert response.success is False
     assert response.file_id is None
+
+
+class _Drip:
+    """A response body served chunk by chunk, counting how many chunks were read."""
+
+    def __init__(
+        self, chunks: int, chunk_size: int, content_type: str, pause: float = 0
+    ) -> None:
+        self.chunks = chunks
+        self.chunk_size = chunk_size
+        self.content_type = content_type
+        self.pause = pause
+        self.served = 0
+
+    async def _body(self) -> AsyncIterator[bytes]:
+        for _ in range(self.chunks):
+            self.served += 1
+            await asyncio.sleep(self.pause)
+            yield b"%" * self.chunk_size
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        headers = {"Content-Type": self.content_type}
+        return httpx.Response(200, content=self._body(), headers=headers)
+
+
+@pytest.mark.asyncio
+async def test_oversized_pdf_is_not_read_past_the_limit(
+    install: Callable[[FakeWeb], FakeWeb], tmp_path: Path
+) -> None:
+    body = _Drip(chunks=100, chunk_size=1024, content_type="application/pdf")
+    web = install(FakeWeb(direct=body, jina=JINA_OK))
+
+    with patch.object(direct_fetch, "MAX_DIRECT_DOWNLOAD_BYTES", 4 * 1024):
+        saved = await dl._download_direct_url(URL)
+
+    assert body.served <= 5
+    assert saved.content_type == "text/markdown"
+    assert not list(tmp_path.glob("*.pdf"))
+    assert web.jina_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_non_pdf_body_is_left_unread(
+    install: Callable[[FakeWeb], FakeWeb],
+) -> None:
+    body = _Drip(chunks=100, chunk_size=1024, content_type="text/html")
+    web = install(FakeWeb(direct=body, jina=JINA_OK))
+
+    saved = await dl._download_direct_url(URL)
+
+    assert body.served <= 1
+    assert saved.content_type == "text/markdown"
+    assert web.jina_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_slow_pdf_is_abandoned_at_the_deadline(
+    install: Callable[[FakeWeb], FakeWeb], tmp_path: Path
+) -> None:
+    body = _Drip(chunks=100, chunk_size=1, content_type="application/pdf", pause=0.05)
+    web = install(FakeWeb(direct=body, jina=JINA_OK))
+
+    with patch.object(direct_fetch, "DIRECT_DOWNLOAD_DEADLINE_SECONDS", 0.3):
+        saved = await dl._download_direct_url(URL)
+
+    assert body.served < 100
+    assert saved.content_type == "text/markdown"
+    assert not list(tmp_path.glob("*.pdf"))
+    assert web.jina_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_error_answer_keeps_its_body_for_the_log(
+    install: Callable[[FakeWeb], FakeWeb],
+) -> None:
+    install(FakeWeb(direct=_respond(403, "Access denied", "text/plain"), jina=JINA_OK))
+
+    with pytest.raises(httpx.HTTPStatusError) as raised:
+        await direct_fetch.fetch_pdf_directly(URL)
+
+    assert raised.value.response.status_code == 403
+    assert "body='Access denied'" in dl._describe_error(raised.value)
