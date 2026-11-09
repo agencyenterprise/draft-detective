@@ -303,21 +303,24 @@ async def update_workflow_run_status(
     write-once. Without this guard the runner's COMPLETED write could clobber a FAILED row the
     reaper just produced (race window: heartbeat lag → reap → runner finishes
     its last node → COMPLETED write), and racing failure paths could
-    overwrite each other's failure_reason / failure_message. The guard is
-    application-level: a SELECT that skips terminal rows, then an UPDATE by id,
-    with no row lock. It stops any write that starts after a terminal one has
-    committed, but two writers whose SELECTs both run before either commits
-    both write, and the last one wins.
+    overwrite each other's failure_reason / failure_message. The SELECT that
+    skips terminal rows locks the row (FOR UPDATE), so a concurrent writer
+    waits for this one to commit and then re-checks the status: once a
+    terminal status commits, no later write changes it.
 
     `failure_reason` and `failure_message` are persisted only when transitioning
     to FAILED; they are ignored for other statuses.
     """
     async with get_async_db_session() as session:
-        stmt = select(WorkflowRun).where(
-            and_(
-                col(WorkflowRun.id) == workflow_run_id,
-                col(WorkflowRun.status).not_in(TERMINAL_WORKFLOW_RUN_STATUSES),
+        stmt = (
+            select(WorkflowRun)
+            .where(
+                and_(
+                    col(WorkflowRun.id) == workflow_run_id,
+                    col(WorkflowRun.status).not_in(TERMINAL_WORKFLOW_RUN_STATUSES),
+                )
             )
+            .with_for_update()
         )
         run = (await session.execute(stmt)).scalar_one_or_none()
         if run:

@@ -30,7 +30,6 @@ from lib.services.workflow_runs.service import (
     create_workflow_run,
     get_project_workflow_run_by_type,
     get_workflow_run_status,
-    update_workflow_run_status,
 )
 from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.dependency_resolver import resolve_workflow_dependencies
@@ -375,6 +374,18 @@ async def _prepare_workflow_items(
             )
             continue
 
+        if awaiting_run is not None and not await claim_run_awaiting_approval(
+            str(awaiting_run.id)
+        ):
+            # Someone else moved the row first. Never schedule the same run twice.
+            status = await get_workflow_run_status(str(awaiting_run.id))
+            if status is not None and status != WorkflowRunStatus.CANCELLED:
+                # A concurrent approve_project_gate released and scheduled it.
+                workflow_run_ids.append(str(awaiting_run.id))
+                continue
+            # It was cancelled or deleted meanwhile: start a fresh run instead.
+            awaiting_run = None
+
         # A run already waiting keeps the model it was created with, the one its
         # row records, as it does when approve_project_gate releases it.
         workflow_config = create_workflow_config(
@@ -385,11 +396,8 @@ async def _prepare_workflow_items(
         )
 
         if awaiting_run is not None:
-            # Its gate was approved while it waited: release this row
-            # rather than create a second run of the same type.
-            await update_workflow_run_status(
-                str(awaiting_run.id), WorkflowRunStatus.PENDING
-            )
+            # Its gate was approved while it waited and this call claimed the
+            # row: run it rather than create a second run of the same type.
             thread_id = awaiting_run.langgraph_thread_id
             workflow_run_id = str(awaiting_run.id)
         else:
