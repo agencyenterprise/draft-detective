@@ -13,6 +13,7 @@ import shutil
 from langchain_core.messages.utils import count_tokens_approximately
 
 from lib.models.file import FileRole
+from lib.services.converters.archive_limits import check_archive_expansion
 from lib.services.converters.base import convert_to_markdown as convert_to_markdown_fn
 from lib.services.converters.docx_preprocessor import docx_preprocessor
 from lib.services.docx.drawing_rasterization import rasterize_docx_drawings
@@ -69,6 +70,9 @@ async def convert_docx(
     images' display sizes are read from the same document the markdown came
     from.
     """
+    # Before anything opens the package: rasterization and the display-size
+    # read parse it with python-docx, ahead of and apart from markitdown.
+    await asyncio.to_thread(check_archive_expansion, docx_path)
     rasterized = await rasterize_docx_drawings(docx_path) if keep_data_uris else None
     conversion_path = rasterized or docx_path
     try:

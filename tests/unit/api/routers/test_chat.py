@@ -26,6 +26,7 @@ from lib.api.auth import get_current_user
 from lib.api.routers import chat
 from lib.models.chat_thread import ChatThread
 from lib.models.user import User, UserRole
+from lib.services.converters import archive_limits
 
 USER = User(
     id=uuid.uuid4(),
@@ -418,3 +419,14 @@ class TestExtract:
         assert response.status_code == 200
         assert ex.await_args is not None
         assert len(ex.await_args.args[1]) == 1024
+
+    def test_a_document_expanding_past_the_limit_is_refused(self) -> None:
+        document = Document()
+        document.add_paragraph("x " * 200_000)
+        buffer = io.BytesIO()
+        document.save(buffer)
+        with patch.object(archive_limits, "MAX_XML_BYTES", 1024 * 1024):
+            response = _client().post(
+                "/api/chat/extract", files={"file": ("bomb.docx", buffer.getvalue())}
+            )
+        assert response.status_code == 413

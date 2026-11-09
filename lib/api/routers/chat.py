@@ -50,6 +50,7 @@ from lib.services.chat.thread_state import (
     read_thread_file,
 )
 from lib.services.chat.title import generate_title
+from lib.services.converters.archive_limits import ArchiveTooLargeError
 from lib.services.users import get_user_decrypted_api_key
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -344,5 +345,9 @@ async def extract_attachment_text(
     except EmptyDocumentError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
+        ) from error
+    except ArchiveTooLargeError as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(error)
         ) from error
     return ExtractResponse(text=text)

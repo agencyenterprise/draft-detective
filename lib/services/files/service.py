@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.file import File, FileListItem, FileRole
+from lib.models.file import UPLOADED_ROLES, File, FileListItem, FileRole
 from lib.models.project import Project
 from lib.models.share_link import ShareLink
 from lib.services.files.document import FileDocument, create_file_document_from_path
@@ -176,7 +176,7 @@ async def assert_project_has_main_file(
 
 async def get_files_by_project_id(
     project_id: uuid.UUID | str,
-    roles: list[FileRole],
+    roles: Sequence[FileRole],
     revision: int | None = None,
     file_ids: Sequence[uuid.UUID] | None = None,
 ) -> list[File]:
@@ -267,15 +267,7 @@ async def get_project_files_list_items(
     async with get_async_db_session() as session:
         stmt = select(*list_columns).where(
             col(File.project_id) == project_id,
-            col(File.role).in_(
-                [
-                    FileRole.MAIN,
-                    FileRole.SUPPORT,
-                    FileRole.REVIEWER_MEMO,
-                    FileRole.RESPONSE_MEMO,
-                    FileRole.REVIEW_INPUT,
-                ]
-            ),
+            col(File.role).in_(UPLOADED_ROLES),
         )
         rows = (await session.execute(stmt)).mappings().all()
         return [FileListItem.model_validate(dict(row)) for row in rows]
