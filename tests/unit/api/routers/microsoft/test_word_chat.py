@@ -14,6 +14,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from docx import Document
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.testclient import TestClient
 from starlette.requests import ClientDisconnect
@@ -25,6 +26,7 @@ from lib.api.routers.microsoft.word_chat import (
     WordChatResumeRequest,
 )
 from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
+from lib.services.converters import archive_limits
 from lib.services.files.image_extraction import ExtractedImage
 from lib.services.microsoft.graph.documents import LoadedDocument
 from lib.services.microsoft.word.handoffs import Account
@@ -681,3 +683,20 @@ class TestTheRequestThePaneSends:
 
         assert response.status_code == 422
         lookup.assert_not_called()
+
+
+class TestAnOversizedDocument:
+    @pytest.mark.asyncio
+    async def test_is_refused_as_too_large(self) -> None:
+        document = Document()
+        document.add_paragraph("x " * 200_000)
+        buffer = BytesIO()
+        document.save(buffer)
+        with (
+            patch.object(archive_limits, "MAX_XML_BYTES", 1024 * 1024),
+            pytest.raises(HTTPException) as raised,
+        ):
+            await word_chat._read_document(
+                "https://example.com/doc.docx", upload(buffer.getvalue())
+            )
+        assert raised.value.status_code == 413

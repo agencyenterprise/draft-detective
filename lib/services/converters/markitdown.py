@@ -4,6 +4,7 @@ import re
 
 from markitdown import DocumentConverterResult, MarkItDown, StreamInfo
 
+from lib.services.converters.archive_limits import check_archive_expansion
 from lib.services.converters.base import FileConverterProtocol
 from lib.services.converters.docx_equations import convert_docx_equations
 
@@ -42,6 +43,7 @@ class MarkitdownFileConverter(FileConverterProtocol):
     def _convert(
         self, file_path: str, keep_data_uris: bool, keep_equations: bool
     ) -> DocumentConverterResult:
+        check_archive_expansion(file_path)
         if keep_equations and file_path.lower().endswith(".docx"):
             try:
                 with_equations = convert_docx_equations(file_path)
