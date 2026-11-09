@@ -245,10 +245,12 @@ async def add_file_to_reference(
         revision: The project revision
 
     Returns:
-        True if the reference was linked; False, with nothing changed, when the
+        True if the reference was linked; False, with no link made, when the
         revision has no main file or no reference extraction state, or the
-        extraction has no reference with this ID. Any earlier match for the
-        reference is replaced.
+        extraction has no reference with this ID. A False can still follow the
+        default matching state being created or seeded by
+        _get_file_matching_workflow_state. Any earlier match for the reference
+        is replaced.
     """
     async with _project_lock(project_id):
         # Get file matching state

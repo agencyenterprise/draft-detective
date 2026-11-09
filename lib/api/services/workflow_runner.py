@@ -651,7 +651,8 @@ async def run_multiple_workflows_blocking(
     start_multiple_workflow_runs, but awaits the batch instead of handing it to
     a background task. Intended for callers that need the final state
     synchronously (e.g. MCP tools). Runs a concurrent approve_project_gate
-    scheduled are not run here, but the call waits for them to end too. A
+    scheduled are not run here, but the call waits for them to end too (up
+    to DEPENDENCY_WAIT_TIMEOUT, after which it returns anyway). A
     workflow that fails is logged and left FAILED on its run record; it does
     not abort the rest of the batch or this call.
 
