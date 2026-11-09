@@ -89,6 +89,12 @@ spec:
             port: 3000
           initialDelaySeconds: 10
           periodSeconds: 5
+        # Next.js caches the images it optimizes (the profile pictures) under .next/cache.
+        # The image's files belong to its own user, not to this pod's, so without a
+        # writable volume there each request logs an EACCES error and nothing is cached.
+        volumeMounts:
+        - name: next-cache
+          mountPath: /app/.next/cache
         securityContext:
           allowPrivilegeEscalation: false
           runAsNonRoot: true
@@ -96,6 +102,10 @@ spec:
           capabilities:
             drop:
             - ALL
+      volumes:
+      - name: next-cache
+        emptyDir:
+          sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service

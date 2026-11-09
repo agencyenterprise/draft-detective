@@ -16,6 +16,10 @@ wheels/
 # environment variables
 .env
 
+# Left in k8s/ by its README: the image sed's backups and database dumps
+k8s/*.bak
+k8s/backup-*.sql
+
 # Mac files
 .DS_Store
 

@@ -110,14 +110,14 @@ kubectl port-forward -n ai-reviewer svc/api 8000:8000
 
 ```bash
 # Optional: Use specific storage class
-sed -i 's|# storageClassName: ""|storageClassName: "gp3"|' database.yaml api.yaml
+sed -i.bak 's|# storageClassName: ""|storageClassName: "gp3"|' database.yaml api.yaml
 ```
 
 ### Google GKE
 
 ```bash
 # Optional: Use specific storage class
-sed -i 's|# storageClassName: ""|storageClassName: "standard"|' database.yaml api.yaml
+sed -i.bak 's|# storageClassName: ""|storageClassName: "standard"|' database.yaml api.yaml
 ```
 
 ### Vanilla Kubernetes with Ingress
@@ -195,7 +195,7 @@ kubectl apply -f network-policy.yaml -n ai-reviewer
 **Note:** Requires a CNI plugin that supports NetworkPolicy (Calico, Cilium, Weave).
 OpenShift has this by default, and `oc apply -f .` applies these policies too.
 
-The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API through `API_INTERNAL_URL` (the `api` Service), which that allows, but sign-in needs more: after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`). With the policy as shipped, sign-in fails at the callback.
+The frontend policy lets the frontend reach only the API pod and DNS. Its server code calls the API through `API_INTERNAL_URL` (the `api` Service), which that allows, but sign-in needs more: after the provider redirects back, Auth.js exchanges the code for tokens and fetches the provider's OIDC metadata from the frontend pod, over HTTPS to Google (`oauth2.googleapis.com`, `accounts.google.com`, `www.googleapis.com`) or Microsoft (`login.microsoftonline.com`, and `graph.microsoft.com`, where Auth.js fetches the profile picture during the callback). A Google profile picture also comes through the frontend pod, which fetches it from `lh3.googleusercontent.com` to optimize it each time the header shows it. With the policy as shipped, sign-in fails at the callback, and Google profile pictures don't load.
 
 Add an egress rule for TCP 443 to the frontend policy before applying it, the way the api policy already allows external HTTPS. Use a broad port-443 rule unless your CNI can filter by domain:
 
