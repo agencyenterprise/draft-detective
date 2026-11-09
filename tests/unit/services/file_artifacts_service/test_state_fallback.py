@@ -24,6 +24,11 @@ from lib.workflows.reference_extraction.state import (
     ReferenceExtractionConfig,
     ReferenceExtractionState,
 )
+from lib.workflows.reference_file_matching.state import (
+    ReferenceFileMatch,
+    ReferenceFileMatchingConfig,
+    ReferenceFileMatchingState,
+)
 from lib.workflows.workflow_types import WorkflowState
 
 RUNS = "lib.services.workflow_runs.service"
@@ -107,6 +112,37 @@ async def test_references_without_a_matching_run_have_no_supporting_file() -> No
 
     files.assert_not_called()
     assert [(r.reference_id, r.file_id) for r in references] == [("ref-1", None)]
+
+
+@pytest.mark.asyncio
+async def test_references_carry_the_file_their_match_points_to() -> None:
+    extraction = ReferenceExtractionState(
+        config=ReferenceExtractionConfig(project_id=PROJECT_ID),
+        file_id="main",
+        extracted_references=[
+            ExtractedReference(id="ref-1", text="Smith 2020"),
+            ExtractedReference(id="ref-2", text="Doe 2019"),
+        ],
+    )
+    matching = ReferenceFileMatchingState(
+        config=ReferenceFileMatchingConfig(project_id=PROJECT_ID),
+        file_id="main",
+        matches=[ReferenceFileMatch(reference_id="ref-2", file_id="file-9")],
+    )
+    run_patch, state_patch = _patch_runs(
+        {
+            WorkflowRunType.REFERENCE_EXTRACTION: extraction,
+            WorkflowRunType.REFERENCE_FILE_MATCHING: matching,
+        }
+    )
+
+    with run_patch, state_patch:
+        references = await FileArtifactsService(PROJECT_ID, 2).get_references()
+
+    assert [(r.reference_id, r.file_id) for r in references] == [
+        ("ref-1", None),
+        ("ref-2", "file-9"),
+    ]
 
 
 @pytest.mark.asyncio

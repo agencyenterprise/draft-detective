@@ -12,15 +12,6 @@ class BibliographyItem(BaseModel):
     """Represents a bibliographic reference item extracted from a document."""
 
     text: str = Field(description="The text of the bibliographic item")
-    has_associated_supporting_document: bool = Field(
-        description="A boolean value indicating whether the bibliographic item has an associated supporting document provided by the user"
-    )
-    index_of_associated_supporting_document: int = Field(
-        description="If the bibliographic item has an associated supporting document, this will be the index of the supporting document in the list of supporting documents provided by the user (index starts at 1), otherwise it will be -1."
-    )
-    name_of_associated_supporting_document: str = Field(
-        description="If the bibliographic item has an associated supporting document, this will be the name of the supporting document, otherwise it will be an empty string."
-    )
     file_id: str | None = Field(
         default=None,
         description="The UUID of the associated supporting document file in the database (if matched)",
@@ -45,7 +36,7 @@ def get_associated_supporting_file(
     Returns:
         The associated FileDocument if found, None otherwise
     """
-    if not reference.has_associated_supporting_document or not reference.file_id:
+    if not reference.file_id:
         return None
 
     return next(

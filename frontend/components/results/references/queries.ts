@@ -15,8 +15,8 @@ export function useReferenceReviewReferences(overview: ProjectOverview) {
 
   // Compose references from extraction and file matching states
   const composedReferences = useMemo(
-    () => composeReferences(referenceData?.extracted_references, referenceData?.matches, files),
-    [referenceData?.extracted_references, referenceData?.matches, files],
+    () => composeReferences(referenceData?.extracted_references, referenceData?.matches),
+    [referenceData?.extracted_references, referenceData?.matches],
   );
 
   const references = useMemo(() => {

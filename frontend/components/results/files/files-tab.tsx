@@ -66,11 +66,8 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
   const { data: referenceData } = useProjectReferences(overview);
 
   const referenceByFileId = useMemo(
-    () =>
-      buildReferenceByFileIdMap(
-        composeReferences(referenceData?.extracted_references, referenceData?.matches, allFiles),
-      ),
-    [referenceData?.extracted_references, referenceData?.matches, allFiles],
+    () => buildReferenceByFileIdMap(composeReferences(referenceData?.extracted_references, referenceData?.matches)),
+    [referenceData?.extracted_references, referenceData?.matches],
   );
 
   const sorted = useMemo(() => sortFiles(files), [files]);
