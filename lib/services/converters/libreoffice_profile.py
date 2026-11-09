@@ -2,8 +2,9 @@
 
 A Word file can link an image instead of embedding it: the relationship names a
 URL (``http://...``, ``file:///...``). LibreOffice follows such links while it
-converts. Importing a Word 97 ``.doc`` sends ``OPTIONS``, ``HEAD`` and ``GET`` to
-the URL, and exporting to PDF draws a ``file://`` image into the output. The
+converts. Importing a Word file (``.doc`` or ``.docx``) sends ``OPTIONS``, ``HEAD``
+and ``GET`` to the URL, and exporting to PDF draws a ``file://`` image into the
+output. The
 documents are uploaded by users, so a link would make the server request any
 address it can reach, internal services included, or read an image off its own
 disk into a rendering the uploader sees.
