@@ -53,10 +53,9 @@ async def get_or_create_progress(
 
     An in-process asyncio lock per (workflow_run_id, name) keeps parallel nodes
     from each creating their own entry. It is not a database lock: it holds
-    because all of a run's nodes execute in the one process running it, and
-    only while the key's lock stays in `_get_progress_lock`'s LRU cache. It does
-    not exclude `increment_and_complete_if_done`, which can complete the entry
-    between the read here and the increment.
+    because all of a run's nodes execute in the one process running it. The
+    entry is read FOR UPDATE, so `increment_and_complete_if_done` can't complete
+    it between the read here and the increment.
 
     Args:
         workflow_run_id: ID of the workflow run
