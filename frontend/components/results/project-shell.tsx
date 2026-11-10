@@ -151,8 +151,6 @@ export function ProjectShell({
           value={{
             overview,
             readOnly,
-            selectedRevision,
-            onRevisionChange,
             onRevisionCreated,
             navigateToTab,
             assessmentHref,

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/api-error';
-import { useWizard, PreflightStatus } from './wizard-context';
+import { useWizard } from './wizard-context';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
 import {
@@ -13,6 +13,7 @@ import {
   Project,
 } from '@/lib/generated-api';
 
+export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
 export type UploadStage = 'idle' | 'creating' | 'uploading' | 'processing' | 'complete';
 
 /** What already succeeded for a draft, so Continue after a failure resumes instead of starting over. */
@@ -48,9 +49,7 @@ function getStageMessage(stage: UploadStage, progress: UploadProgress | null, fi
 }
 
 export function useStepUpload(onComplete: () => void) {
-  const wizard = useWizard();
-  const { mainDocument, preflightStatus, setPreflightStatus, setMainDocument, setProjectId, setGroupBySeverity } =
-    wizard;
+  const { mainDocument, setMainDocument, setProjectId, setGroupBySeverity } = useWizard();
   const [uploadStage, setUploadStage] = useState<UploadStage>('idle');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
@@ -119,14 +118,12 @@ export function useStepUpload(onComplete: () => void) {
   );
 
   const handleContinue = useCallback(async () => {
-    setPreflightStatus({ format: formatStatus });
-
     if (formatStatus !== 'valid') {
       toast.error('Please upload a valid document');
       return;
     }
     createProjectAndProcess.mutate();
-  }, [formatStatus, setPreflightStatus, createProjectAndProcess]);
+  }, [formatStatus, createProjectAndProcess]);
 
   const isLoading = createProjectAndProcess.isPending;
   const canContinue = formatStatus === 'valid' && !isLoading;
@@ -138,7 +135,7 @@ export function useStepUpload(onComplete: () => void) {
 
   return {
     mainDocument,
-    preflightStatus: { ...preflightStatus, format: formatStatus },
+    preflightStatus: { format: formatStatus },
     isLoading,
     canContinue,
     uploadStage,
