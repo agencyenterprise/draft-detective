@@ -1,13 +1,9 @@
-import asyncio
 import logging
 import shutil
 import tempfile
 from pathlib import Path
 
-from lib.services.converters.libreoffice_profile import (
-    locked_down_profile,
-    soffice_env,
-)
+from lib.services.converters.libreoffice_profile import run_soffice
 
 logger = logging.getLogger(__name__)
 
@@ -68,26 +64,20 @@ class DocxPreprocessor:
         # sharing the default profile exit 0 without writing their output.
         profile_dir = Path(tempfile.mkdtemp(prefix="lo-profile-"))
         try:
-            process = await asyncio.create_subprocess_exec(
+            returncode, stderr = await run_soffice(
                 libreoffice_cmd,
-                "--headless",
-                locked_down_profile(profile_dir),
-                "--convert-to",
-                output_format,
-                "--outdir",
-                str(file_path_obj.parent),
-                str(file_path),
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                env=soffice_env(),
-            )
-
-            _, stderr = await asyncio.wait_for(
-                process.communicate(),
+                profile_dir,
+                [
+                    "--convert-to",
+                    output_format,
+                    "--outdir",
+                    str(file_path_obj.parent),
+                    str(file_path),
+                ],
                 timeout=self.CONVERSION_TIMEOUT,
             )
 
-            if process.returncode != 0:
+            if returncode != 0:
                 error_msg = stderr.decode() if stderr else "Unknown error"
                 raise RuntimeError(f"LibreOffice failed: {error_msg}")
 
@@ -97,8 +87,6 @@ class DocxPreprocessor:
             return str(output_file)
 
         except TimeoutError as err:
-            process.kill()
-            await process.wait()
             raise RuntimeError(
                 f"Conversion timed out after {self.CONVERSION_TIMEOUT}s"
             ) from err

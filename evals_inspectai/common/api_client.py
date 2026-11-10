@@ -352,14 +352,6 @@ async def get_project_files(project_id: str) -> list[dict[str, Any]]:
         return resp.json()
 
 
-async def get_workflow_state(workflow_run_id: str) -> dict[str, Any]:
-    """Fetch the full state of a single workflow run."""
-    async with _build_client() as client:
-        resp = await client.get(f"/api/workflows/{workflow_run_id}")
-        resp.raise_for_status()
-        return resp.json()
-
-
 async def start_workflow(config: dict[str, Any]) -> str:
     """Start a workflow via POST /api/workflows/start.
 

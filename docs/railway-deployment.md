@@ -27,6 +27,8 @@ Create these services in your Railway project:
 | **Backend API** | Connect from GitHub (uses root `railway.toml`)         |
 | **Frontend**    | Connect from GitHub, set root directory to `frontend/` |
 
+The migrations enable the `vector` extension, which Railway's PostgreSQL image doesn't include. After adding the database, open its **Settings** and change the source image to `pgvector/pgvector:pg<major>`, where `<major>` is the PostgreSQL major version of the image Railway deployed (the tag on its source image, such as `17`). The data on the volume was initialized at that major, and an image of another major won't start on it. `docker-compose.yml` and `k8s/` run the same image, at `pg16`. The service keeps its volume and variables, `DATABASE_URL` among them. Without the change, the backend's first pre-deploy migration fails with `extension "vector" is not available`. Railway's in-place major version upgrade supports only its own image, so a later upgrade to a new major is a dump and restore.
+
 The two `railway.toml` files set each service's build and deploy settings: the Dockerfile builder, the start command, the health check and, for the backend, the migrations. They set nothing else. Variables and the uploads volume are set on each service in the dashboard, as below.
 
 > **Note:** Railway has deprecated `railway.toml` (Config as Code) in favour of Infrastructure as Code (`.railway/railway.ts`). Services that already use the file keep it until 2026-12-01. A service created since the deprecation ignores the file, so enter its settings under the service's **Settings** instead:
@@ -148,6 +150,8 @@ preDeployCommand = ["uv run alembic upgrade head"]
 ```
 
 On a service that ignores `railway.toml` (see the note in step 2), check that the same command is the pre-deploy command in its **Settings**.
+
+If the log says `extension "vector" is not available`, the database runs Railway's own PostgreSQL image: switch it to the `pgvector/pgvector` image of the same major version (see step 2) and redeploy the backend.
 
 ### Health Check Failures
 

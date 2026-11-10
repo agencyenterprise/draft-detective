@@ -24,9 +24,17 @@ to exactly its internal ranges, so ``soffice_env`` drops every proxy variable.
 
 LibreOffice needs no network to convert: embedded images, charts and metafiles are
 part of the file and still render.
+
+``run_soffice`` starts every run this way. On Linux ``soffice`` is a launcher whose
+child, ``soffice.bin``, does the conversion: killing the launcher alone left the
+converter running at full CPU after the caller had given up. Each run therefore
+gets its own process group, and a timeout or cancellation kills all of it.
 """
 
+import asyncio
+import contextlib
 import os
+import signal
 from pathlib import Path
 
 _UNREACHABLE_PROXY = "proxy.invalid"
@@ -81,3 +89,49 @@ def soffice_env() -> dict[str, str]:
         for name, value in os.environ.items()
         if not name.lower().endswith("_proxy")
     }
+
+
+async def run_soffice(
+    soffice: str, profile_dir: Path, args: list[str], timeout: float
+) -> tuple[int | None, bytes]:
+    """Run ``soffice --headless`` locked down; return its exit code and stderr.
+
+    ``profile_dir`` is seeded with ``locked_down_profile``. Raises ``TimeoutError``
+    past ``timeout`` seconds, after killing every process the run started.
+    """
+
+    # Shielded: asyncio may have started the launcher by the time a cancellation
+    # lands in here, and its own cleanup would kill only the launcher.
+    spawn = asyncio.ensure_future(
+        asyncio.create_subprocess_exec(
+            soffice,
+            "--headless",
+            locked_down_profile(profile_dir),
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=soffice_env(),
+            start_new_session=True,
+        )
+    )
+    try:
+        process = await asyncio.shield(spawn)
+    except asyncio.CancelledError:
+        with contextlib.suppress(Exception):
+            await _kill_group(await spawn)
+        raise
+    try:
+        _, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+    except BaseException:
+        await _kill_group(process)
+        raise
+    return process.returncode, stderr
+
+
+async def _kill_group(process: asyncio.subprocess.Process) -> None:
+    """Kill every process of the run, then reap the launcher."""
+
+    # A new session makes the launcher the leader of its own process group.
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGKILL)
+    await process.wait()

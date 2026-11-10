@@ -13,6 +13,7 @@ from lib.services.files.document import FileDocument
 from lib.skills import strip_interactive_only
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
+from lib.workflows.reference_file_matching.state import ReferenceFileMatch
 
 
 def _empty_file_document(file_id: str) -> FileDocument:
@@ -91,6 +92,9 @@ class MockFileArtifactsService(FileArtifactsServiceType):
 
     async def get_references(self) -> list[BibliographyItem]:
         return self._references
+
+    async def get_reference_file_matches(self) -> list[ReferenceFileMatch] | None:
+        return None
 
     async def get_deepagent_backend_files(
         self,

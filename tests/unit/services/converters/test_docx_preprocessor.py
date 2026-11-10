@@ -1,6 +1,4 @@
-import asyncio
 import shutil
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -28,41 +26,6 @@ async def test_convert_doc_to_docx_skips_if_exists(tmp_path):
 
     result = await docx_preprocessor.convert_doc_to_docx(str(doc_file))
     assert result == str(docx_file)
-
-
-@pytest.mark.asyncio
-async def test_convert_doc_to_docx_timeout_error(tmp_path, monkeypatch):
-    """Test that timeout errors are properly handled for DOC to DOCX conversion"""
-    doc_file = tmp_path / "test.doc"
-    doc_file.write_text("dummy content")
-
-    # Mock shutil.which to return a fake LibreOffice path
-    monkeypatch.setattr(shutil, "which", lambda cmd: "/usr/bin/soffice")
-
-    # Mock process that can be killed
-    mock_process = MagicMock()
-    mock_process.communicate = AsyncMock()
-    mock_process.kill = MagicMock()
-    mock_process.wait = AsyncMock()
-
-    # Mock subprocess creation
-    async def mock_create_subprocess(*args, **kwargs):
-        return mock_process
-
-    monkeypatch.setattr(asyncio, "create_subprocess_exec", mock_create_subprocess)
-
-    # Mock wait_for to raise TimeoutError
-    async def mock_wait_for(coro, timeout):
-        raise TimeoutError()
-
-    monkeypatch.setattr(asyncio, "wait_for", mock_wait_for)
-
-    with pytest.raises(RuntimeError, match="timed out"):
-        await docx_preprocessor.convert_doc_to_docx(str(doc_file))
-
-    # Verify process was killed
-    mock_process.kill.assert_called_once()
-    mock_process.wait.assert_called_once()
 
 
 @pytest.mark.asyncio

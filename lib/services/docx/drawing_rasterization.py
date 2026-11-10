@@ -46,10 +46,7 @@ from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 from PIL import Image
 
-from lib.services.converters.libreoffice_profile import (
-    locked_down_profile,
-    soffice_env,
-)
+from lib.services.converters.libreoffice_profile import run_soffice
 
 # PDFium is not thread-safe; every pypdfium2 use in the codebase serializes on
 # this lock (see lib/services/converters/pypdfium.py).
@@ -362,27 +359,17 @@ async def _render_drawings_to_images(
             )
             return None
 
-        process = await asyncio.create_subprocess_exec(
+        returncode, stderr = await run_soffice(
             libreoffice_cmd,
-            "--headless",
             # A private user profile per invocation: concurrent soffice
             # instances sharing the default profile silently fail.
-            locked_down_profile(Path(tmp_dir) / "lo-profile"),
-            "--convert-to",
-            "pdf",
-            "--outdir",
-            tmp_dir,
-            render_source,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            env=soffice_env(),
-        )
-        _, stderr = await asyncio.wait_for(
-            process.communicate(), timeout=_RENDER_TIMEOUT
+            Path(tmp_dir) / "lo-profile",
+            ["--convert-to", "pdf", "--outdir", tmp_dir, render_source],
+            timeout=_RENDER_TIMEOUT,
         )
 
         pdf_path = os.path.join(tmp_dir, "render-source.pdf")
-        if process.returncode != 0 or not os.path.isfile(pdf_path):
+        if returncode != 0 or not os.path.isfile(pdf_path):
             logger.warning(
                 "LibreOffice PDF render failed: %s",
                 stderr.decode() if stderr else "unknown error",
@@ -406,8 +393,6 @@ async def _render_drawings_to_images(
         succeeded = True
         return tmp_dir, image_paths
     except TimeoutError:
-        process.kill()
-        await process.wait()
         logger.warning("LibreOffice PDF render timed out")
         return None
     finally:

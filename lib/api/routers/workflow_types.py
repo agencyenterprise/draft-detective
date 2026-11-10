@@ -18,16 +18,17 @@ router = APIRouter(tags=["workflow-types"])
 
 # Cache the duration-estimates aggregate (a full workflow_runs scan) at the
 # endpoint layer. aiotools.lru_cache is functools.lru_cache for coroutines and
-# adds a TTL, so the heavy query runs at most once per hour. Keyed by project_id
-# so it stays correct once estimates become project-specific.
+# adds a TTL, so the heavy query runs at most once per hour. The estimate is
+# global (the service ignores project_id), so the cache holds a single entry:
+# keying it on the caller's project_id would let any new id force a fresh scan.
+# Key it on project_id again only once the service uses it, and check the
+# caller's access to that project before it reaches the cache.
 _ESTIMATES_CACHE_TTL_SECONDS = 3600
 
 
-@aiotools.lru_cache(maxsize=128, expire_after=_ESTIMATES_CACHE_TTL_SECONDS)
-async def _cached_duration_estimates(
-    project_id: str,
-) -> WorkflowDurationEstimatesResponse:
-    return await get_workflow_duration_estimates(project_id)
+@aiotools.lru_cache(maxsize=1, expire_after=_ESTIMATES_CACHE_TTL_SECONDS)
+async def _cached_duration_estimates() -> WorkflowDurationEstimatesResponse:
+    return await get_workflow_duration_estimates()
 
 
 @router.get("/api/workflow-types", response_model=WorkflowTypesResponse)
@@ -65,7 +66,7 @@ async def get_duration_estimates(
 
     Lets the UI show a ballpark "how long will this take" before a workflow is
     started. `project_id` is accepted for future project-specific refinement but
-    is not yet factored into the estimate. The response is cached for an hour at
-    the endpoint layer (see `_cached_duration_estimates`).
+    is not yet factored into the estimate, nor into the cache key. The response
+    is cached for an hour at the endpoint layer (see `_cached_duration_estimates`).
     """
-    return await _cached_duration_estimates(project_id)
+    return await _cached_duration_estimates()

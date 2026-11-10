@@ -56,6 +56,22 @@ def _assert_workflow_type_still_exists(run: WorkflowRun) -> None:
         )
 
 
+async def _readable_run_with_state(
+    workflow_run_id: str, user: User | None, share_token: str | None
+) -> WorkflowRun:
+    """The run with its state, once the caller may read its project.
+
+    Metadata first, authorize, only then pay for the payload: state_json is
+    deferred and runs to several MB, so loading it up front would let anyone
+    holding a stale run id (say, after a share link is revoked) force that read
+    repeatedly and get a 403 for it.
+    """
+    run = await get_workflow_run(workflow_run_id)
+    await get_project_access(str(run.project_id), user, share_token)
+    _assert_workflow_type_still_exists(run)
+    return await get_workflow_run(workflow_run_id, include_state=True)
+
+
 @router.post("/api/workflows/start", response_model=StartWorkflowResponse)
 async def start_workflow(
     request: WorkflowConfig,
@@ -126,11 +142,7 @@ async def get_workflow_state(
 ):
     """Get one run with its state and cost."""
 
-    # Authorize on the light row before paying for the deferred state_json.
-    run = await get_workflow_run(workflow_run_id)
-    await get_project_access(str(run.project_id), current_user, share_token)
-    _assert_workflow_type_still_exists(run)
-    run = await get_workflow_run(workflow_run_id, include_state=True)
+    run = await _readable_run_with_state(workflow_run_id, current_user, share_token)
     return await build_workflow_run_detail(
         run, include_state=include_state, include_messages=include_messages
     )
@@ -161,14 +173,7 @@ async def get_workflow_raw_state(
     this run's parsed state in the project response; that it is unreadable is a
     parsing failure, not a narrower grant.
     """
-    # Metadata first, authorize, only then pay for the payload: state_json is
-    # deferred and runs to several MB, so loading it up front would let anyone
-    # holding a stale run id (say, after a share link is revoked) force that
-    # read repeatedly and get a 403 for it.
-    run = await get_workflow_run(workflow_run_id)
-    await get_project_access(str(run.project_id), current_user, share_token)
-    _assert_workflow_type_still_exists(run)
-    run = await get_workflow_run(workflow_run_id, include_state=True)
+    run = await _readable_run_with_state(workflow_run_id, current_user, share_token)
 
     # `run.type` is a raw str when loaded from the DB (SQLModel skips validation
     # on table models) but a WorkflowRunType when built in Python, and

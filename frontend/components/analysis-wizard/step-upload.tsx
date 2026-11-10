@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { UploadSection } from '@/components/analysis-form/upload-section';
 import { FileRole } from '@/lib/generated-api';
 import { AlertCircle, Check, Loader2, Rocket, AlertTriangle, FileWarning } from 'lucide-react';
-import { useStepUpload } from './use-step-upload';
+import { PreflightStatus, useStepUpload } from './use-step-upload';
 import { StepHeading, StepLayout } from './step-layout';
-import { PreflightStatus } from './wizard-context';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
