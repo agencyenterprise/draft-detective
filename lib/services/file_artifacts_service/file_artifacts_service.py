@@ -35,7 +35,10 @@ from lib.workflows.reference_extraction.state import (
     ExtractedReference,
     ReferenceExtractionState,
 )
-from lib.workflows.reference_file_matching.state import ReferenceFileMatchingState
+from lib.workflows.reference_file_matching.state import (
+    ReferenceFileMatch,
+    ReferenceFileMatchingState,
+)
 from lib.workflows.util import run_type_of
 
 logger = logging.getLogger(__name__)
@@ -342,6 +345,16 @@ class FileArtifactsService(FileArtifactsServiceType):
             )
             for ref in extracted_refs
         ]
+
+    async def get_reference_file_matches(self) -> list[ReferenceFileMatch] | None:
+        """The stored reference-file matches, read fresh from the database.
+
+        Reads the matching run the project shows (the running one while
+        matching runs), so it includes links made by hand since that run
+        started. None when that run holds no readable state.
+        """
+        state = await self._get_state(ReferenceFileMatchingState, raise_exception=False)
+        return None if state is None else state.matches
 
     async def get_deepagent_backend_files(
         self,

@@ -8,6 +8,7 @@ from lib.models.file import FileRole
 from lib.services.files.document import FileDocument
 from lib.workflows.document_summarization.state import FileSummary
 from lib.workflows.reference_extraction.state import ExtractedReference
+from lib.workflows.reference_file_matching.state import ReferenceFileMatch
 
 
 class UnreadableDocument(BaseModel):
@@ -43,6 +44,9 @@ class FileArtifactsServiceType(ABC):
 
     @abstractmethod
     async def get_references(self) -> list[BibliographyItem]: ...
+
+    @abstractmethod
+    async def get_reference_file_matches(self) -> list[ReferenceFileMatch] | None: ...
 
     @abstractmethod
     async def get_file_documents(self, file_ids: list[str]) -> LoadedDocuments: ...

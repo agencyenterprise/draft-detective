@@ -14,6 +14,7 @@ from lib.workflows.reference_file_matching.graph import (
 from lib.workflows.reference_file_matching.state import (
     ReferenceFileMatchingConfig,
     ReferenceFileMatchingState,
+    overlay_matches,
 )
 from lib.workflows.util import get_state_by_type
 from lib.workflows.workflow_types import WorkflowState
@@ -51,16 +52,15 @@ class ReferenceFileMatchingManifest(
         Create the initial state for a matching run.
 
         The main file id and the processed supporting file ids are read from
-        the file table. Existing matches are carried over from the prior
-        matching state so already-matched references are not re-processed.
+        the file table. Matches are carried over so already-matched references
+        are not re-processed: the prior run's, with any link made on this run
+        while it waited on top. `existing_states` holds this run's own row
+        (the active run of the type), and a link made then landed there.
         """
-        existing_matching_state = get_state_by_type(
-            ReferenceFileMatchingState, existing_states
-        )
-        existing_matches = (
-            existing_matching_state.matches
-            if existing_matching_state is not None
-            else []
+        own_state = get_state_by_type(ReferenceFileMatchingState, existing_states)
+        existing_matches = overlay_matches(
+            prior_self_state.matches if prior_self_state is not None else [],
+            own_state.matches if own_state is not None else [],
         )
 
         return ReferenceFileMatchingState(

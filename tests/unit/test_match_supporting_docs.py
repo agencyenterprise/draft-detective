@@ -138,6 +138,9 @@ def mock_runtime():
             return_value=extracted_refs
         )
 
+        # No stored state: the node keeps the matches it started with
+        file_artifacts_service.get_reference_file_matches = AsyncMock(return_value=None)
+
         runtime.context.file_artifacts_service = file_artifacts_service
         return runtime
 
@@ -370,6 +373,39 @@ class TestMatchSupportingDocsNode:
         assert manual.file_id == "file-id-0"
 
     @pytest.mark.asyncio
+    async def test_keeps_links_made_while_matching_ran(self, mock_state, mock_runtime):
+        """The result starts from the stored matches, so a link made by hand
+        during the LLM stage is neither dropped nor replaced by an auto match."""
+        summaries = {0: make_summary("Paper", file_id="file-id-0")}
+        extracted_refs = make_extracted_refs(["Ref zero", "Ref one"])
+        state = mock_state(supporting_file_ids=["file-id-0"])
+        runtime = mock_runtime(summaries=summaries, extracted_refs=extracted_refs)
+        linked = ReferenceFileMatch(
+            reference_id="ref-0",
+            file_id="manual-file",
+            source=MatchSource.MANUAL_UPLOAD,
+        )
+        runtime.context.file_artifacts_service.get_reference_file_matches = AsyncMock(
+            return_value=[linked]
+        )
+        candidate = make_candidate(summaries[0], file_id="file-id-0")
+
+        with mock_two_stage_matching(
+            candidates_per_ref=[[candidate], [candidate]],
+            matches=[make_match(0, "A"), make_match(1, "A")],
+        ):
+            result = await match_supporting_docs_node(state, runtime)
+
+        assert result["matches"] == [
+            linked,
+            ReferenceFileMatch(
+                reference_id="ref-1",
+                file_id="file-id-0",
+                source=MatchSource.AUTO_MATCHED,
+            ),
+        ]
+
+    @pytest.mark.asyncio
     async def test_all_refs_already_matched_skips_matching(
         self, mock_state, mock_runtime
     ):
@@ -390,6 +426,31 @@ class TestMatchSupportingDocsNode:
         # Existing match preserved, no new matching run
         assert result["matches"] == [existing_match]
         MockEmbed.return_value.find_candidates.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_all_matched_returns_the_stored_matches(
+        self, mock_state, mock_runtime
+    ):
+        """Skipping the matching stage still returns the stored matches, so a
+        link replaced by hand after the run's snapshot is not saved over."""
+        extracted_refs = make_extracted_refs(["Already matched ref"])
+        snapshot = ReferenceFileMatch(
+            reference_id="ref-0", file_id="file-id-0", source=MatchSource.AUTO_MATCHED
+        )
+        replaced = ReferenceFileMatch(
+            reference_id="ref-0",
+            file_id="manual-file",
+            source=MatchSource.MANUAL_UPLOAD,
+        )
+        state = mock_state(supporting_file_ids=["file-id-0"], matches=[snapshot])
+        runtime = mock_runtime(extracted_refs=extracted_refs)
+        runtime.context.file_artifacts_service.get_reference_file_matches = AsyncMock(
+            return_value=[replaced]
+        )
+
+        result = await match_supporting_docs_node(state, runtime)
+
+        assert result["matches"] == [replaced]
 
     @pytest.mark.asyncio
     async def test_no_summaries(self, mock_state, mock_runtime):

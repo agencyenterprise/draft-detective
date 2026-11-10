@@ -80,3 +80,11 @@ class ReferenceFileMatchingState(BaseWorkflowState):
         default_factory=list,
         description="List of matches between references and supporting files",
     )
+
+
+def overlay_matches(
+    base: list[ReferenceFileMatch], on_top: list[ReferenceFileMatch]
+) -> list[ReferenceFileMatch]:
+    """`base` with each reference that `on_top` matches taking `on_top`'s match."""
+    replaced = {match.reference_id for match in on_top}
+    return [m for m in base if m.reference_id not in replaced] + on_top
