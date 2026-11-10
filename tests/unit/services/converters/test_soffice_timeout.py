@@ -54,6 +54,23 @@ async def _converter_pid(pid_file: Path) -> int:
     raise AssertionError("the fake soffice never started its converter")
 
 
+@pytest.fixture
+def timeout_after_start(launcher: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Start the run's timeout only once the converter is running.
+
+    On a loaded machine ``/bin/sh`` can take longer than the patched timeout to
+    start its child, and the group was then killed before there was a converter
+    to leak, so the test had nothing to check.
+    """
+    wait_for = asyncio.wait_for
+
+    async def gated(aw: Any, timeout: float | None) -> Any:
+        await _converter_pid(launcher)
+        return await wait_for(aw, timeout)
+
+    monkeypatch.setattr(asyncio, "wait_for", gated)
+
+
 def _assert_stops(pid: int) -> None:
     deadline = time.monotonic() + 5
     while _running(pid) and time.monotonic() < deadline:
@@ -63,7 +80,7 @@ def _assert_stops(pid: int) -> None:
 
 @pytest.mark.asyncio
 async def test_doc_conversion_timeout_stops_the_converter(
-    tmp_path: Path, launcher: Path
+    tmp_path: Path, launcher: Path, timeout_after_start: None
 ) -> None:
     doc = tmp_path / "upload.doc"
     doc.write_bytes(b"\xd0\xcf\x11\xe0")
@@ -79,7 +96,7 @@ async def test_doc_conversion_timeout_stops_the_converter(
 
 @pytest.mark.asyncio
 async def test_drawing_render_timeout_stops_the_converter(
-    tmp_path: Path, launcher: Path
+    tmp_path: Path, launcher: Path, timeout_after_start: None
 ) -> None:
     with (
         patch.object(drawing_rasterization, "_RENDER_TIMEOUT", 0.5),
