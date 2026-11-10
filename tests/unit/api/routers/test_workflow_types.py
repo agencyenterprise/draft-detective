@@ -3,6 +3,8 @@
 The listing is static config and public. The recent selection is per-user, so
 it needs a signed-in caller. The duration estimates scan every past run, so the
 router caches them for an hour per `project_id`; these tests pin that cache.
+Whether an anonymous caller may read the estimates is left unpinned: the route
+allows it today, and that is an open question rather than settled behaviour.
 The services have their own integration tests and are stubbed here.
 """
 

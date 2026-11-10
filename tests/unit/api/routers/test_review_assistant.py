@@ -9,6 +9,7 @@ have their own tests, so here they are stubbed and only the routing is under tes
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
+import httpx2
 import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
@@ -58,7 +59,9 @@ def steps(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     return parent
 
 
-def _start(files: list[str] | None = None, outputs: list[str] | None = None):
+def _start(
+    files: list[str] | None = None, outputs: list[str] | None = None
+) -> httpx2.Response:
     body = {"outputs": outputs or [MEMOS], "file_ids": files or ["f1"]}
     return _client().post(PATH, json=body)
 
