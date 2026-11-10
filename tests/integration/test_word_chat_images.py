@@ -30,12 +30,12 @@ from lib.models.microsoft_word_chat_thread import MicrosoftWordChatThread
 from lib.models.microsoft_word_handoff import MicrosoftWordHandoff
 from lib.models.user import User
 from lib.services import conversations
+from lib.services.files.access import check_file_access
 from lib.services.files.image_extraction import ExtractedImage
 from lib.services.files.images import (
     add_conversation_images,
     prune_conversation_images,
 )
-from lib.services.files.service import check_file_access
 from lib.services.microsoft.word import chat_threads, handoffs
 from lib.services.microsoft.word.handoffs import (
     Account,
@@ -193,7 +193,7 @@ async def test_the_download_route_never_serves_a_conversations_image(
     await add_conversation_images(word_chat, [stored])
 
     with pytest.raises(HTTPException) as refused:
-        await check_file_access(stored.id, uuid.uuid4())
+        await check_file_access(stored.id, User(id=uuid.uuid4(), email="x@y.z"))
 
     assert refused.value.status_code == 404
 

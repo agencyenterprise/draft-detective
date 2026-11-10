@@ -12,8 +12,6 @@ from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.models.file import UPLOADED_ROLES, File, FileListItem, FileRole
-from lib.models.project import Project
-from lib.models.share_link import ShareLink
 from lib.services.files.document import FileDocument, create_file_document_from_path
 from lib.services.text.sanitization import sanitize_for_postgres
 from lib.services.uuid_utils import ensure_uuid
@@ -385,95 +383,6 @@ async def load_file_document(
         original_file_path=file.original_file_path,
         markdown_convert=False,
     )
-
-
-async def check_file_access(file_id: uuid.UUID | str, user_id: uuid.UUID) -> File:
-    """
-    Check if a user has access to a file by verifying project ownership.
-
-    Args:
-        file_id: UUID of the file to check access for
-        user_id: UUID of the user requesting access
-
-    Returns:
-        File model instance if access is granted
-
-    Raises:
-        HTTPException: 400 for invalid file ID, 404 if file not found, 403 if access denied
-    """
-
-    # Normalize ID and fail fast on invalid format to avoid DB errors
-    file_id = ensure_uuid(file_id, "file ID")
-
-    async with get_async_db_session() as session:
-        stmt = (
-            select(File, Project)
-            .join(Project, col(File.project_id) == col(Project.id))
-            .where(col(File.id) == file_id)
-        )
-        result = (await session.execute(stmt)).one_or_none()
-
-        if result is None:
-            raise HTTPException(status_code=404, detail="File not found")
-
-        file, project = result
-
-        if project.user_id is None or project.user_id != user_id:
-            raise HTTPException(status_code=403, detail="Access denied to this file")
-
-        return file
-
-
-async def check_file_access_by_share_token(
-    file_id: uuid.UUID | str, share_token: str
-) -> File:
-    """
-    Check if a share token grants access to a file.
-
-    Validates that the share token is active and belongs to a project that contains
-    the requested file.
-
-    Args:
-        file_id: UUID of the file to check access for
-        share_token: Share token for public access
-
-    Returns:
-        File model instance if access is granted
-
-    Raises:
-        HTTPException: 400 for invalid file ID, 404 if file/share not found, 403 if access denied
-    """
-    file_id = ensure_uuid(file_id, "file ID")
-
-    async with get_async_db_session() as session:
-        # Get the file and its project
-        stmt = (
-            select(File, Project)
-            .join(Project, col(File.project_id) == col(Project.id))
-            .where(col(File.id) == file_id)
-        )
-        result = (await session.execute(stmt)).one_or_none()
-
-        if result is None:
-            raise HTTPException(status_code=404, detail="File not found")
-
-        file, project = result
-
-        # Check if the share token is valid for this project
-        share_link_stmt = select(ShareLink).where(
-            col(ShareLink.token) == share_token,
-            col(ShareLink.is_active).is_(True),
-            col(ShareLink.resource_type) == "project",
-            col(ShareLink.resource_id) == project.id,
-        )
-        share_link = (await session.execute(share_link_stmt)).scalar_one_or_none()
-
-        if share_link is None:
-            raise HTTPException(
-                status_code=403, detail="Invalid or expired share token"
-            )
-
-        return file
 
 
 async def delete_project_files(
