@@ -154,7 +154,7 @@ def test_the_next_task_is_picked_for_the_caller_past_the_skipped_items(
 
 @pytest.mark.parametrize(
     "skip",
-    [["not-a-uuid"], [str(uuid.uuid4()) for _ in range(annotations._MAX_SKIPPED + 1)]],
+    [["not-a-uuid"], [str(uuid.uuid4()) for _ in range(101)]],
     ids=["malformed", "over-the-cap"],
 )
 def test_a_bad_skip_list_is_refused_before_the_query(
