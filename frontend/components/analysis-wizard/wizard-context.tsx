@@ -6,14 +6,12 @@ import { DEFAULT_SELECTED_WORKFLOW_TYPES } from '@/components/workflows/utils';
 import { useVisibleWorkflowTypes } from '@/lib/hooks/use-visible-workflow-types';
 import { useRecentWorkflowSelection } from '@/lib/hooks/use-recent-workflow-selection';
 
-export type PreflightStatus = 'idle' | 'pending' | 'valid' | 'invalid';
-export type WizardStep = 1 | 2;
+type WizardStep = 1 | 2;
 
 interface WizardState {
   currentStep: WizardStep;
   mainDocument: File | null;
   projectId: string | null;
-  preflightStatus: { format: PreflightStatus };
   selectedWorkflowTypes: WorkflowRunType[];
   /** The new project's display setting, inherited from the user's last project when it was created. */
   groupBySeverity: boolean;
@@ -23,7 +21,6 @@ interface WizardContextValue extends WizardState {
   setMainDocument: (file: File | null) => void;
   setProjectId: (id: string) => void;
   setGroupBySeverity: (value: boolean) => void;
-  setPreflightStatus: (status: Partial<WizardState['preflightStatus']>) => void;
   setSelectedWorkflowTypes: (types: WorkflowRunType[]) => void;
   nextStep: () => void;
 }
@@ -39,9 +36,6 @@ export function WizardProvider({ children }: WizardProviderProps) {
   const [mainDocument, setMainDocument] = useState<File | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [groupBySeverity, setGroupBySeverity] = useState(true);
-  const [preflightStatus, setPreflightStatusState] = useState<WizardState['preflightStatus']>({
-    format: 'idle',
-  });
   // `null` means the user has not touched the assessment checkboxes yet, so the
   // recommended default set applies. An explicit array — including an empty one,
   // after unchecking everything — always wins.
@@ -71,10 +65,6 @@ export function WizardProvider({ children }: WizardProviderProps) {
     [chosenWorkflowTypes, defaultWorkflowTypes, visibleTypes],
   );
 
-  const setPreflightStatus = useCallback((status: Partial<WizardState['preflightStatus']>) => {
-    setPreflightStatusState((prev) => ({ ...prev, ...status }));
-  }, []);
-
   const nextStep = useCallback(() => {
     setCurrentStep((prev) => (prev < 2 ? ((prev + 1) as WizardStep) : prev));
   }, []);
@@ -84,26 +74,15 @@ export function WizardProvider({ children }: WizardProviderProps) {
       currentStep,
       mainDocument,
       projectId,
-      preflightStatus,
       selectedWorkflowTypes,
       groupBySeverity,
       setMainDocument,
       setProjectId,
       setGroupBySeverity,
-      setPreflightStatus,
       setSelectedWorkflowTypes,
       nextStep,
     }),
-    [
-      currentStep,
-      mainDocument,
-      projectId,
-      preflightStatus,
-      selectedWorkflowTypes,
-      groupBySeverity,
-      setPreflightStatus,
-      nextStep,
-    ],
+    [currentStep, mainDocument, projectId, selectedWorkflowTypes, groupBySeverity, nextStep],
   );
 
   return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
