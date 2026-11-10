@@ -130,6 +130,27 @@ async def _two_stage_match(
     return all_results
 
 
+async def _with_stored_matches(
+    state: ReferenceFileMatchingState,
+    runtime: Runtime[ContextSchema],
+    new_matches: list[ReferenceFileMatch],
+) -> dict:
+    """The node's result: the stored matches plus the new ones for references
+    that still have none.
+
+    The runner saves this whole list over the stored state, and a user may have
+    linked a reference by hand since this run took its snapshot: start from the
+    stored matches, not the snapshot, and leave those references alone.
+    """
+    stored = await runtime.context.file_artifacts_service.get_reference_file_matches()
+    current = state.matches if stored is None else stored
+    linked_ids = {match.reference_id for match in current}
+    return {
+        "matches": current
+        + [match for match in new_matches if match.reference_id not in linked_ids]
+    }
+
+
 @register_node("Match references to supporting documents")
 async def match_supporting_docs_node(
     state: ReferenceFileMatchingState, runtime: Runtime[ContextSchema]
@@ -147,7 +168,7 @@ async def match_supporting_docs_node(
 
     if not extracted_references:
         logger.info("No extracted references to match")
-        return {"matches": state.matches}
+        return await _with_stored_matches(state, runtime, [])
 
     # Skip references that already have a match (manual or automatic)
     already_matched_ids = {match.reference_id for match in state.matches}
@@ -157,7 +178,7 @@ async def match_supporting_docs_node(
 
     if not unmatched_references:
         logger.info("All references already matched, skipping matching")
-        return {"matches": state.matches}
+        return await _with_stored_matches(state, runtime, [])
 
     logger.info(
         f"{len(already_matched_ids)} references already matched, "
@@ -204,14 +225,4 @@ async def match_supporting_docs_node(
         f"Matched {matched_count}/{len(unmatched_references)} remaining references to documents"
     )
 
-    # The runner saves this whole list over the stored state, and a user may
-    # have linked a reference by hand while the LLM stage ran: start from the
-    # stored matches, not the snapshot this run started with, and leave those
-    # references alone.
-    stored = await runtime.context.file_artifacts_service.get_reference_file_matches()
-    current = state.matches if stored is None else stored
-    linked_ids = {match.reference_id for match in current}
-    return {
-        "matches": current
-        + [match for match in new_matches if match.reference_id not in linked_ids]
-    }
+    return await _with_stored_matches(state, runtime, new_matches)
