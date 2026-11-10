@@ -19,6 +19,9 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    # Block writes until the migration commits, so workers still running the old
+    # code can't add a duplicate between the cleanup and the index build.
+    op.execute("LOCK TABLE workflow_progress IN SHARE ROW EXCLUSIVE MODE")
     # Close duplicate active entries left by the old in-process lock, keeping
     # the oldest per (run, name), so the unique index can be built.
     op.execute(
