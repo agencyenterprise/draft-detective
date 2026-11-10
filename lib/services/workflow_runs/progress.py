@@ -1,12 +1,11 @@
 """Service layer for workflow progress tracking."""
 
-import asyncio
 import logging
 import uuid
 from datetime import datetime
-from weakref import WeakValueDictionary
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -15,26 +14,6 @@ from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun, WorkflowRunType
 
 logger = logging.getLogger(__name__)
-
-
-_progress_locks: WeakValueDictionary[tuple[uuid.UUID, str], asyncio.Lock] = (
-    WeakValueDictionary()
-)
-
-
-def _get_progress_lock(workflow_run_id: uuid.UUID, name: str) -> asyncio.Lock:
-    """Get or create a lock for a specific (workflow_run_id, name) combination.
-
-    Locks are held weakly: an entry lives as long as some coroutine holds or waits
-    on its lock, then drops out, so a key never gets a second lock while its first
-    is still in use, and the map doesn't grow with finished runs.
-    """
-    key = (workflow_run_id, name)
-    lock = _progress_locks.get(key)
-    if lock is None:
-        lock = asyncio.Lock()
-        _progress_locks[key] = lock
-    return lock
 
 
 async def get_or_create_progress(
@@ -51,11 +30,11 @@ async def get_or_create_progress(
 
     This enables automatic batching of parallel nodes with the same name.
 
-    An in-process asyncio lock per (workflow_run_id, name) keeps parallel nodes
-    from each creating their own entry. It is not a database lock: it holds
-    because all of a run's nodes execute in the one process running it. The
-    entry is read FOR UPDATE, so `increment_and_complete_if_done` can't complete
-    it between the read here and the increment.
+    One INSERT ... ON CONFLICT DO UPDATE against the partial unique index on
+    active (workflow_run_id, name) entries does it atomically, so parallel nodes
+    never each create an entry, in any process. An entry that
+    `increment_and_complete_if_done` completes first drops out of that index,
+    and the node starts a new one instead of joining a finished batch.
 
     Args:
         workflow_run_id: ID of the workflow run
@@ -66,42 +45,34 @@ async def get_or_create_progress(
         UUID of the progress entry (existing or newly created)
     """
 
-    lock = _get_progress_lock(workflow_run_id, name)
-
-    async with lock:
-        async with get_async_db_session() as session:
-            # Find existing active progress with same name
-            stmt = (
-                select(WorkflowProgress)
-                .where(
-                    col(WorkflowProgress.workflow_run_id) == workflow_run_id,
-                    col(WorkflowProgress.name) == name,
-                    col(WorkflowProgress.completed_at).is_(None),
-                )
-                # Row lock, so increment_and_complete_if_done can't complete it under us
-                .with_for_update()
-            )
-            result = await session.execute(stmt)
-            existing = result.scalar_one_or_none()
-
-            if existing:
-                # Increment total_steps for the batch
-                existing.total_steps += 1
-                await session.commit()
-                return existing.id
-
-            # Create new progress entry
-            progress = WorkflowProgress(
-                workflow_run_id=workflow_run_id,
-                name=name,
-                level=level,
-                total_steps=1,
-                started_at=datetime.utcnow(),
-            )
-            session.add(progress)
-            await session.commit()
-            await session.refresh(progress)
-            return progress.id
+    now = datetime.utcnow()
+    stmt = (
+        insert(WorkflowProgress)
+        .values(
+            id=uuid.uuid4(),
+            workflow_run_id=workflow_run_id,
+            name=name,
+            level=level.value,
+            current_step=0,
+            total_steps=1,
+            started_at=now,
+            created_at=now,
+            updated_at=now,
+        )
+        .on_conflict_do_update(
+            index_elements=["workflow_run_id", "name"],
+            index_where=col(WorkflowProgress.completed_at).is_(None),
+            set_={
+                "total_steps": col(WorkflowProgress.total_steps) + 1,
+                "updated_at": now,
+            },
+        )
+        .returning(col(WorkflowProgress.id))
+    )
+    async with get_async_db_session() as session:
+        progress_id = (await session.execute(stmt)).scalar_one()
+        await session.commit()
+        return progress_id
 
 
 async def _get_progress_by_id(

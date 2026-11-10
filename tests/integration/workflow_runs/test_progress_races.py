@@ -1,7 +1,8 @@
 """Concurrency tests for get_or_create_progress.
 
-Each test pauses one get_or_create_progress call right after its SELECT, lets
-another coroutine act on the same (run, name) entry, then resumes it.
+Each test pauses one get_or_create_progress call right after its upsert, before
+it commits, lets another coroutine act on the same (run, name) entry, then
+resumes it.
 """
 
 import asyncio
@@ -22,7 +23,6 @@ from lib.models.workflow_progress import ProgressLevel, WorkflowProgress
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services.workflow_runs import progress as progress_service
 from lib.services.workflow_runs.progress import (
-    _get_progress_lock,
     get_or_create_progress,
     increment_and_complete_if_done,
 )
@@ -58,7 +58,7 @@ async def workflow_run_id() -> AsyncIterator[uuid.UUID]:
             await session.commit()
 
 
-class _PauseAfterFirstSelect:
+class _PauseAfterFirstQuery:
     """Makes the next session opened by the progress service stop after its first query."""
 
     def __init__(self) -> None:
@@ -95,20 +95,18 @@ async def _entries(workflow_run_id: uuid.UUID) -> list[WorkflowProgress]:
 
 
 @pytest.mark.asyncio
-async def test_lock_holds_while_many_other_keys_are_requested(
+async def test_concurrent_creates_share_one_entry(
     workflow_run_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A second caller for the same key waits, however many other keys come and go."""
-    pause = _PauseAfterFirstSelect()
+    """A second caller joins an entry the first has created but not yet committed."""
+    pause = _PauseAfterFirstQuery()
     monkeypatch.setattr(progress_service, "get_async_db_session", pause.session)
     name = "Parallel node"
 
     first = asyncio.create_task(
         get_or_create_progress(workflow_run_id, name, ProgressLevel.NODE)
     )
-    await pause.paused.wait()  # holds the lock, has found no entry yet
-    for _ in range(300):
-        _get_progress_lock(uuid.uuid4(), "other node")
+    await pause.paused.wait()  # has inserted the entry, not committed
     second = asyncio.create_task(
         get_or_create_progress(workflow_run_id, name, ProgressLevel.NODE)
     )
@@ -121,6 +119,21 @@ async def test_lock_holds_while_many_other_keys_are_requested(
 
 
 @pytest.mark.asyncio
+async def test_many_parallel_nodes_batch_into_one_entry(
+    workflow_run_id: uuid.UUID,
+) -> None:
+    ids = await asyncio.gather(
+        *(
+            get_or_create_progress(workflow_run_id, "Fan-out", ProgressLevel.NODE)
+            for _ in range(20)
+        )
+    )
+    assert len(set(ids)) == 1
+    [entry] = await _entries(workflow_run_id)
+    assert entry.total_steps == 20
+
+
+@pytest.mark.asyncio
 async def test_joining_an_entry_that_completes_meanwhile(
     workflow_run_id: uuid.UUID, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -129,13 +142,13 @@ async def test_joining_an_entry_that_completes_meanwhile(
     progress_id = await get_or_create_progress(
         workflow_run_id, name, ProgressLevel.NODE
     )
-    pause = _PauseAfterFirstSelect()
+    pause = _PauseAfterFirstQuery()
     monkeypatch.setattr(progress_service, "get_async_db_session", pause.session)
 
     joining = asyncio.create_task(
         get_or_create_progress(workflow_run_id, name, ProgressLevel.NODE)
     )
-    await pause.paused.wait()  # has read the entry as active
+    await pause.paused.wait()  # has joined the entry, not committed
     finishing = asyncio.create_task(increment_and_complete_if_done(progress_id))
     await asyncio.wait({finishing}, timeout=_SETTLE_SECONDS)
     pause.resume.set()

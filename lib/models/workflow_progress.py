@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy import Column, DateTime, ForeignKey, Index, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlmodel import Field, SQLModel
 
@@ -21,6 +21,17 @@ class WorkflowProgress(SQLModel, table=True):
     """Progress tracking for workflows, nodes, and tasks."""
 
     __tablename__ = "workflow_progress"
+    __table_args__ = (
+        # One active entry per (run, name): parallel nodes with the same name
+        # join it through get_or_create_progress's ON CONFLICT upsert.
+        Index(
+            "uq_workflow_progress_active_run_name",
+            "workflow_run_id",
+            "name",
+            unique=True,
+            postgresql_where=text("completed_at IS NULL"),
+        ),
+    )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
