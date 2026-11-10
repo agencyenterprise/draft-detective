@@ -6,7 +6,7 @@ from starlette.responses import FileResponse
 from lib.api.auth import get_current_user_optional
 from lib.config.env import config
 from lib.models.user import User
-from lib.services.files.service import (
+from lib.services.files.access import (
     check_file_access,
     check_file_access_by_share_token,
 )
@@ -59,7 +59,7 @@ async def download_file(
     if share_token:
         file = await check_file_access_by_share_token(file_id, share_token)
     elif current_user:
-        file = await check_file_access(file_id, current_user.id)
+        file = await check_file_access(file_id, current_user)
     else:
         raise HTTPException(status_code=401, detail="Authentication required")
 
