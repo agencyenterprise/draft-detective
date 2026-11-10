@@ -1,10 +1,10 @@
-"""The workflow-type endpoints: who may call them, and the duration-estimate cache.
+"""The workflow-type endpoints: who may call them, and what they require.
 
 The listing is static config and public. The recent selection is per-user, so
-it needs a signed-in caller. The duration estimates scan every past run, so the
-router caches them for an hour per `project_id`; these tests pin that cache.
-Whether an anonymous caller may read the estimates is left unpinned: the route
-allows it today, and that is an open question rather than settled behaviour.
+it needs a signed-in caller. The duration estimates need a `project_id`; their
+cache is pinned in test_workflow_types_duration_estimates.py. Whether an
+anonymous caller may read the estimates is left unpinned: the route allows it
+today, and that is an open question rather than settled behaviour.
 The services have their own integration tests and are stubbed here.
 """
 
@@ -73,24 +73,6 @@ def test_the_recent_selection_is_the_callers_and_needs_a_sign_in(
     assert (anonymous.status_code, signed_in.status_code) == (401, 200)
     selection.assert_awaited_once()
     assert selection.await_args_list[-1].args[0].id == CALLER
-
-
-def test_estimates_are_computed_once_per_project_and_then_served_from_cache(
-    estimates: AsyncMock,
-) -> None:
-    path = "/api/workflow-types/duration-estimates"
-
-    # One event loop for every request, as under uvicorn: alru_cache empties
-    # itself when the loop changes, and a bare TestClient opens one per request.
-    with _client() as client:
-        responses = [
-            client.get(path, params={"project_id": "p1"}),
-            client.get(path, params={"project_id": "p1"}),
-            client.get(path, params={"project_id": "p2"}),
-        ]
-
-    assert [r.status_code for r in responses] == [200, 200, 200]
-    assert [c.args for c in estimates.await_args_list] == [("p1",), ("p2",)]
 
 
 def test_estimates_need_a_project_id(estimates: AsyncMock) -> None:
