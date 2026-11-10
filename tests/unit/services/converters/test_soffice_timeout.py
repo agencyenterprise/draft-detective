@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -98,6 +99,32 @@ async def test_drawing_render_timeout_stops_the_converter(
 async def test_cancelled_conversion_stops_the_converter(
     tmp_path: Path, launcher: Path
 ) -> None:
+    doc = tmp_path / "upload.doc"
+    doc.write_bytes(b"\xd0\xcf\x11\xe0")
+    task = asyncio.create_task(DocxPreprocessor().convert_doc_to_docx(str(doc)))
+    pid = await _converter_pid(launcher)
+
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    _assert_stops(pid)
+
+
+@pytest.mark.asyncio
+async def test_cancel_while_soffice_is_starting_stops_the_converter(
+    tmp_path: Path, launcher: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cancellation can land after the launcher has started but before
+    ``create_subprocess_exec`` returns it (while asyncio connects its pipes)."""
+    spawn = asyncio.create_subprocess_exec
+
+    async def slow_spawn(*args: str, **kwargs: Any) -> asyncio.subprocess.Process:
+        process = await spawn(*args, **kwargs)
+        await asyncio.sleep(3)
+        return process
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", slow_spawn)
     doc = tmp_path / "upload.doc"
     doc.write_bytes(b"\xd0\xcf\x11\xe0")
     task = asyncio.create_task(DocxPreprocessor().convert_doc_to_docx(str(doc)))

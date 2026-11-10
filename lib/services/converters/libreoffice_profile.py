@@ -100,22 +100,38 @@ async def run_soffice(
     past ``timeout`` seconds, after killing every process the run started.
     """
 
-    process = await asyncio.create_subprocess_exec(
-        soffice,
-        "--headless",
-        locked_down_profile(profile_dir),
-        *args,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=soffice_env(),
-        start_new_session=True,
+    # Shielded: asyncio may have started the launcher by the time a cancellation
+    # lands in here, and its own cleanup would kill only the launcher.
+    spawn = asyncio.ensure_future(
+        asyncio.create_subprocess_exec(
+            soffice,
+            "--headless",
+            locked_down_profile(profile_dir),
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=soffice_env(),
+            start_new_session=True,
+        )
     )
+    try:
+        process = await asyncio.shield(spawn)
+    except asyncio.CancelledError:
+        with contextlib.suppress(Exception):
+            await _kill_group(await spawn)
+        raise
     try:
         _, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
     except BaseException:
-        # A new session makes the launcher the leader of its own process group.
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
-        await process.wait()
+        await _kill_group(process)
         raise
     return process.returncode, stderr
+
+
+async def _kill_group(process: asyncio.subprocess.Process) -> None:
+    """Kill every process of the run, then reap the launcher."""
+
+    # A new session makes the launcher the leader of its own process group.
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGKILL)
+    await process.wait()
