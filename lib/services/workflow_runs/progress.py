@@ -46,14 +46,17 @@ async def get_or_create_progress(
     Get existing active progress entry by name, or create a new one.
 
     If an active (not completed) progress entry exists with the same
-    (workflow_run_id, name), atomically increment its total_steps and return its ID.
+    (workflow_run_id, name), increment its total_steps and return its ID.
     Otherwise, create a new entry with total_steps=1.
 
     This enables automatic batching of parallel nodes with the same name.
 
-    Uses an asyncio lock to prevent race conditions when multiple parallel nodes
-    try to create progress entries simultaneously. The lock serializes access
-    so only one coroutine can create/update at a time for a given key.
+    An in-process asyncio lock per (workflow_run_id, name) keeps parallel nodes
+    from each creating their own entry. It is not a database lock: it holds
+    because all of a run's nodes execute in the one process running it, and
+    only while the key's lock stays in `_get_progress_lock`'s LRU cache. It does
+    not exclude `increment_and_complete_if_done`, which can complete the entry
+    between the read here and the increment.
 
     Args:
         workflow_run_id: ID of the workflow run

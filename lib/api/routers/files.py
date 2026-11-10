@@ -6,7 +6,7 @@ from starlette.responses import FileResponse
 from lib.api.auth import get_current_user_optional
 from lib.config.env import config
 from lib.models.user import User
-from lib.services.files.service import (
+from lib.services.files.access import (
     check_file_access,
     check_file_access_by_share_token,
 )
@@ -41,7 +41,8 @@ async def download_file(
     Download a file by ID with access control.
 
     This endpoint supports two access modes:
-    1. Authenticated access: User must own the project containing the file
+    1. Authenticated access: User may read the project containing the file (its
+       owner, or an admin when the project is shared with admins)
     2. Share token access: Valid share token for the project grants read access
 
     Args:
@@ -59,7 +60,7 @@ async def download_file(
     if share_token:
         file = await check_file_access_by_share_token(file_id, share_token)
     elif current_user:
-        file = await check_file_access(file_id, current_user.id)
+        file = await check_file_access(file_id, current_user)
     else:
         raise HTTPException(status_code=401, detail="Authentication required")
 

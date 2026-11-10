@@ -1,5 +1,7 @@
 """Unit tests for the workflow reaper sweep logic."""
 
+import asyncio
+import logging
 import uuid
 from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -18,6 +20,7 @@ from lib.services.workflow_runs.reaper import (
     REAPER_GRACE_SECONDS,
     _reap_once,
     _run_manifest_on_cancel,
+    run_reaper_loop,
 )
 
 
@@ -375,3 +378,23 @@ async def test_reap_once_skips_when_lock_not_acquired():
     find_stuck.assert_not_awaited()
     fail.assert_not_awaited()
     on_cancel.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_reaper_loop_log_does_not_claim_skipped_runs_were_failed(caplog):
+    """_reap_once counts every stuck run found, skipped ones included, so the
+    loop's log must not report that count as runs marked FAILED."""
+    with (
+        patch.object(workflow_reaper, "_reap_once", new=AsyncMock(return_value=1)),
+        patch.object(
+            workflow_reaper.asyncio,
+            "sleep",
+            new=AsyncMock(side_effect=asyncio.CancelledError),
+        ),
+        caplog.at_level(logging.INFO, logger=workflow_reaper.logger.name),
+        pytest.raises(asyncio.CancelledError),
+    ):
+        await run_reaper_loop()
+
+    assert "found 1 stuck run(s)" in caplog.text
+    assert "as FAILED" not in caplog.text

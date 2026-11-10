@@ -2,8 +2,15 @@
 
 import * as React from 'react';
 import { Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from './card';
+
+function tooLargeMessage(rejected: File[], maxSize: number): string {
+  const names = rejected.map((file) => file.name).join(', ');
+  const one = rejected.length === 1;
+  return `${names} ${one ? 'is' : 'are'} over the ${maxSize} MB limit and ${one ? 'was' : 'were'} not added.`;
+}
 
 export interface FileUploadProps {
   files: File[];
@@ -67,10 +74,12 @@ export function FileUpload({
   };
 
   const handleFiles = (newFiles: File[]) => {
-    const validFiles = newFiles.filter((file) => {
-      const sizeMB = file.size / (1024 * 1024);
-      return sizeMB <= maxSize;
-    });
+    const fits = (file: File) => file.size / (1024 * 1024) <= maxSize;
+    const validFiles = newFiles.filter(fits);
+    const rejected = newFiles.filter((file) => !fits(file));
+    if (rejected.length > 0) toast.error(tooLargeMessage(rejected, maxSize));
+    // A rejected replacement must not clear the file already selected
+    if (!multiple && validFiles.length === 0 && rejected.length > 0) return;
 
     const updatedFiles = multiple ? [...files, ...validFiles] : validFiles;
     onFilesChange(updatedFiles);
