@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.8.1] - 2026-11-10
+
+### Changed
+- Updated workflow-run documentation and corrected reaper logging to report found stuck runs without claiming they were all failed.
+- File downloads now use the central project access gate, allowing administrators to access files in projects shared with them with full-project visibility.
+
+### Fixed
+- Workflow progress entries are now batched atomically in the database to prevent races during parallel workflow execution.
+- Users are now notified when uploaded files exceed the configured size limit.
+- Manual reference-file links are preserved when file matching runs.
+- Duration-estimate requests now share a single cache entry regardless of the supplied project ID.
+
+### Security
+- LibreOffice conversion timeouts and cancellations now terminate the full converter process group.
+
+
 ## [v2.8.0] - 2026-11-09
 
 ### Added
