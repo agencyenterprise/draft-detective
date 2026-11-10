@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from functools import lru_cache
+from weakref import WeakValueDictionary
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,13 +17,24 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunType
 logger = logging.getLogger(__name__)
 
 
-@lru_cache(maxsize=256)
+_progress_locks: WeakValueDictionary[tuple[uuid.UUID, str], asyncio.Lock] = (
+    WeakValueDictionary()
+)
+
+
 def _get_progress_lock(workflow_run_id: uuid.UUID, name: str) -> asyncio.Lock:
     """Get or create a lock for a specific (workflow_run_id, name) combination.
 
-    Uses LRU cache to automatically evict old locks and prevent unbounded memory growth.
+    Locks are held weakly: an entry lives as long as some coroutine holds or waits
+    on its lock, then drops out, so a key never gets a second lock while its first
+    is still in use, and the map doesn't grow with finished runs.
     """
-    return asyncio.Lock()
+    key = (workflow_run_id, name)
+    lock = _progress_locks.get(key)
+    if lock is None:
+        lock = asyncio.Lock()
+        _progress_locks[key] = lock
+    return lock
 
 
 async def get_or_create_progress(
@@ -58,10 +69,15 @@ async def get_or_create_progress(
     async with lock:
         async with get_async_db_session() as session:
             # Find existing active progress with same name
-            stmt = select(WorkflowProgress).where(
-                col(WorkflowProgress.workflow_run_id) == workflow_run_id,
-                col(WorkflowProgress.name) == name,
-                col(WorkflowProgress.completed_at).is_(None),
+            stmt = (
+                select(WorkflowProgress)
+                .where(
+                    col(WorkflowProgress.workflow_run_id) == workflow_run_id,
+                    col(WorkflowProgress.name) == name,
+                    col(WorkflowProgress.completed_at).is_(None),
+                )
+                # Row lock, so increment_and_complete_if_done can't complete it under us
+                .with_for_update()
             )
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
