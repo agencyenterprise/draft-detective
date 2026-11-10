@@ -147,11 +147,11 @@ def hydrate_workflow_run_state_with_status(
         return None, WorkflowStateStatus.ABSENT
     manifest = get_workflow_manifest(run.type, raise_exception=False)
     if manifest is None:
-        # Retired workflow type still present in old rows. Callers that pass
-        # include_internal=True see these runs (is_user_visible_workflow filters
-        # them out for everyone else), so a missing manifest has to degrade to a
-        # stateless row instead of failing every read on the project — including
-        # create_state, which would otherwise block starting any new workflow.
+        # Retired workflow type still present in old rows. The callers drop
+        # these runs first (project listings filter on is_available_workflow_type;
+        # the run detail endpoint and MCP tool refuse them), so this is a guard:
+        # a run that slips through degrades to a stateless row instead of
+        # failing the read.
         logger.warning(
             f"No workflow manifest registered for type {run.type!r} "
             f"(run {run.id}); returning no state for it."
@@ -224,7 +224,7 @@ async def build_workflow_run_detail(
 
 
 async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
-    """Single read path for a run's workflow state, hydrated from `state_json`.
+    """The run's workflow state hydrated from `state_json`, as `hydrate_workflow_run_state`.
 
     `run` must have been loaded with `state_json` undeferred (see the model's
     deferred-strategy note in lib/models/workflow_run.py) so this stays an
@@ -633,7 +633,7 @@ async def get_project_workflow_runs(
     RUNNING > PENDING > AWAITING_APPROVAL > latest terminal run.
     """
     stmt = latest_run_per_type_stmt(project_id, revision).options(
-        # Load state_json in-session so read_workflow_run_state can hydrate it.
+        # Load state_json in-session so the runs can be hydrated after it closes.
         undefer(col(WorkflowRun.state_json))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
     )
 
@@ -652,7 +652,6 @@ async def get_project_workflow_runs(
         run for run in runs if include_internal or is_user_visible_workflow(run.type)
     ]
 
-    # Each run carries its own state_json — read state per run directly.
     hydrated = [hydrate_workflow_run_state_with_status(run) for run in visible_runs]
     states = [state for state, _ in hydrated]
 

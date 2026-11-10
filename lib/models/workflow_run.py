@@ -207,8 +207,10 @@ class WorkflowRunPublic(BaseModel):
 # (p99 ≈ 3 MB, max 13 MB observed); hauling them through every SELECT on
 # workflow_runs would be a major regression in the reaper, status checks,
 # cancel paths, and list endpoints. Callers that actually need state should
-# opt in with `select(...).options(undefer(col(WorkflowRun.state_json)))` or
-# load it via `hydrate_workflow_run_state(run)` (which triggers a lazy fetch).
+# opt in with `select(...).options(undefer(col(WorkflowRun.state_json)))` or,
+# inside the session, `await session.refresh(run, ["state_json"])`. Touching
+# the attribute on a row loaded without it does not lazy-load: the async engine
+# rejects the implicit IO, and a row whose session has closed cannot load at all.
 #
 # Configured here rather than via `Field(sa_column=deferred(...))` because
 # SQLModel's Field validator rejects non-Column values for sa_column. Setting
