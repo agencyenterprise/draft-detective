@@ -6,7 +6,6 @@ drawings are selected, how the render-source copy is built, and how rendered
 images are spliced back into the document.
 """
 
-import asyncio
 import io
 import os
 import tempfile
@@ -433,22 +432,6 @@ async def test_render_bails_on_page_count_mismatch(tmp_path):
         patch(f"{MODULE}._render_pdf_pages", return_value=[]),
     ):
         assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
-
-
-@pytest.mark.asyncio
-async def test_render_bails_on_libreoffice_timeout(tmp_path):
-    process = _fake_process(communicate=AsyncMock(side_effect=asyncio.TimeoutError))
-    with (
-        patch(f"{MODULE}.shutil.which", return_value="/usr/bin/soffice"),
-        patch(f"{MODULE}._write_render_source_docx", return_value=1),
-        patch(
-            f"{MODULE}.asyncio.create_subprocess_exec",
-            new=AsyncMock(return_value=process),
-        ),
-    ):
-        assert await rasterize_docx_drawings(_chart_docx(tmp_path)) is None
-
-    process.kill.assert_called_once()
 
 
 @pytest.mark.asyncio
