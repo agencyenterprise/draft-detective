@@ -78,6 +78,8 @@ export function FileUpload({
     const validFiles = newFiles.filter(fits);
     const rejected = newFiles.filter((file) => !fits(file));
     if (rejected.length > 0) toast.error(tooLargeMessage(rejected, maxSize));
+    // A rejected replacement must not clear the file already selected
+    if (!multiple && validFiles.length === 0 && rejected.length > 0) return;
 
     const updatedFiles = multiple ? [...files, ...validFiles] : validFiles;
     onFilesChange(updatedFiles);

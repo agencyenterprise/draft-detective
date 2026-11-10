@@ -55,6 +55,17 @@ describe('FileUpload size limit', () => {
     expect(vi.mocked(toast.error).mock.calls[0][0]).not.toContain('small.md');
   });
 
+  it('keeps the current file when a single-file replacement is rejected', async () => {
+    const current = fileOfSize('current.md', 1 * MB);
+    await rendered.rerender(
+      <FileUpload files={[current]} multiple={false} maxSize={80} onFilesChange={onFilesChange} />,
+    );
+    await pick(rendered.container, [fileOfSize('big.md', 85 * MB)]);
+
+    expect(onFilesChange).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledOnce();
+  });
+
   it('passes on a file that fits without any notice', async () => {
     const small = fileOfSize('small.md', 80 * MB);
     await pick(rendered.container, [small]);
