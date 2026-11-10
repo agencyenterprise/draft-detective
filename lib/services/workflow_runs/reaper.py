@@ -190,7 +190,8 @@ async def _reap_once(
     running_grace_seconds: float = REAPER_GRACE_SECONDS,
     pending_grace_seconds: float = PENDING_GRACE_SECONDS,
 ) -> int:
-    """One sweep. Returns the count of reaped runs.
+    """One sweep. Returns how many stuck runs it found, counting the ones it
+    skipped (no project) or failed to mark FAILED.
 
     Serialized cluster-wide via a Postgres advisory lock — a sweep that
     can't acquire the lock returns 0 immediately, leaving the work to
@@ -275,7 +276,7 @@ async def run_reaper_loop(
             try:
                 reaped = await _reap_once(grace_seconds, pending_grace_seconds)
                 if reaped:
-                    logger.info(f"Reaper: marked {reaped} stuck run(s) as FAILED")
+                    logger.info(f"Reaper: found {reaped} stuck run(s)")
             except Exception as e:
                 # Loop must survive transient DB / network errors.
                 logger.error(f"Reaper sweep failed: {e}", exc_info=True)
