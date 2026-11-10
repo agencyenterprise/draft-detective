@@ -18,14 +18,14 @@ from lib.services.workflow_duration_estimates import WorkflowDurationEstimatesRe
 
 
 @pytest.fixture(autouse=True)
-def clear_cache():
+def clear_cache() -> Iterator[None]:
     workflow_types._cached_duration_estimates.cache_clear()
     yield
     workflow_types._cached_duration_estimates.cache_clear()
 
 
 @pytest.fixture
-def service_calls(monkeypatch) -> list[Any]:
+def service_calls(monkeypatch: pytest.MonkeyPatch) -> list[Any]:
     calls: list[Any] = []
 
     async def fake_service(*args: Any) -> WorkflowDurationEstimatesResponse:
@@ -46,7 +46,9 @@ def client() -> Iterator[TestClient]:
         yield test_client
 
 
-def test_distinct_project_ids_share_one_computation(client, service_calls):
+def test_distinct_project_ids_share_one_computation(
+    client: TestClient, service_calls: list[Any]
+) -> None:
     for i in range(5):
         response = client.get(
             "/api/workflow-types/duration-estimates", params={"project_id": f"x{i}"}
