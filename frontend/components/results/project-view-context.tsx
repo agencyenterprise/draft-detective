@@ -9,10 +9,6 @@ export interface ProjectViewContextValue {
   overview: ProjectOverview;
   /** When true, hides edit/action controls (for shared view) */
   readOnly: boolean;
-  /** Currently displayed revision */
-  selectedRevision?: number;
-  /** Callback when user switches revision */
-  onRevisionChange?: (revision: number) => void;
   /** Callback after a new revision is created, to follow it in the view */
   onRevisionCreated?: () => void;
   /** Switch to another tab, optionally landing on a URL hash (e.g. `#L5-12`) */
