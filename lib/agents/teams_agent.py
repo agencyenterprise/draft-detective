@@ -41,7 +41,7 @@ from typing import Any
 import httpx
 from langchain_core.messages import BaseMessage, HumanMessage
 from langfuse import propagate_attributes
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
 from lib.agents.checkpointer import get_checkpointer
@@ -52,7 +52,6 @@ from lib.agents.deep_agent_setup import (
     build_llm,
     conversation_run_config,
     has_deployment_key,
-    tool_names,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
@@ -241,9 +240,6 @@ class QuestionAnswer(BaseModel):
     """What the caller gets back, including how it failed if it did."""
 
     text: str
-    model: str | None = None
-    steps: int = 0
-    tools_used: list[str] = Field(default_factory=list)
     failed: bool = False
     error: str | None = None
 
@@ -369,26 +365,14 @@ async def answer_question(
                 )
     except Exception as error:  # noqa: BLE001 - the caller decides what to do
         logger.exception("Draft Detective could not answer a question")
-        return QuestionAnswer(
-            text="", model=model.model_name, failed=True, error=str(error)
-        )
+        return QuestionAnswer(text="", failed=True, error=str(error))
 
     messages = result.get("messages", [])
     text = answer_text(messages)
     if not text:
         logger.warning("the question agent returned an empty answer")
         return QuestionAnswer(
-            text="",
-            model=model.model_name,
-            steps=len(messages),
-            tools_used=tool_names(messages),
-            failed=True,
-            error="the agent returned an empty answer",
+            text="", failed=True, error="the agent returned an empty answer"
         )
 
-    return QuestionAnswer(
-        text=text,
-        model=model.model_name,
-        steps=len(messages),
-        tools_used=tool_names(messages),
-    )
+    return QuestionAnswer(text=text)
