@@ -238,7 +238,7 @@ async def run_workflow(
                 # accumulated state after every superstep and every task
                 # completion, so fan-out workflows show partial results.
                 await persist_workflow_run_state(
-                    workflow_run_id, updated_state, only_while_running=True
+                    workflow_run_id, updated_state, unless_failed=True
                 )
 
         # Persist issues after workflow completion. Per-node errors collected
@@ -299,7 +299,7 @@ async def run_workflow(
         # A run the reaper already failed lands here too (its nodes are
         # cancelled as NodeCancelledError): keep the reaper's cleaned state.
         await persist_workflow_run_state(
-            workflow_run_id, updated_state, only_while_running=True
+            workflow_run_id, updated_state, unless_failed=True
         )
         await fail_workflow_run(
             workflow_run_id,

@@ -17,7 +17,7 @@ from unittest.mock import patch
 import pytest
 import pytest_asyncio
 from langgraph.graph import StateGraph
-from sqlalchemy import delete
+from sqlalchemy import delete, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -152,18 +152,36 @@ def _signal_r1_persisted(steps: _Steps) -> Any:
 
 
 async def _reap_only(run_id: str) -> int:
-    """`_reap_once` with a tiny grace, limited to this test's run so it never
-    reaps rows that parallel tests own."""
+    """One reaper sweep with a tiny grace, limited to this test's run so it
+    never reaps rows that parallel tests own. It skips the cluster-wide sweep
+    lock, which a parallel test's sweep may be holding."""
     find = reaper._find_stuck_runs
 
     async def find_this_run(running: float, pending: float) -> list[WorkflowRun]:
         return [r for r in await find(running, pending) if str(r.id) == run_id]
 
     with patch.object(reaper, "_find_stuck_runs", new=find_this_run):
-        return await reaper._reap_once(running_grace_seconds=0.001)
+        return await reaper._reap_once_locked(
+            running_grace_seconds=0.001,
+            pending_grace_seconds=reaper.PENDING_GRACE_SECONDS,
+        )
 
 
-async def _run_and_reap(run_id: str, project_id: str) -> None:
+def _finish_r1_just_before_the_reapers_fail(steps: _Steps) -> Any:
+    """Let r1 finish and persist while the reaper is about to write FAILED."""
+    fail = reaper.fail_workflow_run
+
+    async def finish_r1_then_fail(*args: Any, **kwargs: Any) -> None:
+        steps.reaped.set()
+        await asyncio.wait_for(steps.persisted_r1.wait(), timeout=5)
+        await fail(*args, **kwargs)
+
+    return patch.object(reaper, "fail_workflow_run", new=finish_r1_then_fail)
+
+
+async def _run_and_reap(
+    run_id: str, project_id: str, *, r1_finishes_before_fail: bool
+) -> None:
     steps = _Steps()
     runner = asyncio.create_task(
         run_workflow(
@@ -181,13 +199,27 @@ async def _run_and_reap(run_id: str, project_id: str) -> None:
     )
     with _signal_r1_persisted(steps):
         await _wait_for_state(run_id)
-        assert await _reap_only(run_id) == 1
-        # r1 finishes while r2's supervisor has not yet noticed FAILED...
-        steps.reaped.set()
-        await asyncio.wait_for(steps.persisted_r1.wait(), timeout=5)
+        if r1_finishes_before_fail:
+            with _finish_r1_just_before_the_reapers_fail(steps):
+                assert await _reap_only(run_id) == 1
+        else:
+            assert await _reap_only(run_id) == 1
+            # r1 finishes while r2's supervisor has not yet noticed FAILED...
+            steps.reaped.set()
+            await asyncio.wait_for(steps.persisted_r1.wait(), timeout=5)
         # ...then the supervisor notices and cancels r2.
         steps.cancel_r2.set()
         await asyncio.wait_for(runner, timeout=5)
+
+
+async def _reaped_statuses(run_id: str) -> dict[str, str]:
+    run = await get_workflow_run(run_id, include_state=True)
+    assert run.status == WorkflowRunStatus.FAILED
+    assert run.failure_reason == WorkflowRunFailureReason.NO_HEARTBEAT
+    return {
+        ref["reference_id"]: ref["status"]
+        for ref in (run.state_json or {})["fetched_references"]
+    }
 
 
 @pytest.mark.asyncio
@@ -196,15 +228,80 @@ async def test_a_reaped_run_that_is_still_alive_keeps_the_reapers_cleanup(
 ):
     run_id, project_id = stale_run
 
-    await _run_and_reap(run_id, project_id)
+    await _run_and_reap(run_id, project_id, r1_finishes_before_fail=False)
+
+    # The reaper cancelled both while they were pending. Neither r1's late
+    # result nor the runner's failure branch may put them back to pending.
+    assert await _reaped_statuses(run_id) == {"r1": "cancelled", "r2": "cancelled"}
+
+
+@pytest.mark.asyncio
+async def test_a_node_finishing_just_before_the_reap_is_kept_and_the_rest_cleaned(
+    stale_run: tuple[str, str],
+):
+    run_id, project_id = stale_run
+
+    await _run_and_reap(run_id, project_id, r1_finishes_before_fail=True)
+
+    # r1's result landed while the run was still RUNNING, so it stays; the
+    # reaper's cleanup, written after FAILED, still cancels r2.
+    assert await _reaped_statuses(run_id) == {"r1": "completed", "r2": "cancelled"}
+
+
+@pytest.mark.asyncio
+async def test_a_node_finishing_after_a_user_cancel_still_saves_its_result(
+    stale_run: tuple[str, str],
+):
+    """A user cancel is the runner's to clean up, not the reaper's: when the
+    last node finishes before its supervisor sees CANCELLED, the graph ends
+    normally and that final snapshot is the only record of the result."""
+    run_id, project_id = stale_run
+    cancelled = asyncio.Event()
+
+    async def fetch_all(state: ReferenceDownloaderState) -> dict:
+        await cancelled.wait()
+        done = [
+            ReferenceFetchResult(
+                reference_id=ref,
+                input_reference=ref,
+                status=ReferenceFetchStatus.COMPLETED,
+            )
+            for ref in ("r1", "r2")
+        ]
+        return {"fetched_references": done}
+
+    graph = StateGraph(ReferenceDownloaderState)
+    graph.add_node("fetch_all", fetch_all)
+    graph.add_edge("__start__", "fetch_all")
+    runner = asyncio.create_task(
+        run_workflow(
+            workflow_run_id=run_id,
+            workflow_type=WorkflowRunType.REFERENCE_DOWNLOADER,
+            graph=graph,
+            state=_initial_state(project_id),
+            context=ContextSchema(
+                project_id=project_id,
+                workflow_run_id=run_id,
+                file_artifacts_service=MockFileArtifactsService(),
+            ),
+            thread_id=str(uuid.uuid4()),
+        )
+    )
+    await _wait_for_state(run_id)
+    async with get_async_db_session() as session:
+        await session.execute(
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == run_id)
+            .values(status=WorkflowRunStatus.CANCELLED)
+        )
+        await session.commit()
+    cancelled.set()
+    await asyncio.wait_for(runner, timeout=5)
 
     run = await get_workflow_run(run_id, include_state=True)
-    assert run.status == WorkflowRunStatus.FAILED
-    assert run.failure_reason == WorkflowRunFailureReason.NO_HEARTBEAT
+    assert run.status == WorkflowRunStatus.CANCELLED
     statuses = {
         ref["reference_id"]: ref["status"]
         for ref in (run.state_json or {})["fetched_references"]
     }
-    # The reaper cancelled both while they were pending. Neither r1's late
-    # result nor the runner's failure branch may put them back to pending.
-    assert statuses == {"r1": "cancelled", "r2": "cancelled"}
+    assert statuses == {"r1": "completed", "r2": "completed"}

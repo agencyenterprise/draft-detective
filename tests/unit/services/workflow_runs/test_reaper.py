@@ -18,6 +18,7 @@ from lib.services.workflow_runs import reaper as workflow_reaper
 from lib.services.workflow_runs.reaper import (
     PENDING_GRACE_SECONDS,
     REAPER_GRACE_SECONDS,
+    _clean_up_reaped_run,
     _reap_once,
     _run_manifest_on_cancel,
     run_reaper_loop,
@@ -166,6 +167,42 @@ async def test_run_manifest_on_cancel_swallows_state_load_exception():
     manifest.on_cancel.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("status", "reason", "cleaned"),
+    [
+        (WorkflowRunStatus.FAILED, WorkflowRunFailureReason.NO_HEARTBEAT, True),
+        # The run ended some other way before the reaper's FAILED landed.
+        (WorkflowRunStatus.COMPLETED, None, False),
+        (
+            WorkflowRunStatus.FAILED,
+            WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
+            False,
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_clean_up_reaped_run_only_cleans_runs_the_reaper_failed(
+    status: WorkflowRunStatus,
+    reason: WorkflowRunFailureReason | None,
+    cleaned: bool,
+):
+    run = _make_run(status)
+    run.failure_reason = reason
+    on_cancel = AsyncMock()
+
+    with (
+        patch.object(
+            workflow_reaper, "get_workflow_run", new=AsyncMock(return_value=run)
+        ) as load,
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
+    ):
+        await _clean_up_reaped_run(str(run.id))
+
+    # The cleanup starts from the row as it is now, state included.
+    load.assert_awaited_once_with(str(run.id), include_state=True)
+    assert on_cancel.await_count == (1 if cleaned else 0)
+
+
 # ---------------------------------------------------------------------------
 # _reap_once
 # ---------------------------------------------------------------------------
@@ -180,7 +217,7 @@ async def test_reap_once_returns_zero_when_nothing_stuck():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
     ):
         reaped = await _reap_once()
 
@@ -199,7 +236,7 @@ async def test_reap_once_skips_runs_without_project_id():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
     ):
         reaped = await _reap_once()
 
@@ -221,11 +258,11 @@ async def test_reap_once_running_uses_no_heartbeat_failure_reason():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=on_cancel),
     ):
         await _reap_once(running_grace_seconds=60.0)
 
-    on_cancel.assert_awaited_once_with(run)
+    on_cancel.assert_awaited_once_with(str(run.id))
     fail.assert_awaited_once()
     kwargs = fail.await_args.kwargs
     args = fail.await_args.args
@@ -247,7 +284,7 @@ async def test_reap_once_pending_uses_pending_specific_message():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
     ):
         await _reap_once(pending_grace_seconds=PENDING_GRACE_SECONDS)
 
@@ -261,8 +298,9 @@ async def test_reap_once_pending_uses_pending_specific_message():
 
 
 @pytest.mark.asyncio
-async def test_reap_once_calls_on_cancel_before_fail():
-    """The manifest hook fires before the FAILED transition so cleanup happens first."""
+async def test_reap_once_cleans_up_after_fail():
+    """The manifest hook fires after the FAILED transition: a reaped run that is
+    still alive stops writing its state then, so the cleanup is the last write."""
     run = _make_run(WorkflowRunStatus.RUNNING)
     call_order: list[str] = []
 
@@ -278,7 +316,7 @@ async def test_reap_once_calls_on_cancel_before_fail():
         ),
         patch.object(
             workflow_reaper,
-            "_run_manifest_on_cancel",
+            "_clean_up_reaped_run",
             new=AsyncMock(side_effect=record_on_cancel),
         ),
         patch.object(
@@ -287,7 +325,7 @@ async def test_reap_once_calls_on_cancel_before_fail():
     ):
         await _reap_once()
 
-    assert call_order == ["on_cancel", "fail"]
+    assert call_order == ["fail", "on_cancel"]
 
 
 @pytest.mark.asyncio
@@ -304,7 +342,7 @@ async def test_reap_once_continues_when_one_row_fails():
             "_find_stuck_runs",
             new=AsyncMock(return_value=[bad, good]),
         ),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
     ):
         reaped = await _reap_once()
@@ -327,7 +365,7 @@ async def test_reap_once_handles_mixed_running_and_pending():
             "_find_stuck_runs",
             new=AsyncMock(return_value=[running, pending]),
         ),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
     ):
         await _reap_once()
@@ -370,7 +408,7 @@ async def test_reap_once_skips_when_lock_not_acquired():
         ),
         patch.object(workflow_reaper, "_find_stuck_runs", new=find_stuck),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=on_cancel),
     ):
         reaped = await _reap_once()
 

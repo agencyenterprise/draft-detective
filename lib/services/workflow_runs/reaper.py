@@ -32,7 +32,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 from sqlalchemy import or_, select, text
-from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -44,6 +43,7 @@ from lib.models.workflow_run import (
 from lib.services.workflow_runs.orchestration import DEPENDENCY_WAIT_TIMEOUT
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
+    get_workflow_run,
     persist_workflow_run_state,
     read_workflow_run_state,
 )
@@ -125,29 +125,23 @@ async def _find_stuck_runs(
     running_cutoff = now - timedelta(seconds=running_grace_seconds)
     pending_cutoff = now - timedelta(seconds=pending_grace_seconds)
     async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                or_(
-                    and_(
-                        col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
-                        or_(
-                            and_(
-                                col(WorkflowRun.heartbeat_at).is_(None),
-                                col(WorkflowRun.started_at) < running_cutoff,
-                            ),
-                            col(WorkflowRun.heartbeat_at) < running_cutoff,
+        stmt = select(WorkflowRun).where(
+            or_(
+                and_(
+                    col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
+                    or_(
+                        and_(
+                            col(WorkflowRun.heartbeat_at).is_(None),
+                            col(WorkflowRun.started_at) < running_cutoff,
                         ),
+                        col(WorkflowRun.heartbeat_at) < running_cutoff,
                     ),
-                    and_(
-                        col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-                        col(WorkflowRun.last_updated_at) < pending_cutoff,
-                    ),
-                )
+                ),
+                and_(
+                    col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
+                    col(WorkflowRun.last_updated_at) < pending_cutoff,
+                ),
             )
-            # _run_manifest_on_cancel hydrates state_json off these rows after
-            # the session closes, so load it in-session.
-            .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         )
         return list((await session.execute(stmt)).scalars().all())
 
@@ -184,6 +178,22 @@ async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
             f"Reaper: on_cancel hook failed for {run.id} ({run.type}): {e}",
             exc_info=True,
         )
+
+
+async def _clean_up_reaped_run(workflow_run_id: str) -> None:
+    """Run on_cancel on the run's latest state, once the reaper's FAILED is in.
+
+    Cleaning up after the FAILED write rather than before makes it the last
+    write: a reaped run may still be alive, and the runner's own state writes
+    stop landing once the row is FAILED. Skipped when the run ended some other
+    way first (completed, or failed by the runner itself).
+    """
+    run = await get_workflow_run(workflow_run_id, include_state=True)
+    if (
+        run.status == WorkflowRunStatus.FAILED
+        and run.failure_reason == WorkflowRunFailureReason.NO_HEARTBEAT
+    ):
+        await _run_manifest_on_cancel(run)
 
 
 async def _reap_once(
@@ -240,18 +250,18 @@ async def _reap_once_locked(
             )
 
         try:
-            # PENDING runs never reached run_workflow, so most have no persisted
-            # state and the on_cancel call is a no-op (state is None). Some
-            # still carry one written at request time (the Review Assistant
-            # records its request on the run before the task starts), and
-            # those get the hook like any other run.
-            await _run_manifest_on_cancel(run)
             await fail_workflow_run(
                 str(run.id),
                 str(run.project_id),
                 failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
                 failure_message=failure_message,
             )
+            # PENDING runs never reached run_workflow, so most have no persisted
+            # state and the on_cancel call is a no-op (state is None). Some
+            # still carry one written at request time (the Review Assistant
+            # records its request on the run before the task starts), and
+            # those get the hook like any other run.
+            await _clean_up_reaped_run(str(run.id))
         except Exception as e:
             # Don't let one bad row stop the sweep.
             logger.error(

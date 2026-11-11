@@ -64,7 +64,7 @@ async def test_run_workflow_persists_each_fan_out_task_before_superstep_ends():
     persisted: list[FanOutState] = []
 
     async def record_persist(
-        _run_id: str, state: FanOutState, *, only_while_running: bool = False
+        _run_id: str, state: FanOutState, *, unless_failed: bool = False
     ) -> None:
         persisted.append(state)
         # Only unblock the slower tasks once task 0's result has hit state_json:
