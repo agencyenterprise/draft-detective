@@ -16,7 +16,6 @@ from lib.agents.deep_agent_setup import (
     build_llm,
     conversation_run_config,
     general_purpose_subagent,
-    tool_names,
 )
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -95,23 +94,6 @@ class TestConversationRunConfig:
             "langfuse_session_id": "t-1",
             "langfuse_user_id": "u-1",
         }
-
-
-class TestToolNames:
-    def test_names_are_deduplicated_and_sorted(self) -> None:
-        class Message:
-            def __init__(self, calls: list[dict[str, str]]) -> None:
-                self.tool_calls = calls
-
-        messages = [
-            Message([{"name": "read_file"}, {"name": "grep"}]),
-            Message([{"name": "read_file"}]),
-        ]
-
-        assert tool_names(list(messages)) == ["grep", "read_file"]
-
-    def test_messages_without_tool_calls_are_ignored(self) -> None:
-        assert tool_names([object(), object()]) == []
 
 
 class TestBuildingADeepAgent:
