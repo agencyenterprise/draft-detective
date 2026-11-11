@@ -87,8 +87,8 @@ The backend needs a migrated PostgreSQL with the `pgvector` extension. The `db` 
 # Create the backend's environment file, then fill in AUTH_SECRET and a sign-in provider (see Environment Variables)
 cp .env.template .env
 
-# Start PostgreSQL alone (port 5432)
-docker compose up -d db
+# Start PostgreSQL alone (port 5432) and wait until it accepts connections
+docker compose up -d --wait db
 
 # Create the tables
 uv run alembic upgrade head
