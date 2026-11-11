@@ -159,3 +159,13 @@ async def test_fallback_refuses_text_past_the_extraction_cap(
         await markitdown_converter.convert_to_markdown(str(pdf))
 
     assert markitdown_calls == []
+
+
+def test_header_split_across_scan_chunks_is_found(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(pypdfium, "_SCAN_CHUNK", 8)
+    path = tmp_path / "prefixed.pdf"
+    path.write_bytes(b"x" * 6 + b"%PDF-1.4\n")
+
+    assert pypdfium._find_header(str(path)) == 6

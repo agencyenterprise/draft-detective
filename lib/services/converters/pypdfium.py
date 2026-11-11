@@ -15,10 +15,11 @@ effectively free compared to the previous behavior.
 """
 
 import asyncio
+import io
 import logging
 import re
 import threading
-from pathlib import Path
+from collections.abc import Buffer
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 
@@ -63,11 +64,59 @@ def _open(file_path: str) -> pdfium.PdfDocument:
     try:
         return pdfium.PdfDocument(file_path)
     except pdfium.PdfiumError:
-        data = Path(file_path).read_bytes()
-        start = data.find(b"%PDF-")
+        start = _find_header(file_path)
         if start <= 0:
             raise
-        return pdfium.PdfDocument(data[start:])
+        stream = _FromOffset(open(file_path, "rb"), start)  # noqa: SIM115  closed by PDFium (autoclose)
+        return pdfium.PdfDocument(stream, autoclose=True)
+
+
+_PDF_MARKER = b"%PDF-"
+_SCAN_CHUNK = 1024 * 1024
+
+
+def _find_header(file_path: str) -> int:
+    """Offset of the first ``%PDF-`` marker, read a chunk at a time; -1 if none."""
+    with open(file_path, "rb") as f:
+        offset, tail = 0, b""
+        while chunk := f.read(_SCAN_CHUNK):
+            window = tail + chunk
+            found = window.find(_PDF_MARKER)
+            if found >= 0:
+                return offset - len(tail) + found
+            tail = window[-(len(_PDF_MARKER) - 1) :]
+            offset += len(chunk)
+    return -1
+
+
+class _FromOffset(io.RawIOBase):
+    """A read-only view of a file that starts ``start`` bytes in, without copying it."""
+
+    def __init__(self, file: io.BufferedReader, start: int) -> None:
+        self._file = file
+        self._start = start
+        self._file.seek(start)
+
+    def readable(self) -> bool:
+        return True
+
+    def seekable(self) -> bool:
+        return True
+
+    def seek(self, position: int, whence: int = io.SEEK_SET) -> int:
+        if whence == io.SEEK_SET:
+            position += self._start
+        return self._file.seek(position, whence) - self._start
+
+    def tell(self) -> int:
+        return self._file.tell() - self._start
+
+    def readinto(self, buffer: Buffer) -> int:
+        return self._file.readinto(buffer)
+
+    def close(self) -> None:
+        self._file.close()
+        super().close()
 
 
 def _extract_text(file_path: str) -> str:
