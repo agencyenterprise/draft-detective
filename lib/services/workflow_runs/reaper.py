@@ -250,18 +250,23 @@ async def _reap_once_locked(
             )
 
         try:
-            await fail_workflow_run(
-                str(run.id),
-                str(run.project_id),
-                failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
-                failure_message=failure_message,
-            )
-            # PENDING runs never reached run_workflow, so most have no persisted
-            # state and the on_cancel call is a no-op (state is None). Some
-            # still carry one written at request time (the Review Assistant
-            # records its request on the run before the task starts), and
-            # those get the hook like any other run.
-            await _clean_up_reaped_run(str(run.id))
+            try:
+                await fail_workflow_run(
+                    str(run.id),
+                    str(run.project_id),
+                    failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+                    failure_message=failure_message,
+                )
+            finally:
+                # Also after a failed cascade: FAILED may already be committed,
+                # and the run is never swept again. _clean_up_reaped_run checks
+                # that the reaper's FAILED landed before touching anything.
+                # PENDING runs never reached run_workflow, so most have no
+                # persisted state and the on_cancel call is a no-op (state is
+                # None). Some still carry one written at request time (the
+                # Review Assistant records its request on the run before the
+                # task starts), and those get the hook like any other run.
+                await _clean_up_reaped_run(str(run.id))
         except Exception as e:
             # Don't let one bad row stop the sweep.
             logger.error(

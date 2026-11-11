@@ -353,6 +353,29 @@ async def test_reap_once_continues_when_one_row_fails():
 
 
 @pytest.mark.asyncio
+async def test_reap_once_cleans_up_even_when_fail_raises():
+    """fail_workflow_run can commit FAILED and then raise while cancelling
+    dependents; the run is never swept again, so the cleanup still runs."""
+    run = _make_run(WorkflowRunStatus.RUNNING)
+    clean_up = AsyncMock()
+
+    with (
+        patch.object(
+            workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
+        ),
+        patch.object(workflow_reaper, "_clean_up_reaped_run", new=clean_up),
+        patch.object(
+            workflow_reaper,
+            "fail_workflow_run",
+            new=AsyncMock(side_effect=RuntimeError("cascade failed")),
+        ),
+    ):
+        assert await _reap_once() == 1
+
+    clean_up.assert_awaited_once_with(str(run.id))
+
+
+@pytest.mark.asyncio
 async def test_reap_once_handles_mixed_running_and_pending():
     """A sweep with both RUNNING and PENDING stuck rows produces distinct messages."""
     running = _make_run(WorkflowRunStatus.RUNNING)
