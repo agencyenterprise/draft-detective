@@ -55,6 +55,36 @@ def _extract_text(file_path: str) -> str:
         pdf.close()
 
 
+def _count_chars(file_path: str, stop_after: int) -> int:
+    """Characters in the PDF's text layer, counting no further than ``stop_after``."""
+    pdf = pdfium.PdfDocument(file_path)
+    try:
+        total = 0
+        for i in range(len(pdf)):
+            page = pdf[i]
+            textpage = page.get_textpage()
+            try:
+                total += textpage.count_chars()
+            finally:
+                textpage.close()
+                page.close()
+            if total > stop_after:
+                break
+        return total
+    finally:
+        pdf.close()
+
+
+async def count_pdf_chars(file_path: str, stop_after: int) -> int:
+    """Count a PDF's characters with PDFium, cheaply and with flat memory.
+
+    Stops once the count passes ``stop_after``, so callers comparing against a
+    limit never pay for the rest of the document.
+    """
+    async with _PDFIUM_LOCK:
+        return await asyncio.to_thread(_count_chars, file_path, stop_after)
+
+
 class PypdfiumFileConverter(FileConverterProtocol):
     async def convert_to_markdown(self, file_path: str) -> str:
         async with _PDFIUM_LOCK:
