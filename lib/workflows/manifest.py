@@ -185,9 +185,12 @@ class WorkflowManifest[
 
         The runner passes the state it has accumulated in memory. The reaper
         passes the run's saved state_json, possibly from another pod. A run
-        cancelled while it still waits on its dependencies, or that fails with an
-        unhandled exception or a dependency timeout, gets no call. The hook is
-        best-effort: an error it raises is logged and the run's outcome stands.
+        cancelled by the dependency wait itself (a required dependency ended
+        CANCELLED or FAILED), or that fails with an unhandled exception or a
+        dependency timeout, gets no call. A run cancelled by other means while it
+        waits is only noticed at its first node, and gets the call there. The
+        hook is best-effort: an error it raises is logged and the run's outcome
+        stands.
 
         The default is a no-op that returns the state unchanged. Override in
         manifests that have per-item statuses that would otherwise remain stuck in
