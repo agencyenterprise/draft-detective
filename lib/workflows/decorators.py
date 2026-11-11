@@ -112,8 +112,14 @@ async def _run_node_with_cancellation(
 ) -> dict[str, Any]:
     """Run the node function alongside a cancellation poller."""
     # Lazy import — see module-level comment about the circular chain.
-    from lib.services.workflow_runs.service import get_workflow_run_status  # noqa: PLC0415  circular, see the comment at the imports
+    from lib.services.workflow_runs.service import (  # noqa: PLC0415  circular, see the comment at the imports
+        get_workflow_run_status,
+        update_workflow_run_heartbeat,
+    )
 
+    # The supervisor's first tick comes only after a full interval, so a node
+    # that finishes sooner would never bump the heartbeat.
+    await update_workflow_run_heartbeat(workflow_run_id)
     node_task = asyncio.ensure_future(func(state, runtime))
     supervisor_task = asyncio.ensure_future(
         _supervise_node(workflow_run_id, node_task, CANCELLATION_CHECK_INTERVAL)
