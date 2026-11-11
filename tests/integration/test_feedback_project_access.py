@@ -198,3 +198,29 @@ async def test_missing_project_is_a_404(admin):
             )
 
     assert excinfo.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_rate_an_issue_on_a_shared_project(admin, feedback):
+    """Reading the project is not rating it: rating stays with the owner."""
+    with pytest.raises(HTTPException) as excinfo:
+        async with get_async_db_session() as session:
+            await feedback_service.create_or_update_feedback(
+                session=session,
+                issue_id=feedback.issue_id,
+                feedback_type=FeedbackType.THUMBS_UP,
+                user=admin,
+            )
+
+    assert excinfo.value.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_admin_cannot_read_an_issue_rating_on_a_shared_project(admin, feedback):
+    with pytest.raises(HTTPException) as excinfo:
+        async with get_async_db_session() as session:
+            await feedback_service.get_feedback_by_issue(
+                session=session, issue_id=feedback.issue_id, user=admin
+            )
+
+    assert excinfo.value.status_code == 403

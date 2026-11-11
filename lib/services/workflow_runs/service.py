@@ -12,8 +12,6 @@ from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
-from lib.models.project import Project
-from lib.models.user import User
 from lib.models.workflow_run import (
     ACTIVE_WORKFLOW_RUN_STATUSES,
     TERMINAL_WORKFLOW_RUN_STATUSES,
@@ -234,34 +232,20 @@ async def read_workflow_run_state(run: WorkflowRun) -> WorkflowState | None:
 
 
 async def get_workflow_run(
-    workflow_run_id: str, user: User | None = None, include_state: bool = False
+    workflow_run_id: str, include_state: bool = False
 ) -> WorkflowRun:
+    """The run, with no permission check: callers acting for a user go through
+    `get_accessible_workflow_run` in `lib.services.workflow_runs.access`."""
     async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun, Project)
-            .outerjoin(Project)
-            .where(col(WorkflowRun.id) == workflow_run_id)
-        )
+        stmt = select(WorkflowRun).where(col(WorkflowRun.id) == workflow_run_id)
         if include_state:
             # state_json is deferred by default; load it in-session so callers
             # can hydrate it after this session closes (no async lazy-load).
             stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
-        result = (await session.execute(stmt)).one_or_none()
+        run = (await session.execute(stmt)).scalar_one_or_none()
 
-    if result is None:
+    if run is None:
         raise HTTPException(status_code=404, detail="Workflow run not found")
-
-    run, project = result.tuple()
-
-    if user is not None:
-        # A run without a project has no owner to match, so a user is refused it
-        # as if it did not exist, like the inner-joined ownership checks do.
-        # Internal callers (no user) still get project-less runs.
-        if project is None:
-            raise HTTPException(status_code=404, detail="Workflow run not found")
-        if project.user_id != user.id:
-            raise HTTPException(status_code=403, detail="Access denied")
-
     return run
 
 

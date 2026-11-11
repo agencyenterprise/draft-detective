@@ -11,45 +11,35 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
+from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun
 from lib.services.projects.service import get_project_access
+from lib.services.workflow_runs.access import get_accessible_workflow_run
 
 
-async def _verify_workflow_run_ownership(
-    session: AsyncSession, workflow_run_id: uuid.UUID, user: User
-) -> None:
-    """Verify that the user owns the workflow run, raise 403 if not."""
-    stmt = (
-        select(WorkflowRun, Project)
-        .join(Project)
-        .where(col(WorkflowRun.id) == workflow_run_id)
-    )
-    result = await session.execute(stmt)
-    row = result.one_or_none()
+async def _get_owned_issue(issue_id: uuid.UUID, user: User) -> Issue:
+    """The issue, once the user is confirmed to own its run. 404s, then 403s.
 
-    if row is None:
-        raise HTTPException(status_code=404, detail="Workflow run not found")
+    Owning means WRITE on the run's project: an admin who may read a shared
+    project still may not rate its issues.
 
-    workflow_run, project = row.tuple()
-
-    if project.user_id is None or project.user_id != user.id:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-
-async def _get_owned_issue(
-    session: AsyncSession, issue_id: uuid.UUID, user: User
-) -> Issue:
-    """The issue, once the user is confirmed to own its run. 404s, then 403s."""
-    issue = (
-        await session.execute(select(Issue).where(col(Issue.id) == issue_id))
-    ).scalar_one_or_none()
+    Reads on its own short session, not the caller's: the gate opens sessions
+    of its own, and a caller's session that had already queried would hold a
+    second connection through them.
+    """
+    async with get_async_db_session() as session:
+        issue = (
+            await session.execute(select(Issue).where(col(Issue.id) == issue_id))
+        ).scalar_one_or_none()
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
-    await _verify_workflow_run_ownership(session, issue.workflow_run_id, user)
+    await get_accessible_workflow_run(
+        str(issue.workflow_run_id), user, required_level=AccessLevel.WRITE
+    )
     return issue
 
 
@@ -68,7 +58,7 @@ async def create_or_update_feedback(
         HTTPException: 404 if the issue or its run is missing, 403 if the user
             doesn't own the run.
     """
-    issue = await _get_owned_issue(session, issue_id, user)
+    issue = await _get_owned_issue(issue_id, user)
 
     stmt = (
         select(Feedback)
@@ -104,7 +94,7 @@ async def get_feedback_by_issue(
         HTTPException: 404 if the issue or its run is missing, 403 if the user
             doesn't own the run.
     """
-    await _get_owned_issue(session, issue_id, user)
+    await _get_owned_issue(issue_id, user)
 
     feedback_stmt = (
         select(Feedback)

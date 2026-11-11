@@ -20,6 +20,7 @@ from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.projects.service import get_project_access
+from lib.services.workflow_runs.access import get_accessible_workflow_run
 from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     build_workflow_run_detail,
@@ -66,8 +67,7 @@ async def _readable_run_with_state(
     holding a stale run id (say, after a share link is revoked) force that read
     repeatedly and get a 403 for it.
     """
-    run = await get_workflow_run(workflow_run_id)
-    await get_project_access(str(run.project_id), user, share_token)
+    run = await get_accessible_workflow_run(workflow_run_id, user, share_token)
     _assert_workflow_type_still_exists(run)
     return await get_workflow_run(workflow_run_id, include_state=True)
 
@@ -230,7 +230,9 @@ async def cancel_workflow_run_endpoint(
     Cascades cancellation to any active workflow runs that have the cancelled
     workflow as a required dependency.
     """
-    workflow_run = await get_workflow_run(workflow_run_id, user=current_user)
+    workflow_run = await get_accessible_workflow_run(
+        workflow_run_id, current_user, required_level=AccessLevel.WRITE
+    )
 
     if workflow_run.status == WorkflowRunStatus.COMPLETED:
         raise HTTPException(
