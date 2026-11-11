@@ -1,7 +1,7 @@
 """Unit tests for the register_node decorator."""
 
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -36,6 +36,10 @@ def patch_external_deps():
         patch(
             "lib.services.workflow_runs.service.get_workflow_run_status",
             return_value=WorkflowRunStatus.RUNNING,
+        ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
+            AsyncMock(),
         ),
     ):
         yield
