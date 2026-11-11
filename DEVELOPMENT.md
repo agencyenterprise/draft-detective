@@ -79,6 +79,26 @@ uv sync --frozen
 
 This creates a local virtual environment at `.venv/` and installs all dependencies from `pyproject.toml` and `uv.lock`. Run every Python command through `uv run` (for example `uv run python --version`), so it uses that environment without activating it.
 
+### Database Setup
+
+The backend needs a migrated PostgreSQL with the `pgvector` extension. The `db` service in `docker-compose.yml` provides one at the address `.env.template` already points to. The migration and the backend read the root `.env`, so create it first:
+
+```bash
+# Create the backend's environment file, then fill in AUTH_SECRET and a sign-in provider (see Environment Variables)
+cp .env.template .env
+
+# Start PostgreSQL alone (port 5432) and wait until it accepts connections
+docker compose up -d --wait db
+
+# Create the tables
+uv run alembic upgrade head
+
+# Optional: seed the annotation sets (the /annotate pages); uv run dev.py never does, and it is safe to rerun
+uv run python -m lib.services.annotations.sync
+```
+
+Without the migration the backend still starts, but every request that reads the database fails with `relation ... does not exist`. Run `uv run alembic upgrade head` again after pulling changes that add migrations.
+
 ### Frontend Setup
 
 ```bash
@@ -188,11 +208,7 @@ docker compose restart api
 docker compose exec api uv run python -m lib.services.annotations.sync
 ```
 
-`uv run dev.py` never seeds them. To get the sets in a local database, run the sync after migrating (it is idempotent):
-
-```bash
-uv run python -m lib.services.annotations.sync
-```
+`uv run dev.py` never seeds them: see [Database Setup](#database-setup) for the local command.
 
 ## Environment Variables
 
