@@ -78,6 +78,49 @@ async def test_pdf_over_the_limit_converts_with_pypdfium(
 
 
 @pytest.mark.asyncio
+async def test_bytes_before_the_header_do_not_bypass_the_limit(
+    tmp_path: Path, markitdown_calls: list[str]
+) -> None:
+    # PDFium wants the header near the start, but pdfminer reads past a prefix.
+    crafted = _write_text_pdf(tmp_path / "crafted.pdf", 600_000).read_bytes()
+    pdf = tmp_path / "prefixed.pdf"
+    pdf.write_bytes(b"x" * 2048 + crafted)
+
+    markdown = await markitdown_converter.convert_to_markdown(str(pdf))
+
+    assert markitdown_calls == []
+    assert markdown.count("a") == 600_000
+
+
+@pytest.mark.asyncio
+async def test_header_at_the_end_of_the_window_is_found(
+    tmp_path: Path, markitdown_calls: list[str]
+) -> None:
+    crafted = _write_text_pdf(tmp_path / "crafted.pdf", 600_000).read_bytes()
+    # No .pdf name, and the header begins in the window's last byte.
+    upload = tmp_path / "upload.bin"
+    upload.write_bytes(b" " * 1023 + crafted)
+
+    markdown = await markitdown_converter.convert_to_markdown(str(upload))
+
+    assert markitdown_calls == []
+    assert markdown.count("a") == 600_000
+
+
+@pytest.mark.asyncio
+async def test_pdf_pdfium_cannot_open_is_refused(
+    tmp_path: Path, markitdown_calls: list[str]
+) -> None:
+    pdf = tmp_path / "broken.pdf"
+    pdf.write_bytes(b"not a pdf at all")
+
+    with pytest.raises(ValueError, match="could not be read"):
+        await markitdown_converter.convert_to_markdown(str(pdf))
+
+    assert markitdown_calls == []
+
+
+@pytest.mark.asyncio
 async def test_pdf_under_the_limit_keeps_markitdown(
     tmp_path: Path, markitdown_calls: list[str]
 ) -> None:

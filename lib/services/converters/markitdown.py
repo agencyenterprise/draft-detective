@@ -24,11 +24,17 @@ MAX_MARKITDOWN_PDF_CHARS = 500_000
 
 # A PDF's header may sit anywhere in its first kilobyte.
 _PDF_HEADER_WINDOW = 1024
+_PDF_MARKER = b"%PDF-"
 
 
 def _is_pdf(file_path: str) -> bool:
+    """Whether markitdown may read the file as a PDF: by its name or its header."""
+    if file_path.lower().endswith(".pdf"):
+        return True
     with open(file_path, "rb") as f:
-        return b"%PDF-" in f.read(_PDF_HEADER_WINDOW)
+        # Read past the window by the marker's length, so a header starting
+        # at its last byte is still whole.
+        return _PDF_MARKER in f.read(_PDF_HEADER_WINDOW + len(_PDF_MARKER) - 1)
 
 
 async def _too_many_chars_for_markitdown(file_path: str) -> bool:
@@ -36,9 +42,10 @@ async def _too_many_chars_for_markitdown(file_path: str) -> bool:
         return False
     try:
         chars = await count_pdf_chars(file_path, stop_after=MAX_MARKITDOWN_PDF_CHARS)
-    except pdfium.PdfiumError:
-        # Leave a PDF PDFium cannot open for markitdown to read or report.
-        return False
+    except pdfium.PdfiumError as error:
+        # Without a count the file cannot go to pdfplumber, which a damaged
+        # but still parseable PDF could hold to any size.
+        raise ValueError("The PDF could not be read.") from error
     if chars <= MAX_MARKITDOWN_PDF_CHARS:
         return False
     logger.warning(

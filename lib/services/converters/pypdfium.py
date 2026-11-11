@@ -17,6 +17,8 @@ effectively free compared to the previous behavior.
 import asyncio
 import logging
 import re
+import threading
+from pathlib import Path
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
 
@@ -25,6 +27,10 @@ from lib.services.converters.base import FileConverterProtocol
 logger = logging.getLogger(__name__)
 
 _PDFIUM_LOCK = asyncio.Lock()
+# Cancelling an awaiting caller releases _PDFIUM_LOCK while its worker thread
+# keeps running, so the workers also hold this lock for as long as they touch
+# PDFium.
+_PDFIUM_THREAD_LOCK = threading.Lock()
 
 # PDFium emits Unicode noncharacters (U+FFFE, U+FFFF, U+FDD0..U+FDEF) at
 # internal soft-hyphen and break boundaries inside word text. They survive as
@@ -38,8 +44,30 @@ def _normalize(text: str) -> str:
     return _NONCHARACTERS_RE.sub("", text)
 
 
+def _open(file_path: str) -> pdfium.PdfDocument:
+    """Open the PDF, also when bytes precede its ``%PDF-`` header.
+
+    PDFium looks for the header only near the start of the file, while
+    pdfminer reads past any prefix, so a prefixed file would otherwise be
+    unreadable here yet readable by markitdown.
+    """
+    try:
+        return pdfium.PdfDocument(file_path)
+    except pdfium.PdfiumError:
+        data = Path(file_path).read_bytes()
+        start = data.find(b"%PDF-")
+        if start <= 0:
+            raise
+        return pdfium.PdfDocument(data[start:])
+
+
 def _extract_text(file_path: str) -> str:
-    pdf = pdfium.PdfDocument(file_path)
+    with _PDFIUM_THREAD_LOCK:
+        return _extract_text_locked(file_path)
+
+
+def _extract_text_locked(file_path: str) -> str:
+    pdf = _open(file_path)
     try:
         chunks: list[str] = []
         for i in range(len(pdf)):
@@ -57,7 +85,12 @@ def _extract_text(file_path: str) -> str:
 
 def _count_chars(file_path: str, stop_after: int) -> int:
     """Characters in the PDF's text layer, counting no further than ``stop_after``."""
-    pdf = pdfium.PdfDocument(file_path)
+    with _PDFIUM_THREAD_LOCK:
+        return _count_chars_locked(file_path, stop_after)
+
+
+def _count_chars_locked(file_path: str, stop_after: int) -> int:
+    pdf = _open(file_path)
     try:
         total = 0
         for i in range(len(pdf)):
