@@ -101,7 +101,7 @@ async def _compute_costs_for_states(
 
 
 async def persist_workflow_run_state(
-    workflow_run_id: str, state: WorkflowState
+    workflow_run_id: str, state: WorkflowState, *, only_while_running: bool = False
 ) -> None:
     """Snapshot the workflow state onto the WorkflowRun row.
 
@@ -109,14 +109,18 @@ async def persist_workflow_run_state(
     completion) so a crashed/cancelled run still has its last-good state
     inspectable on the row itself. `state_json` is the single source of truth
     for workflow state.
+
+    `only_while_running` skips the write unless the row is still RUNNING. The
+    runner's per-chunk snapshots and its failure branch pass it: once the
+    reaper (or a user cancel) has ended the run and cleaned up its state, the
+    still-running process must not put its stale in-memory state back.
     """
     payload = sanitize_for_postgres(state.model_dump(mode="json"))
+    conditions = [col(WorkflowRun.id) == workflow_run_id]
+    if only_while_running:
+        conditions.append(col(WorkflowRun.status) == WorkflowRunStatus.RUNNING)
     async with get_async_db_session() as session:
-        stmt = (
-            update(WorkflowRun)
-            .where(col(WorkflowRun.id) == workflow_run_id)
-            .values(state_json=payload)
-        )
+        stmt = update(WorkflowRun).where(*conditions).values(state_json=payload)
         await session.execute(stmt)
         await session.commit()
 

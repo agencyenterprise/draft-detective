@@ -237,7 +237,9 @@ async def run_workflow(
                 # state_json is the single source of truth: snapshot the
                 # accumulated state after every superstep and every task
                 # completion, so fan-out workflows show partial results.
-                await persist_workflow_run_state(workflow_run_id, updated_state)
+                await persist_workflow_run_state(
+                    workflow_run_id, updated_state, only_while_running=True
+                )
 
         # Persist issues after workflow completion. Per-node errors collected
         # in updated_state.errors stay surfaced through state — the run still
@@ -294,7 +296,11 @@ async def run_workflow(
         updated_state = updated_state.model_copy(
             update={"errors": [*updated_state.errors, error]}
         )
-        await persist_workflow_run_state(workflow_run_id, updated_state)
+        # A run the reaper already failed lands here too (its nodes are
+        # cancelled as NodeCancelledError): keep the reaper's cleaned state.
+        await persist_workflow_run_state(
+            workflow_run_id, updated_state, only_while_running=True
+        )
         await fail_workflow_run(
             workflow_run_id,
             project_id,
