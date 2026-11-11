@@ -7,6 +7,7 @@ settings:
 overrides:
   '@mohtasham/md-to-docx>sharp': ^0.35.5
   js-yaml@>=4.0.0 <4.3.2: 4.3.2
+  vite@>=8.3.0 <8.3.3: 8.3.4
 
 patchedDependencies:
   '@mohtasham/md-to-docx@4.0.1':
@@ -2197,7 +2198,7 @@ packages:
       '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0 || ^0.3.0
       babel-plugin-react-compiler: ^1.0.0
       oxc-transform-react: '>=0.152.0 <0.157.0'
-      vite: ^8.0.0
+      vite: 8.3.4
     peerDependenciesMeta:
       '@rolldown/plugin-babel':
         optional: true
@@ -2227,7 +2228,7 @@ packages:
     resolution: {integrity: sha512-5umB9/jlWcqVS6fsrFmv5Gdnpu6wAUio/lEOwAmvB7v+lFo/IW2B9FhAD0p19GCULTgMzLCdUmuCDCnAzWgppQ==}
     peerDependencies:
       msw: ^2.4.9 || ^3.0.0
-      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.4
     peerDependenciesMeta:
       msw:
         optional: true
@@ -4534,7 +4535,7 @@ packages:
       '@vitest/ui': 5.1.0
       happy-dom: '*'
       jsdom: '*'
-      vite: ^6.4.0 || ^7.0.0 || ^8.0.0
+      vite: 8.3.4
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
