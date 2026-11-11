@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import mimetypes
 import re
 
 import pypdfium2 as pdfium  # type: ignore[import-untyped]
@@ -28,9 +29,15 @@ _PDF_MARKER = b"%PDF-"
 
 
 def _is_pdf(file_path: str) -> bool:
-    """Whether markitdown may read the file as a PDF: by its name or its header."""
+    """Whether markitdown may read the file as a PDF: by its name or its header.
+
+    The header settles only files whose name says nothing of their type, so a
+    .txt that quotes ``%PDF-`` stays text.
+    """
     if file_path.lower().endswith(".pdf"):
         return True
+    if mimetypes.guess_type(file_path)[0] not in (None, "application/octet-stream"):
+        return False
     with open(file_path, "rb") as f:
         # Read past the window by the marker's length, so a header starting
         # at its last byte is still whole.

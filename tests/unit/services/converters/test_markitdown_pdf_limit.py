@@ -12,7 +12,9 @@ import pytest
 from markitdown import DocumentConverterResult
 
 from lib.services.converters import markitdown as markitdown_module
+from lib.services.converters import pypdfium
 from lib.services.converters.markitdown import markitdown_converter
+from lib.services.converters.pypdfium import PdfTextTooLargeError
 
 _LINE_CHARS = 1000
 
@@ -98,13 +100,26 @@ async def test_header_at_the_end_of_the_window_is_found(
 ) -> None:
     crafted = _write_text_pdf(tmp_path / "crafted.pdf", 600_000).read_bytes()
     # No .pdf name, and the header begins in the window's last byte.
-    upload = tmp_path / "upload.bin"
+    upload = tmp_path / "upload"
     upload.write_bytes(b" " * 1023 + crafted)
 
     markdown = await markitdown_converter.convert_to_markdown(str(upload))
 
     assert markitdown_calls == []
     assert markdown.count("a") == 600_000
+
+
+@pytest.mark.asyncio
+async def test_text_file_quoting_the_header_stays_text(
+    tmp_path: Path, markitdown_calls: list[str]
+) -> None:
+    notes = tmp_path / "notes.txt"
+    notes.write_text("Every PDF opens with %PDF- and a version number.")
+
+    markdown = await markitdown_converter.convert_to_markdown(str(notes))
+
+    assert markitdown_calls == [str(notes)]
+    assert markdown == "from markitdown"
 
 
 @pytest.mark.asyncio
@@ -130,3 +145,17 @@ async def test_pdf_under_the_limit_keeps_markitdown(
 
     assert markitdown_calls == [str(pdf)]
     assert markdown == "from markitdown"
+
+
+@pytest.mark.asyncio
+async def test_fallback_refuses_text_past_the_extraction_cap(
+    tmp_path: Path, markitdown_calls: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Pages reusing one content stream reach any length; a lower cap stands in.
+    monkeypatch.setattr(pypdfium, "MAX_PDF_TEXT_CHARS", 550_000)
+    pdf = _write_text_pdf(tmp_path / "crafted.pdf", 600_000)
+
+    with pytest.raises(PdfTextTooLargeError):
+        await markitdown_converter.convert_to_markdown(str(pdf))
+
+    assert markitdown_calls == []

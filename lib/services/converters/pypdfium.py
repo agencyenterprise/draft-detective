@@ -32,6 +32,15 @@ _PDFIUM_LOCK = asyncio.Lock()
 # PDFium.
 _PDFIUM_THREAD_LOCK = threading.Lock()
 
+# Many pages can reuse one compressed content stream, so a few KB of PDF can
+# hold any number of characters. Ten million is past a 3,000-page report.
+MAX_PDF_TEXT_CHARS = 10_000_000
+
+
+class PdfTextTooLargeError(ValueError):
+    """The PDF holds more text than can be converted."""
+
+
 # PDFium emits Unicode noncharacters (U+FFFE, U+FFFF, U+FDD0..U+FDEF) at
 # internal soft-hyphen and break boundaries inside word text. They survive as
 # raw chars in get_text_range() output and break downstream substring matching
@@ -70,10 +79,17 @@ def _extract_text_locked(file_path: str) -> str:
     pdf = _open(file_path)
     try:
         chunks: list[str] = []
+        total = 0
         for i in range(len(pdf)):
             page = pdf[i]
             textpage = page.get_textpage()
             try:
+                total += textpage.count_chars()
+                if total > MAX_PDF_TEXT_CHARS:
+                    raise PdfTextTooLargeError(
+                        f"The PDF holds more than {MAX_PDF_TEXT_CHARS} "
+                        "characters, more than can be converted."
+                    )
                 chunks.append(textpage.get_text_range())
             finally:
                 textpage.close()
