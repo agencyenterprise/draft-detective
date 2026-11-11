@@ -43,16 +43,19 @@ logger = logging.getLogger(__name__)
 async def _supervise_node(
     workflow_run_id: str, node_task: asyncio.Task, interval: float
 ) -> None:
-    """Watch a running node: cancel it on demand and keep the heartbeat fresh.
+    """Watch a running node: cancel it once the run has ended and keep the heartbeat fresh.
 
-    Two responsibilities, both polled at `interval` seconds:
-      1. If the workflow row reached a terminal status (CANCELLED by the
-         user, or FAILED by the reaper / a parallel failure path), cancel
-         the node task and stop bumping the heartbeat.
+    Two responsibilities, both polled every `interval` seconds:
+      1. If the workflow row reached a terminal status, cancel the node task
+         and stop bumping the heartbeat. CANCELLED comes from the user, a new
+         revision, or a required dependency that ended CANCELLED or FAILED;
+         FAILED, while a node runs, from the reaper.
       2. Otherwise bump heartbeat_at so the reaper sees the run as alive.
 
     Runs as a sibling asyncio task while the node executes, so the heartbeat
-    keeps ticking even while the node awaits I/O. The reaper's role is
+    keeps ticking even while the node awaits I/O. The first poll comes one
+    `interval` after the node starts, so a node that finishes sooner never
+    ticks, and nothing ticks between nodes. The reaper's role is
     detecting *dead processes* (restart / OOM); for hung-but-alive nodes the
     workflow-level asyncio.timeout(max_duration) is the safety net.
     """
@@ -110,7 +113,7 @@ async def _run_node_with_cancellation(
     runtime: Runtime[ContextSchema],
     workflow_run_id: str,
 ) -> dict[str, Any]:
-    """Run the node function alongside a cancellation poller."""
+    """Run the node function alongside `_supervise_node`."""
     # Lazy import — see module-level comment about the circular chain.
     from lib.services.workflow_runs.service import get_workflow_run_status  # noqa: PLC0415  circular, see the comment at the imports
 
@@ -121,9 +124,10 @@ async def _run_node_with_cancellation(
     try:
         return await node_task
     except asyncio.CancelledError as e:
-        # Only a user cancel becomes WorkflowCancelledError. The supervisor also
-        # cancels the node when the run ended FAILED (the reaper, a parallel
-        # failure path); that, like an event loop shutdown, re-raises as is.
+        # Only a CANCELLED run becomes WorkflowCancelledError. The supervisor
+        # also cancels the node when the reaper marked the run FAILED; that,
+        # like the workflow's max_duration timeout or an event loop shutdown,
+        # re-raises as is.
         status = await get_workflow_run_status(workflow_run_id)
         if status == WorkflowRunStatus.CANCELLED:
             raise WorkflowCancelledError(
@@ -148,12 +152,14 @@ def register_node(name: str):
     """
     Decorator to control the execution of a workflow node.
 
-    - Logs the start and end of the node, during execution
+    - Logs the start of the node and, when it succeeds, its duration
     - Tracks the node's progress entry, and runs the node under `_supervise_node`,
-      which cancels it once the run reaches a terminal status
+      which keeps the run's heartbeat fresh and cancels the node once the run
+      reaches a terminal status
     - Handles errors and updates the state with a WorkflowError object, during execution,
       except WorkflowCancelledError, which propagates so the run stays CANCELLED,
-      and WorkflowAbortedError, which propagates so the run ends FAILED
+      and WorkflowAbortedError, which propagates so the run ends FAILED.
+      asyncio.CancelledError is not an Exception, so it propagates too.
 
     Args:
         name: A human-readable name of the node.

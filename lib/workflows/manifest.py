@@ -87,7 +87,7 @@ class WorkflowManifest[
 
     # List of workflow types that this workflow depends on optionally.
     # Used to determine the order in which the workflows should be run.
-    # In case a workflow is started and an optional dependency is running or scheduled to run, the workflow will wait until it completes to start; otherwise, it will start immediately.
+    # In case a workflow is started and an optional dependency is pending, running or awaiting approval, the workflow waits until it ends, in any status, before starting (up to DEPENDENCY_WAIT_TIMEOUT, after which the run fails); otherwise, it starts immediately.
     optional_dependencies: list[WorkflowRunType] = []
 
     # The state and config classes named in the subclass's
@@ -177,10 +177,17 @@ class WorkflowManifest[
 
     async def on_cancel(self, state: WorkflowStateType) -> WorkflowStateType:
         """
-        Called when a workflow run is cancelled or times out. Override to clean up
-        per-item statuses (e.g. mark PENDING items CANCELLED) and RETURN the
-        updated state; the runner and reaper persist the returned state via
+        Called when a running workflow is cancelled or exceeds max_duration_seconds,
+        and when the reaper fails a stuck run that has a saved state. Override to
+        clean up per-item statuses (e.g. mark PENDING items CANCELLED) and RETURN
+        the updated state; the runner and reaper persist the returned state via
         persist_workflow_run_state.
+
+        The runner passes the state it has accumulated in memory. The reaper
+        passes the run's saved state_json, possibly from another pod. A run
+        cancelled while it still waits on its dependencies, or that fails with an
+        unhandled exception or a dependency timeout, gets no call. The hook is
+        best-effort: an error it raises is logged and the run's outcome stands.
 
         The default is a no-op that returns the state unchanged. Override in
         manifests that have per-item statuses that would otherwise remain stuck in
