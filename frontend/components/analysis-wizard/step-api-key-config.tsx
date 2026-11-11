@@ -26,8 +26,10 @@ export function StepApiKeyConfig() {
       setError(null);
     },
     onError: (err: unknown) => {
-      const message = isApiError(err) ? err.message : 'Failed to save API key. Please check that it is valid.';
-      setError(message);
+      // Only the server's own reason (`detail`) is worth showing: an ApiError without one
+      // carries a bare "HTTP <status>" message.
+      const detail = isApiError(err) ? err.detail : undefined;
+      setError(detail || 'Failed to save API key. Please check that it is valid.');
     },
   });
 
