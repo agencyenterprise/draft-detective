@@ -55,9 +55,10 @@ logger = logging.getLogger(__name__)
 REAPER_INTERVAL_SECONDS = 30.0
 
 # How long a RUNNING row must go without a heartbeat before being reaped.
-# Heartbeats tick every CANCELLATION_CHECK_INTERVAL (5s) while any node runs,
-# so 60s is 12× the heartbeat interval — comfortable margin for between-node
-# gaps, DB blips, and GC pauses without false positives.
+# Every node writes a heartbeat as it starts, then once per
+# CANCELLATION_CHECK_INTERVAL (5s) while it runs, so 60s is 12× the longest
+# silence inside a node: comfortable margin for between-node gaps, DB blips,
+# and GC pauses without false positives.
 REAPER_GRACE_SECONDS = 60.0
 
 # How long a PENDING row may go without an update before the reaper treats it

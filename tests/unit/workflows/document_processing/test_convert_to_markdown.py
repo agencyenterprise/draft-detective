@@ -68,6 +68,10 @@ def run() -> Iterator[_Run]:
             "lib.services.workflow_runs.service.get_workflow_run_status",
             return_value=WorkflowRunStatus.RUNNING,
         ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
+            AsyncMock(),
+        ),
         patch(f"{NODE}.update_file_artifacts", AsyncMock()),
     ):
         yield stubs
