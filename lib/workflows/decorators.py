@@ -54,8 +54,9 @@ async def _supervise_node(
 
     Runs as a sibling asyncio task while the node executes, so the heartbeat
     keeps ticking even while the node awaits I/O. The first poll comes one
-    `interval` after the node starts, so a node that finishes sooner never
-    ticks, and nothing ticks between nodes. The reaper's role is
+    `interval` after the node starts, so `_run_node_with_cancellation` writes
+    the heartbeat once before starting the node; nothing writes it between
+    nodes. The reaper's role is
     detecting *dead processes* (restart / OOM); for hung-but-alive nodes the
     workflow-level asyncio.timeout(max_duration) is the safety net.
     """
