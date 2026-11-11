@@ -11,6 +11,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
+from lib.config.database import get_async_db_session
 from lib.models.feedback import Feedback, FeedbackType
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel, FeedbackVisibility, Project
@@ -20,17 +21,20 @@ from lib.services.projects.service import get_project_access
 from lib.services.workflow_runs.access import get_accessible_workflow_run
 
 
-async def _get_owned_issue(
-    session: AsyncSession, issue_id: uuid.UUID, user: User
-) -> Issue:
+async def _get_owned_issue(issue_id: uuid.UUID, user: User) -> Issue:
     """The issue, once the user is confirmed to own its run. 404s, then 403s.
 
     Owning means WRITE on the run's project: an admin who may read a shared
     project still may not rate its issues.
+
+    Reads on its own short session, not the caller's: the gate opens sessions
+    of its own, and a caller's session that had already queried would hold a
+    second connection through them.
     """
-    issue = (
-        await session.execute(select(Issue).where(col(Issue.id) == issue_id))
-    ).scalar_one_or_none()
+    async with get_async_db_session() as session:
+        issue = (
+            await session.execute(select(Issue).where(col(Issue.id) == issue_id))
+        ).scalar_one_or_none()
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
     await get_accessible_workflow_run(
@@ -54,7 +58,7 @@ async def create_or_update_feedback(
         HTTPException: 404 if the issue or its run is missing, 403 if the user
             doesn't own the run.
     """
-    issue = await _get_owned_issue(session, issue_id, user)
+    issue = await _get_owned_issue(issue_id, user)
 
     stmt = (
         select(Feedback)
@@ -90,7 +94,7 @@ async def get_feedback_by_issue(
         HTTPException: 404 if the issue or its run is missing, 403 if the user
             doesn't own the run.
     """
-    await _get_owned_issue(session, issue_id, user)
+    await _get_owned_issue(issue_id, user)
 
     feedback_stmt = (
         select(Feedback)
