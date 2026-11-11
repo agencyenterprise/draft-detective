@@ -140,11 +140,14 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
     manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
+    persist = AsyncMock()
+
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -162,6 +165,8 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     assert args[1] == project_id
     assert kwargs["failure_reason"] == WorkflowRunFailureReason.TIMEOUT
     assert "max_duration" in kwargs["failure_message"]
+    # A run the reaper already failed keeps the reaper's cleanup.
+    assert persist.await_args.kwargs == {"unless_failed": True}
 
 
 @pytest.mark.asyncio
@@ -235,11 +240,14 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
     # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
     manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
+    persist = AsyncMock()
+
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -252,6 +260,8 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
 
     manifest.on_cancel.assert_awaited_once()
     fail.assert_not_awaited()
+    # A user cancel is the runner's own to clean up.
+    assert persist.await_args.kwargs == {"unless_failed": False}
 
 
 # ---------------------------------------------------------------------------

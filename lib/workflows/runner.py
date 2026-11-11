@@ -274,7 +274,7 @@ async def run_workflow(
         # on_cancel is the right place for abnormal-teardown cleanup
         # (per-item statuses stuck in 'pending' would remain otherwise).
         updated_state = await _run_on_cancel_hook(
-            manifest, workflow_run_id, updated_state
+            manifest, workflow_run_id, updated_state, unless_failed=True
         )
         await fail_workflow_run(
             workflow_run_id,
@@ -319,8 +319,13 @@ async def _run_on_cancel_hook(
     manifest: WorkflowManifest | None,
     workflow_run_id: str,
     state: WorkflowState,
+    *,
+    unless_failed: bool = False,
 ) -> WorkflowState:
     """Best-effort cleanup on cancel or timeout: run on_cancel and persist its state.
+
+    A timeout passes `unless_failed`: a run the reaper already failed keeps the
+    reaper's cleaned state. A user cancel is the runner's own to clean up.
 
     A failing hook or persist is logged and never propagated, so the caller
     still records the run's real outcome (CANCELLED stays, a timeout becomes
@@ -332,7 +337,9 @@ async def _run_on_cancel_hook(
     cleaned = state
     try:
         cleaned = await manifest.on_cancel(state)
-        await persist_workflow_run_state(workflow_run_id, cleaned)
+        await persist_workflow_run_state(
+            workflow_run_id, cleaned, unless_failed=unless_failed
+        )
     except Exception as e:
         logger.error(
             f"on_cancel cleanup failed for workflow run {workflow_run_id}: {e}",

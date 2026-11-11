@@ -63,6 +63,7 @@ async def test_cancel_marks_run_cancelled():
         WorkflowRunStatus.CANCELLED,
         failure_reason=None,
         failure_message=None,
+        clean_up_state=None,
     )
 
 

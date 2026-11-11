@@ -12,7 +12,7 @@ import uuid
 from collections.abc import AsyncIterator
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
@@ -32,8 +32,10 @@ from lib.models.workflow_run import (
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.services.workflow_runs import reaper
 from lib.services.workflow_runs.service import (
+    fail_workflow_run,
     get_workflow_run,
     persist_workflow_run_state,
+    update_workflow_run_status,
 )
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.state import (
@@ -305,3 +307,25 @@ async def test_a_node_finishing_after_a_user_cancel_still_saves_its_result(
         for ref in (run.state_json or {})["fetched_references"]
     }
     assert statuses == {"r1": "completed", "r2": "completed"}
+
+
+@pytest.mark.asyncio
+async def test_the_reapers_cleanup_is_skipped_when_the_run_already_ended(
+    stale_run: tuple[str, str],
+):
+    """The cleanup rides on the FAILED write, so a run that completed before the
+    reaper got to it keeps its state untouched."""
+    run_id, project_id = stale_run
+    await persist_workflow_run_state(run_id, _initial_state(project_id))
+    await update_workflow_run_status(run_id, WorkflowRunStatus.COMPLETED)
+    clean_up = AsyncMock()
+
+    await fail_workflow_run(
+        run_id,
+        project_id,
+        failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+        clean_up_state=clean_up,
+    )
+
+    clean_up.assert_not_awaited()
+    assert (await get_workflow_run(run_id)).status == WorkflowRunStatus.COMPLETED

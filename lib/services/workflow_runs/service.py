@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, TypeVar, cast
@@ -35,6 +36,10 @@ from lib.workflows.workflow_types import WorkflowState
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
+
+# Cleans up a run's state as it ends: given the locked row (state_json loaded),
+# returns the state to store with the new status, or None to leave it as is.
+StateCleanup = Callable[[WorkflowRun], Awaitable[WorkflowState | None]]
 
 
 class WorkflowStateStatus(StrEnum):
@@ -285,6 +290,7 @@ async def update_workflow_run_status(
     status: WorkflowRunStatus,
     failure_reason: WorkflowRunFailureReason | None = None,
     failure_message: str | None = None,
+    clean_up_state: StateCleanup | None = None,
 ) -> None:
     """Update an existing workflow run's status, unless it already committed a terminal one.
 
@@ -299,6 +305,11 @@ async def update_workflow_run_status(
 
     `failure_reason` and `failure_message` are persisted only when transitioning
     to FAILED; they are ignored for other statuses.
+
+    `clean_up_state`, when given, rewrites state_json in the same transaction,
+    and only if this write changes the status. The reaper uses it so a run
+    never shows FAILED with its items still pending, and the runner's state
+    writes, which skip FAILED rows, wait on the row lock and then skip.
     """
     async with get_async_db_session() as session:
         stmt = (
@@ -311,6 +322,8 @@ async def update_workflow_run_status(
             )
             .with_for_update()
         )
+        if clean_up_state is not None:
+            stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         run = (await session.execute(stmt)).scalar_one_or_none()
         if run:
             now = datetime.utcnow()
@@ -324,6 +337,12 @@ async def update_workflow_run_status(
                 run.failure_message = (
                     failure_message[:2000] if failure_message else None
                 )
+            if clean_up_state is not None:
+                cleaned = await clean_up_state(run)
+                if cleaned is not None:
+                    run.state_json = sanitize_for_postgres(
+                        cleaned.model_dump(mode="json")
+                    )
             await session.commit()
 
 
@@ -386,6 +405,7 @@ async def fail_workflow_run(
     project_id: str,
     failure_reason: WorkflowRunFailureReason,
     failure_message: str | None = None,
+    clean_up_state: StateCleanup | None = None,
 ) -> None:
     """Mark a workflow run as FAILED and cascade-cancel its active dependents.
 
@@ -400,6 +420,7 @@ async def fail_workflow_run(
         WorkflowRunStatus.FAILED,
         failure_reason=failure_reason,
         failure_message=failure_message,
+        clean_up_state=clean_up_state,
     )
 
 
@@ -409,6 +430,7 @@ async def _end_workflow_run(
     status: WorkflowRunStatus,
     failure_reason: WorkflowRunFailureReason | None = None,
     failure_message: str | None = None,
+    clean_up_state: StateCleanup | None = None,
 ) -> None:
     """Clear the run's progress, set its final status and cancel its dependents."""
     run = await get_workflow_run(workflow_run_id)
@@ -422,6 +444,7 @@ async def _end_workflow_run(
         status,
         failure_reason=failure_reason,
         failure_message=failure_message,
+        clean_up_state=clean_up_state,
     )
     await _cascade_cancel_dependents(run.type, project_id, run.revision)
 

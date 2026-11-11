@@ -18,7 +18,6 @@ from lib.services.workflow_runs import reaper as workflow_reaper
 from lib.services.workflow_runs.reaper import (
     PENDING_GRACE_SECONDS,
     REAPER_GRACE_SECONDS,
-    _clean_up_reaped_run,
     _reap_once,
     _run_manifest_on_cancel,
     run_reaper_loop,
@@ -66,13 +65,13 @@ def _make_run(
 
 @pytest.mark.asyncio
 async def test_run_manifest_on_cancel_invokes_hook_when_state_present():
-    """Hook is awaited with the loaded state and its return is persisted to state_json."""
+    """Hook is awaited with the loaded state and its cleaned state is returned
+    for fail_workflow_run to store with FAILED."""
     run = _make_run(WorkflowRunStatus.RUNNING)
     state = MagicMock()
     cleaned_state = MagicMock()
     manifest = MagicMock()
     manifest.on_cancel = AsyncMock(return_value=cleaned_state)
-    persist = AsyncMock()
 
     with (
         patch.object(workflow_reaper, "get_workflow_manifest", return_value=manifest),
@@ -82,14 +81,11 @@ async def test_run_manifest_on_cancel_invokes_hook_when_state_present():
             "read_workflow_run_state",
             new=AsyncMock(return_value=state),
         ),
-        patch.object(workflow_reaper, "persist_workflow_run_state", new=persist),
     ):
-        await _run_manifest_on_cancel(run)
+        result = await _run_manifest_on_cancel(run)
 
-    # on_cancel now takes only the state and returns the cleaned-up state, which
-    # is persisted directly — no checkpointer re-read.
     manifest.on_cancel.assert_awaited_once_with(state)
-    persist.assert_awaited_once_with(str(run.id), cleaned_state)
+    assert result is cleaned_state
 
 
 @pytest.mark.asyncio
@@ -142,9 +138,8 @@ async def test_run_manifest_on_cancel_swallows_hook_exception():
             "read_workflow_run_state",
             new=AsyncMock(return_value=MagicMock()),
         ),
-        patch.object(workflow_reaper, "persist_workflow_run_state", new=AsyncMock()),
     ):
-        await _run_manifest_on_cancel(run)
+        assert await _run_manifest_on_cancel(run) is None
 
 
 @pytest.mark.asyncio
@@ -167,42 +162,6 @@ async def test_run_manifest_on_cancel_swallows_state_load_exception():
     manifest.on_cancel.assert_not_awaited()
 
 
-@pytest.mark.parametrize(
-    ("status", "reason", "cleaned"),
-    [
-        (WorkflowRunStatus.FAILED, WorkflowRunFailureReason.NO_HEARTBEAT, True),
-        # The run ended some other way before the reaper's FAILED landed.
-        (WorkflowRunStatus.COMPLETED, None, False),
-        (
-            WorkflowRunStatus.FAILED,
-            WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
-            False,
-        ),
-    ],
-)
-@pytest.mark.asyncio
-async def test_clean_up_reaped_run_only_cleans_runs_the_reaper_failed(
-    status: WorkflowRunStatus,
-    reason: WorkflowRunFailureReason | None,
-    cleaned: bool,
-):
-    run = _make_run(status)
-    run.failure_reason = reason
-    on_cancel = AsyncMock()
-
-    with (
-        patch.object(
-            workflow_reaper, "get_workflow_run", new=AsyncMock(return_value=run)
-        ) as load,
-        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
-    ):
-        await _clean_up_reaped_run(str(run.id))
-
-    # The cleanup starts from the row as it is now, state included.
-    load.assert_awaited_once_with(str(run.id), include_state=True)
-    assert on_cancel.await_count == (1 if cleaned else 0)
-
-
 # ---------------------------------------------------------------------------
 # _reap_once
 # ---------------------------------------------------------------------------
@@ -217,7 +176,7 @@ async def test_reap_once_returns_zero_when_nothing_stuck():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
     ):
         reaped = await _reap_once()
 
@@ -236,7 +195,7 @@ async def test_reap_once_skips_runs_without_project_id():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
     ):
         reaped = await _reap_once()
 
@@ -258,11 +217,11 @@ async def test_reap_once_running_uses_no_heartbeat_failure_reason():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=on_cancel),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
     ):
         await _reap_once(running_grace_seconds=60.0)
 
-    on_cancel.assert_awaited_once_with(str(run.id))
+    on_cancel.assert_not_awaited()  # handed to fail_workflow_run, which is mocked
     fail.assert_awaited_once()
     kwargs = fail.await_args.kwargs
     args = fail.await_args.args
@@ -271,6 +230,7 @@ async def test_reap_once_running_uses_no_heartbeat_failure_reason():
     assert kwargs["failure_reason"] == WorkflowRunFailureReason.NO_HEARTBEAT
     assert "No heartbeat" in kwargs["failure_message"]
     assert "60s" in kwargs["failure_message"]
+    assert kwargs["clean_up_state"] is on_cancel
 
 
 @pytest.mark.asyncio
@@ -284,7 +244,7 @@ async def test_reap_once_pending_uses_pending_specific_message():
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
     ):
         await _reap_once(pending_grace_seconds=PENDING_GRACE_SECONDS)
 
@@ -298,34 +258,22 @@ async def test_reap_once_pending_uses_pending_specific_message():
 
 
 @pytest.mark.asyncio
-async def test_reap_once_cleans_up_after_fail():
-    """The manifest hook fires after the FAILED transition: a reaped run that is
-    still alive stops writing its state then, so the cleanup is the last write."""
+async def test_reap_once_cleans_up_inside_the_failed_transition():
+    """The on_cancel cleanup goes to fail_workflow_run, which stores it in the
+    same transaction as FAILED: no FAILED run with pending items in between,
+    and no runner write between the cleanup and FAILED."""
     run = _make_run(WorkflowRunStatus.RUNNING)
-    call_order: list[str] = []
-
-    async def record_on_cancel(_run):
-        call_order.append("on_cancel")
-
-    async def record_fail(*_args, **_kwargs):
-        call_order.append("fail")
+    fail = AsyncMock()
 
     with (
         patch.object(
             workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
         ),
-        patch.object(
-            workflow_reaper,
-            "_clean_up_reaped_run",
-            new=AsyncMock(side_effect=record_on_cancel),
-        ),
-        patch.object(
-            workflow_reaper, "fail_workflow_run", new=AsyncMock(side_effect=record_fail)
-        ),
+        patch.object(workflow_reaper, "fail_workflow_run", new=fail),
     ):
         await _reap_once()
 
-    assert call_order == ["fail", "on_cancel"]
+    assert fail.await_args.kwargs["clean_up_state"] is _run_manifest_on_cancel
 
 
 @pytest.mark.asyncio
@@ -342,7 +290,7 @@ async def test_reap_once_continues_when_one_row_fails():
             "_find_stuck_runs",
             new=AsyncMock(return_value=[bad, good]),
         ),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
     ):
         reaped = await _reap_once()
@@ -350,29 +298,6 @@ async def test_reap_once_continues_when_one_row_fails():
     assert reaped == 2
     assert fail.await_count == 2
     assert fail.await_args_list[1].args[0] == str(good.id)
-
-
-@pytest.mark.asyncio
-async def test_reap_once_cleans_up_even_when_fail_raises():
-    """fail_workflow_run can commit FAILED and then raise while cancelling
-    dependents; the run is never swept again, so the cleanup still runs."""
-    run = _make_run(WorkflowRunStatus.RUNNING)
-    clean_up = AsyncMock()
-
-    with (
-        patch.object(
-            workflow_reaper, "_find_stuck_runs", new=AsyncMock(return_value=[run])
-        ),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=clean_up),
-        patch.object(
-            workflow_reaper,
-            "fail_workflow_run",
-            new=AsyncMock(side_effect=RuntimeError("cascade failed")),
-        ),
-    ):
-        assert await _reap_once() == 1
-
-    clean_up.assert_awaited_once_with(str(run.id))
 
 
 @pytest.mark.asyncio
@@ -388,7 +313,7 @@ async def test_reap_once_handles_mixed_running_and_pending():
             "_find_stuck_runs",
             new=AsyncMock(return_value=[running, pending]),
         ),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=AsyncMock()),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=AsyncMock()),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
     ):
         await _reap_once()
@@ -431,7 +356,7 @@ async def test_reap_once_skips_when_lock_not_acquired():
         ),
         patch.object(workflow_reaper, "_find_stuck_runs", new=find_stuck),
         patch.object(workflow_reaper, "fail_workflow_run", new=fail),
-        patch.object(workflow_reaper, "_clean_up_reaped_run", new=on_cancel),
+        patch.object(workflow_reaper, "_run_manifest_on_cancel", new=on_cancel),
     ):
         reaped = await _reap_once()
 

@@ -43,11 +43,10 @@ from lib.models.workflow_run import (
 from lib.services.workflow_runs.orchestration import DEPENDENCY_WAIT_TIMEOUT
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
-    get_workflow_run,
-    persist_workflow_run_state,
     read_workflow_run_state,
 )
 from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
 
@@ -146,54 +145,36 @@ async def _find_stuck_runs(
         return list((await session.execute(stmt)).scalars().all())
 
 
-async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
+async def _run_manifest_on_cancel(run: WorkflowRun) -> WorkflowState | None:
     """Best-effort invocation of the manifest's on_cancel hook for a stuck run.
 
     Mirrors the cancel/timeout paths in the runner so per-item statuses (e.g.
     pending validation entries) get cleaned up instead of being stranded as
-    'pending'. Errors are logged but never propagated — the reaper must still
-    flip the run to FAILED.
+    'pending'. Returns the cleaned state, which fail_workflow_run stores in the
+    same transaction as FAILED, or None to leave the state alone. Errors are
+    logged but never propagated — the reaper must still flip the run to FAILED.
     """
     manifest = get_workflow_manifest(run.type, raise_exception=False)
     if manifest is None:
-        return
+        return None
 
     try:
         state = await read_workflow_run_state(run)
     except Exception as e:
         logger.error(f"Reaper: failed to load state for {run.id}: {e}", exc_info=True)
-        return
+        return None
 
     if state is None:
-        return
+        return None
 
-    # on_cancel returns the cleaned-up state; persist it directly onto state_json.
-    # Best-effort: a failure here never blocks the reaper from flipping the run
-    # to FAILED.
     try:
-        cleaned = await manifest.on_cancel(state)
-        await persist_workflow_run_state(str(run.id), cleaned)
+        return await manifest.on_cancel(state)
     except Exception as e:
         logger.error(
             f"Reaper: on_cancel hook failed for {run.id} ({run.type}): {e}",
             exc_info=True,
         )
-
-
-async def _clean_up_reaped_run(workflow_run_id: str) -> None:
-    """Run on_cancel on the run's latest state, once the reaper's FAILED is in.
-
-    Cleaning up after the FAILED write rather than before makes it the last
-    write: a reaped run may still be alive, and the runner's own state writes
-    stop landing once the row is FAILED. Skipped when the run ended some other
-    way first (completed, or failed by the runner itself).
-    """
-    run = await get_workflow_run(workflow_run_id, include_state=True)
-    if (
-        run.status == WorkflowRunStatus.FAILED
-        and run.failure_reason == WorkflowRunFailureReason.NO_HEARTBEAT
-    ):
-        await _run_manifest_on_cancel(run)
+        return None
 
 
 async def _reap_once(
@@ -250,23 +231,21 @@ async def _reap_once_locked(
             )
 
         try:
-            try:
-                await fail_workflow_run(
-                    str(run.id),
-                    str(run.project_id),
-                    failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
-                    failure_message=failure_message,
-                )
-            finally:
-                # Also after a failed cascade: FAILED may already be committed,
-                # and the run is never swept again. _clean_up_reaped_run checks
-                # that the reaper's FAILED landed before touching anything.
-                # PENDING runs never reached run_workflow, so most have no
-                # persisted state and the on_cancel call is a no-op (state is
-                # None). Some still carry one written at request time (the
-                # Review Assistant records its request on the run before the
-                # task starts), and those get the hook like any other run.
-                await _clean_up_reaped_run(str(run.id))
+            # The cleanup runs on the row's latest state, inside the locked
+            # transaction that writes FAILED: a reaped run may still be alive,
+            # and its runner's state writes skip FAILED rows. PENDING runs never
+            # reached run_workflow, so most have no persisted state and the
+            # on_cancel call is a no-op (state is None). Some still carry one
+            # written at request time (the Review Assistant records its request
+            # on the run before the task starts), and those get the hook like
+            # any other run.
+            await fail_workflow_run(
+                str(run.id),
+                str(run.project_id),
+                failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
+                failure_message=failure_message,
+                clean_up_state=_run_manifest_on_cancel,
+            )
         except Exception as e:
             # Don't let one bad row stop the sweep.
             logger.error(
