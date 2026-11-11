@@ -86,7 +86,7 @@ describe('dbThreadListAdapter thread metadata', () => {
   it.each([
     ['rename', () => adapter.rename('t1', 'Draft review'), { title: 'Draft review' }],
     ['archive', () => adapter.archive('t1'), { is_archived: true }],
-    ['unarchive', () => adapter.unarchive?.('t1'), { is_archived: false }],
+    ['unarchive', () => adapter.unarchive('t1'), { is_archived: false }],
   ])('%s updates only the matching field', async (_name, run, body) => {
     await run();
 
