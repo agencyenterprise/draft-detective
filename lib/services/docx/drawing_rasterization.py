@@ -34,6 +34,7 @@ no LibreOffice render.
 import asyncio
 import io
 import logging
+import math
 import os
 import shutil
 import tempfile
@@ -67,6 +68,13 @@ _METAFILE_CONTENT_TYPES = {
 _RENDER_TIMEOUT = 120
 # 4× the PDF's 72 dpi user units ≈ 288 dpi — crisp at document display size.
 _PDF_RENDER_SCALE = 4
+# The most pixels one drawing renders to. The page size and the extent both
+# come from the uploaded document, and LibreOffice exports pages up to 8500pt
+# square: at the full scale, that is a 34000 px square bitmap, 8 GB at peak,
+# from a 36 KB file. 16 MP covers a full letter-size page at the full scale
+# (~8 MP) twice over; only drawings larger than about 14 inches square render
+# at a lower scale, still above 180 dpi.
+_MAX_RENDER_PIXELS = 16_000_000
 _EMU_PER_POINT = 12700
 
 
@@ -314,15 +322,9 @@ def _render_pdf_pages(
         for index in range(min(len(pdf), len(extents))):
             page = pdf[index]
             try:
-                image = page.render(scale=_PDF_RENDER_SCALE).to_pil()
+                image = _render_drawing(page, extents[index])
             finally:
                 page.close()
-            cx, cy = extents[index]
-            width = round(cx / _EMU_PER_POINT * _PDF_RENDER_SCALE)
-            height = round(cy / _EMU_PER_POINT * _PDF_RENDER_SCALE)
-            image = image.crop(
-                (0, 0, min(width, image.width), min(height, image.height))
-            )
             path = os.path.join(out_dir, f"drawing-{index}.png")
             image.save(path, format="PNG")
             paths.append(path)
@@ -331,6 +333,32 @@ def _render_pdf_pages(
         return paths
     finally:
         pdf.close()
+
+
+def _render_drawing(page: Any, extent: tuple[int, int]) -> Image.Image:
+    """Render the drawing at ``page``'s top-left corner, ``extent`` in EMU.
+
+    Only the drawing's region is rasterized, never the rest of the page, and
+    at a scale that keeps it within ``_MAX_RENDER_PIXELS``.
+    """
+    page_width, page_height = page.get_size()
+    width = min(extent[0] / _EMU_PER_POINT, page_width)
+    height = min(extent[1] / _EMU_PER_POINT, page_height)
+    scale: float = _PDF_RENDER_SCALE
+    if width * height * scale**2 > _MAX_RENDER_PIXELS:
+        scale = math.sqrt(_MAX_RENDER_PIXELS / (width * height))
+    # Crop amounts are what is cut off each side: (left, bottom, right, top).
+    crop = (0, page_height - height, page_width - width, 0)
+    image = page.render(scale=scale, crop=crop).to_pil()
+    # PDFium rounds the bitmap up to whole pixels; trim to the extent's.
+    return image.crop(
+        (
+            0,
+            0,
+            min(round(width * scale), image.width),
+            min(round(height * scale), image.height),
+        )
+    )
 
 
 async def _render_drawings_to_images(
