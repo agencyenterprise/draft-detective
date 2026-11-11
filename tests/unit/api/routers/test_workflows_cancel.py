@@ -32,7 +32,7 @@ async def test_cancel_completed_workflow_raises_400():
     run = _make_run(WorkflowRunStatus.COMPLETED)
 
     with patch(
-        "lib.api.routers.workflows.get_workflow_run",
+        "lib.api.routers.workflows.get_accessible_workflow_run",
         new=AsyncMock(return_value=run),
     ):
         with pytest.raises(HTTPException) as exc_info:
@@ -48,7 +48,7 @@ async def test_cancel_failed_workflow_raises_400():
     run = _make_run(WorkflowRunStatus.FAILED)
 
     with patch(
-        "lib.api.routers.workflows.get_workflow_run",
+        "lib.api.routers.workflows.get_accessible_workflow_run",
         new=AsyncMock(return_value=run),
     ):
         with pytest.raises(HTTPException) as exc_info:
@@ -64,7 +64,7 @@ async def test_cancel_already_cancelled_workflow_is_idempotent():
     run = _make_run(WorkflowRunStatus.CANCELLED)
 
     with patch(
-        "lib.api.routers.workflows.get_workflow_run",
+        "lib.api.routers.workflows.get_accessible_workflow_run",
         new=AsyncMock(return_value=run),
     ):
         response = await cancel_workflow_run_endpoint(
@@ -82,7 +82,7 @@ async def test_cancel_running_workflow_triggers_cancellation():
 
     with (
         patch(
-            "lib.api.routers.workflows.get_workflow_run",
+            "lib.api.routers.workflows.get_accessible_workflow_run",
             new=AsyncMock(return_value=run),
         ),
         patch(
@@ -106,7 +106,7 @@ async def test_cancel_pending_workflow_triggers_cancellation():
 
     with (
         patch(
-            "lib.api.routers.workflows.get_workflow_run",
+            "lib.api.routers.workflows.get_accessible_workflow_run",
             new=AsyncMock(return_value=run),
         ),
         patch(
