@@ -25,6 +25,7 @@ from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs.orchestration import wait_for_dependencies
+from lib.services.workflow_runs.queue import heartbeat_while_preparing
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
@@ -93,8 +94,9 @@ async def run_workflow_with_dependency_check(
 
     except WorkflowCancelledError:
         logger.info(f"Workflow {workflow_run_id} ({config.type.value}) was cancelled")
-        # Status is already CANCELLED in DB; the guard in update_workflow_run_status
-        # prevents it from being overwritten
+        # The row already holds its final status: CANCELLED, or FAILED when the
+        # reaper failed the run while it waited. update_workflow_run_status
+        # never overwrites a terminal status.
 
     except DependencyWaitTimeoutError as e:
         logger.error(
@@ -140,22 +142,29 @@ async def run_workflow_from_config(
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
 
-    # Read the prior same-type run's state here — at execution time, after the
-    # same-type wait in run_workflow_with_dependency_check has resolved — so
-    # accumulating workflows seed from the prior run's FINAL state rather than a
-    # snapshot taken while it was still running. Exclude this run (its state_json
-    # is still NULL now anyway). Skipped on resume (seed_prior_state=False).
-    prior_self_state = (
-        await get_latest_workflow_run_state_by_type(
-            config.project_id, config.type, revision, exclude_run_id=workflow_run_id
+    # The run may already be RUNNING (it claimed the same-type queue), so it
+    # beats while it prepares; graph nodes take over the heartbeat after this.
+    async with heartbeat_while_preparing(workflow_run_id):
+        # Read the prior same-type run's state here — at execution time, after
+        # the same-type wait in run_workflow_with_dependency_check has resolved
+        # — so accumulating workflows seed from the prior run's FINAL state
+        # rather than a snapshot taken while it was still running. Exclude this
+        # run (its state_json is still NULL now anyway). Skipped on resume
+        # (seed_prior_state=False).
+        prior_self_state = (
+            await get_latest_workflow_run_state_by_type(
+                config.project_id,
+                config.type,
+                revision,
+                exclude_run_id=workflow_run_id,
+            )
+            if seed_prior_state
+            else None
         )
-        if seed_prior_state
-        else None
-    )
 
-    state = await create_state(
-        config, revision=revision, prior_self_state=prior_self_state
-    )
+        state = await create_state(
+            config, revision=revision, prior_self_state=prior_self_state
+        )
 
     with propagate_attributes(user_id=context.user_id):
         return await run_workflow(
@@ -237,7 +246,9 @@ async def run_workflow(
                 # state_json is the single source of truth: snapshot the
                 # accumulated state after every superstep and every task
                 # completion, so fan-out workflows show partial results.
-                await persist_workflow_run_state(workflow_run_id, updated_state)
+                await persist_workflow_run_state(
+                    workflow_run_id, updated_state, unless_failed=True
+                )
 
         # Persist issues after workflow completion. Per-node errors collected
         # in updated_state.errors stay surfaced through state — the run still
@@ -261,8 +272,8 @@ async def run_workflow(
         updated_state = await _run_on_cancel_hook(
             manifest, workflow_run_id, updated_state
         )
-        # Status is already CANCELLED in DB; CANCELLED-guard in
-        # update_workflow_run_status keeps it that way.
+        # Status is already CANCELLED in DB; update_workflow_run_status never
+        # overwrites a terminal status.
 
     except TimeoutError:
         logger.error(
@@ -272,7 +283,7 @@ async def run_workflow(
         # on_cancel is the right place for abnormal-teardown cleanup
         # (per-item statuses stuck in 'pending' would remain otherwise).
         updated_state = await _run_on_cancel_hook(
-            manifest, workflow_run_id, updated_state
+            manifest, workflow_run_id, updated_state, unless_failed=True
         )
         await fail_workflow_run(
             workflow_run_id,
@@ -294,7 +305,11 @@ async def run_workflow(
         updated_state = updated_state.model_copy(
             update={"errors": [*updated_state.errors, error]}
         )
-        await persist_workflow_run_state(workflow_run_id, updated_state)
+        # A run the reaper already failed lands here too (its nodes are
+        # cancelled as NodeCancelledError): keep the reaper's cleaned state.
+        await persist_workflow_run_state(
+            workflow_run_id, updated_state, unless_failed=True
+        )
         await fail_workflow_run(
             workflow_run_id,
             project_id,
@@ -313,8 +328,13 @@ async def _run_on_cancel_hook(
     manifest: WorkflowManifest | None,
     workflow_run_id: str,
     state: WorkflowState,
+    *,
+    unless_failed: bool = False,
 ) -> WorkflowState:
     """Best-effort cleanup on cancel or timeout: run on_cancel and persist its state.
+
+    A timeout passes `unless_failed`: a run the reaper already failed keeps the
+    reaper's cleaned state. A user cancel is the runner's own to clean up.
 
     A failing hook or persist is logged and never propagated, so the caller
     still records the run's real outcome (CANCELLED stays, a timeout becomes
@@ -326,7 +346,9 @@ async def _run_on_cancel_hook(
     cleaned = state
     try:
         cleaned = await manifest.on_cancel(state)
-        await persist_workflow_run_state(workflow_run_id, cleaned)
+        await persist_workflow_run_state(
+            workflow_run_id, cleaned, unless_failed=unless_failed
+        )
     except Exception as e:
         logger.error(
             f"on_cancel cleanup failed for workflow run {workflow_run_id}: {e}",

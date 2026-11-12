@@ -44,7 +44,6 @@ class LoadedDocument(BaseModel):
         default_factory=list, description="(author, text), threads and replies alike"
     )
     last_modified: str | None = None
-    size_bytes: int = 0
     images: list[ExtractedImage] = Field(
         default_factory=list,
         description="The images the markdown references, saved but not yet owned",
@@ -134,6 +133,5 @@ async def load(url: str, *, token: str) -> LoadedDocument:
         markdown=read.markdown,
         comments=read.comments,
         last_modified=item.get("lastModifiedDateTime"),
-        size_bytes=len(payload),
         images=read.images,
     )

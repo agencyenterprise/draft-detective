@@ -1,7 +1,7 @@
 """Diagnostic test to verify decorator receives runtime with context."""
 
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -15,8 +15,12 @@ PROGRESS_ID = uuid.uuid4()
 @patch("lib.workflows.decorators.get_or_create_progress", return_value=PROGRESS_ID)
 @patch("lib.workflows.decorators.increment_and_complete_if_done", return_value=True)
 @patch("lib.services.workflow_runs.service.get_workflow_run_status", return_value=None)
+@patch(
+    "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
+    new_callable=AsyncMock,
+)
 async def test_decorator_receives_runtime_with_context(
-    mock_get_status, mock_increment, mock_get_or_create
+    mock_heartbeat, mock_get_status, mock_increment, mock_get_or_create
 ):
     """Verify that the decorator correctly receives runtime with context attribute."""
     received_args = {}

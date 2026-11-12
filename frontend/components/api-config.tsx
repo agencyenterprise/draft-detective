@@ -1,34 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
-import { client } from '@/lib/generated-api/client.gen';
+import { useEffect, useLayoutEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { baseUrl } from '@/lib/api';
+import { setApiAccessToken } from '@/lib/api-client';
 import { posthog } from '@/lib/posthog';
-import { ApiError } from '@/lib/api-error';
 
 export function ApiConfig() {
   const session = useSession();
   const accessToken = session.data?.accessToken;
 
-  useEffect(() => {
-    const id = client.interceptors.error.use((error, response) => {
-      if (response instanceof Response) {
-        const detail = (error as { detail?: string })?.detail;
-        return new ApiError(response.status, detail);
-      }
-      return error as Error;
-    });
-    return () => client.interceptors.error.eject(id);
-  }, []);
-
-  useEffect(() => {
-    client.setConfig({
-      baseUrl,
-      headers: {
-        Authorization: accessToken ? `Bearer ${accessToken}` : undefined,
-      },
-    });
+  // A layout effect, so the token changes only when a render commits. It still precedes every request the app makes
+  // on mount: ApiConfig renders before the app's other components, so its layout effect runs before their layout and
+  // passive effects.
+  useLayoutEffect(() => {
+    setApiAccessToken(accessToken);
   }, [accessToken]);
 
   useEffect(() => {

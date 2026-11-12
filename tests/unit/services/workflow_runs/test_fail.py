@@ -68,6 +68,7 @@ async def test_fail_marks_run_failed_with_reason_and_message():
         WorkflowRunStatus.FAILED,
         failure_reason=WorkflowRunFailureReason.TIMEOUT,
         failure_message="exceeded max_duration",
+        clean_up_state=None,
     )
 
 

@@ -11,6 +11,7 @@ import os
 import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pypdfium2 as pdfium  # type: ignore[import-untyped]
 import pytest
 from docx import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -22,6 +23,7 @@ from PIL import Image
 
 from lib.services.converters.markitdown import markitdown_converter
 from lib.services.docx.drawing_rasterization import (
+    _MAX_RENDER_PIXELS,
     CHART_GRAPHIC_URI,
     PICTURE_GRAPHIC_URI,
     _render_pdf_pages,
@@ -502,6 +504,57 @@ def test_render_pdf_pages_crops_to_declared_extent(tmp_path):
     first, second = (Image.open(p) for p in paths)
     assert first.size == (150 * scale, 50 * scale)
     assert second.size == (200 * scale, 100 * scale)  # clamped to the page
+
+
+def _huge_page_pdf(tmp_path) -> str:
+    """A one-page PDF of 2400x2400pt: a 24x24 px image saved at 0.72 dpi.
+
+    LibreOffice exports a page as large as the document declares (up to
+    8500pt square), so the page size is attacker-controlled; this one is
+    small enough that the unbounded render stays affordable in a test.
+    """
+    pdf_path = str(tmp_path / "huge-page.pdf")
+    Image.new("RGB", (24, 24), "white").save(pdf_path, resolution=0.72)
+    return pdf_path
+
+
+def _record_render_sizes(monkeypatch) -> list[tuple[int, int]]:
+    """Record the size of every bitmap PDFium renders."""
+    sizes: list[tuple[int, int]] = []
+    render = pdfium.PdfPage.render
+
+    def recording_render(self, *args, **kwargs):
+        bitmap = render(self, *args, **kwargs)
+        sizes.append((bitmap.width, bitmap.height))
+        return bitmap
+
+    monkeypatch.setattr(pdfium.PdfPage, "render", recording_render)
+    return sizes
+
+
+def test_render_pdf_pages_caps_the_pixels_of_a_huge_drawing(tmp_path, monkeypatch):
+    """A drawing as large as a huge page renders at a reduced scale: at the
+    full scale, the page LibreOffice exports for a 36 KB document takes 8 GB."""
+    sizes = _record_render_sizes(monkeypatch)
+    extent = (2400 * 12700, 2400 * 12700)
+
+    (path,) = _render_pdf_pages(_huge_page_pdf(tmp_path), str(tmp_path), [extent])
+
+    width, height = sizes[0]
+    assert width * height <= _MAX_RENDER_PIXELS
+    assert Image.open(path).size == (width, height)  # square, like the drawing
+
+
+def test_render_pdf_pages_renders_only_the_drawing_region(tmp_path, monkeypatch):
+    """A small drawing on a huge page renders at full scale, and only its own
+    region is rasterized, never the rest of the page."""
+    sizes = _record_render_sizes(monkeypatch)
+    extent = (100 * 12700, 50 * 12700)
+
+    (path,) = _render_pdf_pages(_huge_page_pdf(tmp_path), str(tmp_path), [extent])
+
+    assert sizes == [(100 * 4, 50 * 4)]
+    assert Image.open(path).size == (100 * 4, 50 * 4)
 
 
 def test_render_pdf_pages_signals_page_count_mismatch(tmp_path):

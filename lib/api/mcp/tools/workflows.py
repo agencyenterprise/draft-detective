@@ -19,6 +19,7 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
 from lib.services.projects.service import get_project_access, strip_converted_markdown
+from lib.services.workflow_runs.access import get_accessible_workflow_run
 from lib.services.workflow_runs.service import (
     build_workflow_run_detail,
     get_project_run_summaries,
@@ -232,8 +233,7 @@ async def get_workflow_run(
     by default: they are long and rarely needed beyond debugging a run.
     """
     user = await helpers.resolve_user(token)
-    run = await get_workflow_run_record(workflow_run_id)
-    await get_project_access(str(run.project_id), user=user)
+    run = await get_accessible_workflow_run(workflow_run_id, user)
     if not is_available_workflow_type(run.type):
         raise ValueError(f"Workflow type '{run.type}' is no longer available")
     run = await get_workflow_run_record(workflow_run_id, include_state=True)

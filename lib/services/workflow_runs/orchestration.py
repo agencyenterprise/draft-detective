@@ -7,6 +7,10 @@ from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRunStatus,
 )
+from lib.services.workflow_runs.queue import (
+    claim_same_type_queue_head,
+    get_run_ahead_in_same_type_queue,
+)
 from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     get_workflow_run_status,
@@ -37,24 +41,37 @@ async def wait_for_dependencies(
     revision: int = 1,
 ) -> None:
     """
-    Wait for all dependencies of a project workflow to complete.
+    Wait until a project workflow may start: no same-type run ahead of it and
+    no dependency still active.
 
     This function handles two types of waiting:
-    1. Same-type locking: If current_workflow_run_id is provided, waits for any other
-       unfinished (pending, running or awaiting approval) run of the same workflow
-       type to end first. Workflows with independent_runs skip it.
-    2. Dependency waiting: Waits for required and optional dependencies to complete.
+    1. Same-type locking: If current_workflow_run_id is provided, waits while
+       another run of the same type is ahead of it: any RUNNING run, or a
+       PENDING run created earlier. Once nothing else holds it back, the run
+       claims the queue and is RUNNING from then on (see
+       lib.services.workflow_runs.queue). Runs of a type go first come, first
+       served and never start together. Workflows with independent_runs skip
+       the lock.
+    2. Dependency waiting: Waits until no required or optional dependency is
+       pending, running or awaiting approval. An optional dependency that never
+       started, or that was cancelled or failed, does not hold the run back.
+
+    Each poll also re-reads the current run's own status, so a run cancelled
+    (or reaped) while it waits stops waiting instead of starting its graph.
 
     Args:
         workflow_type: The workflow type to check dependencies for
         project_id: The project ID to check workflow runs for
-        current_workflow_run_id: If provided, enables same-type locking (skips self)
+        current_workflow_run_id: If provided, enables same-type locking (skips
+            self) and the own-status check, and is marked CANCELLED when a
+            required dependency was cancelled or failed
         revision: The project revision whose runs are checked
 
     Raises:
         DependencyWaitTimeoutError: If the wait exceeds DEPENDENCY_WAIT_TIMEOUT
         ValueError: If a required dependency has no run on the revision
-        WorkflowCancelledError: If a required dependency was cancelled or failed
+        WorkflowCancelledError: If a required dependency was cancelled or failed,
+            or the current run itself ended while it waited
     """
     manifest = get_workflow_manifest(workflow_type)
     required_dependencies = manifest.required_dependencies
@@ -69,6 +86,10 @@ async def wait_for_dependencies(
     needs_dependency_wait = len(all_dependencies) > 0
 
     if not needs_same_type_lock and not needs_dependency_wait:
+        # Nothing to wait for, but a run cancelled between scheduling and its
+        # task starting must still not start.
+        if current_workflow_run_id is not None:
+            await _raise_if_run_ended(current_workflow_run_id, workflow_type)
         return
 
     first_check = True
@@ -80,21 +101,10 @@ async def wait_for_dependencies(
                 f"{DEPENDENCY_WAIT_TIMEOUT}s waiting for dependencies"
             )
 
-        blocking_reasons: list[str] = []
+        if current_workflow_run_id is not None:
+            await _raise_if_run_ended(current_workflow_run_id, workflow_type)
 
-        # Check same-type lock (wait for previous runs of same workflow)
-        if needs_same_type_lock:
-            same_type_run = await get_project_workflow_run_by_type(
-                project_id, workflow_type, revision=revision
-            )
-            if (
-                same_type_run is not None
-                and str(same_type_run.id) != current_workflow_run_id
-                and same_type_run.status not in TERMINAL_WORKFLOW_RUN_STATUSES
-            ):
-                blocking_reasons.append(
-                    f"previous {workflow_type.value} (run_id {str(same_type_run.id)[:8]}...)"
-                )
+        blocking_reasons: list[str] = []
 
         # Check dependencies
         if needs_dependency_wait:
@@ -116,6 +126,20 @@ async def wait_for_dependencies(
             pending_deps = required_pending + optional_pending
             blocking_reasons.extend([dep.value for dep in pending_deps])
 
+        # Same-type lock, checked last. Once nothing else holds the run back it
+        # claims the queue: the check and the move to RUNNING are one
+        # transaction, so a run released or committed later waits for it.
+        if needs_same_type_lock and current_workflow_run_id is not None:
+            run_ahead = await (
+                get_run_ahead_in_same_type_queue(current_workflow_run_id)
+                if blocking_reasons
+                else claim_same_type_queue_head(current_workflow_run_id)
+            )
+            if run_ahead is not None:
+                blocking_reasons.append(
+                    f"previous {workflow_type.value} (run_id {str(run_ahead.id)[:8]}...)"
+                )
+
         # All clear - proceed
         if not blocking_reasons:
             if not first_check:
@@ -132,6 +156,23 @@ async def wait_for_dependencies(
             first_check = False
 
         await asyncio.sleep(DEPENDENCY_CHECK_INTERVAL)
+
+
+async def _raise_if_run_ended(
+    workflow_run_id: str, workflow_type: WorkflowRunType
+) -> None:
+    """Raise WorkflowCancelledError once the waiting run is no longer active.
+
+    A user can cancel a PENDING run, and the reaper fails one left PENDING too
+    long. Either way the row already holds its final status, so the runner only
+    has to stop.
+    """
+    status = await get_workflow_run_status(workflow_run_id)
+    if status in TERMINAL_WORKFLOW_RUN_STATUSES:
+        raise WorkflowCancelledError(
+            f"Workflow {workflow_type.value} run {workflow_run_id} ended in "
+            f"{status.value} while waiting to start"
+        )
 
 
 async def _get_pending_workflow_dependencies(

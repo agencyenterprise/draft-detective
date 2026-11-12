@@ -5,6 +5,7 @@ issue, so these run against Postgres rather than mocks.
 """
 
 import uuid
+from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
@@ -19,6 +20,7 @@ from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
 from lib.services import feedback_service
+from lib.services.workflow_runs.access import get_accessible_workflow_run
 from lib.workflows.models import SeverityEnum
 
 
@@ -204,6 +206,33 @@ async def test_rating_an_unknown_issue_is_a_404(author):
             )
 
     assert excinfo.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_authorization_does_not_hold_the_callers_connection(run, author, issues):
+    """The gate opens its own sessions. If the caller's session already held a
+    connection then, each request would need two at once, and a burst the size
+    of the pool would starve itself."""
+    issue, _ = issues
+    for call in (
+        lambda session: feedback_service.create_or_update_feedback(
+            session=session,
+            issue_id=issue.id,
+            feedback_type=FeedbackType.THUMBS_UP,
+            user=author,
+        ),
+        lambda session: feedback_service.get_feedback_by_issue(
+            session=session, issue_id=issue.id, user=author
+        ),
+    ):
+        async with get_async_db_session() as session:
+
+            async def gate(*args, caller=session, **kwargs):
+                assert not caller.in_transaction()
+                return await get_accessible_workflow_run(*args, **kwargs)
+
+            with patch.object(feedback_service, "get_accessible_workflow_run", gate):
+                await call(session)
 
 
 # ---------------------------------------------------------------------------

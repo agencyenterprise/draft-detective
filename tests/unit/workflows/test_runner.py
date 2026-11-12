@@ -9,6 +9,7 @@ branch with a mocked graph so the behavior contract is locked in even though we
 don't spin up real LangGraph.
 """
 
+import contextlib
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -140,11 +141,14 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
     manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
+    persist = AsyncMock()
+
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -162,6 +166,8 @@ async def test_run_workflow_timeout_marks_failed_and_runs_on_cancel():
     assert args[1] == project_id
     assert kwargs["failure_reason"] == WorkflowRunFailureReason.TIMEOUT
     assert "max_duration" in kwargs["failure_message"]
+    # A run the reaper already failed keeps the reaper's cleanup.
+    assert persist.await_args.kwargs == {"unless_failed": True}
 
 
 @pytest.mark.asyncio
@@ -235,11 +241,14 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
     # on_cancel returns the cleaned-up state; echo the input state (not a bare mock).
     manifest.on_cancel = AsyncMock(side_effect=lambda state: state)
 
+    persist = AsyncMock()
+
     with (
         patch("lib.workflows.runner.get_workflow_manifest", return_value=manifest),
         patch("lib.workflows.runner.update_workflow_run_status", new=AsyncMock()),
         patch("lib.workflows.runner.fail_workflow_run", new=fail),
         patch("lib.workflows.runner._persist_issues_from_state", new=AsyncMock()),
+        patch("lib.workflows.runner.persist_workflow_run_state", new=persist),
     ):
         await run_workflow(
             workflow_run_id=workflow_run_id,
@@ -252,6 +261,8 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
 
     manifest.on_cancel.assert_awaited_once()
     fail.assert_not_awaited()
+    # A user cancel is the runner's own to clean up.
+    assert persist.await_args.kwargs == {"unless_failed": False}
 
 
 # ---------------------------------------------------------------------------
@@ -382,6 +393,10 @@ def _seeding_patches(get_latest, create_state):
         patch("lib.workflows.runner.create_state", new=create_state),
         patch("lib.workflows.runner.run_workflow", new=AsyncMock()),
         patch("lib.workflows.runner.propagate_attributes"),
+        patch(
+            "lib.workflows.runner.heartbeat_while_preparing",
+            return_value=contextlib.nullcontext(),
+        ),
     )
 
 
@@ -397,8 +412,9 @@ async def test_run_workflow_from_config_seeds_prior_state_when_enabled():
     get_latest = AsyncMock(return_value=prior)
     create_state = AsyncMock()
 
-    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
-    with p1, p2, p3, p4, p5, p6:
+    with contextlib.ExitStack() as patches:
+        for seeding_patch in _seeding_patches(get_latest, create_state):
+            patches.enter_context(seeding_patch)
         await run_workflow_from_config(
             config=config,
             thread_id=str(uuid4()),
@@ -424,8 +440,9 @@ async def test_run_workflow_from_config_skips_seeding_on_resume():
     get_latest = AsyncMock()
     create_state = AsyncMock()
 
-    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
-    with p1, p2, p3, p4, p5, p6:
+    with contextlib.ExitStack() as patches:
+        for seeding_patch in _seeding_patches(get_latest, create_state):
+            patches.enter_context(seeding_patch)
         await run_workflow_from_config(
             config=config,
             thread_id=str(uuid4()),

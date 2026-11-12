@@ -5061,7 +5061,7 @@ export type WorkflowRun = {
   /**
    * Completed At
    *
-   * The timestamp when the workflow run transitioned to COMPLETED or CANCELLED
+   * The timestamp when the workflow run reached a terminal status (COMPLETED, CANCELLED or FAILED)
    */
   completed_at: Date | null;
   /**
@@ -5073,7 +5073,7 @@ export type WorkflowRun = {
   /**
    * Heartbeat At
    *
-   * Updated on every node entry/exit; used by the reaper to detect stuck runs
+   * Written as each node starts and every few seconds while it runs; the reaper fails a RUNNING run whose heartbeat goes stale
    */
   heartbeat_at: Date | null;
   /**

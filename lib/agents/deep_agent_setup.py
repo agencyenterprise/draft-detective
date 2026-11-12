@@ -210,15 +210,3 @@ def build_llm(
     if output_version:
         kwargs["output_version"] = output_version
     return init_chat_model(**kwargs)
-
-
-def tool_names(messages: list[Any]) -> list[str]:
-    """Which tools a run actually called, for the caller's own reporting."""
-
-    used: list[str] = []
-    for message in messages:
-        for call in getattr(message, "tool_calls", None) or []:
-            name = call.get("name") if isinstance(call, dict) else None
-            if name:
-                used.append(name)
-    return sorted(set(used))

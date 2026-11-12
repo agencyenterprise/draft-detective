@@ -106,6 +106,10 @@ def mock_decorator_progress():
             "lib.services.workflow_runs.service.get_workflow_run_status",
             return_value=None,
         ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
+            AsyncMock(),
+        ),
     ):
         yield
 

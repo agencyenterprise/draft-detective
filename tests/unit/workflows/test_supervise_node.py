@@ -8,12 +8,12 @@ regression.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from lib.models.workflow_run import WorkflowRunStatus
-from lib.workflows.decorators import _supervise_node
+from lib.workflows.decorators import _run_node_with_cancellation, _supervise_node
 
 
 @pytest.mark.asyncio
@@ -153,3 +153,35 @@ async def test_supervise_returns_when_node_completes_first():
 
     status_mock.assert_not_awaited()
     heartbeat_mock.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_run_node_bumps_heartbeat_even_when_node_finishes_before_first_tick():
+    """A node shorter than CANCELLATION_CHECK_INTERVAL still bumps the heartbeat.
+
+    The supervisor only ticks after its first sleep, so a run made of nodes that
+    each finish in under 5s would otherwise never set heartbeat_at, and the
+    reaper would fail it as no_heartbeat while it is still running.
+    """
+    workflow_run_id = "run-fast"
+
+    async def fast_node(_state, _runtime):
+        await asyncio.sleep(0.01)
+        return {"ok": True}
+
+    with (
+        patch(
+            "lib.services.workflow_runs.service.get_workflow_run_status",
+            new=AsyncMock(return_value=WorkflowRunStatus.RUNNING),
+        ),
+        patch(
+            "lib.services.workflow_runs.service.update_workflow_run_heartbeat",
+            new=AsyncMock(),
+        ) as heartbeat_mock,
+    ):
+        result = await _run_node_with_cancellation(
+            fast_node, MagicMock(), MagicMock(), workflow_run_id
+        )
+
+    assert result == {"ok": True}
+    heartbeat_mock.assert_awaited_once_with(workflow_run_id)
