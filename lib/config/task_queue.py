@@ -36,6 +36,9 @@ TASK_MODULES = ["lib.services.task_queue.tasks"]
 # recovered the way a crash is.
 SHUTDOWN_GRACEFUL_TIMEOUT_SECONDS = 10.0
 
+# How long a worker that died waits before starting again.
+RESTART_DELAY_SECONDS = 5.0
+
 
 def libpq_conninfo(database_url: str) -> str:
     """The URL as psycopg reads it, without a SQLAlchemy driver suffix."""
@@ -61,20 +64,33 @@ async def run_task_queue_worker() -> AsyncIterator[None]:
     """
 
     async with task_queue.open_async():
-        worker = asyncio.create_task(
-            task_queue.run_worker_async(
+        worker = asyncio.create_task(_keep_worker_running(), name="task-queue-worker")
+        try:
+            yield
+        finally:
+            await _stop_worker(worker)
+
+
+async def _keep_worker_running() -> None:
+    """Run the worker, and start it again if it dies, so a process that keeps
+    serving requests never silently stops taking jobs. Returns once the worker
+    stops on request; cancelling stops it (procrastinate re-raises the cancel)."""
+
+    while True:
+        try:
+            await task_queue.run_worker_async(
                 concurrency=config.TASK_QUEUE_CONCURRENCY,
                 name=f"api-{os.getpid()}",
                 # Uvicorn owns SIGINT and SIGTERM; the lifespan stops the worker.
                 install_signal_handlers=False,
                 shutdown_graceful_timeout=SHUTDOWN_GRACEFUL_TIMEOUT_SECONDS,
-            ),
-            name="task-queue-worker",
-        )
-        try:
-            yield
-        finally:
-            await _stop_worker(worker)
+            )
+            return
+        except Exception:
+            logger.exception(
+                "task queue worker died; restarting in %ss", RESTART_DELAY_SECONDS
+            )
+        await asyncio.sleep(RESTART_DELAY_SECONDS)
 
 
 async def _stop_worker(worker: asyncio.Task[None]) -> None:
@@ -83,6 +99,3 @@ async def _stop_worker(worker: asyncio.Task[None]) -> None:
         await worker
     except asyncio.CancelledError:
         pass
-    except Exception:
-        # The worker already died; shutting down is all that is left to do.
-        logger.exception("task queue worker had stopped with an error")
