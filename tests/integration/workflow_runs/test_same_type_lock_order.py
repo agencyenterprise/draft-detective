@@ -1,12 +1,10 @@
-"""The same-type lock runs queued runs of one type in the order they were created.
+"""The same-type lock holds a PENDING run back while a run of its type is RUNNING.
 
-Two PENDING runs of one type can be queued at once: a double-click on Run, a
-batch start next to a single one, two users on one project. When both are
-waiting, the older one must go first; a RUNNING run still holds back every
-PENDING one. A run that passes claims the queue (it is RUNNING from then on),
-so a run that shows up later, released from a gate or committed after a newer
-one, waits for it. These run on real rows because the order comes from the
-query.
+A type holds at most one waiting run (the unique index on workflow_runs), so
+the queue never orders two PENDING runs any more: a RUNNING run holds back the
+PENDING one, and a run that passes claims the queue (it is RUNNING from then
+on), so a run that shows up later waits for it. These run on real rows because
+the order comes from the query.
 """
 
 import asyncio
@@ -25,7 +23,6 @@ from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs import queue as queue_module
-from lib.services.workflow_runs.gates import claim_run_awaiting_approval
 from lib.services.workflow_runs.orchestration import (
     DEPENDENCY_CHECK_INTERVAL,
     wait_for_dependencies,
@@ -171,15 +168,6 @@ async def _proceeds(seeder: Seeder, run_id: str) -> bool:
 
 
 @pytest.mark.asyncio
-async def test_older_pending_run_goes_before_a_newer_one(seeder: Seeder) -> None:
-    older = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=2)
-    newer = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
-
-    assert await _proceeds(seeder, older)
-    assert not await _proceeds(seeder, newer)
-
-
-@pytest.mark.asyncio
 async def test_running_run_holds_back_an_older_pending_one(seeder: Seeder) -> None:
     older = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=2)
     await seeder.run(WorkflowRunStatus.RUNNING, minutes_ago=1)
@@ -188,23 +176,14 @@ async def test_running_run_holds_back_an_older_pending_one(seeder: Seeder) -> No
 
 
 @pytest.mark.asyncio
-async def test_finished_and_awaiting_runs_do_not_hold_back_a_pending_one(
+async def test_finished_runs_do_not_hold_back_a_pending_one(
     seeder: Seeder,
 ) -> None:
     await seeder.run(WorkflowRunStatus.COMPLETED, minutes_ago=4)
     await seeder.run(WorkflowRunStatus.FAILED, minutes_ago=3)
-    await seeder.run(WorkflowRunStatus.AWAITING_APPROVAL, minutes_ago=2)
     pending = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
 
     assert await _proceeds(seeder, pending)
-
-
-@pytest.mark.asyncio
-async def test_runs_with_the_same_created_at_never_both_go(seeder: Seeder) -> None:
-    first = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
-    second = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
-
-    assert await _proceeds(seeder, first) != await _proceeds(seeder, second)
 
 
 @pytest.mark.asyncio
@@ -213,21 +192,6 @@ async def test_a_run_that_passes_is_running_from_then_on(seeder: Seeder) -> None
 
     assert await _proceeds(seeder, pending)
     assert await seeder.status(pending) == WorkflowRunStatus.RUNNING
-
-
-@pytest.mark.asyncio
-async def test_an_older_run_released_from_its_gate_waits_for_one_that_passed(
-    seeder: Seeder,
-) -> None:
-    """A newer run passed while the older one awaited approval; releasing the
-    older one must not start it alongside the newer one."""
-    older = await seeder.run(WorkflowRunStatus.AWAITING_APPROVAL, minutes_ago=2)
-    newer = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
-    assert await _proceeds(seeder, newer)
-
-    assert await claim_run_awaiting_approval(older)
-
-    assert not await _proceeds(seeder, older)
 
 
 @pytest.mark.asyncio
@@ -242,19 +206,6 @@ async def test_an_older_run_committed_late_waits_for_one_that_passed(
     older = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=2)
 
     assert not await _proceeds(seeder, older)
-
-
-@pytest.mark.asyncio
-async def test_a_crowd_of_queued_runs_lets_exactly_one_through(seeder: Seeder) -> None:
-    runs = [
-        await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1) for _ in range(8)
-    ]
-
-    runs_ahead = await asyncio.gather(*(claim_same_type_queue_head(r) for r in runs))
-
-    assert sum(run_ahead is None for run_ahead in runs_ahead) == 1
-    statuses = [await seeder.status(r) for r in runs]
-    assert statuses.count(WorkflowRunStatus.RUNNING) == 1
 
 
 @pytest.mark.asyncio
@@ -298,32 +249,6 @@ async def test_a_run_that_ends_while_blocked_on_the_queue_lock_is_not_admitted(
     with pytest.raises(WorkflowCancelledError):
         await claim
     assert await seeder.status(run) == ended_as
-
-
-@pytest.mark.asyncio
-async def test_a_run_committed_during_a_claim_waits_for_the_claimer(
-    seeder: Seeder,
-) -> None:
-    """Contention across the read/write boundary: the newer run's claim reads
-    before the older run exists and writes after the older run's claim began.
-    Only the advisory lock makes the older claim see the newer one RUNNING."""
-    newer = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=1)
-    slow_read = select(func.pg_sleep(1.0)).scalar_subquery().is_not(None)
-    real_run_ahead = queue_module._run_ahead
-    with patch.object(
-        queue_module,
-        "_run_ahead",
-        side_effect=lambda own: real_run_ahead(own).where(slow_read),
-    ):
-        newer_claim = asyncio.create_task(claim_same_type_queue_head(newer))
-        await asyncio.sleep(0.3)
-        older = await seeder.run(WorkflowRunStatus.PENDING, minutes_ago=2)
-        older_claim = asyncio.create_task(claim_same_type_queue_head(older))
-        runs_ahead = await asyncio.gather(newer_claim, older_claim)
-
-    assert runs_ahead[0] is None
-    assert runs_ahead[1] is not None
-    assert await seeder.status(older) == WorkflowRunStatus.PENDING
 
 
 @pytest.mark.asyncio
