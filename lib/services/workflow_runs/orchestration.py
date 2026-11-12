@@ -81,6 +81,10 @@ async def wait_for_dependencies(
     needs_dependency_wait = len(all_dependencies) > 0
 
     if not needs_same_type_lock and not needs_dependency_wait:
+        # Nothing to wait for, but a run cancelled between scheduling and its
+        # task starting must still not start.
+        if current_workflow_run_id is not None:
+            await _raise_if_run_ended(current_workflow_run_id, workflow_type)
         return
 
     first_check = True

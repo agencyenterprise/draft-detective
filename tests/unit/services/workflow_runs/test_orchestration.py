@@ -609,6 +609,29 @@ async def test_required_dependency_awaiting_approval_blocks_until_released():
 
 
 @pytest.mark.asyncio
+async def test_independent_run_cancelled_before_its_task_starts_does_not_start(
+    waiting_run_stays_pending, mock_manifest
+):
+    """A run with nothing to wait for still checks its own status once, so a
+    cancel that lands before its task starts is honoured."""
+    mock_manifest.independent_runs = True
+    waiting_run_stays_pending.return_value = WorkflowRunStatus.CANCELLED
+
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        pytest.raises(WorkflowCancelledError, match="cancelled"),
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.REVIEW_ASSISTANT,
+            str(uuid4()),
+            current_workflow_run_id=str(uuid4()),
+        )
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "ended_as", [WorkflowRunStatus.CANCELLED, WorkflowRunStatus.FAILED]
 )
