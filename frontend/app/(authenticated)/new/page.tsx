@@ -8,13 +8,14 @@ import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
 import { StepApiKeyConfig } from '@/components/analysis-wizard/step-api-key-config';
 import { useUserMe } from '@/lib/hooks/use-user-me';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const REQUIRE_API_KEY_CONFIG = process.env.NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG === 'true';
 
 function WizardContent() {
   const wizard = useWizard();
-  const { data: user } = useUserMe();
+  const { data: user, isError, isFetching, refetch } = useUserMe();
 
   const apiKeyConfigured = user?.has_openai_api_key ?? false;
   // Show the API key form when required and not yet configured.
@@ -37,6 +38,8 @@ function WizardContent() {
   // client immediately begins fetching (isLoading differs between SSR and first client
   // render). Gating on `user === undefined` is consistent across both environments.
   if (REQUIRE_API_KEY_CONFIG && user === undefined) {
+    // The lookup doesn't retry, so after a failure the spinner would stay until something else refetched it.
+    if (isError) return <UserLookupError retrying={isFetching} onRetry={() => refetch()} />;
     return (
       <main className="flex flex-1 items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -56,6 +59,18 @@ function WizardContent() {
       {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
       {!isOnApiKeyStep && wizard.currentStep === 2 && <StepAnalyses />}
     </>
+  );
+}
+
+function UserLookupError({ retrying, onRetry }: { retrying: boolean; onRetry: () => void }) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <p className="text-sm text-muted-foreground">We couldn&apos;t load your account details.</p>
+      <Button variant="outline" onClick={onRetry} disabled={retrying}>
+        {retrying && <Loader2 className="size-4 animate-spin" />}
+        Try again
+      </Button>
+    </main>
   );
 }
 
