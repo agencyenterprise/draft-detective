@@ -9,20 +9,15 @@ own in-memory state, which still has those items pending.
 
 import asyncio
 import uuid
-from collections.abc import AsyncIterator
-from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 from langgraph.graph import StateGraph
-from sqlalchemy import delete, update
+from sqlalchemy import update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.project import Project
-from lib.models.user import User, UserRole
 from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunFailureReason,
@@ -40,59 +35,11 @@ from lib.services.workflow_runs.service import (
 from lib.workflows.context import ContextSchema
 from lib.workflows.reference_downloader.state import (
     ReferenceDownloaderState,
-    ReferenceDownloaderWorkflowConfig,
     ReferenceFetchResult,
     ReferenceFetchStatus,
 )
 from lib.workflows.runner import run_workflow
-
-
-@pytest_asyncio.fixture
-async def stale_run() -> AsyncIterator[tuple[str, str]]:
-    """A RUNNING downloader run whose heartbeat is already past any grace."""
-    user = User(
-        id=uuid.uuid4(),
-        email=f"reaped-run-{uuid.uuid4()}@example.com",
-        name="reaped",
-        role=UserRole.USER,
-        show_experimental_features=False,
-    )
-    project = Project(id=uuid.uuid4(), user_id=user.id, title="reaped run")
-    long_ago = datetime.utcnow() - timedelta(hours=1)
-    run = WorkflowRun(
-        id=uuid.uuid4(),
-        langgraph_thread_id=str(uuid.uuid4()),
-        project_id=project.id,
-        type=WorkflowRunType.REFERENCE_DOWNLOADER,
-        status=WorkflowRunStatus.RUNNING,
-        started_at=long_ago,
-        heartbeat_at=long_ago,
-    )
-    for row in (user, project, run):
-        async with get_async_db_session() as session:
-            session.add(row)
-            await session.commit()
-
-    yield str(run.id), str(project.id)
-
-    async with get_async_db_session() as session:
-        # Deleting the project cascades to its runs.
-        await session.execute(delete(Project).where(col(Project.id) == project.id))
-        await session.execute(delete(User).where(col(User.id) == user.id))
-        await session.commit()
-
-
-def _initial_state(project_id: str) -> ReferenceDownloaderState:
-    return ReferenceDownloaderState(
-        type=WorkflowRunType.REFERENCE_DOWNLOADER,
-        config=ReferenceDownloaderWorkflowConfig(
-            type=WorkflowRunType.REFERENCE_DOWNLOADER, project_id=project_id
-        ),
-        fetched_references=[
-            ReferenceFetchResult(reference_id=ref, input_reference=ref)
-            for ref in ("r1", "r2")
-        ],
-    )
+from tests.integration.workflow_runs.reaped_run_support import initial_state
 
 
 class _Steps:
@@ -190,7 +137,7 @@ async def _run_and_reap(
             workflow_run_id=run_id,
             workflow_type=WorkflowRunType.REFERENCE_DOWNLOADER,
             graph=_fan_out_graph(steps),
-            state=_initial_state(project_id),
+            state=initial_state(project_id),
             context=ContextSchema(
                 project_id=project_id,
                 workflow_run_id=run_id,
@@ -280,7 +227,7 @@ async def test_a_node_finishing_after_a_user_cancel_still_saves_its_result(
             workflow_run_id=run_id,
             workflow_type=WorkflowRunType.REFERENCE_DOWNLOADER,
             graph=graph,
-            state=_initial_state(project_id),
+            state=initial_state(project_id),
             context=ContextSchema(
                 project_id=project_id,
                 workflow_run_id=run_id,
@@ -316,7 +263,7 @@ async def test_the_reapers_cleanup_is_skipped_when_the_run_already_ended(
     """The cleanup rides on the FAILED write, so a run that completed before the
     reaper got to it keeps its state untouched."""
     run_id, project_id = stale_run
-    await persist_workflow_run_state(run_id, _initial_state(project_id))
+    await persist_workflow_run_state(run_id, initial_state(project_id))
     await update_workflow_run_status(run_id, WorkflowRunStatus.COMPLETED)
     clean_up = AsyncMock()
 
