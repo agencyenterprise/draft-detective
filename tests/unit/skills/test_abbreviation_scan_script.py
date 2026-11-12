@@ -9,6 +9,7 @@ import json
 import random
 import subprocess
 import sys
+import time
 
 import pytest
 from rapidfuzz import fuzz, utils
@@ -67,6 +68,22 @@ def test_partial_ratio_scores_equal_rapidfuzz():
             _script._default_process(a), _script._default_process(b)
         )
         assert actual == pytest.approx(expected, abs=1e-9), (a, b)
+
+
+def test_long_definitions_match_quickly():
+    """Definitions of a thousand characters stay well under a second."""
+    rng = random.Random(1)
+    long_a = " ".join(rng.choice(_WORDS) for _ in range(120))
+    long_b = long_a.replace("office", "offices")
+    expected = fuzz.partial_ratio(long_a, long_b, processor=utils.default_process)
+
+    started = time.perf_counter()
+    actual = _script.partial_ratio(
+        _script._default_process(long_a), _script._default_process(long_b)
+    )
+
+    assert time.perf_counter() - started < 1.0
+    assert actual == pytest.approx(expected, abs=1e-9)
 
 
 def _run_cli(catalogue: dict) -> list[dict]:

@@ -262,34 +262,41 @@ def _partial_ratio_impl(s1: str, s2: str) -> float:
         + [s2[i : i + len1] for i in range(len2 - len1) if s2[i + len1 - 1] in chars]
         + [s2[i:] for i in range(len2 - len1, len2) if s2[i] in chars]
     )
+    block = _match_masks(s1)
     best = 0.0
     for window in windows:
-        best = max(best, _indel_similarity(s1, window))
+        # 1 - Indel distance / total length, written as rapidfuzz computes it
+        # so the floats agree exactly at the threshold.
+        lensum = len1 + len(window)
+        distance = lensum - 2 * _lcs_length(block, len1, window)
+        similarity = 1.0 - distance / lensum
+        best = max(best, similarity)
         if best == 1:
             return 100.0
     return best * 100
 
 
-def _indel_similarity(s1: str, s2: str) -> float:
-    """1 - Indel distance / total length, where Indel allows only insert and delete."""
-    lensum = len(s1) + len(s2)
-    if lensum == 0:
-        return 1.0
-    distance = lensum - 2 * _lcs_length(s1, s2)
-    return 1.0 - distance / lensum
+def _match_masks(s1: str) -> dict[str, int]:
+    """For each character of `s1`, a bit mask of the positions it sits at."""
+    block: dict[str, int] = {}
+    for position, ch in enumerate(s1):
+        block[ch] = block.get(ch, 0) | (1 << position)
+    return block
 
 
-def _lcs_length(s1: str, s2: str) -> int:
-    previous = [0] * (len(s2) + 1)
-    for ch1 in s1:
-        current = [0]
-        for j, ch2 in enumerate(s2):
-            if ch1 == ch2:
-                current.append(previous[j] + 1)
-            else:
-                current.append(max(previous[j + 1], current[j]))
-        previous = current
-    return previous[-1]
+def _lcs_length(block: dict[str, int], len1: int, s2: str) -> int:
+    """Longest common subsequence of `s1` (given as its masks) and `s2`.
+
+    Hyyrö's bit-parallel algorithm, the one rapidfuzz uses: each character of
+    `s2` costs a few integer operations rather than a pass over `s1`, so a
+    window costs about len(s2) operations instead of len(s1) * len(s2).
+    """
+    mask = (1 << len1) - 1
+    v = mask
+    for ch in s2:
+        u = v & block.get(ch, 0)
+        v = ((v + u) | (v - u)) & mask
+    return len1 - v.bit_count()
 
 
 # --- Command line ----------------------------------------------------------------
