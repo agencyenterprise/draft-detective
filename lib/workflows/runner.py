@@ -93,8 +93,9 @@ async def run_workflow_with_dependency_check(
 
     except WorkflowCancelledError:
         logger.info(f"Workflow {workflow_run_id} ({config.type.value}) was cancelled")
-        # Status is already CANCELLED in DB; the guard in update_workflow_run_status
-        # prevents it from being overwritten
+        # The row already holds its final status: CANCELLED, or FAILED when the
+        # reaper failed the run while it waited. update_workflow_run_status
+        # never overwrites a terminal status.
 
     except DependencyWaitTimeoutError as e:
         logger.error(
@@ -263,8 +264,8 @@ async def run_workflow(
         updated_state = await _run_on_cancel_hook(
             manifest, workflow_run_id, updated_state
         )
-        # Status is already CANCELLED in DB; CANCELLED-guard in
-        # update_workflow_run_status keeps it that way.
+        # Status is already CANCELLED in DB; update_workflow_run_status never
+        # overwrites a terminal status.
 
     except TimeoutError:
         logger.error(

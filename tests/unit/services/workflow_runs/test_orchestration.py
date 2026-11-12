@@ -29,6 +29,16 @@ def create_workflow_run(
     )
 
 
+@pytest.fixture(autouse=True)
+def waiting_run_stays_pending():
+    """The waiting run's own status, re-read on every poll: PENDING unless a test says otherwise."""
+    with patch(
+        "lib.services.workflow_runs.orchestration.get_workflow_run_status",
+        new=AsyncMock(return_value=WorkflowRunStatus.PENDING),
+    ) as mock_status:
+        yield mock_status
+
+
 @pytest.fixture
 def mock_manifest():
     """Mock workflow manifest with no dependencies."""
@@ -596,6 +606,82 @@ async def test_required_dependency_awaiting_approval_blocks_until_released():
         await wait_for_dependencies(WorkflowRunType.REFERENCE_VALIDATION_V2, project_id)
 
     assert mock_sleep.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_independent_run_cancelled_before_its_task_starts_does_not_start(
+    waiting_run_stays_pending, mock_manifest
+):
+    """A run with nothing to wait for still checks its own status once, so a
+    cancel that lands before its task starts is honoured."""
+    mock_manifest.independent_runs = True
+    waiting_run_stays_pending.return_value = WorkflowRunStatus.CANCELLED
+
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        pytest.raises(WorkflowCancelledError, match="cancelled"),
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.REVIEW_ASSISTANT,
+            str(uuid4()),
+            current_workflow_run_id=str(uuid4()),
+        )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "ended_as", [WorkflowRunStatus.CANCELLED, WorkflowRunStatus.FAILED]
+)
+async def test_run_that_ends_while_waiting_stops_instead_of_starting(
+    waiting_run_stays_pending, ended_as
+):
+    """A run cancelled by the user (or reaped) while it waits must not go on to
+    start its graph once the dependency it waited for completes."""
+    current_run_id = str(uuid4())
+    manifest = MagicMock()
+    manifest.independent_runs = False
+    manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
+    manifest.optional_dependencies = []
+    waiting_run_stays_pending.side_effect = [WorkflowRunStatus.PENDING, ended_as]
+
+    dependency_polls = 0
+
+    async def dependency_completes_on_second_poll(proj_id, workflow_type, **kwargs):
+        nonlocal dependency_polls
+        if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING:
+            dependency_polls += 1
+            status = (
+                WorkflowRunStatus.RUNNING
+                if dependency_polls < 2
+                else WorkflowRunStatus.COMPLETED
+            )
+            return create_workflow_run(workflow_type, status)
+        return create_workflow_run(
+            workflow_type, WorkflowRunStatus.PENDING, run_id=current_run_id
+        )
+
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
+            side_effect=dependency_completes_on_second_poll,
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
+        ),
+        pytest.raises(WorkflowCancelledError, match=ended_as.value),
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.REFERENCE_EXTRACTION,
+            str(uuid4()),
+            current_workflow_run_id=current_run_id,
+        )
 
 
 # ---------------------------------------------------------------------------
