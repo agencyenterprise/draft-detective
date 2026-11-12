@@ -17,13 +17,15 @@ interface ApiKeyFormProps {
   submitLabel?: string;
   /** Holds the form while something else on the page is busy with the key. */
   disabled?: boolean;
+  /** Called as a save starts, before the request goes out. */
+  onSubmit?: () => void;
 }
 
 /**
  * Saves the user's OpenAI API key, then refetches the user so `has_openai_api_key` updates.
  * A rejected key keeps the field filled for a retry and shows the server's reason.
  */
-export function ApiKeyForm({ submitLabel = 'Save key', disabled = false }: ApiKeyFormProps) {
+export function ApiKeyForm({ submitLabel = 'Save key', disabled = false, onSubmit }: ApiKeyFormProps) {
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -42,6 +44,7 @@ export function ApiKeyForm({ submitLabel = 'Save key', disabled = false }: ApiKe
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!apiKey.trim()) return;
+    onSubmit?.();
     saveMutation.mutate(apiKey.trim());
   };
 

@@ -133,4 +133,16 @@ describe('ApiKeySettings', () => {
     expect(card.text()).toContain('Failed to remove API key');
     expect(card.userRefetchRequested()).toBe(false);
   });
+
+  it("drops a failed remove's error once a new key is being saved", async () => {
+    mocks.remove.mockRejectedValueOnce(new ApiError(500));
+    const card = await mountSettings(true);
+    await card.click('Remove key');
+    expect(card.text()).toContain('Failed to remove API key');
+
+    await card.type('sk-new');
+    await card.submit();
+
+    expect(card.text()).not.toContain('Failed to remove API key');
+  });
 });

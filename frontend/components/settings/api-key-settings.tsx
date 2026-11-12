@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,14 +13,11 @@ import { ApiKeyForm, SAVE_API_KEY_MUTATION_KEY } from './api-key-form';
 export function ApiKeySettings() {
   const { data: user } = useUserMe();
   const queryClient = useQueryClient();
-  const [removeError, setRemoveError] = useState<string | null>(null);
   const hasKey = user?.has_openai_api_key ?? false;
 
   const deleteMutation = useMutation({
     mutationFn: () => removeApiKeyApiUsersMeApiKeyDelete(),
-    onMutate: () => setRemoveError(null),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY }),
-    onError: (err: unknown) => setRemoveError(getErrorDetail(err, 'Failed to remove API key. Please try again.')),
   });
   const isSaving = useIsMutating({ mutationKey: SAVE_API_KEY_MUTATION_KEY }) > 0;
 
@@ -64,13 +60,19 @@ export function ApiKeySettings() {
           </Badge>
         )}
 
-        {removeError && <p className="text-sm text-destructive">{removeError}</p>}
+        {deleteMutation.isError && (
+          <p className="text-sm text-destructive">
+            {getErrorDetail(deleteMutation.error, 'Failed to remove API key. Please try again.')}
+          </p>
+        )}
 
         {/* Keyed on whether a key is saved, so removing the key also clears a stale save error. */}
         <ApiKeyForm
           key={String(hasKey)}
           submitLabel={hasKey ? 'Replace key' : 'Save key'}
           disabled={deleteMutation.isPending}
+          // A new save makes a failed remove's error stale.
+          onSubmit={deleteMutation.reset}
         />
       </CardContent>
     </Card>
