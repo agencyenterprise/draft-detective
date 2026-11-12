@@ -49,6 +49,5 @@ async def from_docx(payload: bytes, *, name: str, url: str) -> LoadedDocument:
         url=url,
         markdown=read.markdown,
         comments=read.comments,
-        size_bytes=len(payload),
         images=read.images,
     )

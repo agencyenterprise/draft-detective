@@ -115,7 +115,6 @@ def document(
         ),
         comments=comments or [],
         last_modified="2026-08-04T13:31:28Z",
-        size_bytes=180097,
     )
 
 
