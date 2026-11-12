@@ -5,20 +5,28 @@ vi.hoisted(() => {
   process.env.NEXT_PUBLIC_API_URL = 'http://api.test:8087';
 });
 
-import { useLayoutEffect } from 'react';
+import { act, startTransition, use, useLayoutEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ApiConfig } from '@/components/api-config';
 import { ApiError } from '@/lib/api-error';
 import { listThreadsApiChatThreadsGet } from '@/lib/generated-api';
 import { flush, renderInto, type Rendered } from '@/lib/test-render';
 
-const auth = vi.hoisted(() => ({ accessToken: 'first-token' }));
+const auth = vi.hoisted(() => ({
+  accessToken: 'first-token' as string | undefined,
+  /** Every token ApiConfig read from the session, committed or not. */
+  reads: [] as (string | undefined)[],
+}));
 
 vi.mock('next-auth/react', () => ({
-  useSession: () => ({
-    status: 'authenticated',
-    data: { accessToken: auth.accessToken, expires: '2999-01-01T00:00:00.000Z', user: {} },
-    update: async () => null,
-  }),
+  useSession: () => {
+    auth.reads.push(auth.accessToken);
+    return {
+      status: 'authenticated',
+      data: { accessToken: auth.accessToken, expires: '2999-01-01T00:00:00.000Z', user: {} },
+      update: async () => null,
+    };
+  },
 }));
 
 /** Fetches the moment it mounts, before any passive effect in the tree has run. */
@@ -29,7 +37,14 @@ function EarlyFetcher() {
   return null;
 }
 
-function app(accessToken: string) {
+const never = new Promise<never>(() => undefined);
+
+/** Suspends forever, so a transition that renders it never commits. */
+function Suspends() {
+  return use(never);
+}
+
+function app(accessToken: string | undefined) {
   auth.accessToken = accessToken;
   return (
     <>
@@ -80,5 +95,40 @@ describe('ApiConfig', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 404 });
+  });
+
+  it.each([
+    ['another session', 'second-token'],
+    ['a logout', undefined],
+  ])('keeps the committed token while a render for %s is left uncommitted', async (_, nextToken) => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    await act(async () => root.render(app('first-token')));
+    auth.reads = [];
+
+    // A transition whose tree suspends renders ApiConfig with the new token but never commits it.
+    auth.accessToken = nextToken;
+    await act(async () =>
+      startTransition(() =>
+        root.render(
+          <>
+            {app(nextToken)}
+            <Suspends />
+          </>,
+        ),
+      ),
+    );
+    expect(auth.reads).toContain(nextToken);
+    fetchMock.mockClear();
+    await listThreadsApiChatThreadsGet();
+    expect(fetchMock.mock.calls[0][0].headers.get('Authorization')).toBe('Bearer first-token');
+
+    // An urgent update to the committed session discards the transition.
+    await act(async () => root.render(app('first-token')));
+    fetchMock.mockClear();
+    await listThreadsApiChatThreadsGet();
+    expect(fetchMock.mock.calls[0][0].headers.get('Authorization')).toBe('Bearer first-token');
+
+    await act(async () => root.unmount());
   });
 });
