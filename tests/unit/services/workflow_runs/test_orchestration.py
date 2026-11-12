@@ -30,6 +30,28 @@ def create_workflow_run(
 
 
 @pytest.fixture(autouse=True)
+def run_ahead():
+    """The same-type run ahead, as read while dependencies still block: none
+    unless a test says so."""
+    with patch(
+        "lib.services.workflow_runs.orchestration.get_run_ahead_in_same_type_queue",
+        new=AsyncMock(return_value=None),
+    ) as mock_run_ahead:
+        yield mock_run_ahead
+
+
+@pytest.fixture(autouse=True)
+def claim():
+    """The queue claim, made once nothing else blocks: returns the run ahead,
+    None (claimed) unless a test says so."""
+    with patch(
+        "lib.services.workflow_runs.orchestration.claim_same_type_queue_head",
+        new=AsyncMock(return_value=None),
+    ) as mock_claim:
+        yield mock_claim
+
+
+@pytest.fixture(autouse=True)
 def waiting_run_stays_pending():
     """The waiting run's own status, re-read on every poll: PENDING unless a test says otherwise."""
     with patch(
@@ -50,32 +72,15 @@ def mock_manifest():
 
 
 @pytest.mark.asyncio
-async def test_same_type_lock_waits_for_running_workflow(mock_manifest):
-    """Test that same-type locking waits for a RUNNING workflow of the same type."""
-    project_id = str(uuid4())
+async def test_same_type_lock_waits_while_a_run_is_ahead(claim, mock_manifest):
+    """The run polls until no same-type run is ahead of it, then goes."""
     current_run_id = str(uuid4())
-    other_run_id = str(uuid4())
-
-    # First call returns RUNNING workflow (different ID), second call returns COMPLETED
-    running_run = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.RUNNING,
-        run_id=other_run_id,
-    )
-    completed_run = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.COMPLETED,
-        run_id=other_run_id,
-    )
-
-    call_count = 0
-
-    async def mock_get_run(proj_id, workflow_type, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if call_count == 1:
-            return running_run
-        return completed_run
+    claim.side_effect = [
+        create_workflow_run(
+            WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING
+        ),
+        None,
+    ]
 
     with (
         patch(
@@ -83,25 +88,47 @@ async def test_same_type_lock_waits_for_running_workflow(mock_manifest):
             return_value=mock_manifest,
         ),
         patch(
-            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
-            side_effect=mock_get_run,
-        ),
-        patch(
             "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
-        ),
+        ) as mock_sleep,
     ):
         await wait_for_dependencies(
             WorkflowRunType.DOCUMENT_PROCESSING,
-            project_id,
+            str(uuid4()),
             current_workflow_run_id=current_run_id,
         )
 
-    # Should have polled twice (once found RUNNING, once found COMPLETED)
-    assert call_count == 2
+    assert claim.await_count == 2
+    claim.assert_awaited_with(current_run_id)
+    mock_sleep.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_independent_runs_do_not_wait_for_each_other(mock_manifest):
+async def test_same_type_lock_proceeds_when_no_run_is_ahead(claim, mock_manifest):
+    """Which runs count as ahead is the query's job (see the integration tests);
+    with none, the run goes without sleeping."""
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
+            return_value=mock_manifest,
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
+        ) as mock_sleep,
+    ):
+        await wait_for_dependencies(
+            WorkflowRunType.DOCUMENT_PROCESSING,
+            str(uuid4()),
+            current_workflow_run_id=str(uuid4()),
+        )
+
+    mock_sleep.assert_not_called()
+    claim.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_independent_runs_do_not_wait_for_each_other(
+    run_ahead, claim, mock_manifest
+):
     """Runs that read only their own inputs skip the same-type lock, so a queued
     request is not left to time out behind long ones."""
     mock_manifest.independent_runs = True
@@ -126,114 +153,14 @@ async def test_independent_runs_do_not_wait_for_each_other(mock_manifest):
         )
 
     mock_get_run.assert_not_called()
+    run_ahead.assert_not_called()
+    claim.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_same_type_lock_skips_self(mock_manifest):
-    """Test that same-type locking doesn't wait for its own workflow run."""
-    project_id = str(uuid4())
-    current_run_id = str(uuid4())
-
-    # Return a RUNNING workflow with the SAME ID as current
-    own_run = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.RUNNING,
-        run_id=current_run_id,
-    )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
-            return_value=mock_manifest,
-        ),
-        patch(
-            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
-            return_value=own_run,
-        ) as mock_get_run,
-        patch(
-            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
-        ) as mock_sleep,
-    ):
-        await wait_for_dependencies(
-            WorkflowRunType.DOCUMENT_PROCESSING,
-            project_id,
-            current_workflow_run_id=current_run_id,
-        )
-
-    # Should return immediately without sleeping (found itself)
-    mock_sleep.assert_not_called()
-    mock_get_run.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_same_type_lock_proceeds_when_no_other_run_exists(mock_manifest):
-    """Test that same-type locking proceeds immediately when no other run exists."""
-    project_id = str(uuid4())
-    current_run_id = str(uuid4())
-
-    with (
-        patch(
-            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
-            return_value=mock_manifest,
-        ),
-        patch(
-            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
-            return_value=None,
-        ) as mock_get_run,
-        patch(
-            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
-        ) as mock_sleep,
-    ):
-        await wait_for_dependencies(
-            WorkflowRunType.DOCUMENT_PROCESSING,
-            project_id,
-            current_workflow_run_id=current_run_id,
-        )
-
-    # Should return immediately without sleeping
-    mock_sleep.assert_not_called()
-    mock_get_run.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_same_type_lock_proceeds_when_other_run_completed(mock_manifest):
-    """Test that same-type locking proceeds when another run is already COMPLETED."""
-    project_id = str(uuid4())
-    current_run_id = str(uuid4())
-    other_run_id = str(uuid4())
-
-    completed_run = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.COMPLETED,
-        run_id=other_run_id,
-    )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
-            return_value=mock_manifest,
-        ),
-        patch(
-            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
-            return_value=completed_run,
-        ) as mock_get_run,
-        patch(
-            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
-        ) as mock_sleep,
-    ):
-        await wait_for_dependencies(
-            WorkflowRunType.DOCUMENT_PROCESSING,
-            project_id,
-            current_workflow_run_id=current_run_id,
-        )
-
-    # Should return immediately without sleeping
-    mock_sleep.assert_not_called()
-    mock_get_run.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_no_same_type_lock_when_no_run_id_provided(mock_manifest):
+async def test_no_same_type_lock_when_no_run_id_provided(
+    run_ahead, claim, mock_manifest
+):
     """Test that same-type locking is disabled when current_workflow_run_id is None."""
     project_id = str(uuid4())
 
@@ -268,14 +195,15 @@ async def test_no_same_type_lock_when_no_run_id_provided(mock_manifest):
     mock_sleep.assert_not_called()
     # Should NOT query for same-type runs when no run_id provided and no dependencies
     mock_get_run.assert_not_called()
+    run_ahead.assert_not_called()
+    claim.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_waits_for_both_same_type_and_dependencies():
+async def test_waits_for_both_same_type_and_dependencies(run_ahead, claim):
     """Test that function waits for both same-type lock AND dependencies."""
     project_id = str(uuid4())
     current_run_id = str(uuid4())
-    other_run_id = str(uuid4())
 
     # Manifest with a required dependency
     manifest = MagicMock()
@@ -283,40 +211,25 @@ async def test_waits_for_both_same_type_and_dependencies():
     manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     manifest.optional_dependencies = []
 
-    # Same-type run is RUNNING
-    same_type_running = create_workflow_run(
-        WorkflowRunType.REFERENCE_EXTRACTION,
-        WorkflowRunStatus.RUNNING,
-        run_id=other_run_id,
-    )
-    # Dependency is also RUNNING
-    dep_running = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.RUNNING,
-    )
-
-    call_count = 0
+    # A same-type run is ahead for the first poll only; the claim, made once
+    # the dependency completes, finds none
+    run_ahead.side_effect = [
+        create_workflow_run(
+            WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.RUNNING
+        )
+    ] + [None] * 5
+    # The dependency is RUNNING for the first two polls, then COMPLETED
+    dependency_polls = 0
 
     async def mock_get_run(proj_id, workflow_type, **kwargs):
-        nonlocal call_count
-        call_count += 1
-        if workflow_type == WorkflowRunType.REFERENCE_EXTRACTION:
-            # Same-type: first RUNNING, then COMPLETED
-            if call_count <= 2:
-                return same_type_running
-            return create_workflow_run(
-                WorkflowRunType.REFERENCE_EXTRACTION,
-                WorkflowRunStatus.COMPLETED,
-                run_id=other_run_id,
-            )
-        else:
-            # Dependency: RUNNING until call 4, then COMPLETED
-            if call_count <= 4:
-                return dep_running
-            return create_workflow_run(
-                WorkflowRunType.DOCUMENT_PROCESSING,
-                WorkflowRunStatus.COMPLETED,
-            )
+        nonlocal dependency_polls
+        dependency_polls += 1
+        status = (
+            WorkflowRunStatus.RUNNING
+            if dependency_polls <= 2
+            else WorkflowRunStatus.COMPLETED
+        )
+        return create_workflow_run(workflow_type, status)
 
     with (
         patch(
@@ -337,44 +250,11 @@ async def test_waits_for_both_same_type_and_dependencies():
             current_workflow_run_id=current_run_id,
         )
 
-    # Should have called sleep multiple times waiting for blockers
-    assert mock_sleep.call_count >= 2
-
-
-@pytest.mark.asyncio
-async def test_same_type_cancelled_run_does_not_block(mock_manifest):
-    """A CANCELLED same-type run is treated as terminal and does not block execution."""
-    project_id = str(uuid4())
-    current_run_id = str(uuid4())
-    other_run_id = str(uuid4())
-
-    cancelled_run = create_workflow_run(
-        WorkflowRunType.DOCUMENT_PROCESSING,
-        WorkflowRunStatus.CANCELLED,
-        run_id=other_run_id,
-    )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.orchestration.get_workflow_manifest",
-            return_value=mock_manifest,
-        ),
-        patch(
-            "lib.services.workflow_runs.orchestration.get_project_workflow_run_by_type",
-            return_value=cancelled_run,
-        ) as mock_get_run,
-        patch(
-            "lib.services.workflow_runs.orchestration.asyncio.sleep", new=AsyncMock()
-        ) as mock_sleep,
-    ):
-        await wait_for_dependencies(
-            WorkflowRunType.DOCUMENT_PROCESSING,
-            project_id,
-            current_workflow_run_id=current_run_id,
-        )
-
-    mock_sleep.assert_not_called()
-    mock_get_run.assert_called_once()
+    # Slept while the same-type run, then the dependency, held it back, and
+    # claimed only once nothing else did
+    assert mock_sleep.call_count == 2
+    assert run_ahead.await_count == 2
+    claim.assert_awaited_once_with(current_run_id)
 
 
 @pytest.mark.asyncio
@@ -651,17 +531,13 @@ async def test_run_that_ends_while_waiting_stops_instead_of_starting(
 
     async def dependency_completes_on_second_poll(proj_id, workflow_type, **kwargs):
         nonlocal dependency_polls
-        if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING:
-            dependency_polls += 1
-            status = (
-                WorkflowRunStatus.RUNNING
-                if dependency_polls < 2
-                else WorkflowRunStatus.COMPLETED
-            )
-            return create_workflow_run(workflow_type, status)
-        return create_workflow_run(
-            workflow_type, WorkflowRunStatus.PENDING, run_id=current_run_id
+        dependency_polls += 1
+        status = (
+            WorkflowRunStatus.RUNNING
+            if dependency_polls < 2
+            else WorkflowRunStatus.COMPLETED
         )
+        return create_workflow_run(workflow_type, status)
 
     with (
         patch(

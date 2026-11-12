@@ -7,6 +7,10 @@ from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRunStatus,
 )
+from lib.services.workflow_runs.queue import (
+    claim_same_type_queue_head,
+    get_run_ahead_in_same_type_queue,
+)
 from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
     get_workflow_run_status,
@@ -42,11 +46,12 @@ async def wait_for_dependencies(
 
     This function handles two types of waiting:
     1. Same-type locking: If current_workflow_run_id is provided, waits while
-       the run get_project_workflow_run_by_type picks for this type (RUNNING
-       first, then the newest PENDING, then AWAITING_APPROVAL) is another
-       unfinished run. Two runs of a type never start together, but of two
-       waiting PENDING runs the newer one goes first. Workflows with
-       independent_runs skip the lock.
+       another run of the same type is ahead of it: any RUNNING run, or a
+       PENDING run created earlier. Once nothing else holds it back, the run
+       claims the queue and is RUNNING from then on (see
+       lib.services.workflow_runs.queue). Runs of a type go first come, first
+       served and never start together. Workflows with independent_runs skip
+       the lock.
     2. Dependency waiting: Waits until no required or optional dependency is
        pending, running or awaiting approval. An optional dependency that never
        started, or that was cancelled or failed, does not hold the run back.
@@ -101,20 +106,6 @@ async def wait_for_dependencies(
 
         blocking_reasons: list[str] = []
 
-        # Check same-type lock (wait for previous runs of same workflow)
-        if needs_same_type_lock:
-            same_type_run = await get_project_workflow_run_by_type(
-                project_id, workflow_type, revision=revision
-            )
-            if (
-                same_type_run is not None
-                and str(same_type_run.id) != current_workflow_run_id
-                and same_type_run.status not in TERMINAL_WORKFLOW_RUN_STATUSES
-            ):
-                blocking_reasons.append(
-                    f"previous {workflow_type.value} (run_id {str(same_type_run.id)[:8]}...)"
-                )
-
         # Check dependencies
         if needs_dependency_wait:
             required_pending = await _get_pending_workflow_dependencies(
@@ -134,6 +125,20 @@ async def wait_for_dependencies(
             )
             pending_deps = required_pending + optional_pending
             blocking_reasons.extend([dep.value for dep in pending_deps])
+
+        # Same-type lock, checked last. Once nothing else holds the run back it
+        # claims the queue: the check and the move to RUNNING are one
+        # transaction, so a run released or committed later waits for it.
+        if needs_same_type_lock and current_workflow_run_id is not None:
+            run_ahead = await (
+                get_run_ahead_in_same_type_queue(current_workflow_run_id)
+                if blocking_reasons
+                else claim_same_type_queue_head(current_workflow_run_id)
+            )
+            if run_ahead is not None:
+                blocking_reasons.append(
+                    f"previous {workflow_type.value} (run_id {str(run_ahead.id)[:8]}...)"
+                )
 
         # All clear - proceed
         if not blocking_reasons:
