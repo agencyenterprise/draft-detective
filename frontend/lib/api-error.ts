@@ -21,3 +21,11 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) return error.message;
   return fallback;
 }
+
+/**
+ * The server's own reason for rejecting a request (an ApiError's `detail`), or `fallback` when there is
+ * none: a bare "HTTP <status>" or a network error's message means nothing to the user.
+ */
+export function getErrorDetail(error: unknown, fallback: string): string {
+  return (isApiError(error) && error.detail) || fallback;
+}

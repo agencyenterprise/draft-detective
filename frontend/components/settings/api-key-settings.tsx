@@ -1,49 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { USER_ME_QUERY_KEY, useUserMe } from '@/lib/hooks/use-user-me';
-import { setApiKeyApiUsersMeApiKeyPut, removeApiKeyApiUsersMeApiKeyDelete } from '@/lib/generated-api';
+import { removeApiKeyApiUsersMeApiKeyDelete } from '@/lib/generated-api';
+import { getErrorDetail } from '@/lib/api-error';
 import { Key, Loader2, Trash2 } from 'lucide-react';
+import { ApiKeyForm, SAVE_API_KEY_MUTATION_KEY } from './api-key-form';
 
 export function ApiKeySettings() {
   const { data: user } = useUserMe();
   const queryClient = useQueryClient();
-  const [apiKey, setApiKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const saveMutation = useMutation({
-    mutationFn: (openai_api_key: string) => setApiKeyApiUsersMeApiKeyPut({ body: { openai_api_key } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY });
-      setApiKey('');
-      setError(null);
-    },
-    onError: (err: unknown) => {
-      const detail = (err as { detail?: string })?.detail;
-      setError(detail ?? 'Failed to save API key. Please check that it is valid.');
-    },
-  });
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const hasKey = user?.has_openai_api_key ?? false;
 
   const deleteMutation = useMutation({
     mutationFn: () => removeApiKeyApiUsersMeApiKeyDelete(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY });
-      setError(null);
-    },
+    onMutate: () => setRemoveError(null),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY }),
+    onError: (err: unknown) => setRemoveError(getErrorDetail(err, 'Failed to remove API key. Please try again.')),
   });
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!apiKey.trim()) return;
-    saveMutation.mutate(apiKey.trim());
-  };
-
-  const isBusy = saveMutation.isPending || deleteMutation.isPending;
+  const isSaving = useIsMutating({ mutationKey: SAVE_API_KEY_MUTATION_KEY }) > 0;
 
   return (
     <Card>
@@ -59,12 +39,17 @@ export function ApiKeySettings() {
           like Claude. The key is encrypted at rest and never exposed in API responses.
         </p>
 
-        {user?.has_openai_api_key ? (
+        {hasKey ? (
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="font-mono text-xs">
               Key saved
             </Badge>
-            <Button variant="destructive" size="sm" onClick={() => deleteMutation.mutate()} disabled={isBusy}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => deleteMutation.mutate()}
+              disabled={isSaving || deleteMutation.isPending}
+            >
               {deleteMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
@@ -79,25 +64,14 @@ export function ApiKeySettings() {
           </Badge>
         )}
 
-        <form onSubmit={handleSave} className="flex items-start gap-2">
-          <div className="flex-1 space-y-1">
-            <Input
-              type="password"
-              placeholder="sk-..."
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setError(null);
-              }}
-              disabled={isBusy}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-          </div>
-          <Button type="submit" disabled={isBusy || !apiKey.trim()}>
-            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-            {user?.has_openai_api_key ? 'Replace key' : 'Save key'}
-          </Button>
-        </form>
+        {removeError && <p className="text-sm text-destructive">{removeError}</p>}
+
+        {/* Keyed on whether a key is saved, so removing the key also clears a stale save error. */}
+        <ApiKeyForm
+          key={String(hasKey)}
+          submitLabel={hasKey ? 'Replace key' : 'Save key'}
+          disabled={deleteMutation.isPending}
+        />
       </CardContent>
     </Card>
   );
