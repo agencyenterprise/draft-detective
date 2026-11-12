@@ -3,8 +3,46 @@ from typing import Literal, overload
 
 from langgraph.graph import StateGraph
 
+from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest
+from lib.workflows.about_this_ger.manifest import AboutThisGerManifest
+from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest
+from lib.workflows.claim_reference_validation_v2.manifest import (
+    ClaimReferenceValidationV2Manifest,
+)
+from lib.workflows.document_processing.manifest import DocumentProcessingManifest
+from lib.workflows.document_structure.manifest import DocumentStructureManifest
+from lib.workflows.document_summarization.manifest import (
+    DocumentSummarizationManifest,
+)
+from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest
+from lib.workflows.inference_validation_v2.manifest import (
+    InferenceValidationV2Manifest,
+)
+from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest
+from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest
 from lib.workflows.manifest import WorkflowManifest
+from lib.workflows.methodological_alignment.manifest import (
+    MethodologicalAlignmentManifest,
+)
 from lib.workflows.models import BaseWorkflowConfig, WorkflowRunType
+from lib.workflows.recommendation_check.manifest import (
+    RecommendationCheckManifest,
+)
+from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest
+from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest
+from lib.workflows.reference_file_matching.manifest import (
+    ReferenceFileMatchingManifest,
+)
+from lib.workflows.reference_validation_v2.manifest import (
+    ReferenceValidationV2Manifest,
+)
+from lib.workflows.results_extraction.manifest import ResultsExtractionManifest
+from lib.workflows.review_assistant.manifest import ReviewAssistantManifest
+from lib.workflows.reviewer_2.manifest import Reviewer2Manifest
+from lib.workflows.skill_workflows import (
+    SkillWorkflowError,
+    discover_skill_workflows,
+)
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
@@ -87,44 +125,6 @@ def get_workflow_manifest(
 
 
 def register_all_workflow_manifests():
-    # Imported here, and called at the bottom of this module, because every
-    # manifest's nodes import lib.workflows.decorators -> workflow_runs -> this
-    # module: the registry has to exist before the manifests load.
-    from lib.workflows.abbreviation_scan_v2.manifest import AbbreviationScanV2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.about_this_ger.manifest import AboutThisGerManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.advocacy_tone_v2.manifest import AdvocacyToneV2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.claim_reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
-        ClaimReferenceValidationV2Manifest,
-    )
-    from lib.workflows.document_processing.manifest import DocumentProcessingManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.document_structure.manifest import DocumentStructureManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.document_summarization.manifest import (  # noqa: PLC0415  circular, see above
-        DocumentSummarizationManifest,
-    )
-    from lib.workflows.figures_tables_check.manifest import FiguresTablesCheckManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.inference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
-        InferenceValidationV2Manifest,
-    )
-    from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.methodological_alignment.manifest import (  # noqa: PLC0415  circular, see above
-        MethodologicalAlignmentManifest,
-    )
-    from lib.workflows.recommendation_check.manifest import (  # noqa: PLC0415  circular, see above
-        RecommendationCheckManifest,
-    )
-    from lib.workflows.reference_downloader.manifest import ReferenceDownloaderManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.reference_extraction.manifest import ReferenceExtractionManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.reference_file_matching.manifest import (  # noqa: PLC0415  circular, see above
-        ReferenceFileMatchingManifest,
-    )
-    from lib.workflows.reference_validation_v2.manifest import (  # noqa: PLC0415  circular, see above
-        ReferenceValidationV2Manifest,
-    )
-    from lib.workflows.results_extraction.manifest import ResultsExtractionManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.review_assistant.manifest import ReviewAssistantManifest  # noqa: PLC0415  circular, see above
-    from lib.workflows.reviewer_2.manifest import Reviewer2Manifest  # noqa: PLC0415  circular, see above
-
     manifests = [
         DocumentProcessingManifest(),
         DocumentSummarizationManifest(),
@@ -150,14 +150,6 @@ def register_all_workflow_manifests():
 
     for manifest in manifests:
         register_workflow_manifest(manifest)
-
-    # Imported here like the manifests above: the skill-workflow module pulls
-    # in the deep-agent manifest base, which must not be imported at registry
-    # import time.
-    from lib.workflows.skill_workflows import (  # noqa: PLC0415  circular, see above
-        SkillWorkflowError,
-        discover_skill_workflows,
-    )
 
     # Skill-declared checks: one SKILL.md with a draft_detective block, no manifest.py.
     for manifest in discover_skill_workflows():
