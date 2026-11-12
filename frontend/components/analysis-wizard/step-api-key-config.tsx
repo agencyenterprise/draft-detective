@@ -1,44 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { setApiKeyApiUsersMeApiKeyPut } from '@/lib/generated-api';
-import { USER_ME_QUERY_KEY } from '@/lib/hooks/use-user-me';
-import { isApiError } from '@/lib/api-error';
-import { Key, Loader2 } from 'lucide-react';
+import { ApiKeyForm } from '@/components/settings/api-key-form';
+import { Key } from 'lucide-react';
 import { StepHeading, StepLayout } from './step-layout';
 
 export function StepApiKeyConfig() {
-  const [apiKey, setApiKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-
-  const saveMutation = useMutation({
-    mutationFn: (openai_api_key: string) => setApiKeyApiUsersMeApiKeyPut({ body: { openai_api_key } }),
-    onSuccess: () => {
-      // Invalidating triggers a re-fetch of user data. Once has_openai_api_key becomes
-      // true, new/page.tsx automatically transitions to the "Your Document" step.
-      queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY });
-      setApiKey('');
-      setError(null);
-    },
-    onError: (err: unknown) => {
-      // Only the server's own reason (`detail`) is worth showing: an ApiError without one
-      // carries a bare "HTTP <status>" message.
-      const detail = isApiError(err) ? err.detail : undefined;
-      setError(detail || 'Failed to save API key. Please check that it is valid.');
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!apiKey.trim()) return;
-    saveMutation.mutate(apiKey.trim());
-  };
-
   return (
     <StepLayout>
       <div className="space-y-6">
@@ -53,29 +19,9 @@ export function StepApiKeyConfig() {
             OpenAI API Key
           </div>
 
-          <form onSubmit={handleSubmit} className="flex items-start gap-2">
-            <div className="flex-1 space-y-1">
-              <Label htmlFor="api-key-input" className="sr-only">
-                OpenAI API Key
-              </Label>
-              <Input
-                id="api-key-input"
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => {
-                  setApiKey(e.target.value);
-                  setError(null);
-                }}
-                disabled={saveMutation.isPending}
-              />
-              {error && <p className="text-sm text-destructive">{error}</p>}
-            </div>
-            <Button type="submit" disabled={saveMutation.isPending || !apiKey.trim()}>
-              {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Save key
-            </Button>
-          </form>
+          {/* Saving refetches the user. Once has_openai_api_key is true, new/page.tsx moves on to the
+              "Your Document" step. */}
+          <ApiKeyForm />
 
           <p className="text-sm text-muted-foreground">
             Once saved, you&apos;ll be taken to the next step automatically.
