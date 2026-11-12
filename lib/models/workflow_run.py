@@ -102,7 +102,7 @@ class WorkflowRun(SQLModel, table=True):
     )
     completed_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
-        description="The timestamp when the workflow run transitioned to COMPLETED or CANCELLED",
+        description="The timestamp when the workflow run reached a terminal status (COMPLETED, CANCELLED or FAILED)",
     )
     revision: int = Field(
         sa_column=Column(Integer, nullable=False, default=1),
@@ -111,7 +111,7 @@ class WorkflowRun(SQLModel, table=True):
     )
     heartbeat_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), nullable=True),
-        description="Updated on every node entry/exit; used by the reaper to detect stuck runs",
+        description="Written as each node starts and every few seconds while it runs; the reaper fails a RUNNING run whose heartbeat goes stale",
     )
     failure_reason: WorkflowRunFailureReason | None = Field(
         sa_column=Column(

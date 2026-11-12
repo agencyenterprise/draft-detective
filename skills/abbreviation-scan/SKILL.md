@@ -15,27 +15,39 @@ If a catalogue you were given still contains exempt occurrences, remove them bef
 
 ## Step 2 — Apply the compliance rules
 
+### When you can run Python
+
+This skill ships `scripts/build_issues.py`, which applies the rules below exactly as Draft Detective does. If you can run Python 3.11 or newer, use it instead of applying the rules yourself:
+
+1. Write the catalogue as JSON: an `abbreviations_section_found` boolean, and an `occurrences` list with one object per catalogued occurrence, carrying `abbr`, `inline_definition` (`""` when there is none), `occurrence_number`, `line_start`, `line_end` and `abbreviations_section_definition` (`null` when the abbreviation is not listed there).
+2. Run `python scripts/build_issues.py <catalogue.json>` from this skill's directory (or pass the JSON on stdin).
+3. Report the issues it prints, as they are: the script already applies the titles, severity, one-issue-per-abbreviation limits and definition matching described below. Add a `passage` to an issue when you can quote the abbreviation's words from its line.
+
+It needs nothing beyond the Python standard library. When you cannot run it, apply the rules below yourself.
+
+### The rules
+
 Evaluate the catalogued occurrences against the rules below. Report **only genuine problems** — do not emit entries for abbreviations that pass. Every issue below is **severity: medium**. Use the abbreviation's "first use" to mean its **first catalogued occurrence**.
 
 If the document contains no abbreviations at all, report nothing.
 
-### Rule 1 — Missing Abbreviations section
+#### Rule 1 — Missing Abbreviations section
 If the document uses at least one catalogued abbreviation but has **no** dedicated "Abbreviations", "Acronyms", "Glossary", or equivalent section, report a single issue.
 **Title:** "No Abbreviations section found"
 
-### Rule 2 — Not defined at first use
+#### Rule 2 — Not defined at first use
 At an abbreviation's **first** catalogued occurrence, if there is **no** inline definition (the "Full Name (ABBR)" pattern), report an issue. Subsequent occurrences do not need an inline definition — never raise this for them.
 **Title:** "Abbreviation not defined at first use"
 
-### Rule 3 — Missing from the Abbreviations section
+#### Rule 3 — Missing from the Abbreviations section
 When a dedicated Abbreviations section **exists**, every catalogued abbreviation should be listed in it. For each abbreviation that is **not** listed there, report **one** issue, located at its first catalogued occurrence. Do not report it again for the abbreviation's later occurrences.
 **Title:** "Abbreviation missing from Abbreviations section"
 
-### Rule 4 — Inline definition does not match the Abbreviations section
+#### Rule 4 — Inline definition does not match the Abbreviations section
 At an abbreviation's first catalogued occurrence, if it has an inline definition **and** is also listed in the Abbreviations section, but the two definitions differ (ignoring trivial case/whitespace/punctuation differences), report an issue.
 **Title:** "Inline definition does not match Abbreviations section"
 
-### Rule 5 — Ambiguous abbreviation
+#### Rule 5 — Ambiguous abbreviation
 If an occurrence carries an inline definition that differs from the **first** inline definition recorded for that same abbreviation (ignoring trivial case/whitespace/punctuation differences), the document is using one abbreviation to mean more than one thing. Report **one** issue per abbreviation, located at the first occurrence that conflicts; a term redefined repeatedly needs one flag, not one per use. The first inline definition means the earliest occurrence that actually carries one — an abbreviation used bare before it is ever defined still establishes its meaning at that later definition.
 **Title:** "Ambiguous abbreviation"
 

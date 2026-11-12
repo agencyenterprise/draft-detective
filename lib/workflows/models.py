@@ -22,9 +22,9 @@ class WorkflowAbortedError(Exception):
 class DependencyWaitTimeoutError(Exception):
     """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
 
-    Indicates an upstream dependency is stuck (typically itself orphaned in
-    RUNNING). The dependent run should be marked FAILED with
-    failure_reason=dependency_timeout.
+    Indicates a dependency, or a same-type run ahead of this one, is stuck
+    (typically itself orphaned in RUNNING). The waiting run should be marked
+    FAILED with failure_reason=dependency_timeout.
     """
 
 

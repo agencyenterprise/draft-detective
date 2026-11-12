@@ -1,42 +1,32 @@
 'use client';
 
-import { useMemo } from 'react';
 import { AppBar } from '@/components/results/app-bar';
 import { WizardProvider, useWizard } from '@/components/analysis-wizard/wizard-context';
 import { StepIndicator } from '@/components/analysis-wizard/step-indicator';
 import { StepUpload } from '@/components/analysis-wizard/step-upload';
 import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
 import { StepApiKeyConfig } from '@/components/analysis-wizard/step-api-key-config';
+import { wizardGate } from '@/components/analysis-wizard/wizard-gate';
 import { useUserMe } from '@/lib/hooks/use-user-me';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const REQUIRE_API_KEY_CONFIG = process.env.NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG === 'true';
 
 function WizardContent() {
   const wizard = useWizard();
-  const { data: user } = useUserMe();
+  const { data: user, isFetched, isFetching, refetch } = useUserMe();
+  const gate = wizardGate({
+    requireApiKeyConfig: REQUIRE_API_KEY_CONFIG,
+    user,
+    // Not `isError`: a retry with no data resets the query to pending, which would
+    // swap the retry panel back to the spinner while the request runs.
+    userLookupFailed: isFetched,
+    currentStep: wizard.currentStep,
+  });
 
-  const apiKeyConfigured = user?.has_openai_api_key ?? false;
-  // Show the API key form when required and not yet configured.
-  // The step always appears in the indicator regardless of configured state.
-  const isOnApiKeyStep = REQUIRE_API_KEY_CONFIG && !apiKeyConfigured;
-
-  const steps = useMemo(() => {
-    const apiKeyStep = REQUIRE_API_KEY_CONFIG ? [{ label: 'API Key Setup', completed: apiKeyConfigured }] : [];
-    const wizardSteps = [
-      { label: 'Your Document', completed: wizard.currentStep > 1 },
-      { label: 'Choose Assessments', completed: wizard.currentStep > 2 },
-    ];
-    return [...apiKeyStep, ...wizardSteps];
-  }, [apiKeyConfigured, wizard.currentStep]);
-
-  // When REQUIRE_API_KEY_CONFIG is true, wizard steps are offset by 1 in the indicator.
-  const currentIndicatorStep = isOnApiKeyStep ? 1 : wizard.currentStep + (REQUIRE_API_KEY_CONFIG ? 1 : 0);
-
-  // Guard against hydration mismatch: the server renders with no user data while the
-  // client immediately begins fetching (isLoading differs between SSR and first client
-  // render). Gating on `user === undefined` is consistent across both environments.
-  if (REQUIRE_API_KEY_CONFIG && user === undefined) {
+  if (gate.kind === 'lookup-failed') return <UserLookupError retrying={isFetching} onRetry={() => refetch()} />;
+  if (gate.kind === 'loading') {
     return (
       <main className="flex flex-1 items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
@@ -49,13 +39,25 @@ function WizardContent() {
       {/* The steps sit in the row the projects list uses for its count and
           search, so the wizard keeps the same furniture as the list it came from. */}
       <div className="flex h-10 shrink-0 items-center justify-center border-b px-4">
-        <StepIndicator currentStep={currentIndicatorStep} steps={steps} />
+        <StepIndicator currentStep={gate.currentIndicatorStep} steps={gate.steps} />
       </div>
 
-      {isOnApiKeyStep && <StepApiKeyConfig />}
-      {!isOnApiKeyStep && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
-      {!isOnApiKeyStep && wizard.currentStep === 2 && <StepAnalyses />}
+      {gate.kind === 'api-key' && <StepApiKeyConfig />}
+      {gate.kind === 'wizard' && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
+      {gate.kind === 'wizard' && wizard.currentStep === 2 && <StepAnalyses />}
     </>
+  );
+}
+
+function UserLookupError({ retrying, onRetry }: { retrying: boolean; onRetry: () => void }) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <p className="text-sm text-muted-foreground">We couldn&apos;t load your account details.</p>
+      <Button variant="outline" onClick={onRetry} disabled={retrying}>
+        {retrying && <Loader2 className="size-4 animate-spin" />}
+        Try again
+      </Button>
+    </main>
   );
 }
 

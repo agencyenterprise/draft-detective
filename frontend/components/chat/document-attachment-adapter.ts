@@ -1,6 +1,6 @@
 import type { AttachmentAdapter, CompleteAttachment, PendingAttachment } from '@assistant-ui/react';
 import { extractAttachmentTextApiChatExtractPost } from '@/lib/generated-api';
-import { ApiError } from '@/lib/api-error';
+import { getErrorDetail } from '@/lib/api-error';
 
 const PDF_TYPE = 'application/pdf';
 const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -38,8 +38,7 @@ export class DocumentAttachmentAdapter implements AttachmentAdapter {
     try {
       ({ text } = await extractAttachmentTextApiChatExtractPost({ body: { file: attachment.file } }));
     } catch (error) {
-      const detail = error instanceof ApiError ? error.detail : undefined;
-      throw new Error(detail || `Could not read "${attachment.name}".`);
+      throw new Error(getErrorDetail(error, `Could not read "${attachment.name}".`));
     }
 
     return {

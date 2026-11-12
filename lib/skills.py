@@ -14,10 +14,14 @@ the agent to ask mid-run. Both markers are required — an unclosed section is
 left in place, which `tests/unit/test_skills.py` fails on.
 """
 
+import importlib.util
 import logging
 import re
+import sys
 from collections.abc import Collection
+from functools import cache
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import yaml
@@ -65,6 +69,28 @@ def load_skill_prompt(skill_name: str) -> str:
     return strip_interactive_only(_strip_frontmatter(skill_path.read_text()))
 
 
+@cache
+def load_skill_script(skill_name: str, script: str) -> ModuleType:
+    """Import ``skills/<skill_name>/scripts/<script>`` as a module.
+
+    A skill may ship a script so that runners outside this repo (Claude Code,
+    Codex) execute the same code the backend calls. Skill directories carry
+    hyphens and no ``__init__.py``, so the file is loaded by path, once.
+    """
+    path = _SKILLS_DIR / skill_name / "scripts" / script
+    if not path.is_file():
+        raise FileNotFoundError(f"Skill script not found at {path}")
+    module_name = f"skills.{skill_name.replace('-', '_')}.{path.stem}"
+    spec = importlib.util.spec_from_file_location(module_name, path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load skill script {path}")
+    module = importlib.util.module_from_spec(spec)
+    # Registered before running it: TypedDict and friends look their module up.
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def strip_interactive_only(content: str) -> str:
     """Remove any interactive-only sections from a skill's markdown.
 
@@ -107,7 +133,8 @@ def skill_backend_files(
     project_root = _SKILLS_DIR.parent
     files: dict[str, Any] = {}
     for skill_file in sorted(_SKILLS_DIR.rglob("*")):
-        if not skill_file.is_file():
+        # Importing a skill's script (load_skill_script) leaves bytecode behind.
+        if not skill_file.is_file() or "__pycache__" in skill_file.parts:
             continue
         if skill_file.relative_to(_SKILLS_DIR).parts[0] in exclude:
             continue
