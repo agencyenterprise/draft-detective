@@ -21,8 +21,9 @@ client.interceptors.request.use((request) => {
 
 client.interceptors.error.use((error, response) => {
   if (response instanceof Response) {
-    const detail = (error as { detail?: string })?.detail;
-    return new ApiError(response.status, detail);
+    // A request-validation 422 sends `detail` as a list of objects, which is no reason to show.
+    const detail: unknown = (error as { detail?: unknown })?.detail;
+    return new ApiError(response.status, typeof detail === 'string' ? detail : undefined);
   }
   return error as Error;
 });
