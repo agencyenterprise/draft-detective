@@ -175,3 +175,4 @@ The backend health endpoint is `/api/health`. If health checks fail:
 | `OPENAI_API_KEY`                              | Backend  | ❌       | -                           | Server-wide OpenAI key; without it users bring their own |
 | `LANGFUSE_*`                                  | Backend  | ❌       | -                           | Langfuse observability config                            |
 | `LANGGRAPH_MAX_CONCURRENCY`                   | Backend  | ❌       | `30`                        | Max parallel workflow nodes                              |
+| `TASK_QUEUE_CONCURRENCY`                      | Backend  | ❌       | `50`                        | Jobs each API process's queue worker runs at once        |
