@@ -1,14 +1,20 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { setApiAccessToken } from '@/lib/api-client';
 import { posthog } from '@/lib/posthog';
 
 export function ApiConfig() {
   const session = useSession();
-  // Set during render, not in an effect: children's first effects run before ours and must already be authenticated.
-  setApiAccessToken(session.data?.accessToken);
+  const accessToken = session.data?.accessToken;
+
+  // A layout effect, so the token changes only when a render commits. It still precedes every request the app makes
+  // on mount: ApiConfig renders before the app's other components, so its layout effect runs before their layout and
+  // passive effects.
+  useLayoutEffect(() => {
+    setApiAccessToken(accessToken);
+  }, [accessToken]);
 
   useEffect(() => {
     // Refresh the session every X minutes to keep the access token valid
