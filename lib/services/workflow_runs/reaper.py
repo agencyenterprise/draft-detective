@@ -32,7 +32,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 from sqlalchemy import or_, select, text
-from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -44,10 +43,10 @@ from lib.models.workflow_run import (
 from lib.services.workflow_runs.orchestration import DEPENDENCY_WAIT_TIMEOUT
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
-    persist_workflow_run_state,
     read_workflow_run_state,
 )
 from lib.workflows.registry import get_workflow_manifest
+from lib.workflows.workflow_types import WorkflowState
 
 logger = logging.getLogger(__name__)
 
@@ -126,65 +125,57 @@ async def _find_stuck_runs(
     running_cutoff = now - timedelta(seconds=running_grace_seconds)
     pending_cutoff = now - timedelta(seconds=pending_grace_seconds)
     async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                or_(
-                    and_(
-                        col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
-                        or_(
-                            and_(
-                                col(WorkflowRun.heartbeat_at).is_(None),
-                                col(WorkflowRun.started_at) < running_cutoff,
-                            ),
-                            col(WorkflowRun.heartbeat_at) < running_cutoff,
+        stmt = select(WorkflowRun).where(
+            or_(
+                and_(
+                    col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
+                    or_(
+                        and_(
+                            col(WorkflowRun.heartbeat_at).is_(None),
+                            col(WorkflowRun.started_at) < running_cutoff,
                         ),
+                        col(WorkflowRun.heartbeat_at) < running_cutoff,
                     ),
-                    and_(
-                        col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-                        col(WorkflowRun.last_updated_at) < pending_cutoff,
-                    ),
-                )
+                ),
+                and_(
+                    col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
+                    col(WorkflowRun.last_updated_at) < pending_cutoff,
+                ),
             )
-            # _run_manifest_on_cancel hydrates state_json off these rows after
-            # the session closes, so load it in-session.
-            .options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
         )
         return list((await session.execute(stmt)).scalars().all())
 
 
-async def _run_manifest_on_cancel(run: WorkflowRun) -> None:
+async def _run_manifest_on_cancel(run: WorkflowRun) -> WorkflowState | None:
     """Best-effort invocation of the manifest's on_cancel hook for a stuck run.
 
     Mirrors the cancel/timeout paths in the runner so per-item statuses (e.g.
     pending validation entries) get cleaned up instead of being stranded as
-    'pending'. Errors are logged but never propagated — the reaper must still
-    flip the run to FAILED.
+    'pending'. Returns the cleaned state, which fail_workflow_run stores in the
+    same transaction as FAILED, or None to leave the state alone. Errors are
+    logged but never propagated — the reaper must still flip the run to FAILED.
     """
     manifest = get_workflow_manifest(run.type, raise_exception=False)
     if manifest is None:
-        return
+        return None
 
     try:
         state = await read_workflow_run_state(run)
     except Exception as e:
         logger.error(f"Reaper: failed to load state for {run.id}: {e}", exc_info=True)
-        return
+        return None
 
     if state is None:
-        return
+        return None
 
-    # on_cancel returns the cleaned-up state; persist it directly onto state_json.
-    # Best-effort: a failure here never blocks the reaper from flipping the run
-    # to FAILED.
     try:
-        cleaned = await manifest.on_cancel(state)
-        await persist_workflow_run_state(str(run.id), cleaned)
+        return await manifest.on_cancel(state)
     except Exception as e:
         logger.error(
             f"Reaper: on_cancel hook failed for {run.id} ({run.type}): {e}",
             exc_info=True,
         )
+        return None
 
 
 async def _reap_once(
@@ -241,17 +232,20 @@ async def _reap_once_locked(
             )
 
         try:
-            # PENDING runs never reached run_workflow, so most have no persisted
-            # state and the on_cancel call is a no-op (state is None). Some
-            # still carry one written at request time (the Review Assistant
-            # records its request on the run before the task starts), and
-            # those get the hook like any other run.
-            await _run_manifest_on_cancel(run)
+            # The cleanup runs on the row's latest state, inside the locked
+            # transaction that writes FAILED: a reaped run may still be alive,
+            # and its runner's state writes skip FAILED rows. PENDING runs never
+            # reached run_workflow, so most have no persisted state and the
+            # on_cancel call is a no-op (state is None). Some still carry one
+            # written at request time (the Review Assistant records its request
+            # on the run before the task starts), and those get the hook like
+            # any other run.
             await fail_workflow_run(
                 str(run.id),
                 str(run.project_id),
                 failure_reason=WorkflowRunFailureReason.NO_HEARTBEAT,
                 failure_message=failure_message,
+                clean_up_state=_run_manifest_on_cancel,
             )
         except Exception as e:
             # Don't let one bad row stop the sweep.
