@@ -28,11 +28,7 @@ SCHEMA_SQL = Path(__file__).parent.parent / "sql" / "procrastinate_03.11.00_sche
 
 
 def upgrade() -> None:
-    # Sent to the driver as is, so SQLAlchemy reads no `:name` binds in the casts.
-    # The driver still formats `%` placeholders, so the literal ones in the RAISE
-    # messages are doubled, as procrastinate's own `apply_schema` does.
-    schema = SCHEMA_SQL.read_text(encoding="utf-8").replace("%", "%%")
-    op.get_bind().exec_driver_sql(schema)
+    op.execute(SCHEMA_SQL.read_text(encoding="utf-8"))
 
 
 def downgrade() -> None:
