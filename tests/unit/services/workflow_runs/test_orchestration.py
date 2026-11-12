@@ -31,11 +31,19 @@ def create_workflow_run(
 
 @pytest.fixture(autouse=True)
 def run_ahead():
-    """The same-type run ahead of the waiting one: none unless a test says so."""
-    with patch(
-        "lib.services.workflow_runs.orchestration.get_run_ahead_in_same_type_queue",
-        new=AsyncMock(return_value=None),
-    ) as mock_run_ahead:
+    """The same-type run ahead of the waiting one, as the read and the claim
+    see it (one mock for both): none unless a test says so."""
+    mock_run_ahead = AsyncMock(return_value=None)
+    with (
+        patch(
+            "lib.services.workflow_runs.orchestration.get_run_ahead_in_same_type_queue",
+            new=mock_run_ahead,
+        ),
+        patch(
+            "lib.services.workflow_runs.orchestration.claim_same_type_queue_head",
+            new=mock_run_ahead,
+        ),
+    ):
         yield mock_run_ahead
 
 

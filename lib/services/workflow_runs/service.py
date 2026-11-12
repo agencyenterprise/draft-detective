@@ -8,7 +8,7 @@ from typing import Any, TypeVar, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Select, case, func, or_, select, tuple_, update
+from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
@@ -529,49 +529,6 @@ async def get_project_workflow_run_by_type(
         )
         if include_state:
             stmt = stmt.options(undefer(col(WorkflowRun.state_json)))  # type: ignore[arg-type]  # SQLModel Mapped[...] is a QueryableAttribute at runtime
-        return (await session.execute(stmt)).scalar_one_or_none()
-
-
-async def get_run_ahead_in_same_type_queue(workflow_run_id: str) -> WorkflowRun | None:
-    """A run of the same project, type and revision that must end before this one.
-
-    Runs of one type go first come, first served: a RUNNING run holds back every
-    other run, and a PENDING run holds back the PENDING runs created after it
-    (ties broken by id, so two runs never both go). Runs awaiting approval hold
-    nothing back until they are released to PENDING. Returns the RUNNING run
-    first, then the oldest PENDING one, or None when this run may go (or no
-    longer exists).
-    """
-    own_columns = select(
-        col(WorkflowRun.created_at),
-        col(WorkflowRun.id),
-        col(WorkflowRun.project_id),
-        col(WorkflowRun.type),
-        col(WorkflowRun.revision),
-    ).where(col(WorkflowRun.id) == workflow_run_id)
-    async with get_async_db_session() as session:
-        own = (await session.execute(own_columns)).one_or_none()
-        if own is None:
-            return None
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                col(WorkflowRun.project_id) == own.project_id,
-                col(WorkflowRun.type) == own.type,
-                col(WorkflowRun.revision) == own.revision,
-                col(WorkflowRun.id) != own.id,
-                or_(
-                    col(WorkflowRun.status) == WorkflowRunStatus.RUNNING,
-                    and_(
-                        col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-                        tuple_(col(WorkflowRun.created_at), col(WorkflowRun.id))
-                        < tuple_(own.created_at, own.id),
-                    ),
-                ),
-            )
-            .order_by(_active_status_priority(), col(WorkflowRun.created_at))
-            .limit(1)
-        )
         return (await session.execute(stmt)).scalar_one_or_none()
 
 
