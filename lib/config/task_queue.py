@@ -8,10 +8,10 @@ in `procrastinate_fetch_job_v2`).
 The schema comes from an Alembic migration, never from `procrastinate schema
 --apply`, so every deploy installs it the way it installs ours.
 
-Connections: the worker holds one to LISTEN for new jobs and borrows the others
-to fetch and finish jobs, so `max_size=4` adds 4 per process to the SQLAlchemy
-engine's 11 and the checkpointer's 4: 76 for a 4-worker deployment, against
-Postgres's default limit of 100.
+Connections: the pool (`max_size=4`) fetches, finishes and defers jobs, and
+the worker's LISTEN takes one more connection of its own, outside the pool. So
+each process adds 5 to the SQLAlchemy engine's 11 and the checkpointer's 4:
+80 for a 4-worker deployment, against Postgres's default limit of 100.
 """
 
 import asyncio
@@ -72,9 +72,13 @@ async def run_task_queue_worker() -> AsyncIterator[None]:
 
 
 async def _keep_worker_running() -> None:
-    """Run the worker, and start it again if it dies, so a process that keeps
-    serving requests never silently stops taking jobs. Returns once the worker
-    stops on request; cancelling stops it (procrastinate re-raises the cancel)."""
+    """Run the worker, and start it again whenever it ends, so a process that
+    keeps serving requests never silently stops taking jobs.
+
+    Only a cancel stops it (procrastinate re-raises it). The worker runs with
+    `wait=True` and nothing else asks it to stop, so returning is as unexpected
+    as raising: procrastinate can return after one of its side tasks fails.
+    """
 
     while True:
         try:
@@ -85,7 +89,9 @@ async def _keep_worker_running() -> None:
                 install_signal_handlers=False,
                 shutdown_graceful_timeout=SHUTDOWN_GRACEFUL_TIMEOUT_SECONDS,
             )
-            return
+            logger.error(
+                "task queue worker stopped; restarting in %ss", RESTART_DELAY_SECONDS
+            )
         except Exception:
             logger.exception(
                 "task queue worker died; restarting in %ss", RESTART_DELAY_SECONDS

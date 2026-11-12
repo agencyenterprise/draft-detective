@@ -9,8 +9,9 @@ import pytest
 import pytest_asyncio
 from procrastinate import App, PsycopgConnector
 
+from lib.api import main as api_main
 from lib.config.env import config
-from lib.config.task_queue import libpq_conninfo, run_task_queue_worker, task_queue
+from lib.config.task_queue import libpq_conninfo, task_queue
 from lib.services.task_queue.tasks import ping
 
 WAIT_SECONDS = 20.0
@@ -59,15 +60,47 @@ async def db() -> AsyncIterator[psycopg.AsyncConnection]:
         yield conn
 
 
+async def _worker_of(conn: psycopg.AsyncConnection, job_id: int) -> int | None:
+    cursor = await conn.execute(
+        "SELECT worker_id FROM procrastinate_jobs WHERE id = %s", (job_id,)
+    )
+    row = await cursor.fetchone()
+    return row[0] if row else None
+
+
+async def _is_registered(conn: psycopg.AsyncConnection, worker_id: int) -> bool:
+    cursor = await conn.execute(
+        "SELECT 1 FROM procrastinate_workers WHERE id = %s", (worker_id,)
+    )
+    return await cursor.fetchone() is not None
+
+
+async def _idle() -> None:
+    await asyncio.Event().wait()
+
+
+async def _nothing() -> None:
+    return None
+
+
 @pytest.mark.asyncio
-async def test_deferred_job_runs_on_the_lifespan_worker(
-    db: psycopg.AsyncConnection, job_ids: list[int]
+async def test_the_api_lifespan_runs_deferred_jobs_and_unregisters_on_exit(
+    db: psycopg.AsyncConnection, job_ids: list[int], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async with run_task_queue_worker():
+    # The reaper would sweep other tests' rows, and closing the checkpointer pool
+    # is for good in this process: only the queue worker runs for real.
+    monkeypatch.setattr(api_main, "run_reaper_loop", _idle)
+    monkeypatch.setattr(api_main, "close_checkpointer_pool", _nothing)
+
+    async with api_main.lifespan(api_main.app):
         job_ids.append(await ping.defer_async(message=f"ping {uuid.uuid4()}"))
         await _wait_until_succeeded(db, job_ids)
+        worker_id = await _worker_of(db, job_ids[0])
+        assert worker_id is not None
+        assert await _is_registered(db, worker_id)
 
     assert await _starts_per_job(db, job_ids) == [1]
+    assert not await _is_registered(db, worker_id)
 
 
 def _api_process_queue() -> App:
