@@ -1,20 +1,24 @@
 """The job queue runs a deferred job on a worker, and only once across workers."""
 
 import asyncio
+import json
+import sys
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import psycopg
 import pytest
 import pytest_asyncio
 from procrastinate import App, PsycopgConnector
 
-from lib.api import main as api_main
 from lib.config.env import config
 from lib.config.task_queue import libpq_conninfo, task_queue
 from lib.services.task_queue.tasks import ping
 
 WAIT_SECONDS = 20.0
+PROBE_SECONDS = 90.0
+REPO_ROOT = Path(__file__).resolve().parents[3]
 POLL_SECONDS = 0.1
 API_WORKERS = 4
 JOBS = 40
@@ -60,14 +64,6 @@ async def db() -> AsyncIterator[psycopg.AsyncConnection]:
         yield conn
 
 
-async def _worker_of(conn: psycopg.AsyncConnection, job_id: int) -> int | None:
-    cursor = await conn.execute(
-        "SELECT worker_id FROM procrastinate_jobs WHERE id = %s", (job_id,)
-    )
-    row = await cursor.fetchone()
-    return row[0] if row else None
-
-
 async def _is_registered(conn: psycopg.AsyncConnection, worker_id: int) -> bool:
     cursor = await conn.execute(
         "SELECT 1 FROM procrastinate_workers WHERE id = %s", (worker_id,)
@@ -75,32 +71,30 @@ async def _is_registered(conn: psycopg.AsyncConnection, worker_id: int) -> bool:
     return await cursor.fetchone() is not None
 
 
-async def _idle() -> None:
-    await asyncio.Event().wait()
-
-
-async def _nothing() -> None:
-    return None
+async def _run_lifespan_probe(message: str) -> dict[str, int]:
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-m",
+        "tests.integration.task_queue.lifespan_probe",
+        message,
+        cwd=REPO_ROOT,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await asyncio.wait_for(process.communicate(), PROBE_SECONDS)
+    assert process.returncode == 0, stderr.decode()[-2000:]
+    return json.loads(stdout.decode().strip().splitlines()[-1])
 
 
 @pytest.mark.asyncio
 async def test_the_api_lifespan_runs_deferred_jobs_and_unregisters_on_exit(
-    db: psycopg.AsyncConnection, job_ids: list[int], monkeypatch: pytest.MonkeyPatch
+    db: psycopg.AsyncConnection, job_ids: list[int]
 ) -> None:
-    # The reaper would sweep other tests' rows, and closing the checkpointer pool
-    # is for good in this process: only the queue worker runs for real.
-    monkeypatch.setattr(api_main, "run_reaper_loop", _idle)
-    monkeypatch.setattr(api_main, "close_checkpointer_pool", _nothing)
-
-    async with api_main.lifespan(api_main.app):
-        job_ids.append(await ping.defer_async(message=f"ping {uuid.uuid4()}"))
-        await _wait_until_succeeded(db, job_ids)
-        worker_id = await _worker_of(db, job_ids[0])
-        assert worker_id is not None
-        assert await _is_registered(db, worker_id)
+    ran = await _run_lifespan_probe(f"ping {uuid.uuid4()}")
+    job_ids.append(ran["job_id"])
 
     assert await _starts_per_job(db, job_ids) == [1]
-    assert not await _is_registered(db, worker_id)
+    assert not await _is_registered(db, ran["worker_id"])
 
 
 def _api_process_queue() -> App:
