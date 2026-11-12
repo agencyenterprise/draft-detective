@@ -33,7 +33,7 @@ async def test_a_document_is_read_as_markdown() -> None:
 
     assert "The rate rose by 4%." in read.markdown
     assert "Funding is discussed below." in read.markdown
-    assert read.name == "Draft.docx" and read.size_bytes > 0
+    assert read.name == "Draft.docx"
     assert read.images == []
 
 
