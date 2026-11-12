@@ -1,185 +1,48 @@
 """Convert abbreviation scan v2 state into document issues.
 
-Only genuine problems are reported, and each one at most once per abbreviation.
-The catalogue in state is per-occurrence — a long document yields hundreds of
-entries — but a reader does not need to be told the same abbreviation is missing
-from the Abbreviations section forty times, nor that the other forty passed.
+The rules themselves live in the abbreviation-scan skill's own script,
+`skills/abbreviation-scan/scripts/build_issues.py`, so that runners outside
+Draft Detective (Claude Code, Codex) apply exactly the code this workflow does.
+Here the state is handed to it and its results become `DocumentIssue`s, with the
+passage of the occurrence each issue is located at.
 """
 
-from lib.services.text.matching import text_matches
-from lib.workflows.abbreviation_scan_v2.state import (
-    AbbreviationItem,
-    AbbreviationScanV2State,
-)
+from collections.abc import Callable
+from typing import Any, cast
+
+from lib.skills import load_skill_script
+from lib.workflows.abbreviation_scan_v2.state import AbbreviationScanV2State
 from lib.workflows.models import DocumentIssue, SeverityEnum, WorkflowRunType
 
 _WORKFLOW_TYPE = WorkflowRunType.ABBREVIATION_SCAN_V2
 
+_skill_build_issues = cast(
+    Callable[[list[dict[str, Any]], bool], list[dict[str, Any]]],
+    load_skill_script("abbreviation-scan", "build_issues.py").build_issues,
+)
+
 
 def build_issues(state: AbbreviationScanV2State) -> list[DocumentIssue]:
     """Build the full list of document issues from the abbreviation scan state."""
-
-    if not state.abbreviations:
-        return []
-
-    # Excluded occurrences are out of scope for every rule, so they never reach
-    # the rule checks and never produce an issue of their own.
-    in_scope = [item for item in state.abbreviations if not item.ignored]
-    if not in_scope:
-        return []
-
-    first_occurrence = _first_occurrence_per_abbr(in_scope)
+    occurrences = [
+        item.model_dump(exclude={"passage", "ignored_reason"})
+        for item in state.abbreviations
+    ]
+    results = _skill_build_issues(occurrences, state.abbreviations_section_found)
 
     issues: list[DocumentIssue] = []
-
-    if not state.abbreviations_section_found:
-        issues.append(_no_abbreviations_section_issue())
-
-    for abbr in sorted(first_occurrence):
-        first = first_occurrence[abbr]
-
-        if not first.inline_definition:
-            issues.append(_not_defined_at_first_use_issue(first))
-
-        if (
-            state.abbreviations_section_found
-            and first.abbreviations_section_definition is None
-        ):
-            issues.append(_missing_from_section_issue(first))
-
-        if (
-            first.inline_definition
-            and first.abbreviations_section_definition is not None
-            and not text_matches(
-                first.inline_definition, first.abbreviations_section_definition
+    for result in results:
+        index = result["occurrence_index"]
+        item = state.abbreviations[index] if index is not None else None
+        issues.append(
+            DocumentIssue(
+                title=result["title"],
+                description=result["description"],
+                severity=SeverityEnum(result["severity"]),
+                type=_WORKFLOW_TYPE,
+                start_line=result["start_line"],
+                end_line=result["end_line"],
+                passage=item.passage if item else None,
             )
-        ):
-            issues.append(_definition_mismatch_issue(first))
-
-    issues.extend(_ambiguity_issues(in_scope))
+        )
     return issues
-
-
-def _first_occurrence_per_abbr(
-    items: list[AbbreviationItem],
-) -> dict[str, AbbreviationItem]:
-    """Map each abbreviation to the occurrence the rules treat as its first use."""
-    first: dict[str, AbbreviationItem] = {}
-    for item in items:
-        current = first.get(item.abbr)
-        if current is None or item.occurrence_number < current.occurrence_number:
-            first[item.abbr] = item
-    return first
-
-
-def _ambiguity_issues(items: list[AbbreviationItem]) -> list[DocumentIssue]:
-    """Rule 5 — the same abbreviation given two different inline definitions.
-
-    The baseline is the earliest occurrence that actually carries a definition,
-    not the earliest occurrence full stop: an abbreviation introduced bare and
-    defined two occurrences later still establishes a meaning there, and a
-    conflicting definition after that is the thing this rule exists to catch.
-
-    Reported at the conflicting occurrence, and only once per abbreviation: a
-    document that redefines a term repeatedly needs one flag, not one per use.
-    """
-    issues: list[DocumentIssue] = []
-    established: dict[str, str] = {}
-    already_flagged: set[str] = set()
-
-    # Occurrence order, so "first definition" means first in the document rather
-    # than first in however the catalogue happens to be ordered.
-    for item in sorted(items, key=lambda i: (i.occurrence_number, i.line_start)):
-        if not item.inline_definition:
-            continue
-
-        prior = established.get(item.abbr)
-        if prior is None:
-            established[item.abbr] = item.inline_definition
-            continue
-
-        if item.abbr in already_flagged or text_matches(item.inline_definition, prior):
-            continue
-
-        already_flagged.add(item.abbr)
-        issues.append(_ambiguous_issue(item, prior))
-
-    return issues
-
-
-def _no_abbreviations_section_issue() -> DocumentIssue:
-    return DocumentIssue(
-        title="No Abbreviations section found",
-        description=(
-            "The document uses abbreviations but does not contain a dedicated "
-            '"Abbreviations", "Acronyms", or equivalent section. '
-            "All abbreviations should be listed in such a section."
-        ),
-        severity=SeverityEnum.MEDIUM,
-        type=_WORKFLOW_TYPE,
-    )
-
-
-def _not_defined_at_first_use_issue(item: AbbreviationItem) -> DocumentIssue:
-    return DocumentIssue(
-        title="Abbreviation not defined at first use",
-        description=(
-            f'The abbreviation "{item.abbr}" is used without an inline '
-            f"definition at its first occurrence. It should be introduced as "
-            f'"Full Name ({item.abbr})" the first time it appears.'
-        ),
-        severity=SeverityEnum.MEDIUM,
-        type=_WORKFLOW_TYPE,
-        start_line=item.line_start,
-        end_line=item.line_end,
-        passage=item.passage,
-    )
-
-
-def _missing_from_section_issue(item: AbbreviationItem) -> DocumentIssue:
-    return DocumentIssue(
-        title="Abbreviation missing from Abbreviations section",
-        description=(
-            f'The abbreviation "{item.abbr}" is used in the document but is not '
-            f"listed in the Abbreviations section."
-        ),
-        severity=SeverityEnum.MEDIUM,
-        type=_WORKFLOW_TYPE,
-        start_line=item.line_start,
-        end_line=item.line_end,
-        passage=item.passage,
-    )
-
-
-def _definition_mismatch_issue(item: AbbreviationItem) -> DocumentIssue:
-    return DocumentIssue(
-        title="Inline definition does not match Abbreviations section",
-        description=(
-            f'The inline definition for "{item.abbr}" — '
-            f'"{item.inline_definition}" — differs from the entry in '
-            f"the Abbreviations section: "
-            f'"{item.abbreviations_section_definition}".'
-        ),
-        severity=SeverityEnum.MEDIUM,
-        type=_WORKFLOW_TYPE,
-        start_line=item.line_start,
-        end_line=item.line_end,
-        passage=item.passage,
-    )
-
-
-def _ambiguous_issue(item: AbbreviationItem, prior_definition: str) -> DocumentIssue:
-    return DocumentIssue(
-        title="Ambiguous abbreviation",
-        description=(
-            f'The abbreviation "{item.abbr}" is defined here as '
-            f'"{item.inline_definition}" but was previously defined as '
-            f'"{prior_definition}". Avoid using the same abbreviation to mean '
-            f"more than one thing in the same document."
-        ),
-        severity=SeverityEnum.MEDIUM,
-        type=_WORKFLOW_TYPE,
-        start_line=item.line_start,
-        end_line=item.line_end,
-        passage=item.passage,
-    )
