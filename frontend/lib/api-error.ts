@@ -14,10 +14,11 @@ export function isApiError(error: unknown, status?: number): error is ApiError {
 
 /**
  * Extract a user-readable message from an unknown error value.
- * Uses the Error/ApiError message when available, otherwise falls back
- * to the provided fallback string.
+ * An ApiError shows the server's reason, or the fallback when the server gave none
+ * (never the bare "HTTP <status>"). Any other Error shows its own message.
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) return error.detail || fallback;
   if (error instanceof Error) return error.message;
   return fallback;
 }
