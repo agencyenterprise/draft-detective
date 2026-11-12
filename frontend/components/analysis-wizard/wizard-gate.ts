@@ -10,7 +10,7 @@ interface WizardGateInput {
   requireApiKeyConfig: boolean;
   /** The signed-in user, `undefined` until the lookup resolves. */
   user: UserResponse | undefined;
-  /** Whether the user lookup failed. It doesn't retry on its own, so the page must offer a retry. */
+  /** Whether the user lookup has run (and, with no user, failed). It doesn't retry on its own, so the page must offer a retry. */
   userLookupFailed: boolean;
   /** The wizard's own step: 1 for the upload, 2 for the assessments. */
   currentStep: 1 | 2;
@@ -33,7 +33,7 @@ export function wizardGate({ requireApiKeyConfig, user, userLookupFailed, curren
   // Gating on `user === undefined` rather than `isLoading` renders the same on the
   // server, which has no user, and on the client's first render, which is fetching.
   // A failed lookup leaves `user` undefined for good, so it gets its own screen
-  // rather than the spinner. `isError` is false on the server and the first render.
+  // rather than the spinner. It is false on the server and the first render.
   if (requireApiKeyConfig && user === undefined) return { kind: userLookupFailed ? 'lookup-failed' : 'loading' };
 
   const apiKeyConfigured = user?.has_openai_api_key ?? false;

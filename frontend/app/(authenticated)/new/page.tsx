@@ -15,11 +15,13 @@ const REQUIRE_API_KEY_CONFIG = process.env.NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CO
 
 function WizardContent() {
   const wizard = useWizard();
-  const { data: user, isError, isFetching, refetch } = useUserMe();
+  const { data: user, isFetched, isFetching, refetch } = useUserMe();
   const gate = wizardGate({
     requireApiKeyConfig: REQUIRE_API_KEY_CONFIG,
     user,
-    userLookupFailed: isError,
+    // Not `isError`: a retry with no data resets the query to pending, which would
+    // swap the retry panel back to the spinner while the request runs.
+    userLookupFailed: isFetched,
     currentStep: wizard.currentStep,
   });
 

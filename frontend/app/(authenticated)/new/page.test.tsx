@@ -46,4 +46,22 @@ describe('/new on a deploy that requires a key', () => {
     expect(mocks.me).toHaveBeenCalledTimes(2);
     expect(view.container.textContent).toContain('api-key-step');
   });
+
+  it('keeps the retry on screen, disabled, while the retry is in flight', async () => {
+    let fail!: (error: Error) => void;
+    mocks.me.mockRejectedValueOnce(new Error('Internal Server Error'));
+    mocks.me.mockReturnValueOnce(new Promise((_, reject) => (fail = reject)));
+    view = await renderInto(withQueryClient(testQueryClient(), <New />));
+    await flush();
+
+    const retryButton = () =>
+      [...view!.container.querySelectorAll('button')].find((b) => b.textContent === 'Try again');
+    await act(async () => retryButton()!.click());
+    await flush();
+    expect(retryButton()?.disabled).toBe(true);
+
+    await act(async () => fail(new Error('Internal Server Error')));
+    await flush();
+    expect(retryButton()?.disabled).toBe(false);
+  });
 });
