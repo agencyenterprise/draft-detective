@@ -6,17 +6,24 @@ import { USER_ME_QUERY_KEY } from '@/lib/hooks/use-user-me';
 import { flush, renderInto, testQueryClient, withQueryClient, type Rendered } from '@/lib/test-render';
 import { ApiKeySettings } from './api-key-settings';
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(), remove: vi.fn() }));
-// No session, so the user query never fetches and the card shows the user seeded below.
-vi.mock('next-auth/react', () => ({ useSession: () => ({ status: 'unauthenticated', data: null }) }));
+const mocks = vi.hoisted(() => ({
+  save: vi.fn(),
+  remove: vi.fn(),
+  getMe: vi.fn(),
+  session: { status: 'unauthenticated' },
+}));
+// Without a session the user query never fetches, and the card shows the user seeded below.
+vi.mock('next-auth/react', () => ({ useSession: () => ({ status: mocks.session.status, data: null }) }));
 vi.mock('@/lib/generated-api', async (original) => ({
   ...(await original<typeof import('@/lib/generated-api')>()),
   setApiKeyApiUsersMeApiKeyPut: mocks.save,
   removeApiKeyApiUsersMeApiKeyDelete: mocks.remove,
+  getCurrentUserInfoApiUsersMeGet: mocks.getMe,
 }));
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.session.status = 'unauthenticated';
   mocks.save.mockResolvedValue({});
   mocks.remove.mockResolvedValue({});
 });
@@ -144,5 +151,23 @@ describe('ApiKeySettings', () => {
     await card.submit();
 
     expect(card.text()).not.toContain('Failed to remove API key');
+  });
+
+  it('holds the form until the refetched user arrives, so nothing typed meanwhile is lost to the remount', async () => {
+    // Signed in, so saving refetches the user; the refetch stays pending until the test settles it.
+    mocks.session.status = 'authenticated';
+    let refetched!: (user: object) => void;
+    mocks.getMe.mockReturnValue(new Promise((resolve) => (refetched = resolve)));
+    const card = await mountSettings(false);
+
+    await card.type('sk-test-123');
+    await card.submit();
+    expect(mocks.save).toHaveBeenCalledOnce();
+    expect(card.input().disabled).toBe(true);
+
+    await act(async () => refetched({ has_openai_api_key: true }));
+    await flush();
+    expect(card.input().disabled).toBe(false);
+    expect(card.button('Replace key')).toBeDefined();
   });
 });

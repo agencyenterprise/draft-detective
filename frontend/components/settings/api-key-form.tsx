@@ -33,10 +33,12 @@ export function ApiKeyForm({ submitLabel = 'Save key', disabled = false, onSubmi
   const saveMutation = useMutation({
     mutationKey: SAVE_API_KEY_MUTATION_KEY,
     mutationFn: (openai_api_key: string) => setApiKeyApiUsersMeApiKeyPut({ body: { openai_api_key } }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY });
+    // Awaiting the refetch keeps the save pending until `has_openai_api_key` updates: a page keyed on it
+    // remounts this form then, and would drop anything typed in between.
+    onSuccess: async () => {
       setApiKey('');
       setError(null);
+      await queryClient.invalidateQueries({ queryKey: USER_ME_QUERY_KEY });
     },
     onError: (err: unknown) => setError(getErrorDetail(err, 'Failed to save API key. Please check that it is valid.')),
   });
