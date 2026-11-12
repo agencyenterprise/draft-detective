@@ -247,6 +247,9 @@ def partial_ratio(s1: str, s2: str) -> float:
     if not s1 and not s2:
         return 100.0
     shorter, longer = (s1, s2) if len(s1) <= len(s2) else (s2, s1)
+    # Some window then equals the shorter string exactly: the best score there is.
+    if shorter and shorter in longer:
+        return 100.0
     score = _partial_ratio_impl(shorter, longer)
     if score != 100 and len(s1) == len(s2):
         score = max(score, _partial_ratio_impl(longer, shorter))
