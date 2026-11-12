@@ -8,15 +8,24 @@ import { StepAnalyses } from '@/components/analysis-wizard/step-analyses';
 import { StepApiKeyConfig } from '@/components/analysis-wizard/step-api-key-config';
 import { wizardGate } from '@/components/analysis-wizard/wizard-gate';
 import { useUserMe } from '@/lib/hooks/use-user-me';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const REQUIRE_API_KEY_CONFIG = process.env.NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG === 'true';
 
 function WizardContent() {
   const wizard = useWizard();
-  const { data: user } = useUserMe();
-  const gate = wizardGate({ requireApiKeyConfig: REQUIRE_API_KEY_CONFIG, user, currentStep: wizard.currentStep });
+  const { data: user, isFetched, isFetching, refetch } = useUserMe();
+  const gate = wizardGate({
+    requireApiKeyConfig: REQUIRE_API_KEY_CONFIG,
+    user,
+    // Not `isError`: a retry with no data resets the query to pending, which would
+    // swap the retry panel back to the spinner while the request runs.
+    userLookupFailed: isFetched,
+    currentStep: wizard.currentStep,
+  });
 
+  if (gate.kind === 'lookup-failed') return <UserLookupError retrying={isFetching} onRetry={() => refetch()} />;
   if (gate.kind === 'loading') {
     return (
       <main className="flex flex-1 items-center justify-center">
@@ -37,6 +46,18 @@ function WizardContent() {
       {gate.kind === 'wizard' && wizard.currentStep === 1 && <StepUpload onComplete={wizard.nextStep} />}
       {gate.kind === 'wizard' && wizard.currentStep === 2 && <StepAnalyses />}
     </>
+  );
+}
+
+function UserLookupError({ retrying, onRetry }: { retrying: boolean; onRetry: () => void }) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <p className="text-sm text-muted-foreground">We couldn&apos;t load your account details.</p>
+      <Button variant="outline" onClick={onRetry} disabled={retrying}>
+        {retrying && <Loader2 className="size-4 animate-spin" />}
+        Try again
+      </Button>
+    </main>
   );
 }
 

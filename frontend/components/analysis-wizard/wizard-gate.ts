@@ -10,12 +10,15 @@ interface WizardGateInput {
   requireApiKeyConfig: boolean;
   /** The signed-in user, `undefined` until the lookup resolves. */
   user: UserResponse | undefined;
+  /** Whether the user lookup has run (and, with no user, failed). It doesn't retry on its own, so the page must offer a retry. */
+  userLookupFailed: boolean;
   /** The wizard's own step: 1 for the upload, 2 for the assessments. */
   currentStep: 1 | 2;
 }
 
 export type WizardGate =
   | { kind: 'loading' }
+  | { kind: 'lookup-failed' }
   | { kind: 'api-key'; steps: IndicatorStep[]; currentIndicatorStep: number }
   | { kind: 'wizard'; steps: IndicatorStep[]; currentIndicatorStep: number };
 
@@ -26,10 +29,12 @@ export type WizardGate =
  * until the user has one. Its step stays in the indicator once completed, so the
  * wizard's own steps move one place to the right.
  */
-export function wizardGate({ requireApiKeyConfig, user, currentStep }: WizardGateInput): WizardGate {
+export function wizardGate({ requireApiKeyConfig, user, userLookupFailed, currentStep }: WizardGateInput): WizardGate {
   // Gating on `user === undefined` rather than `isLoading` renders the same on the
   // server, which has no user, and on the client's first render, which is fetching.
-  if (requireApiKeyConfig && user === undefined) return { kind: 'loading' };
+  // A failed lookup leaves `user` undefined for good, so it gets its own screen
+  // rather than the spinner. It is false on the server and the first render.
+  if (requireApiKeyConfig && user === undefined) return { kind: userLookupFailed ? 'lookup-failed' : 'loading' };
 
   const apiKeyConfigured = user?.has_openai_api_key ?? false;
   const apiKeySteps = requireApiKeyConfig ? [{ label: 'API Key Setup', completed: apiKeyConfigured }] : [];
