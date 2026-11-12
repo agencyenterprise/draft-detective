@@ -7,6 +7,7 @@ one RUNNING and one waiting run, so mocks could not show it.
 import asyncio
 import uuid
 from collections.abc import AsyncIterator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -267,3 +268,80 @@ async def test_start_workflow_run_queues_one_behind_a_running_run(project_id):
         WorkflowRunStatus.RUNNING,
         WorkflowRunStatus.PENDING,
     ]
+
+
+def _released_meanwhile(run_id: str, status: WorkflowRunStatus) -> Any:
+    """A claim that loses because another request released the run first and
+    its runner moved it on to ``status``."""
+
+    async def lose_claim(claimed_id: str) -> bool:
+        assert claimed_id == run_id
+        await _set_status(run_id, status)
+        return False
+
+    return patch(
+        "lib.services.workflow_runs.start.claim_run_awaiting_approval",
+        new=AsyncMock(side_effect=lose_claim),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "moved_to",
+    [
+        WorkflowRunStatus.PENDING,
+        WorkflowRunStatus.RUNNING,
+        WorkflowRunStatus.COMPLETED,
+        WorkflowRunStatus.FAILED,
+    ],
+)
+async def test_a_lost_release_joins_the_run_someone_else_released(project_id, moved_to):
+    parked = await _start(project_id, CLAIM, gated=True)
+    await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
+
+    with _released_meanwhile(parked.run_id, moved_to):
+        start = await _start(project_id, CLAIM)
+
+    assert start.run_id == parked.run_id
+    assert start.status == moved_to
+    assert not start.schedule and not start.created
+    assert await _statuses(project_id, CLAIM) == [moved_to]
+
+
+@pytest.mark.asyncio
+async def test_a_lost_release_of_a_cancelled_run_starts_a_new_one(project_id):
+    parked = await _start(project_id, CLAIM, gated=True)
+    await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
+
+    with _released_meanwhile(parked.run_id, WorkflowRunStatus.CANCELLED):
+        start = await _start(project_id, CLAIM)
+
+    assert start.run_id != parked.run_id
+    assert start.created and start.schedule
+    assert await _statuses(project_id, CLAIM) == [
+        WorkflowRunStatus.CANCELLED,
+        WorkflowRunStatus.PENDING,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_a_parked_run_released_by_an_approval_right_after_insert(project_id):
+    """The approval lands between this start's insert and its gate re-check,
+    and releases the run first: the start reports it PENDING, not gated, and
+    leaves scheduling to the approval."""
+    released: list[WorkflowRun] = []
+
+    async def approve_meanwhile(*args: object) -> list[WorkflowGate]:
+        await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
+        released.extend(await release_runs_awaiting_approval(project_id, 1))
+        return []
+
+    with patch(
+        "lib.services.workflow_runs.start.get_unsatisfied_gates",
+        new=AsyncMock(side_effect=approve_meanwhile),
+    ):
+        start = await _start(project_id, CLAIM, gated=True)
+
+    assert [str(run.id) for run in released] == [start.run_id]
+    assert start.status == WorkflowRunStatus.PENDING
+    assert start.created and not start.schedule

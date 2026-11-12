@@ -31,6 +31,7 @@ from lib.services.workflow_runs.gates import (
     claim_run_awaiting_approval,
     get_unsatisfied_gates,
 )
+from lib.services.workflow_runs.service import get_workflow_run_status
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
@@ -107,7 +108,13 @@ async def _attempt(
     if await claim_run_awaiting_approval(str(waiting.id)):
         waiting.status = WorkflowRunStatus.PENDING
         return _start_of(waiting, schedule=True, created=False)
-    return None  # A concurrent approval released it, or a cancel ended it.
+    # A concurrent approval released it (it may be running or done by now):
+    # this start is served by it. Only a cancelled or deleted run is retried.
+    current = await get_workflow_run_status(str(waiting.id))
+    if current is None or current == WorkflowRunStatus.CANCELLED:
+        return None
+    waiting.status = current
+    return _start_of(waiting, schedule=False, created=False)
 
 
 async def _release_if_gate_approved_meanwhile(run: WorkflowRun) -> RunStart:
@@ -117,9 +124,16 @@ async def _release_if_gate_approved_meanwhile(run: WorkflowRun) -> RunStart:
     still_gated = await get_unsatisfied_gates(
         str(run.project_id), run.revision, WorkflowRunType(run.type)
     )
-    if not still_gated and await claim_run_awaiting_approval(str(run.id)):
+    if still_gated:
+        return _start_of(run, schedule=False, created=True)
+    if await claim_run_awaiting_approval(str(run.id)):
         run.status = WorkflowRunStatus.PENDING
         return _start_of(run, schedule=True, created=True)
+    # The approval released it first (or a cancel ended it): report where it
+    # is now, so the caller waits on it instead of reporting it as gated.
+    run.status = (
+        await get_workflow_run_status(str(run.id)) or WorkflowRunStatus.CANCELLED
+    )
     return _start_of(run, schedule=False, created=True)
 
 
