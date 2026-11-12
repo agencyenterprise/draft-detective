@@ -25,6 +25,7 @@ from lib.services.issue_persistence import persist_workflow_issues
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
 from lib.services.workflow_runs.orchestration import wait_for_dependencies
+from lib.services.workflow_runs.queue import heartbeat_while_preparing
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
@@ -141,22 +142,29 @@ async def run_workflow_from_config(
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
 
-    # Read the prior same-type run's state here — at execution time, after the
-    # same-type wait in run_workflow_with_dependency_check has resolved — so
-    # accumulating workflows seed from the prior run's FINAL state rather than a
-    # snapshot taken while it was still running. Exclude this run (its state_json
-    # is still NULL now anyway). Skipped on resume (seed_prior_state=False).
-    prior_self_state = (
-        await get_latest_workflow_run_state_by_type(
-            config.project_id, config.type, revision, exclude_run_id=workflow_run_id
+    # The run may already be RUNNING (it claimed the same-type queue), so it
+    # beats while it prepares; graph nodes take over the heartbeat after this.
+    async with heartbeat_while_preparing(workflow_run_id):
+        # Read the prior same-type run's state here — at execution time, after
+        # the same-type wait in run_workflow_with_dependency_check has resolved
+        # — so accumulating workflows seed from the prior run's FINAL state
+        # rather than a snapshot taken while it was still running. Exclude this
+        # run (its state_json is still NULL now anyway). Skipped on resume
+        # (seed_prior_state=False).
+        prior_self_state = (
+            await get_latest_workflow_run_state_by_type(
+                config.project_id,
+                config.type,
+                revision,
+                exclude_run_id=workflow_run_id,
+            )
+            if seed_prior_state
+            else None
         )
-        if seed_prior_state
-        else None
-    )
 
-    state = await create_state(
-        config, revision=revision, prior_self_state=prior_self_state
-    )
+        state = await create_state(
+            config, revision=revision, prior_self_state=prior_self_state
+        )
 
     with propagate_attributes(user_id=context.user_id):
         return await run_workflow(

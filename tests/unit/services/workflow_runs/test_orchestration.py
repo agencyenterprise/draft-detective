@@ -31,20 +31,24 @@ def create_workflow_run(
 
 @pytest.fixture(autouse=True)
 def run_ahead():
-    """The same-type run ahead of the waiting one, as the read and the claim
-    see it (one mock for both): none unless a test says so."""
-    mock_run_ahead = AsyncMock(return_value=None)
-    with (
-        patch(
-            "lib.services.workflow_runs.orchestration.get_run_ahead_in_same_type_queue",
-            new=mock_run_ahead,
-        ),
-        patch(
-            "lib.services.workflow_runs.orchestration.claim_same_type_queue_head",
-            new=mock_run_ahead,
-        ),
-    ):
+    """The same-type run ahead, as read while dependencies still block: none
+    unless a test says so."""
+    with patch(
+        "lib.services.workflow_runs.orchestration.get_run_ahead_in_same_type_queue",
+        new=AsyncMock(return_value=None),
+    ) as mock_run_ahead:
         yield mock_run_ahead
+
+
+@pytest.fixture(autouse=True)
+def claim():
+    """The queue claim, made once nothing else blocks: returns the run ahead,
+    None (claimed) unless a test says so."""
+    with patch(
+        "lib.services.workflow_runs.orchestration.claim_same_type_queue_head",
+        new=AsyncMock(return_value=None),
+    ) as mock_claim:
+        yield mock_claim
 
 
 @pytest.fixture(autouse=True)
@@ -68,10 +72,10 @@ def mock_manifest():
 
 
 @pytest.mark.asyncio
-async def test_same_type_lock_waits_while_a_run_is_ahead(run_ahead, mock_manifest):
+async def test_same_type_lock_waits_while_a_run_is_ahead(claim, mock_manifest):
     """The run polls until no same-type run is ahead of it, then goes."""
     current_run_id = str(uuid4())
-    run_ahead.side_effect = [
+    claim.side_effect = [
         create_workflow_run(
             WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING
         ),
@@ -93,13 +97,13 @@ async def test_same_type_lock_waits_while_a_run_is_ahead(run_ahead, mock_manifes
             current_workflow_run_id=current_run_id,
         )
 
-    assert run_ahead.await_count == 2
-    run_ahead.assert_awaited_with(current_run_id)
+    assert claim.await_count == 2
+    claim.assert_awaited_with(current_run_id)
     mock_sleep.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_same_type_lock_proceeds_when_no_run_is_ahead(run_ahead, mock_manifest):
+async def test_same_type_lock_proceeds_when_no_run_is_ahead(claim, mock_manifest):
     """Which runs count as ahead is the query's job (see the integration tests);
     with none, the run goes without sleeping."""
     with (
@@ -118,11 +122,13 @@ async def test_same_type_lock_proceeds_when_no_run_is_ahead(run_ahead, mock_mani
         )
 
     mock_sleep.assert_not_called()
-    run_ahead.assert_awaited_once()
+    claim.assert_awaited_once()
 
 
 @pytest.mark.asyncio
-async def test_independent_runs_do_not_wait_for_each_other(run_ahead, mock_manifest):
+async def test_independent_runs_do_not_wait_for_each_other(
+    run_ahead, claim, mock_manifest
+):
     """Runs that read only their own inputs skip the same-type lock, so a queued
     request is not left to time out behind long ones."""
     mock_manifest.independent_runs = True
@@ -148,10 +154,13 @@ async def test_independent_runs_do_not_wait_for_each_other(run_ahead, mock_manif
 
     mock_get_run.assert_not_called()
     run_ahead.assert_not_called()
+    claim.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_no_same_type_lock_when_no_run_id_provided(run_ahead, mock_manifest):
+async def test_no_same_type_lock_when_no_run_id_provided(
+    run_ahead, claim, mock_manifest
+):
     """Test that same-type locking is disabled when current_workflow_run_id is None."""
     project_id = str(uuid4())
 
@@ -187,10 +196,11 @@ async def test_no_same_type_lock_when_no_run_id_provided(run_ahead, mock_manifes
     # Should NOT query for same-type runs when no run_id provided and no dependencies
     mock_get_run.assert_not_called()
     run_ahead.assert_not_called()
+    claim.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_waits_for_both_same_type_and_dependencies(run_ahead):
+async def test_waits_for_both_same_type_and_dependencies(run_ahead, claim):
     """Test that function waits for both same-type lock AND dependencies."""
     project_id = str(uuid4())
     current_run_id = str(uuid4())
@@ -201,7 +211,8 @@ async def test_waits_for_both_same_type_and_dependencies(run_ahead):
     manifest.required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
     manifest.optional_dependencies = []
 
-    # A same-type run is ahead for the first poll only
+    # A same-type run is ahead for the first poll only; the claim, made once
+    # the dependency completes, finds none
     run_ahead.side_effect = [
         create_workflow_run(
             WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.RUNNING
@@ -239,8 +250,11 @@ async def test_waits_for_both_same_type_and_dependencies(run_ahead):
             current_workflow_run_id=current_run_id,
         )
 
-    # Slept while the same-type run, then the dependency, held it back
+    # Slept while the same-type run, then the dependency, held it back, and
+    # claimed only once nothing else did
     assert mock_sleep.call_count == 2
+    assert run_ahead.await_count == 2
+    claim.assert_awaited_once_with(current_run_id)
 
 
 @pytest.mark.asyncio

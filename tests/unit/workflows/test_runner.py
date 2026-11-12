@@ -9,6 +9,7 @@ branch with a mocked graph so the behavior contract is locked in even though we
 don't spin up real LangGraph.
 """
 
+import contextlib
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -392,6 +393,10 @@ def _seeding_patches(get_latest, create_state):
         patch("lib.workflows.runner.create_state", new=create_state),
         patch("lib.workflows.runner.run_workflow", new=AsyncMock()),
         patch("lib.workflows.runner.propagate_attributes"),
+        patch(
+            "lib.workflows.runner.heartbeat_while_preparing",
+            return_value=contextlib.nullcontext(),
+        ),
     )
 
 
@@ -407,8 +412,9 @@ async def test_run_workflow_from_config_seeds_prior_state_when_enabled():
     get_latest = AsyncMock(return_value=prior)
     create_state = AsyncMock()
 
-    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
-    with p1, p2, p3, p4, p5, p6:
+    with contextlib.ExitStack() as patches:
+        for seeding_patch in _seeding_patches(get_latest, create_state):
+            patches.enter_context(seeding_patch)
         await run_workflow_from_config(
             config=config,
             thread_id=str(uuid4()),
@@ -434,8 +440,9 @@ async def test_run_workflow_from_config_skips_seeding_on_resume():
     get_latest = AsyncMock()
     create_state = AsyncMock()
 
-    p1, p2, p3, p4, p5, p6 = _seeding_patches(get_latest, create_state)
-    with p1, p2, p3, p4, p5, p6:
+    with contextlib.ExitStack() as patches:
+        for seeding_patch in _seeding_patches(get_latest, create_state):
+            patches.enter_context(seeding_patch)
         await run_workflow_from_config(
             config=config,
             thread_id=str(uuid4()),

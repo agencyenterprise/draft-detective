@@ -12,15 +12,45 @@ visible later (released from a gate, or committed after a newer one) waits
 for it instead of starting alongside it.
 """
 
+import asyncio
+import contextlib
+import uuid
+from collections.abc import AsyncIterator
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Row, Select, and_, func, or_, select, tuple_, update
+from sqlalchemy import (
+    BigInteger,
+    ColumnElement,
+    Row,
+    Select,
+    and_,
+    func,
+    or_,
+    select,
+    tuple_,
+    update,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
+from lib.models.workflow_run import (
+    TERMINAL_WORKFLOW_RUN_STATUSES,
+    WorkflowRun,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
+from lib.services.workflow_runs.service import (
+    get_workflow_run_status,
+    update_workflow_run_heartbeat,
+)
+from lib.workflows.models import WorkflowCancelledError
+
+# How often a claimed run beats while the runner prepares it: the same cadence
+# as a graph node's supervisor (decorators.CANCELLATION_CHECK_INTERVAL), well
+# inside the reaper's 60 s grace.
+SETUP_HEARTBEAT_INTERVAL = 5.0
 
 
 async def get_run_ahead_in_same_type_queue(workflow_run_id: str) -> WorkflowRun | None:
@@ -38,31 +68,97 @@ async def get_run_ahead_in_same_type_queue(workflow_run_id: str) -> WorkflowRun 
 async def claim_same_type_queue_head(workflow_run_id: str) -> WorkflowRun | None:
     """Move this PENDING run to RUNNING unless a run is ahead of it.
 
-    Returns the run ahead, or None when this run claimed the queue (or no
-    longer exists). An advisory lock on the project, type and revision makes
-    concurrent claims take turns, and each claim's check runs after the lock,
-    so it sees every earlier claim's RUNNING row.
+    Returns the run ahead, or None when this run claimed the queue. An advisory
+    lock on the project, type and revision makes concurrent claims take turns,
+    and each claim's check runs after the lock, so it sees every earlier
+    claim's RUNNING row.
+
+    Raises:
+        WorkflowCancelledError: If the run no longer exists or already ended
+            (cancelled, or failed by the reaper) while it waited.
     """
     async with get_async_db_session() as session:
         own = await _queue_position(session, workflow_run_id)
         if own is None:
-            return None
-        queue_key = f"workflow-queue:{own.project_id}:{own.type}:{own.revision}"
+            raise _ended(workflow_run_id)
         await session.execute(
-            select(func.pg_advisory_xact_lock(func.hashtextextended(queue_key, 0)))
+            select(
+                func.pg_advisory_xact_lock(
+                    queue_lock_key(own.project_id, own.type, own.revision)
+                )
+            )
         )
         run_ahead = (await session.execute(_run_ahead(own))).scalar_one_or_none()
         if run_ahead is None:
-            await session.execute(
+            claimed = await session.execute(
                 update(WorkflowRun)
                 .where(
                     col(WorkflowRun.id) == own.id,
-                    col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
+                    col(WorkflowRun.status).in_(
+                        (WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING)
+                    ),
                 )
-                .values(status=WorkflowRunStatus.RUNNING, started_at=datetime.utcnow())
+                .values(
+                    status=WorkflowRunStatus.RUNNING,
+                    started_at=func.coalesce(
+                        col(WorkflowRun.started_at), datetime.utcnow()
+                    ),
+                )
+                .returning(col(WorkflowRun.id))
             )
+            if claimed.scalar_one_or_none() is None:
+                await session.rollback()
+                raise _ended(workflow_run_id)
         await session.commit()
         return run_ahead
+
+
+def queue_lock_key(
+    project_id: uuid.UUID | str, workflow_type: WorkflowRunType | str, revision: int
+) -> ColumnElement[int]:
+    """The advisory-lock key (a bigint expression) that serializes claims on
+    one project, type and revision."""
+    key = (
+        f"workflow-queue:{project_id}:{WorkflowRunType(workflow_type).value}:{revision}"
+    )
+    return func.hashtextextended(key, 0, type_=BigInteger)
+
+
+@contextlib.asynccontextmanager
+async def heartbeat_while_preparing(workflow_run_id: str) -> AsyncIterator[None]:
+    """Keep a claimed run's heartbeat fresh while the runner prepares its state.
+
+    A claimed run is RUNNING before its first graph node writes a heartbeat,
+    and the reaper fails a RUNNING run whose heartbeat goes stale. Beating here
+    keeps a slow setup (loading documents, reading prior state) from looking
+    dead, while a dead process still stops beating.
+
+    Raises:
+        WorkflowCancelledError: On the way out, if the run ended (cancelled, or
+            failed by the reaper) or was deleted during setup.
+    """
+    beat = asyncio.create_task(_beat(workflow_run_id))
+    try:
+        yield
+    finally:
+        beat.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await beat
+    status = await get_workflow_run_status(workflow_run_id)
+    if status is None or status in TERMINAL_WORKFLOW_RUN_STATUSES:
+        raise _ended(workflow_run_id)
+
+
+async def _beat(workflow_run_id: str) -> None:
+    while True:
+        await update_workflow_run_heartbeat(workflow_run_id)
+        await asyncio.sleep(SETUP_HEARTBEAT_INTERVAL)
+
+
+def _ended(workflow_run_id: str) -> WorkflowCancelledError:
+    return WorkflowCancelledError(
+        f"Workflow run {workflow_run_id} ended or was deleted before its graph started"
+    )
 
 
 async def _queue_position(
