@@ -9,6 +9,7 @@ from lib.models.workflow_run import (
 )
 from lib.services.workflow_runs.service import (
     get_project_workflow_run_by_type,
+    get_run_ahead_in_same_type_queue,
     get_workflow_run_status,
     update_workflow_run_status,
 )
@@ -83,17 +84,11 @@ async def wait_for_dependencies(
         blocking_reasons: list[str] = []
 
         # Check same-type lock (wait for previous runs of same workflow)
-        if needs_same_type_lock:
-            same_type_run = await get_project_workflow_run_by_type(
-                project_id, workflow_type, revision=revision
-            )
-            if (
-                same_type_run is not None
-                and str(same_type_run.id) != current_workflow_run_id
-                and same_type_run.status not in TERMINAL_WORKFLOW_RUN_STATUSES
-            ):
+        if needs_same_type_lock and current_workflow_run_id is not None:
+            run_ahead = await get_run_ahead_in_same_type_queue(current_workflow_run_id)
+            if run_ahead is not None:
                 blocking_reasons.append(
-                    f"previous {workflow_type.value} (run_id {str(same_type_run.id)[:8]}...)"
+                    f"previous {workflow_type.value} (run_id {str(run_ahead.id)[:8]}...)"
                 )
 
         # Check dependencies
