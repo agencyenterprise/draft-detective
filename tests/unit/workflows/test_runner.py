@@ -304,7 +304,7 @@ async def test_execute_claimed_run_fails_the_run_on_errors_before_the_graph():
     with contextlib.ExitStack() as stack:
         for p in _execution_patches(RuntimeError("setup failure"), fail):
             stack.enter_context(p)
-        await execute_claimed_run(run)
+        await execute_claimed_run(run, openai_api_key=None)
 
     fail.assert_awaited_once()
     args, kwargs = fail.await_args
@@ -321,7 +321,7 @@ async def test_execute_claimed_run_leaves_a_cancelled_run_cancelled():
     with contextlib.ExitStack() as stack:
         for p in _execution_patches(WorkflowCancelledError("cancelled"), fail):
             stack.enter_context(p)
-        await execute_claimed_run(_claimed_run())
+        await execute_claimed_run(_claimed_run(), openai_api_key=None)
 
     fail.assert_not_awaited()
 
@@ -483,3 +483,19 @@ async def test_run_workflow_cancel_does_not_fail_run_when_teardown_fails(
 
     manifest.on_cancel.assert_awaited_once()
     fail.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_execute_claimed_run_runs_on_the_request_key_over_any_other():
+    """A start request's own key wins over the user's stored key and the
+    server's, as it did before runs went through the queue."""
+    config = MagicMock(openai_api_key=None)
+    run_config = AsyncMock()
+    with (
+        patch("lib.workflows.runner._config_of", new=AsyncMock(return_value=config)),
+        patch("lib.workflows.runner._starter_of", new=AsyncMock(return_value=None)),
+        patch("lib.workflows.runner.run_workflow_from_config", new=run_config),
+    ):
+        await execute_claimed_run(_claimed_run(), openai_api_key="sk-request")
+
+    assert run_config.await_args.kwargs["config"].openai_api_key == "sk-request"

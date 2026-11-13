@@ -1,4 +1,6 @@
-"""The queue jobs that run workflow runs: deferring, claiming and cancelling them.
+"""The queue jobs that run workflow runs: deferring and cancelling them, and
+releasing the ones a dead worker left behind. A job claims its run through the
+promoter (``lib.services.workflow_runs.promoter.claim_run``).
 
 One job runs one run (task ``run_workflow``, argument ``workflow_run_id``).
 ``queueing_lock`` is the run id, so a run waits in the queue at most once;
@@ -12,12 +14,10 @@ imports the whole runner).
 
 import logging
 import uuid
-from datetime import datetime
 
 from procrastinate.exceptions import AlreadyEnqueued
 from procrastinate.jobs import Status
-from sqlalchemy import select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config import task_queue as queue_config
@@ -25,7 +25,6 @@ from lib.config.database import get_async_db_session
 from lib.models.workflow_run import (
     TERMINAL_WORKFLOW_RUN_STATUSES,
     WorkflowRun,
-    WorkflowRunStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,33 +64,6 @@ async def cancel_queued_job(workflow_run_id: str) -> None:
     for job in jobs:
         if job.id is not None:
             await queue_config.task_queue.job_manager.cancel_job_by_id_async(job.id)
-
-
-async def claim_run(workflow_run_id: str) -> WorkflowRun | None:
-    """Move the run from PENDING to RUNNING, for the job about to run it.
-
-    None when the run is no longer PENDING (cancelled, parked behind a gate, or
-    already started by a duplicate job) or another run of its type still holds
-    the RUNNING slot: either way this job has nothing to do, and the promoter
-    queues the run again when it is ready.
-    """
-    stmt = (
-        update(WorkflowRun)
-        .where(
-            col(WorkflowRun.id) == uuid.UUID(workflow_run_id),
-            col(WorkflowRun.status) == WorkflowRunStatus.PENDING,
-        )
-        .values(status=WorkflowRunStatus.RUNNING, started_at=datetime.utcnow())
-        .returning(WorkflowRun)
-    )
-    async with get_async_db_session() as session:
-        try:
-            run = (await session.execute(stmt)).scalar_one_or_none()
-            await session.commit()
-        except IntegrityError:
-            logger.warning(f"Run {workflow_run_id} not claimed: its type is RUNNING")
-            return None
-    return run
 
 
 async def release_stalled_run_jobs() -> list[WorkflowRun]:

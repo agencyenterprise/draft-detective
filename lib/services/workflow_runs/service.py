@@ -8,7 +8,7 @@ from typing import Any, TypeVar, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Select, case, func, select, update
+from sqlalchemy import Select, case, func, or_, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
@@ -126,6 +126,29 @@ async def persist_workflow_run_state(
         conditions.append(col(WorkflowRun.status) != WorkflowRunStatus.FAILED)
     async with get_async_db_session() as session:
         stmt = update(WorkflowRun).where(*conditions).values(state_json=payload)
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def initialize_workflow_run_state(
+    workflow_run_id: str, state: WorkflowState
+) -> None:
+    """Write the run's first state, unless one is there already.
+
+    For what a start records before the run executes: a job that already
+    started has written its own state, which this must not replace.
+    """
+    payload = sanitize_for_postgres(state.model_dump(mode="json"))
+    empty = or_(
+        col(WorkflowRun.state_json).is_(None),
+        func.jsonb_typeof(col(WorkflowRun.state_json)) == "null",
+    )
+    async with get_async_db_session() as session:
+        stmt = (
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == workflow_run_id, empty)
+            .values(state_json=payload)
+        )
         await session.execute(stmt)
         await session.commit()
 
@@ -337,6 +360,8 @@ async def update_workflow_run_status(
                 run.started_at = now
             if status in TERMINAL_WORKFLOW_RUN_STATUSES:
                 run.completed_at = now
+                # A request's key outlives its run only until the run ends.
+                run.encrypted_openai_api_key = None
             if status == WorkflowRunStatus.FAILED:
                 run.failure_reason = failure_reason
                 run.failure_message = (

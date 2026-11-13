@@ -63,10 +63,19 @@ async def open_scene() -> AsyncIterator[Scene]:
         await session.commit()
 
 
-async def start(scene: Scene, workflow_type: WorkflowRunType, revision: int = 1) -> str:
+async def start(
+    scene: Scene,
+    workflow_type: WorkflowRunType,
+    revision: int = 1,
+    api_key: str | None = None,
+) -> str:
     """Create (or join) the waiting run, as a start does."""
     config = get_config_type(workflow_type).model_validate(
-        {"project_id": scene.project_id, "type": workflow_type}
+        {
+            "project_id": scene.project_id,
+            "type": workflow_type,
+            "openai_api_key": api_key,
+        }
     )
     begun = await start_or_join_run(
         config, workflow_type, revision, started_by=scene.user.id

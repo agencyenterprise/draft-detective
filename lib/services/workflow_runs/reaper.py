@@ -15,7 +15,10 @@ it was created, and its window has to start at the release.
 
 Each sweep also releases the queue jobs a dead worker left running for runs
 that have ended, so their lock lets the next run of the type start (see
-``release_stalled_run_jobs``).
+``release_stalled_run_jobs``), and promotes every revision with waiting runs,
+so a promotion a crash lost (between a run's end and its pass, or a gate
+release and its job) is made up within one sweep (see
+``promote_waiting_revisions``).
 
 Multi-pod safe: every pod's lifespan starts its own reaper, but sweeps are
 serialized cluster-wide by a Postgres advisory lock (REAPER_ADVISORY_LOCK_KEY).
@@ -42,7 +45,10 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
 )
 from lib.services.workflow_runs.jobs import release_stalled_run_jobs
-from lib.services.workflow_runs.promoter import promote_ready_runs
+from lib.services.workflow_runs.promoter import (
+    promote_ready_runs,
+    promote_waiting_revisions,
+)
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
     read_workflow_run_state,
@@ -196,6 +202,7 @@ async def _reap_once(
         reaped = await _reap_once_locked(running_grace_seconds, pending_grace_seconds)
         # After the sweep, so a job whose run it just failed is released now.
         await _release_stalled_jobs()
+        await _promote_waiting_revisions()
         return reaped
 
 
@@ -258,6 +265,14 @@ async def _reap_once_locked(
             )
 
     return len(stuck)
+
+
+async def _promote_waiting_revisions() -> None:
+    """Make up any promotion a crash lost (see ``promote_waiting_revisions``)."""
+    try:
+        await promote_waiting_revisions()
+    except Exception as e:
+        logger.error(f"Reaper: failed to promote waiting runs: {e}", exc_info=True)
 
 
 async def _release_stalled_jobs() -> None:

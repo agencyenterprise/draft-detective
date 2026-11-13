@@ -9,8 +9,8 @@ runs it once.
 import logging
 
 from lib.config.task_queue import task_queue
-from lib.services.workflow_runs.jobs import RUN_WORKFLOW_TASK, claim_run
-from lib.services.workflow_runs.promoter import promote_ready_runs
+from lib.services.workflow_runs.jobs import RUN_WORKFLOW_TASK
+from lib.services.workflow_runs.promoter import claim_run, promote_ready_runs
 from lib.workflows.runner import execute_claimed_run
 
 logger = logging.getLogger(__name__)
@@ -25,17 +25,19 @@ async def ping(message: str) -> str:
 
 @task_queue.task(name=RUN_WORKFLOW_TASK)
 async def run_workflow(workflow_run_id: str) -> None:
-    """Claim the run, run it to its end, then promote what its end unblocked.
+    """Claim the run if it is still ready, run it to its end, then promote what
+    its end unblocked.
 
     The terminal status is written before the promoter runs, and this job still
     holds the type's lock meanwhile, so the next run of the type it queues
     starts only once this one has fully finished.
     """
-    run = await claim_run(workflow_run_id)
-    if run is None:
-        logger.info(f"Run {workflow_run_id} is no longer waiting; nothing to run")
+    claimed = await claim_run(workflow_run_id)
+    if claimed is None:
+        logger.info(f"Run {workflow_run_id} is not ready to run; nothing to do")
         return
+    run = claimed.run
     try:
-        await execute_claimed_run(run)
+        await execute_claimed_run(run, openai_api_key=claimed.openai_api_key)
     finally:
         await promote_ready_runs(str(run.project_id), run.revision)

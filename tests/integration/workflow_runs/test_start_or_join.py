@@ -24,8 +24,18 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
+from lib.services.encryption import decrypt_value
+from lib.services.review_assistant_requests import record_request
+from lib.services.workflow_runs.service import (
+    get_workflow_run,
+    persist_workflow_run_state,
+)
 from lib.services.workflow_runs.start import RunStart, start_or_join_run
 from lib.workflows.registry import get_config_type
+from lib.workflows.review_assistant.state import (
+    ReviewAssistantConfig,
+    ReviewAssistantState,
+)
 
 ABBREVIATIONS = WorkflowRunType.ABBREVIATION_SCAN_V2
 REVIEW_ASSISTANT = WorkflowRunType.REVIEW_ASSISTANT
@@ -138,7 +148,7 @@ async def test_a_start_while_one_runs_queues_one_and_a_third_joins_it(project_id
 
 
 @pytest.mark.asyncio
-async def test_a_run_stores_its_config_without_the_api_key_and_its_starter(
+async def test_a_run_stores_its_config_its_starter_and_its_key_encrypted_apart(
     project_id, user_id
 ):
     start = await _start(
@@ -152,6 +162,10 @@ async def test_a_run_stores_its_config_without_the_api_key_and_its_starter(
     assert run.config_json["model"] == "openai:gpt-5.6-sol"
     assert "openai_api_key" not in run.config_json
     assert "sk-secret" not in str(run.config_json)
+    # The request's key is kept apart, encrypted, for the job to take.
+    assert run.encrypted_openai_api_key is not None
+    assert "sk-secret" not in run.encrypted_openai_api_key
+    assert decrypt_value(run.encrypted_openai_api_key) == "sk-secret"
 
 
 @pytest.mark.asyncio
@@ -256,3 +270,37 @@ async def test_start_workflow_run_queues_one_behind_a_running_run(project_id, us
     assert len({first, second}) == 2 and third == second
     assert promote.await_count == 3
     promote.assert_awaited_with(project_id, 1)
+
+
+@pytest.mark.asyncio
+async def test_a_request_recorded_after_its_job_started_leaves_the_jobs_state(
+    project_id,
+):
+    """The Review Assistant records its request once its run exists, and a job
+    on another worker may have started (and written state) by then."""
+    start = await _start(project_id, REVIEW_ASSISTANT)
+    config = ReviewAssistantConfig(project_id=project_id)
+    await persist_workflow_run_state(
+        start.run_id, ReviewAssistantState(config=config, guard_message="ran first")
+    )
+
+    await record_request(start.run_id, config)
+
+    run = await _run_with_state(start.run_id)
+    assert run.state_json is not None
+    assert run.state_json["guard_message"] == "ran first"
+
+
+@pytest.mark.asyncio
+async def test_a_request_is_recorded_on_a_run_with_no_state_yet(project_id):
+    start = await _start(project_id, REVIEW_ASSISTANT)
+
+    await record_request(start.run_id, ReviewAssistantConfig(project_id=project_id))
+
+    run = await _run_with_state(start.run_id)
+    assert run.state_json is not None
+    assert run.state_json["config"]["project_id"] == project_id
+
+
+async def _run_with_state(run_id: str) -> WorkflowRun:
+    return await get_workflow_run(run_id, include_state=True)

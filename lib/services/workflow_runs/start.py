@@ -26,6 +26,7 @@ from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunStatus,
 )
+from lib.services.encryption import encrypt_value
 from lib.workflows.models import BaseWorkflowConfig, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
@@ -35,7 +36,8 @@ logger = logging.getLogger(__name__)
 # slot (started or cancelled) in between; a few cover any real race.
 MAX_START_ATTEMPTS = 5
 
-# Never stored on the run: the job resolves the key when the run starts.
+# Never stored in the run's config: a request's key is stored encrypted on its
+# own column, which the job clears as it claims the run.
 _SECRET_CONFIG_FIELDS = {"openai_api_key"}
 
 
@@ -56,8 +58,9 @@ async def start_or_join_run(
 ) -> RunStart:
     """Create the PENDING run of this type, or join the waiting one.
 
-    A created run stores ``config`` (without its API key) and ``started_by``
-    for the job that runs it; a joined run keeps those it was created with.
+    A created run stores ``config`` (its API key encrypted apart) and
+    ``started_by`` for the job that runs it; a joined run keeps those it was
+    created with.
     """
     for _ in range(MAX_START_ATTEMPTS):
         created = await _insert_waiting_run(config, workflow_type, revision, started_by)
@@ -99,6 +102,9 @@ async def _insert_waiting_run(
             model=config.model,
             config_json=config.model_dump(mode="json", exclude=_SECRET_CONFIG_FIELDS),
             started_by_user_id=started_by,
+            encrypted_openai_api_key=(
+                encrypt_value(config.openai_api_key) if config.openai_api_key else None
+            ),
             independent_run=get_workflow_manifest(workflow_type).independent_runs,
         )
         .on_conflict_do_nothing()

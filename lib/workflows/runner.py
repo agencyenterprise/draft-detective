@@ -52,11 +52,12 @@ from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 logger = logging.getLogger(__name__)
 
 
-async def execute_claimed_run(run: WorkflowRun) -> None:
+async def execute_claimed_run(run: WorkflowRun, openai_api_key: str | None) -> None:
     """Run a run its job has just claimed (moved to RUNNING), to its end.
 
     The config and the user come from the run's row: the config it was started
-    with, and the user who started it. ``run_workflow`` records the outcome of
+    with, and the user who started it. ``openai_api_key`` is the key its start
+    request named, if any, which wins over the user's and the server's. ``run_workflow`` records the outcome of
     the graph itself; this records every failure before the graph starts (no
     API key, building the state) as FAILED. A run cancelled meanwhile keeps
     its CANCELLED status.
@@ -64,6 +65,8 @@ async def execute_claimed_run(run: WorkflowRun) -> None:
     workflow_run_id = str(run.id)
     try:
         config = await _config_of(run)
+        if openai_api_key:
+            config.openai_api_key = openai_api_key
         await run_workflow_from_config(
             config=config,
             thread_id=run.langgraph_thread_id,

@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 import pytest
-from sqlalchemy import update
+from sqlalchemy import text, update
 from sqlmodel import col
 
 from lib.api.services.workflow_runner import approve_project_gate
@@ -18,7 +18,12 @@ from lib.models.workflow_run import (
     WorkflowRunType,
 )
 from lib.services.projects.service import create_new_revision, get_project_by_id
-from lib.services.workflow_runs.promoter import cancel_run, promote_ready_runs
+from lib.services.workflow_runs.gates import approve_gate
+from lib.services.workflow_runs.promoter import (
+    cancel_run,
+    promote_ready_runs,
+    waiting_revisions,
+)
 from lib.services.workflow_runs.reaper import PENDING_GRACE_SECONDS, _find_stuck_runs
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
@@ -251,3 +256,60 @@ async def test_a_run_released_hours_after_it_parked_gets_a_fresh_reaper_window(
 
     stuck = await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
     assert claim not in {str(run.id) for run in stuck}
+
+
+@pytest.mark.asyncio
+async def test_more_passes_than_pool_connections_all_finish(scene: Scene):
+    """A pass waiting for the revision lock holds one connection; the lock
+    holder must not need a second one, or a pool's worth of waiting passes
+    starves it."""
+    await add_run(scene, DOCS, Completed)
+    figures = await start(scene, FIGURES)
+
+    async with asyncio.timeout(30):
+        await asyncio.gather(
+            *(promote_ready_runs(scene.project_id, 1) for _ in range(25))
+        )
+
+    assert await queued_run_ids(scene) == [figures]
+
+
+@pytest.mark.asyncio
+async def test_the_reaper_sweep_queues_a_ready_run_whose_promotion_was_lost(
+    scene: Scene,
+):
+    """A crash between a run's end and its pass, or between a release and its
+    job, leaves a ready run with no job. The sweep finds the revision among
+    those with waiting runs, and its pass queues the run. (Only this project's
+    revision is promoted here: the database is shared with other tests.)"""
+    await add_run(scene, DOCS, Completed)
+    figures = await start(scene, FIGURES)
+    for workflow_type in CLAIM_PREREQUISITES[1:]:
+        await add_run(scene, workflow_type, Completed)
+    claim = await start(scene, CLAIM)
+    await promote_ready_runs(scene.project_id, 1)
+    await _drop_jobs(scene)
+    # The approval committed, but its pass never ran.
+    await approve_gate(scene.project_id, 1, WorkflowGate.REFERENCE_REVIEW)
+
+    assert (scene.project_id, 1) in await waiting_revisions()
+    await promote_ready_runs(scene.project_id, 1)
+
+    assert sorted(await queued_run_ids(scene)) == sorted([figures, claim])
+    assert await status_of(claim) == WorkflowRunStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_a_revision_with_no_waiting_run_is_not_swept(scene: Scene):
+    await add_run(scene, DOCS, Completed)
+
+    assert (scene.project_id, 1) not in await waiting_revisions()
+
+
+async def _drop_jobs(scene: Scene) -> None:
+    async with get_async_db_session() as session:
+        await session.execute(
+            text("DELETE FROM procrastinate_jobs WHERE queue_name = :queue"),
+            {"queue": scene.queue},
+        )
+        await session.commit()

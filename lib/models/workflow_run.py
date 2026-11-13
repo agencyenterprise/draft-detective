@@ -175,9 +175,12 @@ class WorkflowRun(SQLModel, table=True):
             "so a run released later from a gate still runs on it."
         ),
     )
+    # The next three are the job queue's alone: excluded from every response
+    # that serializes the row (the project list does).
     config_json: dict[str, Any] | None = Field(
         sa_column=Column(JSONB, nullable=True),
         default=None,
+        exclude=True,
         description=(
             "The config the run was started with, without its API key: the job "
             "queue rebuilds the run's config from it when the run's turn comes. "
@@ -191,9 +194,20 @@ class WorkflowRun(SQLModel, table=True):
             nullable=True,
         ),
         default=None,
+        exclude=True,
         description=(
             "The user whose start created the run. The job runs it as them (their "
             "stored API key, their trace user id)."
+        ),
+    )
+    encrypted_openai_api_key: str | None = Field(
+        sa_column=Column(String, nullable=True),
+        default=None,
+        exclude=True,
+        description=(
+            "The API key the start request named, encrypted like a user's stored "
+            "key. The job takes it when it claims the run, which clears it; a run "
+            "that ends unclaimed clears it too."
         ),
     )
     independent_run: bool = Field(
@@ -246,8 +260,8 @@ def _coerce_type_to_enum(v: Any):
 
 class WorkflowRunPublic(BaseModel):
     """A workflow run as exposed in project responses: every column of
-    ``WorkflowRun`` except ``state_json``, ``config_json`` and
-    ``started_by_user_id``, which only the job queue reads.
+    ``WorkflowRun`` except ``state_json`` and the columns only the job queue
+    reads (``config_json``, ``started_by_user_id``, ``encrypted_openai_api_key``).
 
     Responses that embed a run also carry its hydrated ``state``, so the raw
     JSON would only duplicate it (1.5 MB each on a fully analysed project).

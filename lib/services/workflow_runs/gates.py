@@ -16,6 +16,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
@@ -52,21 +53,29 @@ def get_effective_gates(workflow_type: WorkflowRunType) -> list[WorkflowGate]:
     return ordered
 
 
-async def get_approved_gates(project_id: str, revision: int) -> set[WorkflowGate]:
+async def get_approved_gates(
+    project_id: str, revision: int, session: AsyncSession | None = None
+) -> set[WorkflowGate]:
     """Gates already approved for this project revision.
 
     The column is a plain string, so a value written by a gate that has since
     been renamed or retired is skipped rather than allowed to break every
     workflow start for the revision.
+
+    ``session`` reads through the caller's transaction (the promoter's, which
+    must not wait on a second connection while it holds its lock).
     """
-    async with get_async_db_session() as session:
-        stmt = select(col(WorkflowGateApproval.gate)).where(
-            and_(
-                col(WorkflowGateApproval.project_id) == project_id,
-                col(WorkflowGateApproval.revision) == revision,
-            )
+    stmt = select(col(WorkflowGateApproval.gate)).where(
+        and_(
+            col(WorkflowGateApproval.project_id) == project_id,
+            col(WorkflowGateApproval.revision) == revision,
         )
+    )
+    if session is not None:
         rows = (await session.execute(stmt)).scalars().all()
+    else:
+        async with get_async_db_session() as own_session:
+            rows = (await own_session.execute(stmt)).scalars().all()
     approved: set[WorkflowGate] = set()
     for row in rows:
         try:

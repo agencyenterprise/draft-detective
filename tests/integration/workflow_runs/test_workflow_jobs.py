@@ -3,6 +3,7 @@ and promotes what the run's end unblocked. The graph is replaced by a fake
 that records what ran and ends the run as the test says."""
 
 import asyncio
+import uuid
 from collections.abc import AsyncIterator
 from unittest.mock import patch
 
@@ -18,8 +19,12 @@ from lib.models.workflow_run import (
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.workflow_runs.jobs import claim_run, release_stalled_run_jobs
-from lib.services.workflow_runs.promoter import cancel_run, promote_ready_runs
+from lib.services.workflow_runs.jobs import release_stalled_run_jobs
+from lib.services.workflow_runs.promoter import (
+    cancel_run,
+    claim_run,
+    promote_ready_runs,
+)
 from lib.services.workflow_runs.service import update_workflow_run_status
 from tests.integration.workflow_runs.promoter_support import (
     Scene,
@@ -32,6 +37,10 @@ from tests.integration.workflow_runs.promoter_support import (
 
 DOCS = WorkflowRunType.DOCUMENT_PROCESSING
 FIGURES = WorkflowRunType.FIGURES_TABLES_CHECK
+EXTRACTION = WorkflowRunType.REFERENCE_EXTRACTION
+SUMMARY = WorkflowRunType.DOCUMENT_SUMMARIZATION
+MATCHING = WorkflowRunType.REFERENCE_FILE_MATCHING
+DOWNLOADER = WorkflowRunType.REFERENCE_DOWNLOADER
 
 
 class FakeGraph:
@@ -43,7 +52,7 @@ class FakeGraph:
         self.events: list[tuple[str, str]] = []
         self.hold: set[str] = set()
 
-    async def __call__(self, run: WorkflowRun) -> None:
+    async def __call__(self, run: WorkflowRun, openai_api_key: str | None) -> None:
         run_id = str(run.id)
         self.events.append(("start", run_id))
         if run_id in self.hold:
@@ -162,3 +171,62 @@ async def _mark_doing_without_worker(scene: Scene) -> None:
             {"queue": scene.queue},
         )
         await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_a_queued_run_whose_required_dependency_starts_again_is_not_claimed(
+    scene: Scene,
+):
+    await add_run(scene, DOCS, WorkflowRunStatus.COMPLETED)
+    figures = await start(scene, FIGURES)
+    await promote_ready_runs(scene.project_id, 1)
+    rerun = await start(scene, DOCS)
+    await promote_ready_runs(scene.project_id, 1)
+
+    assert await claim_run(figures) is None
+    assert await status_of(figures) == WorkflowRunStatus.PENDING
+
+    await update_workflow_run_status(rerun, WorkflowRunStatus.COMPLETED)
+    await promote_ready_runs(scene.project_id, 1)
+    assert await claim_run(figures) is not None
+
+
+@pytest.mark.asyncio
+async def test_a_queued_run_whose_optional_dependency_starts_is_not_claimed(
+    scene: Scene,
+):
+    for workflow_type in (DOCS, SUMMARY, EXTRACTION):
+        await add_run(scene, workflow_type, WorkflowRunStatus.COMPLETED)
+    downloader = await start(scene, DOWNLOADER)
+    await promote_ready_runs(scene.project_id, 1)
+    matching = await start(scene, MATCHING)
+
+    assert await claim_run(downloader) is None
+    assert await status_of(matching) == WorkflowRunStatus.PENDING
+    assert await status_of(downloader) == WorkflowRunStatus.PENDING
+
+
+@pytest.mark.asyncio
+async def test_the_request_key_reaches_the_job_once_and_leaves_the_row(scene: Scene):
+    docs = await start(scene, DOCS, api_key="sk-request")
+
+    claimed = await claim_run(docs)
+
+    assert claimed is not None and claimed.openai_api_key == "sk-request"
+    assert (await _row(docs)).encrypted_openai_api_key is None
+
+
+@pytest.mark.asyncio
+async def test_a_run_that_ends_unclaimed_drops_the_request_key(scene: Scene):
+    docs = await start(scene, DOCS, api_key="sk-request")
+
+    await cancel_run(docs, scene.project_id, 1)
+
+    assert (await _row(docs)).encrypted_openai_api_key is None
+
+
+async def _row(run_id: str) -> WorkflowRun:
+    async with get_async_db_session() as session:
+        run = await session.get(WorkflowRun, uuid.UUID(run_id))
+    assert run is not None
+    return run

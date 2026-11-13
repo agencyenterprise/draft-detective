@@ -1,8 +1,8 @@
 """add run config and starter to workflow runs
 
 The job queue runs a workflow from its run id alone, so the run keeps what the
-start request knew: the config (without its API key) and the user who started
-it. Rows created before this migration have neither; the job then builds the
+start request knew: the config (without its API key), the user who started it,
+and the request's API key, if any, encrypted until the job takes it. Rows created before this migration have neither; the job then builds the
 config from the project and runs without a user.
 
 Revision ID: bb6f039cec4a
@@ -34,6 +34,10 @@ def upgrade() -> None:
         "workflow_runs",
         sa.Column("started_by_user_id", sa.UUID(), nullable=True),
     )
+    op.add_column(
+        "workflow_runs",
+        sa.Column("encrypted_openai_api_key", sa.String(), nullable=True),
+    )
     op.create_foreign_key(
         "fk_workflow_runs_started_by_user_id_users",
         "workflow_runs",
@@ -50,5 +54,6 @@ def downgrade() -> None:
         "workflow_runs",
         type_="foreignkey",
     )
+    op.drop_column("workflow_runs", "encrypted_openai_api_key")
     op.drop_column("workflow_runs", "started_by_user_id")
     op.drop_column("workflow_runs", "config_json")
