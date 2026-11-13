@@ -74,9 +74,13 @@ def checkpointer() -> Any:
     context = MagicMock()
     context.__aenter__ = AsyncMock(return_value=saver)
     context.__aexit__ = AsyncMock(return_value=False)
-    with patch(
-        "lib.agents.teams_agent.get_checkpointer", MagicMock(return_value=context)
-    ) as opened:
+    with (
+        patch(
+            "lib.agents.teams_agent.get_checkpointer", MagicMock(return_value=context)
+        ) as opened,
+        # Its own connection, outside the saver; covered by an integration test.
+        patch("lib.agents.teams_agent.one_run_per_thread", MagicMock()),
+    ):
         yield opened
 
 

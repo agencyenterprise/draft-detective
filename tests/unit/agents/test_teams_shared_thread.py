@@ -62,8 +62,18 @@ def saver() -> Iterator[InMemorySaver]:
             raise GraphError("403 accessDenied")
         return {"name": "plan.docx", "lastModifiedDateTime": "t1"}
 
+    # The thread lock is Postgres's (tested in tests/integration); one per thread in
+    # memory stands in, so two runs at once still contend.
+    locks: dict[str, asyncio.Lock] = {}
+
+    @asynccontextmanager
+    async def one_run_per_thread(thread_id: str) -> Any:
+        async with locks.setdefault(thread_id, asyncio.Lock()):
+            yield
+
     with (
         patch.object(teams_agent, "get_checkpointer", get_checkpointer),
+        patch.object(teams_agent, "one_run_per_thread", one_run_per_thread),
         patch.object(teams_agent, "asker", AsyncMock(return_value=None)),
         patch.object(teams_agent, "has_deployment_key", return_value=True),
         patch.object(teams_agent.conversations, "for_teams", AsyncMock()),

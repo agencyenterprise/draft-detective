@@ -34,12 +34,10 @@ anyone has it open. Asked for comments or tracked changes, the agent stores them
 when the asker opens the document.
 """
 
-import asyncio
 import logging
 import uuid
 from collections.abc import Sequence
 from typing import Any
-from weakref import WeakValueDictionary
 
 import httpx
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -47,7 +45,7 @@ from langfuse import propagate_attributes
 from pydantic import BaseModel
 
 from lib.agents.chat_agent import EXCLUDED_CHAT_SKILLS
-from lib.agents.checkpointer import get_checkpointer
+from lib.agents.checkpointer import get_checkpointer, one_run_per_thread
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
     agent_input,
@@ -277,20 +275,6 @@ async def asker(graph_token: str, name: str) -> uuid.UUID | None:
     return await linked_users.user_for(email, name, tenant_of(graph_token))
 
 
-# Held from the access check until the run ends. Without it, a run for somebody who
-# can read a document could mount it between another asker's check and their run, and
-# their run would start from a copy their check never saw. Weak, so a thread's lock goes
-# once no run holds or awaits it.
-_thread_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
-
-
-def _one_run_at_a_time(thread_id: str) -> asyncio.Lock:
-    lock = _thread_locks.get(thread_id)
-    if lock is None:
-        lock = _thread_locks[thread_id] = asyncio.Lock()
-    return lock
-
-
 async def _known(user_id: uuid.UUID | None) -> uuid.UUID | None:
     return user_id
 
@@ -348,7 +332,10 @@ async def answer_question(
         conversation_id = await conversations.for_teams(
             thread_id, lambda: _known(asked_by_user)
         )
-        async with _one_run_at_a_time(thread_id), get_checkpointer() as saver:
+        # Held from the access check until the run ends, in every worker: otherwise a
+        # run for somebody who can read a document could mount it between another
+        # asker's check and their run, which would start from a copy never checked.
+        async with one_run_per_thread(thread_id), get_checkpointer() as saver:
             agent = build_deep_agent(
                 model=build_llm(model, key),
                 tools=[

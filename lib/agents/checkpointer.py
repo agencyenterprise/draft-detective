@@ -12,7 +12,8 @@ Three non-obvious constraints, two of which fail silently:
 - **Not ``from_conn_string``**, which holds a connection for a whole run.
 
 Connections: the SQLAlchemy engine is capped at 8 + 3 per process and this adds 4, so a
-4-worker deployment sits at 60 against a default limit of 100.
+4-worker deployment sits at 60 against a default limit of 100. ``one_run_per_thread``
+adds one more per Teams question while it is being answered.
 """
 
 import asyncio
@@ -33,6 +34,10 @@ logger = logging.getLogger(__name__)
 # An arbitrary but fixed key, so every worker contends for the same lock. Advisory
 # locks live in one tenant-wide namespace, hence something distinctive rather than 1.
 SETUP_LOCK_KEY = 0x44445F4341
+
+# Hashed with a thread id into that thread's lock key, so thread locks land apart from
+# the setup lock and from anyone else's.
+THREAD_LOCK_SEED = 0x44445F5448
 
 # ``min_size=0`` so an unused process holds nothing; ``prepare_threshold=0`` because a
 # transaction-pooling proxy would break on prepared statements; ``autocommit`` and
@@ -132,3 +137,26 @@ async def close_checkpointer_pool() -> None:
         # readiness is withdrawn, so a later call fails on the pool rather than
         # cheerfully trying to open it again.
         _ready = False
+
+
+@asynccontextmanager
+async def one_run_per_thread(thread_id: str) -> AsyncIterator[None]:
+    """Hold ``thread_id`` for one run, across every worker and process.
+
+    For a thread more than one person writes to: a check made on its state before a run
+    holds only if no other run changes that state before this one ends. An in-process
+    lock is not enough, since the API runs several workers.
+
+    A session-level advisory lock on a connection of its own, outside the pool: it is
+    held for a whole run, minutes at worst, which would starve the pool's four. Closing
+    the connection releases it, so a run that dies cannot leave its thread locked.
+    """
+
+    async with await AsyncConnection.connect(
+        config.DATABASE_URL, autocommit=True, prepare_threshold=0
+    ) as conn:
+        await conn.execute(
+            "SELECT pg_advisory_lock(hashtextextended(%s, %s))",
+            (thread_id, THREAD_LOCK_SEED),
+        )
+        yield
