@@ -270,6 +270,28 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
+### Looking at the Dev Database
+
+`psql` runs inside the database container, so the host needs no Postgres client:
+
+```bash
+docker exec -it ai-reviewer-db psql -U ai_reviewer_user -d ai_reviewer
+```
+
+In a script, wrap the command in a function. zsh doesn't split a variable into words, so `P="docker exec ..."; $P` fails with `command not found`.
+
+```bash
+q() { docker exec -i ai-reviewer-db psql -U ai_reviewer_user -d ai_reviewer -At -c "$1"; }
+q '\dt'                  # the tables
+q '\d workflow_runs'     # one table's columns
+q "select type, status, count(*) from workflow_runs group by 1, 2"
+```
+
+- Table names are the `__tablename__` values in `lib/models/`, mostly plural: `projects`, `files`, `issues`, `issue_edits`, `workflow_runs`, but `feedback` and `workflow_progress`.
+- Check a column with `\d` before querying it. A project's name is `projects.title`, and a run's workflow is `workflow_runs.type` (on issues it's `issues.workflow_type`).
+- Columns declared with `SQLModelEnum` store the member's name in upper case (`status = 'COMPLETED'`, `severity = 'HIGH'`). The workflow type columns (`workflow_runs.type`, `issues.workflow_type`) are plain strings holding the lowercase value (`type = 'abbreviation_scan_v2'`).
+- This database is the one your own server and every private instance use. Read what you like, change only rows you created, and delete them when you're done. The integration tests use `ai_reviewer_test` instead (see Testing).
+
 ### Testing
 
 ```bash

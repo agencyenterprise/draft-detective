@@ -18,6 +18,7 @@ Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, env
 | Domain services | `lib/services/` (`projects/`, `files/`, `users.py`, `references/`, ...) |
 | LLM agents and tools | `lib/agents/` |
 | Database models | `lib/models/`; migrations in `alembic/versions/` |
+| Querying the dev database | `DEVELOPMENT.md`, "Looking at the Dev Database" (`psql` runs in the `ai-reviewer-db` container) |
 | Settings | `lib/config/` (`env.py` reads the environment) |
 | Tests | `tests/unit/`, `tests/integration/`; shared fixtures in `tests/conftest.py`; test documents (PDFs, DOCX) in `tests/evals/data/` |
 | Eval suites | `evals_inspectai/e2e/<workflow>/` |
