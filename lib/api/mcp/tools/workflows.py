@@ -12,10 +12,8 @@ from mcp.types import ToolAnnotations
 from lib.api.mcp import helpers, serialization
 from lib.api.mcp.instance import mcp
 from lib.api.models import StartMultipleWorkflowsRequest
-from lib.api.services.workflow_runner import (
-    WorkflowGateRequiredError,
-    run_multiple_workflows_blocking,
-)
+from lib.api.services.workflow_batch import WorkflowGateRequiredError
+from lib.api.services.workflow_runner import run_multiple_workflows_blocking
 from lib.models.project import AccessLevel
 from lib.models.workflow_run import TERMINAL_WORKFLOW_RUN_STATUSES, WorkflowRunStatus
 from lib.services.projects.service import get_project_access, strip_converted_markdown

@@ -63,6 +63,7 @@ class WorkflowRunFailureReason(str, Enum):
     """
 
     TIMEOUT = "timeout"
+    # Written by the dependency wait the job queue replaced; kept so old rows load.
     DEPENDENCY_TIMEOUT = "dependency_timeout"
     NO_HEARTBEAT = "no_heartbeat"
     UNHANDLED_EXCEPTION = "unhandled_exception"
@@ -174,6 +175,27 @@ class WorkflowRun(SQLModel, table=True):
             "so a run released later from a gate still runs on it."
         ),
     )
+    config_json: dict[str, Any] | None = Field(
+        sa_column=Column(JSONB, nullable=True),
+        default=None,
+        description=(
+            "The config the run was started with, without its API key: the job "
+            "queue rebuilds the run's config from it when the run's turn comes. "
+            "A start that joins a waiting run keeps the config already stored."
+        ),
+    )
+    started_by_user_id: uuid.UUID | None = Field(
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("users.id", ondelete="SET NULL"),
+            nullable=True,
+        ),
+        default=None,
+        description=(
+            "The user whose start created the run. The job runs it as them (their "
+            "stored API key, their trace user id)."
+        ),
+    )
     independent_run: bool = Field(
         sa_column=Column(
             Boolean, nullable=False, default=False, server_default=text("false")
@@ -224,7 +246,8 @@ def _coerce_type_to_enum(v: Any):
 
 class WorkflowRunPublic(BaseModel):
     """A workflow run as exposed in project responses: every column of
-    ``WorkflowRun`` except ``state_json``.
+    ``WorkflowRun`` except ``state_json``, ``config_json`` and
+    ``started_by_user_id``, which only the job queue reads.
 
     Responses that embed a run also carry its hydrated ``state``, so the raw
     JSON would only duplicate it (1.5 MB each on a fully analysed project).

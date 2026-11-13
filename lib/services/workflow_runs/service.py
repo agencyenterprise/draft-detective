@@ -27,7 +27,6 @@ from lib.services.workflow_runs.cost.breakdown import CostBreakdown
 from lib.services.workflow_runs.cost.extractor import walk_state_for_usage
 from lib.services.workflow_runs.cost.pricing import compute_cost
 from lib.services.workflow_runs.progress import cancel_workflow_progress
-from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import BaseWorkflowState, is_user_visible_workflow
 from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
 from lib.workflows.util import as_state_type, run_type_of
@@ -397,11 +396,12 @@ def _own_progress_only(run: WorkflowRun) -> uuid.UUID | None:
 
 
 async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
-    """
-    Cancel a workflow run and recursively cancel any active runs that depend on it.
+    """Mark a workflow run CANCELLED, unless it already ended.
 
-    Only cascades through required_dependencies — optional dependents are left running
-    since they handle missing data by design.
+    A RUNNING run's node supervisor sees the status and stops its graph. The
+    caller then calls ``promote_ready_runs``, which cancels the run's waiting
+    required-dependents and drops its job if it is still queued (see
+    ``lib.services.workflow_runs.promoter.cancel_run``).
     """
     await _end_workflow_run(workflow_run_id, project_id, WorkflowRunStatus.CANCELLED)
 
@@ -413,12 +413,12 @@ async def fail_workflow_run(
     failure_message: str | None = None,
     clean_up_state: StateCleanup | None = None,
 ) -> None:
-    """Mark a workflow run as FAILED and cascade-cancel its active dependents.
+    """Mark a workflow run as FAILED.
 
-    Used for unrecoverable workflow-level halts (timeout, dependency timeout,
-    no heartbeat, unhandled exception). From a dependent's perspective a failed
-    parent is equivalent to a cancelled one — there is no salvageable output —
-    so we cascade to CANCELLED rather than FAILED.
+    Used for unrecoverable workflow-level halts (timeout, no heartbeat,
+    unhandled exception). The caller then calls ``promote_ready_runs``, which
+    cancels the run's waiting required-dependents: from their side a failed
+    dependency leaves nothing to work on, as a cancelled one does.
     """
     await _end_workflow_run(
         workflow_run_id,
@@ -438,7 +438,7 @@ async def _end_workflow_run(
     failure_message: str | None = None,
     clean_up_state: StateCleanup | None = None,
 ) -> None:
-    """Clear the run's progress, set its final status and cancel its dependents."""
+    """Clear the run's progress and set its final status."""
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
@@ -452,19 +452,6 @@ async def _end_workflow_run(
         failure_message=failure_message,
         clean_up_state=clean_up_state,
     )
-    await _cascade_cancel_dependents(run.type, project_id, run.revision)
-
-
-async def _cascade_cancel_dependents(
-    workflow_type: WorkflowRunType, project_id: str, revision: int
-) -> None:
-    """Cancel any active (pending, running, or awaiting approval) run that required-depends on this type."""
-    for dependent_type in get_required_dependents(workflow_type):
-        dependent_run = await get_project_workflow_run_by_type(
-            project_id, dependent_type, revision=revision
-        )
-        if dependent_run and dependent_run.status in ACTIVE_WORKFLOW_RUN_STATUSES:
-            await cancel_workflow_run(str(dependent_run.id), project_id)
 
 
 def _active_status_priority():

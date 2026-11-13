@@ -12,6 +12,7 @@ from lib.config.database import get_async_db_session
 from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from tests.integration.workflow_runs.promoter_support import Scene, open_scene
 
 
 @pytest_asyncio.fixture
@@ -47,3 +48,10 @@ async def stale_run() -> AsyncIterator[tuple[str, str]]:
         await session.execute(delete(Project).where(col(Project.id) == project.id))
         await session.execute(delete(User).where(col(User.id) == user.id))
         await session.commit()
+
+
+@pytest_asyncio.fixture
+async def scene() -> AsyncIterator[Scene]:
+    """A project of its own and a queue name of its own (see promoter_support)."""
+    async with open_scene() as opened:
+        yield opened

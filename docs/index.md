@@ -115,7 +115,7 @@ Current scores for every suite are in the [eval scores report](./eval-scores.md)
 
 ## Technology
 
-- **Backend:** Python, FastAPI, LangGraph and deepagents, with LangChain model integrations. Assessments run as background tasks, and their state is saved in PostgreSQL.
+- **Backend:** Python, FastAPI, LangGraph and deepagents, with LangChain model integrations. Assessments run as jobs on a PostgreSQL queue (Procrastinate), and their state is saved in PostgreSQL.
 - **Models:** provider-agnostic. Agents run on OpenAI models by default, each on the tier its task needs, and Anthropic and Google models are supported through the same interface. Web search uses each provider's built-in search tool. Embeddings for source retrieval use `text-embedding-3-large`, stored in PostgreSQL with pgvector.
 - **Documents:** Word, PDF, Markdown and text files, converted with MarkItDown, pypdfium2 and LibreOffice. Word export adds comments and tracked changes to the document.
 - **Frontend:** Next.js and React with shadcn/ui.

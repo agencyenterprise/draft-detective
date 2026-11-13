@@ -2,16 +2,13 @@
 
 import uuid
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import HTTPException
 
-from lib.api.services import workflow_runner
-from lib.api.services.workflow_runner import (
-    _assert_model_override_allowed,
-    approve_project_gate,
-)
+from lib.api.services import workflow_start_checks
+from lib.api.services.workflow_start_checks import assert_model_override_allowed
 from lib.config.llm_models import (
     LLMModel,
     gpt_5_6_sol_model,
@@ -23,8 +20,9 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.file_artifacts_service.file_artifacts_service_type import (
     FileArtifactsServiceType,
 )
+from lib.workflows import runner
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import WorkflowGate, WorkflowRunType
+from lib.workflows.models import WorkflowRunType
 from lib.workflows.runner import create_context
 
 # Overrides accept any provider, so the non-OpenAI branches need models of their own.
@@ -62,19 +60,19 @@ def test_model_name_without_a_provider_parses_to_an_empty_one():
 
 def test_no_override_is_always_allowed(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
-        workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", False
+        workflow_start_checks.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", False
     )
-    _assert_model_override_allowed(None)
+    assert_model_override_allowed(None)
 
 
 def test_override_is_refused_when_the_server_does_not_allow_it(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr(
-        workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", False
+        workflow_start_checks.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", False
     )
     with pytest.raises(HTTPException) as exc:
-        _assert_model_override_allowed("openai:gpt-5.6-sol")
+        assert_model_override_allowed("openai:gpt-5.6-sol")
     assert exc.value.status_code == 422
     assert "ALLOW_WORKFLOW_MODEL_OVERRIDE" in exc.value.detail
 
@@ -86,9 +84,9 @@ def test_any_model_is_accepted_when_overrides_are_allowed(
     monkeypatch: pytest.MonkeyPatch, name: str
 ):
     monkeypatch.setattr(
-        workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+        workflow_start_checks.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True
     )
-    _assert_model_override_allowed(name)
+    assert_model_override_allowed(name)
 
 
 @pytest.mark.parametrize("name", ["gpt-5.6-sol", ":gpt-5.6-sol", "openai:"])
@@ -96,10 +94,10 @@ def test_a_model_without_its_provider_is_refused(
     monkeypatch: pytest.MonkeyPatch, name: str
 ):
     monkeypatch.setattr(
-        workflow_runner.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True
+        workflow_start_checks.env_config, "ALLOW_WORKFLOW_MODEL_OVERRIDE", True
     )
     with pytest.raises(HTTPException) as exc:
-        _assert_model_override_allowed(name)
+        assert_model_override_allowed(name)
     assert exc.value.status_code == 422
     assert "must name its provider" in exc.value.detail
 
@@ -182,31 +180,23 @@ def test_create_context_resolves_the_configured_model():
 
 
 @pytest.mark.asyncio
-async def test_a_run_released_from_a_gate_keeps_its_model():
-    project = MagicMock()
-    project.id = uuid.uuid4()
-    project.current_revision = 1
-    project.publication_date = None
+async def test_the_job_runs_a_run_on_the_model_its_row_records():
+    """A joined or gate-released run runs on the model it was created with."""
     run = WorkflowRun(
         id=uuid.uuid4(),
-        project_id=project.id,
+        project_id=uuid.uuid4(),
         type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
         langgraph_thread_id="thread",
-        status=WorkflowRunStatus.PENDING,
+        status=WorkflowRunStatus.RUNNING,
         model="openai:gpt-5.6-sol",
+        config_json={
+            "type": WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2.value,
+            "project_id": str(uuid.uuid4()),
+            "model": None,
+        },
     )
-    background_tasks = BackgroundTasks()
-    with (
-        patch("lib.api.services.workflow_runner.approve_gate", new=AsyncMock()),
-        patch(
-            "lib.api.services.workflow_runner.release_runs_awaiting_approval",
-            new=AsyncMock(return_value=[run]),
-        ),
-    ):
-        await approve_project_gate(
-            project, WorkflowGate.REFERENCE_REVIEW, MagicMock(), background_tasks
-        )
 
-    [task] = background_tasks.tasks
-    [item] = task.kwargs["items"]
-    assert item.config.model == "openai:gpt-5.6-sol"
+    config = await runner._config_of(run)
+
+    assert config.model == "openai:gpt-5.6-sol"
+    assert config.openai_api_key is None

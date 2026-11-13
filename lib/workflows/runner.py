@@ -2,18 +2,20 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from langfuse import propagate_attributes
 from langgraph.channels.base import BaseChannel
 from langgraph.graph import StateGraph
 
+from lib.config.database import get_async_db_session
 from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel
 from lib.models.user import User
 from lib.models.workflow_run import (
+    WorkflowRun,
     WorkflowRunFailureReason,
     WorkflowRunStatus,
     WorkflowRunType,
@@ -22,10 +24,10 @@ from lib.services.file_artifacts_service.file_artifacts_service import (
     FileArtifactsService,
 )
 from lib.services.issue_persistence import persist_workflow_issues
+from lib.services.projects.service import get_project_by_id
 from lib.services.users import get_user_decrypted_api_key
 from lib.services.vector_store import VectorStoreService
-from lib.services.workflow_runs.orchestration import wait_for_dependencies
-from lib.services.workflow_runs.queue import heartbeat_while_preparing
+from lib.services.workflow_runs.heartbeat import heartbeat_while_preparing
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
     get_latest_workflow_run_state_by_type,
@@ -33,104 +35,81 @@ from lib.services.workflow_runs.service import (
     persist_workflow_run_state,
     update_workflow_run_status,
 )
+from lib.workflows.config_factory import create_workflow_config
 from lib.workflows.context import ContextSchema
 from lib.workflows.error_details import build_workflow_error
 from lib.workflows.manifest import WorkflowManifest
-from lib.workflows.models import (
-    BaseWorkflowConfig,
-    DependencyWaitTimeoutError,
-    WorkflowCancelledError,
+from lib.workflows.models import BaseWorkflowConfig, WorkflowCancelledError
+from lib.workflows.registry import (
+    create_graph,
+    create_state,
+    get_config_type,
+    get_workflow_manifest,
 )
-from lib.workflows.registry import create_graph, create_state, get_workflow_manifest
 from lib.workflows.state_updates import apply_node_update
 from lib.workflows.workflow_types import WorkflowConfig, WorkflowState
 
 logger = logging.getLogger(__name__)
 
 
-async def run_workflow_with_dependency_check(
-    config: WorkflowConfig,
-    thread_id: str,
-    workflow_run_id: str,
-    user: User,
-    revision: int,
-    seed_prior_state: bool = True,
-) -> None:
+async def execute_claimed_run(run: WorkflowRun) -> None:
+    """Run a run its job has just claimed (moved to RUNNING), to its end.
+
+    The config and the user come from the run's row: the config it was started
+    with, and the user who started it. ``run_workflow`` records the outcome of
+    the graph itself; this records every failure before the graph starts (no
+    API key, building the state) as FAILED. A run cancelled meanwhile keeps
+    its CANCELLED status.
     """
-    Run a workflow after checking and waiting for its dependencies to complete.
-
-    This function:
-    1. Waits for any unfinished same-type run (unless the workflow has
-       independent_runs) and for its dependencies to end
-    2. Executes the workflow
-
-    Args:
-        config: The workflow config to run
-        thread_id: The run's opaque LangGraph thread id (stored on the run record)
-        workflow_run_id: The unique ID of this workflow run (for same-type locking)
-        user: The user running the workflow
-        revision: The project revision this workflow run belongs to
-        seed_prior_state: When True (fresh runs), accumulating workflows seed
-            their initial state from the prior same-type run. Set False when
-            resuming — a resumed run continues its own state and must not adopt
-            another run's. The prior state is read downstream, after the wait.
-    """
-
+    workflow_run_id = str(run.id)
     try:
-        # Wait for same-type lock and dependencies to complete
-        await wait_for_dependencies(
-            config.type, config.project_id, workflow_run_id, revision=revision
-        )
-
-        # Run the workflow
+        config = await _config_of(run)
         await run_workflow_from_config(
             config=config,
-            thread_id=thread_id,
+            thread_id=run.langgraph_thread_id,
             workflow_run_id=workflow_run_id,
-            user=user,
-            revision=revision,
-            seed_prior_state=seed_prior_state,
+            user=await _starter_of(run),
+            revision=run.revision,
         )
-
     except WorkflowCancelledError:
-        logger.info(f"Workflow {workflow_run_id} ({config.type.value}) was cancelled")
-        # The row already holds its final status: CANCELLED, or FAILED when the
-        # reaper failed the run while it waited. update_workflow_run_status
-        # never overwrites a terminal status.
-
-    except DependencyWaitTimeoutError as e:
-        logger.error(
-            f"Workflow {workflow_run_id} ({config.type.value}) timed out waiting "
-            f"for dependencies: {e}"
-        )
-        await fail_workflow_run(
-            workflow_run_id,
-            config.project_id,
-            failure_reason=WorkflowRunFailureReason.DEPENDENCY_TIMEOUT,
-            failure_message=str(e),
-        )
-
+        logger.info(f"Workflow {workflow_run_id} ({run.type}) was cancelled")
     except Exception as e:
-        # run_workflow records failures raised while the graph runs. This
-        # branch catches the rest: a required dependency with no run at all
-        # (wait_for_dependencies), setup such as create_context finding no API
-        # key or create_state failing, run_workflow's own setup before its try
-        # (marking the run RUNNING, compiling the graph), and errors raised
-        # while its handlers persist state or mark the run failed.
         logger.error(f"Error running workflow: {e}", exc_info=True)
         await fail_workflow_run(
             workflow_run_id,
-            config.project_id,
+            str(run.project_id),
             failure_reason=WorkflowRunFailureReason.UNHANDLED_EXCEPTION,
             failure_message=str(e),
         )
+
+
+async def _config_of(run: WorkflowRun) -> WorkflowConfig:
+    """The config the run was started with; for a run created before configs
+    were stored, the one a start would build from its project."""
+    workflow_type = WorkflowRunType(run.type)
+    if run.config_json is not None:
+        stored = {**run.config_json, "model": run.model}
+        return cast(
+            WorkflowConfig, get_config_type(workflow_type).model_validate(stored)
+        )
+    project = await get_project_by_id(str(run.project_id))
+    if project is None:
+        raise ValueError(f"Project {run.project_id} of run {run.id} no longer exists")
+    return create_workflow_config(project, workflow_type, model=run.model)
+
+
+async def _starter_of(run: WorkflowRun) -> User | None:
+    if run.started_by_user_id is None:
+        return None
+    async with get_async_db_session() as session:
+        return await session.get(User, run.started_by_user_id)
 
 
 async def run_workflow_from_config(
     config: WorkflowConfig,
     thread_id: str,
     workflow_run_id: str,
-    user: User,
+    user: User | None,
     revision: int,
     seed_prior_state: bool = True,
 ) -> WorkflowState:
@@ -142,12 +121,11 @@ async def run_workflow_from_config(
     # Redact the OpenAI API key from the config so it doesn't get saved in the state
     config.openai_api_key = "[REDACTED]"
 
-    # The run may already be RUNNING (it claimed the same-type queue), so it
-    # beats while it prepares; graph nodes take over the heartbeat after this.
+    # The job claimed the run (it is RUNNING), so it beats while it prepares;
+    # graph nodes take over the heartbeat after this.
     async with heartbeat_while_preparing(workflow_run_id):
-        # Read the prior same-type run's state here — at execution time, after
-        # the same-type wait in run_workflow_with_dependency_check has resolved
-        # — so accumulating workflows seed from the prior run's FINAL state
+        # Read the prior same-type run's state here — at execution time, once
+        # the promoter let this run go after the previous one — so accumulating workflows seed from the prior run's FINAL state
         # rather than a snapshot taken while it was still running. Exclude this
         # run (its state_json is still NULL now anyway). Skipped on resume
         # (seed_prior_state=False).

@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from lib.api.auth import get_current_user, get_current_user_optional
@@ -21,10 +21,10 @@ from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.projects.service import get_project_access
 from lib.services.workflow_runs.access import get_accessible_workflow_run
+from lib.services.workflow_runs.promoter import cancel_run
 from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     build_workflow_run_detail,
-    cancel_workflow_run,
     get_workflow_run,
 )
 from lib.workflows.models import WorkflowGate
@@ -75,14 +75,11 @@ async def _readable_run_with_state(
 @router.post("/api/workflows/start", response_model=StartWorkflowResponse)
 async def start_workflow(
     request: WorkflowConfig,
-    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
 ):
     """Start a workflow"""
 
-    workflow_run_id = await start_workflow_run(
-        config=request, user=user, background_tasks=background_tasks
-    )
+    workflow_run_id = await start_workflow_run(config=request, user=user)
 
     return StartWorkflowResponse(
         project_id=request.project_id,
@@ -97,7 +94,6 @@ async def start_workflow(
 )
 async def start_multiple_workflows(
     request: StartMultipleWorkflowsRequest,
-    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
 ):
     """Start multiple workflow analyses for a project."""
@@ -106,7 +102,6 @@ async def start_multiple_workflows(
         workflow_types=request.workflow_types,
         request=request,
         user=user,
-        background_tasks=background_tasks,
     )
 
     return StartMultipleWorkflowsResponse(
@@ -193,21 +188,21 @@ async def get_workflow_raw_state(
 async def approve_project_gate_endpoint(
     project_id: str,
     gate: WorkflowGate,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
 ):
     """
     Approve a workflow gate for the project's current revision.
 
-    Records the approval and schedules every run in AWAITING_APPROVAL that
-    was waiting on this gate (e.g. Claim Reference Validation behind the
-    reference review). Approving an already-approved gate is a no-op.
+    Records the approval and promotes the revision's runs, which releases
+    every run in AWAITING_APPROVAL that was waiting on this gate (e.g. Claim
+    Reference Validation behind the reference review). Approving an
+    already-approved gate records nothing new.
     """
     project, _ = await get_project_access(
         project_id, user=current_user, required_level=AccessLevel.WRITE
     )
 
-    released = await approve_project_gate(project, gate, current_user, background_tasks)
+    released = await approve_project_gate(project, gate, current_user)
 
     return ApproveGateResponse(
         gate=gate,
@@ -227,8 +222,8 @@ async def cancel_workflow_run_endpoint(
     """
     Cancel a workflow run that is pending or running.
 
-    Cascades cancellation to any active workflow runs that have the cancelled
-    workflow as a required dependency.
+    Drops its job if it is still queued, and cancels the waiting runs that
+    have the cancelled workflow as a required dependency.
     """
     workflow_run = await get_accessible_workflow_run(
         workflow_run_id, current_user, required_level=AccessLevel.WRITE
@@ -252,7 +247,9 @@ async def cancel_workflow_run_endpoint(
             workflow_run_id=workflow_run_id,
         )
 
-    await cancel_workflow_run(workflow_run_id, str(workflow_run.project_id))
+    await cancel_run(
+        workflow_run_id, str(workflow_run.project_id), workflow_run.revision
+    )
 
     return CancelWorkflowResponse(
         message="Workflow cancellation requested",

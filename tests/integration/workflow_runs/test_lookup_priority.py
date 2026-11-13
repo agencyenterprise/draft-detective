@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.config.task_queue import task_queue
 from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
@@ -205,7 +206,9 @@ async def test_new_revision_cancels_a_run_awaiting_approval(seeder):
         ],
     )
 
-    new_revision, previous_types = await create_new_revision(str(project.id), user)
+    # Cancelling drops queued jobs, which needs the queue open (the API's lifespan opens it).
+    async with task_queue.open_async():
+        new_revision, previous_types = await create_new_revision(str(project.id), user)
 
     assert new_revision == 2
     assert await _status_of(awaiting_id) == WorkflowRunStatus.CANCELLED

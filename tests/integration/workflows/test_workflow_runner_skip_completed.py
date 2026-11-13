@@ -1,17 +1,15 @@
 """Tests for workflow runner skipping completed workflows."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import BackgroundTasks
 
 from lib.api.models import StartMultipleWorkflowsRequest
-from lib.api.services.workflow_runner import start_multiple_workflow_runs
-from lib.models.project import AccessLevel
+from lib.api.services.workflow_batch import plan_batch
+from lib.models.project import Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
-from lib.services.workflow_runs.start import RunStart
 from lib.workflows.registry import get_config_type
 
 
@@ -41,19 +39,8 @@ def create_run(
     )
 
 
-async def _created_run(project_id, workflow_type, revision, *, model, gated):
-    return RunStart(
-        run_id=str(uuid4()),
-        thread_id=str(uuid4()),
-        status=WorkflowRunStatus.PENDING,
-        model=model,
-        schedule=True,
-        created=True,
-    )
-
-
 def _started_types(mock_create) -> set[WorkflowRunType]:
-    """The types start_or_join_run was asked to create or join."""
+    """The types the batch plans to start (or join): one config each."""
     return {call.args[1] for call in mock_create.call_args_list}
 
 
@@ -77,7 +64,7 @@ async def run_workflow_with_mocks(
             Lets tests model dependencies that need to be re-run.
 
     Returns:
-        Tuple of (mock start_or_join_run, mock_create_config) for assertions
+        Tuple of (the config factory twice: once as "started", once as itself)
     """
     project_id_str = str(test_context["project_id"])
     request = StartMultipleWorkflowsRequest(
@@ -100,43 +87,36 @@ async def run_workflow_with_mocks(
         return create_mock_config(project_id_str, workflow_type)
 
     # Create a mock project object
-    mock_project = MagicMock()
-    mock_project.id = test_context["project_id"]
-    mock_project.current_revision = 1
+    mock_project = Project(
+        id=test_context["project_id"], user_id=uuid4(), title="t", current_revision=1
+    )
 
     with (
         patch(
-            "lib.api.services.workflow_runner.get_project_access",
-            new=AsyncMock(return_value=(mock_project, AccessLevel.WRITE)),
+            "lib.api.services.workflow_batch.authorized_project",
+            new=AsyncMock(return_value=mock_project),
         ),
         patch(
-            "lib.api.services.workflow_runner.assert_project_has_main_file",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.api.services.workflow_runner.get_project_workflow_run_by_type",
+            "lib.api.services.workflow_batch.get_project_workflow_run_by_type",
             side_effect=mock_get_run,
         ),
         patch(
-            "lib.api.services.workflow_runner.start_or_join_run",
-            new=AsyncMock(side_effect=_created_run),
-        ) as mock_create,
-        patch(
-            "lib.api.services.workflow_runner.create_workflow_config",
+            "lib.api.services.workflow_batch.create_workflow_config",
             side_effect=mock_config_factory,
         ) as mock_create_config,
         patch(
-            "lib.api.services.workflow_runner.get_approved_gates",
+            "lib.api.services.workflow_batch.get_approved_gates",
             new=AsyncMock(return_value=set()),
         ),
     ):
-        await start_multiple_workflow_runs(
+        await plan_batch(
             workflow_types=[test_context["workflow_type"]],
             request=request,
             user=test_context["user"],
-            background_tasks=BackgroundTasks(),
         )
 
+        # One config per workflow the batch starts or joins.
+        mock_create = mock_create_config
         return mock_create, mock_create_config
 
 
@@ -227,8 +207,8 @@ async def test_rerun_extraction_when_dependency_cancelled_or_failed(
 
     Regression test: previously REFERENCE_EXTRACTION was skipped on any
     existing run regardless of status, so a cancelled extraction left
-    REFERENCE_VALIDATION stuck (it would self-cancel waiting on a dead
-    dependency). It must now be re-created so dependents can proceed.
+    REFERENCE_VALIDATION stuck (the promoter cancels it while its dependency
+    last ended cancelled or failed). It must now be re-created so dependents can proceed.
     """
     mock_create, _ = await run_workflow_with_mocks(
         test_context,
@@ -264,8 +244,8 @@ async def test_join_a_running_extraction_instead_of_starting_one(test_context):
 async def test_a_waiting_extraction_goes_through_create_or_join(
     test_context, extraction_status
 ):
-    """A waiting dependency is not skipped here: start_or_join_run joins it,
-    so the batch never adds a second waiting run."""
+    """A waiting dependency is not skipped here: the start joins it
+    (start_or_join_run), so the batch never adds a second waiting run."""
     mock_create, _ = await run_workflow_with_mocks(
         test_context,
         [WorkflowRunType.DOCUMENT_PROCESSING],

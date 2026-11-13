@@ -1,6 +1,6 @@
 """Review Assistant requests: the outputs an author wants from their documents."""
 
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 
 from lib.api.auth import get_current_user
 from lib.api.models import StartWorkflowResponse
@@ -27,7 +27,6 @@ router = APIRouter(tags=["review-assistant"])
 async def start_review_assistant_request_endpoint(
     project_id: str,
     request: StartReviewAssistantRequest,
-    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
 ):
     """Start a request: produce these outputs from these documents."""
@@ -35,10 +34,12 @@ async def start_review_assistant_request_endpoint(
     config = request_config(project_id, request)
     await assert_project_files(project_id, config.input_file_ids)
 
+    # Recorded before the run can be queued: the runner's state writes come after.
     workflow_run_id = await start_workflow_run(
-        config=config, user=user, background_tasks=background_tasks
+        config=config,
+        user=user,
+        on_created=lambda run_id: record_request(run_id, config),
     )
-    await record_request(workflow_run_id, config)
     return StartWorkflowResponse(
         project_id=project_id,
         workflow_run_id=workflow_run_id,

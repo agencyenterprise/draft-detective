@@ -77,7 +77,7 @@ async def test_cancel_already_cancelled_workflow_is_idempotent():
 
 @pytest.mark.asyncio
 async def test_cancel_running_workflow_triggers_cancellation():
-    """Cancelling a RUNNING workflow calls cancel_workflow_run and returns the expected response."""
+    """Cancelling a RUNNING workflow calls cancel_run and returns the expected response."""
     run = _make_run(WorkflowRunStatus.RUNNING)
 
     with (
@@ -86,7 +86,7 @@ async def test_cancel_running_workflow_triggers_cancellation():
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "lib.api.routers.workflows.cancel_workflow_run",
+            "lib.api.routers.workflows.cancel_run",
             new=AsyncMock(),
         ) as mock_cancel,
     ):
@@ -94,14 +94,14 @@ async def test_cancel_running_workflow_triggers_cancellation():
             str(run.id), current_user=_mock_user()
         )
 
-    mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id))
+    mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id), run.revision)
     assert response.message == "Workflow cancellation requested"
     assert response.workflow_run_id == str(run.id)
 
 
 @pytest.mark.asyncio
 async def test_cancel_pending_workflow_triggers_cancellation():
-    """Cancelling a PENDING workflow calls cancel_workflow_run and returns the expected response."""
+    """Cancelling a PENDING workflow calls cancel_run and returns the expected response."""
     run = _make_run(WorkflowRunStatus.PENDING)
 
     with (
@@ -110,7 +110,7 @@ async def test_cancel_pending_workflow_triggers_cancellation():
             new=AsyncMock(return_value=run),
         ),
         patch(
-            "lib.api.routers.workflows.cancel_workflow_run",
+            "lib.api.routers.workflows.cancel_run",
             new=AsyncMock(),
         ) as mock_cancel,
     ):
@@ -118,5 +118,5 @@ async def test_cancel_pending_workflow_triggers_cancellation():
             str(run.id), current_user=_mock_user()
         )
 
-    mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id))
+    mock_cancel.assert_awaited_once_with(str(run.id), str(run.project_id), run.revision)
     assert response.message == "Workflow cancellation requested"

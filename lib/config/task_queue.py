@@ -31,6 +31,13 @@ logger = logging.getLogger(__name__)
 # a job deferred from any process finds its task.
 TASK_MODULES = ["lib.services.task_queue.tasks"]
 
+# The queues every API process's worker takes jobs from. Workflow runs have a
+# queue of their own (see lib.services.workflow_runs.jobs), so tests can give
+# their jobs a queue no worker of another test takes.
+DEFAULT_QUEUE = "default"
+WORKFLOW_QUEUE = "workflows"
+WORKER_QUEUES = [DEFAULT_QUEUE, WORKFLOW_QUEUE]
+
 # How long a stopping worker waits for its running jobs before aborting them.
 # Short, so a dev reload or a deploy is not held up; runs cut short here are
 # recovered the way a crash is.
@@ -83,6 +90,7 @@ async def _keep_worker_running() -> None:
     while True:
         try:
             await task_queue.run_worker_async(
+                queues=WORKER_QUEUES,
                 concurrency=config.TASK_QUEUE_CONCURRENCY,
                 name=f"api-{os.getpid()}",
                 # Uvicorn owns SIGINT and SIGTERM; the lifespan stops the worker.

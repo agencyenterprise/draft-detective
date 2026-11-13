@@ -13,7 +13,7 @@ import pytest_asyncio
 from procrastinate import App, PsycopgConnector
 
 from lib.config.env import config
-from lib.config.task_queue import libpq_conninfo, task_queue
+from lib.config.task_queue import DEFAULT_QUEUE, libpq_conninfo, task_queue
 from lib.services.task_queue.tasks import ping
 
 WAIT_SECONDS = 20.0
@@ -108,6 +108,8 @@ def _api_process_queue() -> App:
 async def _run_worker(app: App, name: str) -> None:
     async with app.open_async():
         await app.run_worker_async(
+            # Only ping's queue: other tests' jobs are not these workers' to run.
+            queues=[DEFAULT_QUEUE],
             concurrency=config.TASK_QUEUE_CONCURRENCY,
             name=name,
             install_signal_handlers=False,
