@@ -568,6 +568,24 @@ class TestTheToolsTheAgentGets:
         assert "draftdetective://" in build.call_args.kwargs["system_prompt"]
 
     @pytest.mark.asyncio
+    async def test_subagents_can_view_images_but_not_open_documents(self) -> None:
+        """An open inside a subagent never reaches this thread's history, which is
+        where the access check finds what each copy was opened from."""
+
+        with (
+            patch("lib.agents.teams_agent.build_llm"),
+            patch(
+                "lib.agents.teams_agent.build_deep_agent",
+                return_value=agent_returning("an answer"),
+            ) as build,
+        ):
+            await answer_question("hello?", graph_token=TOKEN, thread_id=THREAD)
+
+        (subagent,) = build.call_args.kwargs["subagents"]
+        assert subagent["name"] == "general-purpose"
+        assert [tool.name for tool in subagent["tools"]] == ["view_image"]
+
+    @pytest.mark.asyncio
     async def test_images_belong_to_the_teams_conversations_row(
         self, conversation: AsyncMock
     ) -> None:

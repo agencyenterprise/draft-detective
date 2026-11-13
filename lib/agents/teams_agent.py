@@ -52,6 +52,7 @@ from lib.agents.deep_agent_setup import (
     build_deep_agent,
     build_llm,
     conversation_run_config,
+    general_purpose_subagent,
     has_deployment_key,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
@@ -335,14 +336,24 @@ async def answer_question(
         # Held from the access check until the run ends, in every worker: otherwise a
         # run for somebody who can read a document could mount it between another
         # asker's check and their run, which would start from a copy never checked.
+        viewing = view_image_for_conversation(conversation_id)
         async with one_run_per_thread(thread_id), get_checkpointer() as saver:
             agent = build_deep_agent(
                 model=build_llm(model, key),
                 tools=[
                     open_document_for(graph_token, conversation_id),
                     check_document_for(graph_token),
-                    view_image_for_conversation(conversation_id),
+                    viewing,
                     *([offer_changes_for(graph_token, reference)] if reference else []),
+                ],
+                # Subagents read and report; only this agent opens documents. An open
+                # inside a subagent would never reach this thread's history, which is
+                # where the access check finds what each copy was opened from.
+                subagents=[
+                    {
+                        **general_purpose_subagent(skills=["/skills/"]),
+                        "tools": [viewing],
+                    }
                 ],
                 skills=["/skills/"],
                 system_prompt=SYSTEM_PROMPT + VIEW_IMAGE_PROMPT,
