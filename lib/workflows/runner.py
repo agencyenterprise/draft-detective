@@ -1,3 +1,10 @@
+"""Executing a workflow run: waits for its dependencies and its turn in the
+same-type queue, then runs its LangGraph graph and writes its status, state
+and issues. Scheduled as a background task by
+``lib/api/services/workflow_runner.py``; the run rows and the waiting rules
+are ``lib/services/workflow_runs/``. See docs/workflow-runs.md.
+"""
+
 import asyncio
 import logging
 import uuid

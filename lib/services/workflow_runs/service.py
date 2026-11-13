@@ -1,3 +1,8 @@
+"""Workflow run rows: create, read, status writes (terminal statuses are
+write-once), cancel and fail (both cascade to required-dependents), heartbeat,
+state persistence and cost. When a waiting run may start is decided in
+`orchestration.py` and `queue.py`. See docs/workflow-runs.md."""
+
 import asyncio
 import logging
 import uuid
