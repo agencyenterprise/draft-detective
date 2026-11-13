@@ -267,7 +267,12 @@ async def create_workflow_run(
     revision: int = 1,
     model: str | None = None,
 ) -> str:
-    """Create a new workflow run record."""
+    """Create a new workflow run record.
+
+    Workflow starts go through ``start_or_join_run`` in
+    ``lib.services.workflow_runs.start`` instead, which joins the waiting run
+    of the type rather than fail on its unique index.
+    """
     now = datetime.utcnow()
     async with get_async_db_session() as session:
         run = WorkflowRun(
@@ -277,6 +282,7 @@ async def create_workflow_run(
             type=type,
             revision=revision,
             model=model,
+            independent_run=get_workflow_manifest(type).independent_runs,
             completed_at=now if status == WorkflowRunStatus.COMPLETED else None,
         )
         session.add(run)

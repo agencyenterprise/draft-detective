@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.8.2] - 2026-11-12
+
+Added
+- Shared abbreviation-scan issue rules as a script for use by the skill and external runners.
+
+Changed
+- Consolidated OpenAI API key entry into a shared form for the new-assessment wizard and Settings.
+- Standardized workflow-run authorization through the project access gate.
+- Updated LangGraph, Next.js, and frontend dependencies, including fixes for reported advisories.
+
+Fixed
+- Ensured API tokens are updated only after a frontend render commits.
+- Configured the API client before the first frontend render so initial requests use the configured backend and authentication token.
+- Showed fallback messages when API errors do not include a reason, including validation errors with non-text details.
+- Added a retry option when the new-assessment page cannot load account details on deployments requiring API keys.
+- Ran queued workflow runs of the same type in creation order.
+- Stopped workflow runs that are cancelled or reaped while waiting from starting.
+- Preserved reaper cleanup state when a reaped workflow run remains active.
+- Updated workflow heartbeats when nodes start to prevent active short-running workflows from being reaped.
+- Capped bitmap rendering for rasterized DOCX drawings to limit memory use.
+
+Security
+- Limited DOCX drawing rasterization to prevent excessive memory consumption from crafted uploads.
+
+
 ## [v2.8.1] - 2026-11-10
 
 ### Changed

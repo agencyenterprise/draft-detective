@@ -27,6 +27,7 @@ from lib.api.services.workflow_runner import (
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.services.workflow_runs.start import RunStart
 from lib.workflows.claim_reference_validation_v2.state import (
     ClaimReferenceValidationV2Config,
 )
@@ -46,6 +47,20 @@ def _project() -> MagicMock:
     project.id = uuid4()
     project.current_revision = 1
     return project
+
+
+def _joined(
+    status: WorkflowRunStatus, *, schedule: bool = False, model: str | None = None
+) -> RunStart:
+    """A waiting run start_or_join_run joined instead of creating one."""
+    return RunStart(
+        run_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        status=status,
+        model=model,
+        schedule=schedule,
+        created=False,
+    )
 
 
 def _run(
@@ -75,9 +90,11 @@ class Harness:
         self.approved = set(approved or set())
         self.existing = existing or {}
         self.created: list[dict] = []
+        # What start_or_join_run returns per type instead of creating a run:
+        # how it joins a waiting run is covered against the database in
+        # tests/integration/workflow_runs/test_start_or_join.py.
+        self.joins: dict[WorkflowRunType, RunStart] = {}
         self.approve_gate = AsyncMock(side_effect=self._approve)
-        # Whether the start paths win the AWAITING_APPROVAL -> PENDING claim.
-        self.claim = AsyncMock(return_value=True)
         # What the blocking path waits on that someone else scheduled.
         self.wait_for_runs_to_end = AsyncMock()
         # What the blocking path executes (one call per item, gathered).
@@ -95,9 +112,23 @@ class Harness:
     async def _approve(self, project_id, revision, gate, approved_by_user_id=None):
         self.approved.add(gate)
 
-    async def _create_run(self, **kwargs):
-        self.created.append(kwargs)
-        return str(uuid4())
+    async def _start_or_join(
+        self, project_id, workflow_type, revision, *, model, gated
+    ):
+        if workflow_type in self.joins:
+            return self.joins[workflow_type]
+        status = (
+            WorkflowRunStatus.AWAITING_APPROVAL if gated else WorkflowRunStatus.PENDING
+        )
+        self.created.append({"type": workflow_type, "status": status, "model": model})
+        return RunStart(
+            run_id=str(uuid4()),
+            thread_id=str(uuid4()),
+            status=status,
+            model=model,
+            schedule=not gated,
+            created=True,
+        )
 
     async def _get_run(self, project_id, workflow_type, **kwargs):
         return self.existing.get(workflow_type)
@@ -126,8 +157,8 @@ class Harness:
                 side_effect=self._get_run,
             ),
             patch(
-                "lib.api.services.workflow_runner.create_workflow_run",
-                new=AsyncMock(side_effect=self._create_run),
+                "lib.api.services.workflow_runner.start_or_join_run",
+                new=AsyncMock(side_effect=self._start_or_join),
             ),
             patch(
                 "lib.api.services.workflow_runner.create_workflow_config",
@@ -139,10 +170,6 @@ class Harness:
             ),
             patch(
                 "lib.api.services.workflow_runner.approve_gate", new=self.approve_gate
-            ),
-            patch(
-                "lib.api.services.workflow_runner.claim_run_awaiting_approval",
-                new=self.claim,
             ),
             patch(
                 "lib.api.services.workflow_runner.wait_for_runs_to_end",
@@ -245,107 +272,71 @@ async def test_gated_workflow_runs_normally_once_gate_is_approved():
 
 
 @pytest.mark.asyncio
-async def test_starting_again_reuses_the_awaiting_run():
-    project_id = uuid4()
-    awaiting = _run(project_id, CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(existing={CLAIM: awaiting})
+async def test_starting_again_joins_the_awaiting_run():
+    awaiting = _joined(WorkflowRunStatus.AWAITING_APPROVAL)
+    harness = Harness()
+    harness.joins[CLAIM] = awaiting
 
     run_ids, background_tasks = await _start(harness)
 
     assert harness.created_status(CLAIM) is None
-    assert str(awaiting.id) in run_ids
+    assert awaiting.run_id in run_ids
     assert CLAIM not in _scheduled_types(background_tasks)
 
 
 @pytest.mark.asyncio
-async def test_awaiting_run_is_released_in_place_when_gate_was_approved_meanwhile():
-    project_id = uuid4()
-    awaiting = _run(project_id, CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(
-        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
-    )
-
-    run_ids, background_tasks = await _start(harness)
-
-    assert harness.created_status(CLAIM) is None
-    harness.claim.assert_awaited_once_with(str(awaiting.id))
-    assert str(awaiting.id) in run_ids
-    assert str(awaiting.id) in {
-        item.workflow_run_id for item in _scheduled_items(background_tasks)
-    }
-
-
-@pytest.mark.asyncio
-async def test_a_released_awaiting_run_keeps_the_model_its_row_records(
+async def test_a_released_waiting_run_is_scheduled_on_the_model_its_row_records(
     monkeypatch: pytest.MonkeyPatch,
 ):
     monkeypatch.setattr(
         "lib.api.services.workflow_runner.env_config.ALLOW_WORKFLOW_MODEL_OVERRIDE",
         True,
     )
-    project_id = uuid4()
-    awaiting = _run(project_id, CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    awaiting.model = "openai:gpt-5.6-sol"
-    harness = Harness(
-        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
+    released = _joined(
+        WorkflowRunStatus.PENDING, schedule=True, model="openai:gpt-5.6-sol"
     )
+    harness = Harness(approved={WorkflowGate.REFERENCE_REVIEW})
+    harness.joins[CLAIM] = released
     harness.request.model = "openai:gpt-5.6-luna"
 
-    _, background_tasks = await _start(harness)
+    run_ids, background_tasks = await _start(harness)
 
+    assert released.run_id in run_ids
     [claim] = [
         item
         for item in _scheduled_items(background_tasks)
-        if item.workflow_run_id == str(awaiting.id)
+        if item.workflow_run_id == released.run_id
     ]
+    assert claim.thread_id == released.thread_id
     assert claim.config.model == "openai:gpt-5.6-sol"
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "status",
-    [
-        WorkflowRunStatus.PENDING,
-        WorkflowRunStatus.RUNNING,
-        WorkflowRunStatus.COMPLETED,
-        WorkflowRunStatus.FAILED,
-    ],
-)
-async def test_batch_start_never_schedules_a_run_a_concurrent_approval_released(
-    status: WorkflowRunStatus,
-):
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(
-        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
-    )
-    harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = status
+async def test_batch_start_never_schedules_a_waiting_run_someone_else_scheduled():
+    pending = _joined(WorkflowRunStatus.PENDING)
+    harness = Harness(approved={WorkflowGate.REFERENCE_REVIEW})
+    harness.joins[CLAIM] = pending
 
     run_ids, background_tasks = await _start(harness)
 
-    assert harness.created_status(CLAIM) is None
-    assert str(awaiting.id) in run_ids
+    assert pending.run_id in run_ids
     assert CLAIM not in _scheduled_types(background_tasks)
 
 
 @pytest.mark.asyncio
-async def test_batch_start_starts_afresh_when_the_awaiting_run_was_cancelled():
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(
-        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
+async def test_batch_joins_a_running_dependency_instead_of_starting_it():
+    running = _run(
+        uuid4(), WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.RUNNING
     )
-    harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = WorkflowRunStatus.CANCELLED
+    harness = Harness(existing={WorkflowRunType.REFERENCE_EXTRACTION: running})
 
     run_ids, background_tasks = await _start(harness)
 
-    assert harness.created_status(CLAIM) == WorkflowRunStatus.PENDING
-    assert str(awaiting.id) not in run_ids
-    [claim] = [
-        item for item in _scheduled_items(background_tasks) if item.config.type == CLAIM
-    ]
-    assert claim.workflow_run_id != str(awaiting.id)
-    assert claim.workflow_run_id in run_ids
+    assert harness.created_status(WorkflowRunType.REFERENCE_EXTRACTION) is None
+    assert str(running.id) in run_ids
+    assert WorkflowRunType.REFERENCE_EXTRACTION not in _scheduled_types(
+        background_tasks
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -387,15 +378,12 @@ async def test_blocking_path_records_the_approval_when_told_to():
 
 
 @pytest.mark.asyncio
-async def test_blocking_path_waits_for_a_run_a_concurrent_approval_released():
-    """It runs only its own items, but returns only once the run the approval
-    scheduled has ended, so the caller never reads a half-finished project."""
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(
-        approved={WorkflowGate.REFERENCE_REVIEW}, existing={CLAIM: awaiting}
-    )
-    harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = WorkflowRunStatus.RUNNING
+async def test_blocking_path_waits_for_a_run_it_joined():
+    """It runs only the runs it scheduled, but returns only once a joined run
+    has ended, so the caller never reads a half-finished project."""
+    pending = _joined(WorkflowRunStatus.PENDING)
+    harness = Harness(approved={WorkflowGate.REFERENCE_REVIEW})
+    harness.joins[CLAIM] = pending
 
     with _stack(harness.patches()):
         _, run_ids = await run_multiple_workflows_blocking(
@@ -403,8 +391,8 @@ async def test_blocking_path_waits_for_a_run_a_concurrent_approval_released():
         )
 
     assert CLAIM not in harness.executed_types()
-    assert str(awaiting.id) in run_ids
-    harness.wait_for_runs_to_end.assert_awaited_once_with([str(awaiting.id)])
+    assert pending.run_id in run_ids
+    harness.wait_for_runs_to_end.assert_awaited_once_with([pending.run_id])
 
 
 @pytest.mark.asyncio
@@ -737,101 +725,45 @@ async def test_single_start_schedules_the_workflow_once_its_gate_is_approved():
 
 @pytest.mark.asyncio
 async def test_single_start_again_returns_the_awaiting_run():
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(existing={CLAIM: awaiting})
+    awaiting = _joined(WorkflowRunStatus.AWAITING_APPROVAL)
+    harness = Harness()
+    harness.joins[CLAIM] = awaiting
 
     created, background_tasks, run_id = await _start_single_run(
         [WorkflowGate.REFERENCE_REVIEW], harness
     )
 
-    assert run_id == str(awaiting.id)
+    assert run_id == awaiting.run_id
     assert created == []
     assert background_tasks.tasks == []
 
 
 @pytest.mark.asyncio
-async def test_single_start_releases_the_awaiting_run_once_its_gate_is_approved():
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    awaiting.model = "openai:gpt-5.6-sol"
-    harness = Harness(existing={CLAIM: awaiting})
+async def test_single_start_schedules_a_released_run_on_the_model_its_row_records():
+    released = _joined(
+        WorkflowRunStatus.PENDING, schedule=True, model="openai:gpt-5.6-sol"
+    )
+    harness = Harness()
+    harness.joins[CLAIM] = released
 
     created, background_tasks, run_id = await _start_single_run([], harness)
 
-    assert run_id == str(awaiting.id)
+    assert run_id == released.run_id
     assert created == []
-    harness.claim.assert_awaited_once_with(str(awaiting.id))
     (task,) = background_tasks.tasks
-    assert task.kwargs["workflow_run_id"] == str(awaiting.id)
-    assert task.kwargs["thread_id"] == awaiting.langgraph_thread_id
+    assert task.kwargs["workflow_run_id"] == released.run_id
+    assert task.kwargs["thread_id"] == released.thread_id
     assert task.kwargs["config"].model == "openai:gpt-5.6-sol"
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "status",
-    [
-        WorkflowRunStatus.PENDING,
-        WorkflowRunStatus.RUNNING,
-        WorkflowRunStatus.COMPLETED,
-        WorkflowRunStatus.FAILED,
-    ],
-)
-async def test_single_start_never_schedules_a_run_a_concurrent_approval_released(
-    status: WorkflowRunStatus,
-):
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(existing={CLAIM: awaiting})
-    harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = status
+async def test_single_start_never_schedules_a_waiting_run_someone_else_scheduled():
+    pending = _joined(WorkflowRunStatus.PENDING)
+    harness = Harness()
+    harness.joins[CLAIM] = pending
 
     created, background_tasks, run_id = await _start_single_run([], harness)
 
-    assert run_id == str(awaiting.id)
+    assert run_id == pending.run_id
     assert created == []
     assert background_tasks.tasks == []
-
-
-@pytest.mark.asyncio
-async def test_single_start_starts_afresh_when_the_awaiting_run_was_cancelled():
-    awaiting = _run(uuid4(), CLAIM, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(existing={CLAIM: awaiting})
-    harness.claim.return_value = False
-    harness.run_statuses[str(awaiting.id)] = WorkflowRunStatus.CANCELLED
-
-    created, background_tasks, run_id = await _start_single_run([], harness)
-
-    assert run_id != str(awaiting.id)
-    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
-    (task,) = background_tasks.tasks
-    assert task.kwargs["workflow_run_id"] == run_id
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "status", [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING]
-)
-async def test_single_start_still_queues_a_new_run_behind_an_active_one(
-    status: WorkflowRunStatus,
-):
-    active = _run(uuid4(), CLAIM, status)
-    harness = Harness(existing={CLAIM: active})
-
-    created, background_tasks, run_id = await _start_single_run([], harness)
-
-    assert run_id != str(active.id)
-    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
-    assert len(background_tasks.tasks) == 1
-
-
-@pytest.mark.asyncio
-async def test_single_start_of_an_independent_run_never_reuses_an_awaiting_one():
-    review_assistant = WorkflowRunType.REVIEW_ASSISTANT
-    awaiting = _run(uuid4(), review_assistant, WorkflowRunStatus.AWAITING_APPROVAL)
-    harness = Harness(existing={review_assistant: awaiting})
-    config = get_config_type(review_assistant)(project_id=str(harness.project.id))
-
-    created, _, run_id = await _start_single_run([], harness, config)
-
-    assert run_id != str(awaiting.id)
-    assert [c["status"] for c in created] == [WorkflowRunStatus.PENDING]
-    harness.claim.assert_not_awaited()
