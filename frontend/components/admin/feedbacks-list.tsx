@@ -19,6 +19,7 @@ import {
   Issue,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { downloadFile } from '@/lib/file-download';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -312,7 +313,7 @@ export function FeedbacksList() {
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-destructive">{error instanceof Error ? error.message : 'Failed to load feedback'}</p>
+              <p className="text-destructive">{getErrorMessage(error, 'Failed to load feedback')}</p>
             </div>
           ) : (
             <>

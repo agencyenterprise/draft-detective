@@ -2,6 +2,7 @@
 
 import { SectionLabel } from '@/components/annotate/section-label';
 import { AppBar } from '@/components/results/app-bar';
+import { getErrorMessage } from '@/lib/api-error';
 import type { AnnotationSetSummary } from '@/lib/generated-api';
 import { useAnnotationSets } from '@/lib/hooks/use-annotations';
 import { cn } from '@/lib/utils';
@@ -83,7 +84,9 @@ export function AnnotationSetList() {
                 {isLoading ? (
                   <Loader2 className="mx-auto my-8 size-5 animate-spin text-muted-foreground" />
                 ) : error ? (
-                  <p className="py-6 text-sm text-destructive">{error.message}</p>
+                  <p className="py-6 text-sm text-destructive">
+                    {getErrorMessage(error, 'Could not load the annotation sets')}
+                  </p>
                 ) : !sets?.length ? (
                   <p className="py-6 text-sm text-muted-foreground">There is nothing to annotate yet.</p>
                 ) : (

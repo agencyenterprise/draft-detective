@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, useEffect, useLayoutEffect } from 'react';
 import { useAui, type CompleteAttachment, type ThreadMessage } from '@assistant-ui/react';
-import { ChatRequestError, streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
+import { ApiError } from '@/lib/api-error';
+import { streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
 import type { ChatMessage } from '@/lib/chat/turn';
 import {
   cancelChatTurnApiChatThreadsThreadIdCancelPost,
@@ -269,14 +270,14 @@ describe('ChatAssistant, a turn that ends early', () => {
   it('a request that fails before streaming shows the failure on an assistant message', async () => {
     await mount();
     stream.mockImplementationOnce(() => {
-      throw new ChatRequestError(503, 'Chat request failed with status 503');
+      throw new ApiError(503);
     });
     await send('Hi');
 
     expect(shown().at(-1)).toMatchObject({
       role: 'assistant',
       text: '',
-      status: { type: 'incomplete', reason: 'error', error: 'Chat request failed with status 503' },
+      status: { type: 'incomplete', reason: 'error', error: 'The turn failed.' },
     });
     expect(isRunning()).toBe(false);
   });
@@ -287,7 +288,7 @@ describe('ChatAssistant, a turn that ends early', () => {
   it.fails('a request that fails before streaming keeps the user message on screen', async () => {
     await mount();
     stream.mockImplementationOnce(() => {
-      throw new ChatRequestError(503, 'Chat request failed with status 503');
+      throw new ApiError(503);
     });
     await send('Hi');
 
@@ -419,7 +420,7 @@ describe('ChatAssistant, a turn running on the server', () => {
     await mount();
     running = true;
     stream.mockImplementationOnce(() => {
-      throw new ChatRequestError(409, 'Draft Detective is still answering in this thread.');
+      throw new ApiError(409, 'Draft Detective is still answering in this thread.');
     });
     await send('Hi');
     await until(() => isRunning());

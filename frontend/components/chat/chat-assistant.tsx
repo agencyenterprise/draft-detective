@@ -8,7 +8,8 @@ import { ChatWelcome } from '@/components/chat/chat-welcome';
 import { DocumentPanel } from '@/components/chat/document-panel';
 import { dbThreadListAdapter } from '@/components/chat/db-thread-list-adapter';
 import { DevToolsModal } from '@assistant-ui/react-devtools';
-import { ChatRequestError, streamChatTurn } from '@/lib/chat/stream';
+import { streamChatTurn } from '@/lib/chat/stream';
+import { getErrorMessage, isApiError } from '@/lib/api-error';
 import {
   TurnAccumulator,
   convertChatMessage,
@@ -170,8 +171,8 @@ function useChatThreadRuntime(): AssistantRuntime {
     } catch (error) {
       if (controller.signal.aborted) setInflight(turn.cancel());
       else {
-        setInflight(turn.fail(error instanceof Error ? error.message : 'The turn failed.'));
-        if (!agentFailed && !(error instanceof ChatRequestError)) {
+        setInflight(turn.fail(getErrorMessage(error, 'The turn failed.')));
+        if (!agentFailed && !isApiError(error)) {
           lostStreamRef.current = { userId: user.id, ids: new Set(turn.assistantMessages.flatMap((m) => m.id ?? [])) };
         }
       }
