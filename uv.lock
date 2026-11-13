@@ -981,7 +981,7 @@ requires-dist = [
     { name = "openai", specifier = ">=3.1.0" },
     { name = "pgvector", specifier = ">=0.2.5,<0.4" },
     { name = "pillow", specifier = ">=13.0.0" },
-    { name = "procrastinate", specifier = ">=3.11.0" },
+    { name = "procrastinate", specifier = "==3.11.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
     { name = "pyjwt", specifier = ">=2.13.0" },

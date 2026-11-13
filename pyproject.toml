@@ -54,7 +54,9 @@ dependencies = [
     "genai-prices>=0.1.6",
     "aenum>=3.1.17",
     "markdown-it-py>=4.0.0",
-    "procrastinate>=3.11.0",
+    # Pinned: alembic/versions/724c774cd57a applies this exact version's schema. An
+    # upgrade needs a migration running its procrastinate/sql/migrations scripts.
+    "procrastinate==3.11.0",
 ]
 
 [tool.ruff]
