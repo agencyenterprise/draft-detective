@@ -1,3 +1,11 @@
+"""Executing a workflow run: runs one claimed run's LangGraph graph and writes its
+status, state and issues. Called by the job queue's `run_workflow` task.
+
+Starting runs (the API side) is `lib/api/services/workflow_runner.py`; the run
+rows and scheduling rules are `lib/services/workflow_runs/`. See
+docs/workflow-runs.md.
+"""
+
 import asyncio
 import logging
 import uuid

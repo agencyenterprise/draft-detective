@@ -1,3 +1,7 @@
+"""Workflow run rows: create, read, status writes (terminal statuses are
+write-once), cancel, fail, heartbeat, state persistence and cost. Which run
+runs when is decided in `promoter.py`. See docs/workflow-runs.md."""
+
 import asyncio
 import logging
 import uuid

@@ -2,7 +2,28 @@
 
 A Python backend (FastAPI + LangChain, under `lib/`) and a Next.js frontend (under `frontend/`). Rules marked **Always** or **Never** are strict. The rest are defaults to follow unless there's a reason not to.
 
-Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, environment variables, database), `frontend/README.md` (frontend setup and Node version) and `evals_inspectai/README.md` (the eval suites and how to choose the model they run).
+Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, environment variables, database), `frontend/README.md` (frontend setup and Node version), `evals_inspectai/README.md` (the eval suites and how to choose the model they run), `docs/workflow-runs.md` (a workflow run from start to end, and which file owns each step) and `docs/skill-workflows.md` (workflows declared by a skill file).
+
+## Where things live
+
+| What | Where |
+|---|---|
+| API endpoints | `lib/api/routers/` (not `routes/`; there is no top-level `api/`) |
+| API logic behind them | `lib/api/services/` |
+| MCP server and tools | `lib/api/mcp/` |
+| App startup, lifespan | `lib/api/main.py` |
+| Workflows | `lib/workflows/<name>/` (`manifest.py`, graph, nodes), registered in `lib/workflows/registry.py` |
+| Skill-declared workflows | `skills/*/SKILL.md` frontmatter, see `docs/skill-workflows.md` |
+| Workflow run lifecycle | `lib/services/workflow_runs/` (service, reaper, gates, start), see `docs/workflow-runs.md` |
+| Domain services | `lib/services/` (`projects/`, `files/`, `users.py`, `references/`, ...) |
+| LLM agents and tools | `lib/agents/` |
+| Database models | `lib/models/`; migrations in `alembic/versions/` |
+| Settings | `lib/config/` (`env.py` reads the environment) |
+| Tests | `tests/unit/`, `tests/integration/`; shared fixtures in `tests/conftest.py`; test documents (PDFs, DOCX) in `tests/evals/data/` |
+| Eval suites | `evals_inspectai/e2e/<workflow>/` |
+| Frontend pages | `frontend/app/(authenticated)/`: the UI is `/projects/{id}`, while many API routes are `/api/project/{id}` |
+| Frontend request path | `frontend/lib/api.ts` (base URL, auth header), `lib/api-client.ts` (configures the generated client), `lib/api-error.ts` (`ApiError`), `components/api-config.tsx` (keeps the token current) |
+
 
 ## Quick Reference
 
@@ -81,16 +102,16 @@ Always put imports at the top of the file. A lazy import hides a module's depend
 
 ```python
 # ✅ Correct
-from lib.services.users import UserService
+from lib.services.users import get_user_decrypted_api_key
 
-def process(doc: Document) -> None:
-    service = UserService()
+def api_key_for(user: User) -> str | None:
+    return get_user_decrypted_api_key(user)
 
 # ✅ Acceptable - a circular import, explained
-def process(doc: Document) -> None:
-    # Imported here to avoid a circular import between lib.services.users and lib.services.documents
-    from lib.services.users import UserService  # noqa: PLC0415  circular, see above
-    service = UserService()
+# (lib/workflows/document_summarization/nodes/summarize_documents.py)
+async def save_title(project_id: str, summary: FileSummary) -> None:
+    from lib.services.projects.service import update_project_title  # noqa: PLC0415  circular: projects -> registry -> this node
+    await update_project_title(project_id=project_id, title=summary.title)
 ```
 
 Ruff enforces this (`PLC0415`). An import that must stay inside a function always carries `# noqa: PLC0415` followed by its reason, so the exception is visible where it happens.
