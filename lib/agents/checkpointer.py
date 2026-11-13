@@ -13,7 +13,7 @@ Three non-obvious constraints, two of which fail silently:
 
 Connections: the SQLAlchemy engine is capped at 8 + 3 per process and this adds 4, so a
 4-worker deployment sits at 60 against a default limit of 100. ``one_run_per_thread``
-adds one more per Teams question while it is being answered.
+adds up to ``THREAD_LOCK_CONNECTIONS`` more per process, 76 in all.
 """
 
 import asyncio
@@ -21,6 +21,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
+from weakref import WeakValueDictionary
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg import AsyncConnection
@@ -38,6 +39,14 @@ SETUP_LOCK_KEY = 0x44445F4341
 # Hashed with a thread id into that thread's lock key, so thread locks land apart from
 # the setup lock and from anyone else's.
 THREAD_LOCK_SEED = 0x44445F5448
+
+# Thread-lock connections a process may hold at once; more runs wait their turn here,
+# holding nothing. One per thread at most, since a process's runs on one thread queue
+# in ``_thread_locks`` first.
+THREAD_LOCK_CONNECTIONS = 4
+_lock_connections = asyncio.Semaphore(THREAD_LOCK_CONNECTIONS)
+# Weak, so a thread's entry goes once no run holds or awaits it.
+_thread_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
 
 # ``min_size=0`` so an unused process holds nothing; ``prepare_threshold=0`` because a
 # transaction-pooling proxy would break on prepared statements; ``autocommit`` and
@@ -150,11 +159,20 @@ async def one_run_per_thread(thread_id: str) -> AsyncIterator[None]:
     A session-level advisory lock on a connection of its own, outside the pool: it is
     held for a whole run, minutes at worst, which would starve the pool's four. Closing
     the connection releases it, so a run that dies cannot leave its thread locked.
+    Bounded: a process queues its own runs on one thread before connecting, and holds
+    at most ``THREAD_LOCK_CONNECTIONS`` such connections.
     """
 
-    async with await AsyncConnection.connect(
-        config.DATABASE_URL, autocommit=True, prepare_threshold=0
-    ) as conn:
+    local = _thread_locks.get(thread_id)
+    if local is None:
+        local = _thread_locks[thread_id] = asyncio.Lock()
+    async with (
+        local,
+        _lock_connections,
+        await AsyncConnection.connect(
+            config.DATABASE_URL, autocommit=True, prepare_threshold=0
+        ) as conn,
+    ):
         await conn.execute(
             "SELECT pg_advisory_lock(hashtextextended(%s, %s))",
             (thread_id, THREAD_LOCK_SEED),
