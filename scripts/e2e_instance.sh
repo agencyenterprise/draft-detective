@@ -21,6 +21,8 @@ die() { echo "e2e_instance: $*" >&2; exit 1; }
 listening() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
 alive() { [[ -n "${1:-}" ]] && kill -0 "$1" 2>/dev/null; }
 saved() { cat "$STATE/$1" 2>/dev/null || true; }
+started() { ps -o lstart= -p "$1" 2>/dev/null || true; }
+command -v lsof >/dev/null || die "lsof is required to find free ports"
 
 # A random free port in [base, base+899], so concurrent `up`s rarely race for the same one.
 free_port() {
@@ -35,8 +37,10 @@ free_port() {
 
 # Each server runs as its own process group (job control is on when it starts), so stopping
 # the group also stops what it spawned: uv's python, uvicorn's reloader, next-server.
+# A live PID whose start time differs from the saved one was reused by an unrelated process.
 stop_group() {
-  local pid=$1 i
+  local pid=$1 start=$2 i
+  if alive "$pid" && [[ "$(started "$pid")" != "$start" ]]; then return 0; fi
   alive "$pid" || pgrep -g "$pid" >/dev/null 2>&1 || return 0
   kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
   for ((i = 0; i < 50; i++)); do
@@ -85,6 +89,8 @@ cmd_up() {
   set +m
   echo "$backend_pid" >"$STATE/backend.pid"
   echo "$frontend_pid" >"$STATE/frontend.pid"
+  started "$backend_pid" >"$STATE/backend.start"
+  started "$frontend_pid" >"$STATE/frontend.start"
   echo "$backend_port" >"$STATE/backend.port"
   echo "$frontend_port" >"$STATE/frontend.port"
 
@@ -111,8 +117,8 @@ cmd_down() {
   local name pid
   for name in frontend backend; do
     pid=$(saved "$name.pid")
-    [[ -n "$pid" ]] && stop_group "$pid"
-    rm -f "$STATE/$name.pid"
+    [[ -n "$pid" ]] && stop_group "$pid" "$(saved "$name.start")"
+    rm -f "$STATE/$name.pid" "$STATE/$name.start"
   done
   echo "stopped the instance started from $ROOT"
 }
