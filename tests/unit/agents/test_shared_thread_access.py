@@ -4,6 +4,7 @@ The two-turn runs are in ``test_teams_shared_thread.py``; these pin the rules th
 depend on, which a scripted model would rarely reach.
 """
 
+import uuid
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -27,6 +28,7 @@ from lib.services.microsoft.graph.client import GraphError
 
 OURS = "https://x/ours.docx"
 THEIRS = "https://x/theirs.docx"
+CONVERSATION = uuid.uuid4()
 
 
 def opening(call_id: str, url: str, path: str, result: str) -> list[BaseMessage]:
@@ -68,15 +70,21 @@ class TestWhereEachCopyCameFrom:
         assert opened_documents(messages) == {"/documents/a.md": OURS}
 
 
+IMAGE = uuid.uuid4()
+
+
 @pytest.mark.asyncio
-async def test_what_the_agent_wrote_itself_goes_with_an_unreadable_copy() -> None:
+async def test_one_unreadable_copy_takes_every_file_but_the_skills() -> None:
+    """The readable copy goes too: the history that said where it came from is cut,
+    so it could never be checked again for whoever asks after."""
+
     files = {
-        "/documents/theirs.md": create_file_data("secret"),
+        "/documents/theirs.md": create_file_data(f"![](draftdetective://{IMAGE})"),
         "/documents/theirs.comments.md": create_file_data("Ana: secret too"),
         "/documents/ours.md": create_file_data("ours"),
-        "/documents/ours.comments.md": create_file_data("Bo: fine"),
         "/notes.md": create_file_data("a summary of the secret"),
         "/skills/issues/SKILL.md": create_file_data("skill"),
+        "/documents/gone.md": None,
     }
     messages = [
         *opening("1", THEIRS, "/documents/theirs.md", "Opened 'theirs.docx'"),
@@ -88,18 +96,27 @@ async def test_what_the_agent_wrote_itself_goes_with_an_unreadable_copy() -> Non
             raise GraphError("403")
         return {}
 
-    with patch.object(
-        shared_thread_access.client, "resolve", AsyncMock(side_effect=resolve)
+    drop = AsyncMock()
+    with (
+        patch.object(
+            shared_thread_access.client, "resolve", AsyncMock(side_effect=resolve)
+        ),
+        patch.object(
+            shared_thread_access.file_images, "drop_conversation_images", drop
+        ),
     ):
         deletions, _ = await withhold_unreadable(
-            {"files": files, "messages": messages}, "token"
+            {"files": files, "messages": messages}, "token", CONVERSATION
         )
 
     assert set(deletions) == {
         "/documents/theirs.md",
         "/documents/theirs.comments.md",
+        "/documents/ours.md",
         "/notes.md",
     }
+    # Or view_image would still serve it to anyone holding the reference.
+    drop.assert_awaited_once_with(CONVERSATION, {IMAGE})
 
 
 @pytest.mark.asyncio
@@ -114,7 +131,7 @@ async def test_when_every_copy_is_readable_nothing_changes() -> None:
         shared_thread_access.client, "resolve", AsyncMock(return_value={})
     ):
         assert await withhold_unreadable(
-            {"files": files, "messages": messages}, "t"
+            {"files": files, "messages": messages}, "t", CONVERSATION
         ) == (
             {},
             [],

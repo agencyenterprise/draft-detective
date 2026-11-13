@@ -7,6 +7,7 @@ model talked out of ``check_document`` would do: read the copy straight away. Wh
 B gets the text must not depend on the model.
 """
 
+import asyncio
 import uuid
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
@@ -144,3 +145,64 @@ class TestSomebodyWithAccessAsksNext:
         )
 
         assert SECRET in tool_results(await history(saver))[-1]
+
+
+# What happened when, across two runs at once.
+ORDER: list[str] = []
+
+
+class _SlowModel(_ScriptedModel):
+    """Answers after a pause, noting each answer, so a run lasts long enough for
+    another to try to start inside it."""
+
+    async def _agenerate(self, *args: Any, **kwargs: Any) -> Any:
+        await asyncio.sleep(0.05)
+        ORDER.append("A's model")
+        return await super()._agenerate(*args, **kwargs)
+
+
+class TestTwoQuestionsAtOnce:
+    @pytest.mark.asyncio
+    async def test_the_second_is_checked_only_once_the_first_has_finished(
+        self, saver: InMemorySaver
+    ) -> None:
+        """Otherwise the first could mount a copy after the second was checked."""
+
+        await a_opens_and_reads(saver)
+        order = ORDER
+        order.clear()
+        real = teams_agent.withhold_unreadable
+
+        async def checked(state: Any, token: str, conversation: Any) -> Any:
+            order.append(f"check {token}")
+            return await real(state, token, conversation)
+
+        a_model = _SlowModel(
+            messages=iter(
+                [
+                    calls("open_document", url=URL, path=PATH),
+                    AIMessage(content="Reopened."),
+                ]
+            ),
+            disable_streaming=True,
+        )
+        b_model = _ScriptedModel(
+            messages=iter([calls("read_file", file_path=PATH), AIMessage(content="?")]),
+            disable_streaming=True,
+        )
+        with (
+            patch.object(teams_agent, "withhold_unreadable", checked),
+            patch.object(teams_agent, "build_llm", side_effect=[a_model, b_model]),
+        ):
+            await asyncio.gather(
+                teams_agent.answer_question("q", graph_token=TOKEN_A, thread_id=THREAD),
+                teams_agent.answer_question("q", graph_token=TOKEN_B, thread_id=THREAD),
+            )
+
+        assert order == [
+            f"check {TOKEN_A}",
+            "A's model",
+            "A's model",
+            f"check {TOKEN_B}",
+        ]
+        assert SECRET not in tool_results(await history(saver))[-1]

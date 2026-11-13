@@ -34,10 +34,12 @@ anyone has it open. Asked for comments or tracked changes, the agent stores them
 when the asker opens the document.
 """
 
+import asyncio
 import logging
 import uuid
 from collections.abc import Sequence
 from typing import Any
+from weakref import WeakValueDictionary
 
 import httpx
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -275,6 +277,20 @@ async def asker(graph_token: str, name: str) -> uuid.UUID | None:
     return await linked_users.user_for(email, name, tenant_of(graph_token))
 
 
+# Held from the access check until the run ends. Without it, a run for somebody who
+# can read a document could mount it between another asker's check and their run, and
+# their run would start from a copy their check never saw. Weak, so a thread's lock goes
+# once no run holds or awaits it.
+_thread_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
+
+
+def _one_run_at_a_time(thread_id: str) -> asyncio.Lock:
+    lock = _thread_locks.get(thread_id)
+    if lock is None:
+        lock = _thread_locks[thread_id] = asyncio.Lock()
+    return lock
+
+
 async def _known(user_id: uuid.UUID | None) -> uuid.UUID | None:
     return user_id
 
@@ -332,7 +348,7 @@ async def answer_question(
         conversation_id = await conversations.for_teams(
             thread_id, lambda: _known(asked_by_user)
         )
-        async with get_checkpointer() as saver:
+        async with _one_run_at_a_time(thread_id), get_checkpointer() as saver:
             agent = build_deep_agent(
                 model=build_llm(model, key),
                 tools=[
@@ -364,6 +380,7 @@ async def answer_question(
                 withheld, rewritten = await withhold_unreadable(
                     (await agent.aget_state(thread_config(thread_id))).values or {},
                     graph_token,
+                    conversation_id,
                 )
                 result = await agent.ainvoke(
                     agent_input(
