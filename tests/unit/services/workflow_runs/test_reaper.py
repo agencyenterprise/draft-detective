@@ -384,3 +384,38 @@ async def test_reaper_loop_log_does_not_claim_skipped_runs_were_failed(caplog):
 
     assert "found 1 stuck run(s)" in caplog.text
     assert "as FAILED" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_released_stalled_jobs_promote_each_revision_once():
+    """A dead worker's jobs are released after the sweep, and each revision
+    they belonged to is promoted once, so the next run of the type can go."""
+    released = [
+        _make_run(
+            WorkflowRunStatus.FAILED, run_type=WorkflowRunType.FIGURES_TABLES_CHECK
+        ),
+        _make_run(
+            WorkflowRunStatus.FAILED, run_type=WorkflowRunType.ABBREVIATION_SCAN_V2
+        ),
+    ]
+    with (
+        patch(
+            "lib.services.workflow_runs.reaper.release_stalled_run_jobs",
+            new=AsyncMock(return_value=released),
+        ),
+        patch(
+            "lib.services.workflow_runs.reaper.promote_ready_runs", new=AsyncMock()
+        ) as promote,
+    ):
+        await workflow_reaper._release_stalled_jobs()
+
+    promote.assert_awaited_once_with("project-1", 1)
+
+
+@pytest.mark.asyncio
+async def test_a_failing_release_does_not_stop_the_sweep():
+    with patch(
+        "lib.services.workflow_runs.reaper.release_stalled_run_jobs",
+        new=AsyncMock(side_effect=RuntimeError("queue down")),
+    ):
+        await workflow_reaper._release_stalled_jobs()
