@@ -22,6 +22,9 @@ cd frontend && pnpm dev
 cd frontend && pnpm test                   # Vitest
 cd frontend && pnpm run lint
 cd frontend && pnpm run openapi-generate   # Regenerate API types
+
+# A private backend + frontend on free ports (see "Running a Private Instance")
+scripts/e2e_instance.sh up | status | down
 ```
 
 ## Before Handing Back Work
@@ -33,6 +36,17 @@ Run the same checks CI runs for the side you touched. A red check here means a r
 - **Backend API changes:** regenerate the frontend types (see below), then run the frontend checks.
 
 If a check fails and you can't fix it, tell the user which one and why. Never hand the work back as finished.
+
+## Running a Private Instance
+
+Other workers' servers and the user's own (:8000, :3000) share this machine. For end-to-end checks, always start your own instance with `scripts/e2e_instance.sh up`. Never reuse a fixed port pair, and never kill a process by port or name pattern.
+
+- `up` picks free ports, starts the backend (no auto-reload; `E2E_RELOAD=1` turns it on) and the frontend pointed at it through `NEXT_PUBLIC_API_URL`. It waits until both answer, then prints the URLs. The first run in a fresh worktree installs `node_modules` and builds `.venv`, and a cold page compile takes about 10 s. Let it finish. `down` stops only what `up` started, `status` shows what's running. PIDs, ports and logs are in `.e2e/`, one instance per checkout.
+- Open pages at `localhost`, never `127.0.0.1`. The Next dev server blocks its dev resources (`/_next/hmr`) from other hostnames, and the login cookie belongs to `localhost`. Cookies ignore the port, so the user's :3000 login carries over.
+- The health route is `/api/health` (`/health` returns 404). Backend logs are plain text with timestamps: the script sets `LOG_RICH_HANDLER=false` unless you set it.
+- Shell variables override `.env` and `frontend/.env`. Flags such as `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG` stay on unless you set them: `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=false scripts/e2e_instance.sh up`.
+- The instance uses the user's dev database from `.env`, so delete the projects you create. When that database lags your branch's migrations, routes that touch the new columns fail (the log shows `UndefinedColumn`). Never run Alembic. Tell the user instead.
+- To call the API directly, use a Bearer token: `accessToken` from the page's `/api/auth/session`, or `_get_auth_token()` in `evals_inspectai/common/api_client.py`. The frontend's order is `POST /api/projects`, then a TUS upload to `/tus`, then `POST /api/workflows/start-multiple`, then polling `GET /api/project/{id}/overview`. `api_client.py` is the reference. UI pages live at `/projects/{id}`, while many API routes use `/api/project/{id}`. `GET /api/workflows/{id}` returns `{run, state, cost, state_status}`, not the run itself.
 
 ---
 
