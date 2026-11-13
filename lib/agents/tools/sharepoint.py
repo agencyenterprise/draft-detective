@@ -25,6 +25,8 @@ whether a document has changed since the agent last read it, and because Graph a
 the asker's own permissions to the lookup, a refusal answers whether *this* person may
 read it at all. Both matter across turns: a conversation persists, so a mounted document
 may have been edited since, and may have been loaded for somebody else in the thread.
+The second is not left to the model: ``lib/agents/shared_thread_access.py`` makes the
+same lookup in code before each turn and takes out what the asker cannot read.
 """
 
 import logging
@@ -50,6 +52,10 @@ logger = logging.getLogger(__name__)
 DOCUMENTS = "/documents"
 
 _SAFE_NAME = re.compile(r"^[\w][\w .()-]*$")
+
+# How a successful ``open_document`` result starts, which is how a later turn tells the
+# documents a thread holds from the attempts that failed.
+OPENED = "Opened "
 
 
 def document_path(path: str) -> str:
@@ -257,7 +263,7 @@ def describe(document: documents.LoadedDocument, path: str) -> str:
 
     # Lines rather than paragraphs, because that is the unit the read and search tools
     # report positions in -- so the size given here is in the same currency.
-    parts = [f"Opened '{document.name}' at {path}: {document.lines} lines"]
+    parts = [f"{OPENED}'{document.name}' at {path}: {document.lines} lines"]
     if document.comments:
         parts.append(f", {len(document.comments)} comments at {comments_path(path)}")
     parts.append(".")

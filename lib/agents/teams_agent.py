@@ -21,11 +21,12 @@ run, so the agent reads with the asker's own access: a document they cannot open
 refused by Graph and the agent says so.
 
 One Teams thread is one LangGraph thread, so a follow-up arrives with the earlier turns
-*and the documents opened in them* still in view. Two things follow, and the agent is
-told about both: a mounted document may have been edited since it was read, and in a
-shared thread it may have been loaded for somebody else. ``check_document`` answers both
-in one cheap call -- it reports the edit time, and it fails when the person asking now
-cannot reach the document.
+*and the documents opened in them* still in view. Two things follow. A mounted document
+may have been edited since it was read: ``check_document`` reports the edit time, and the
+agent is told to compare. And in a shared thread it may have been loaded for somebody
+else: that is settled in code before every turn, by ``withhold_unreadable``
+(``lib/agents/shared_thread_access.py``), never left to the model, because the person
+asking can tell the model to skip a check.
 
 Nothing here writes to the document: a server-side write is refused with 423 while
 anyone has it open. Asked for comments or tracked changes, the agent stores them with
@@ -54,12 +55,14 @@ from lib.agents.deep_agent_setup import (
     has_deployment_key,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
+from lib.agents.shared_thread_access import withhold_unreadable
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
 from lib.config.env import config
 from lib.config.llm_models import LLMModel
 from lib.services import conversations, users
+from lib.services.chat.history import thread_config
 from lib.services.chat.thread_state import files_to_mount
 from lib.services.microsoft import linked_users
 from lib.services.microsoft.graph import client as graph_client
@@ -81,17 +84,17 @@ have with `ls` before asking for anything again.
 More than one person may be in this thread. Each question says who asked it; answer the \
 person asking now, and do not assume they are the person who asked before.
 
-**A document you opened in an earlier turn is a copy, and two things may have changed \
-since.** It may have been edited in Word. And it may have been opened for somebody else \
-in this thread, who has access the person asking now does not. `check_document(url)` \
-settles both cheaply, without downloading anything: it tells you when the document was \
-last modified, so you can compare that with the time reported when you opened it, and it \
-fails outright if the person asking cannot reach the document.
+**A document you opened in an earlier turn is a copy, and it may have been edited in \
+Word since.** `check_document(url)` settles that cheaply, without downloading anything: \
+it tells you when the document was last modified, so you can compare that with the time \
+reported when you opened it. So before answering from a copy you did not open this turn: \
+check it, and if it has been edited, open it again to replace it.
 
-So before answering from a copy you did not open this turn: check it. If it has been \
-edited, open it again to replace it. If the check is refused, say you cannot read that \
-document as them — do not answer from the copy you still have, and do not describe its \
-contents.
+Copies the person asking now cannot open are taken away before you see their question, \
+together with your earlier working. So if a document from earlier is no longer under \
+`/documents/`, open it again from its link if the question needs it: that opens it as \
+them, and if they cannot reach it, say you cannot read that document as them and do \
+not describe its contents.
 
 ## Getting a document
 
@@ -356,10 +359,16 @@ async def answer_question(
                 skills = await files_to_mount(
                     agent, thread_id, skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
                 )
+                # In code, not by the prompt: the asker can tell the model to skip a
+                # check, but not this.
+                withheld, rewritten = await withhold_unreadable(
+                    (await agent.aget_state(thread_config(thread_id))).values or {},
+                    graph_token,
+                )
                 result = await agent.ainvoke(
                     agent_input(
-                        files=skills,
-                        messages=[HumanMessage(content=prompt)],
+                        files={**skills, **withheld},
+                        messages=[*rewritten, HumanMessage(content=prompt)],
                     ),
                     config=run_config,
                 )
