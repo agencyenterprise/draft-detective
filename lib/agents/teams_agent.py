@@ -372,15 +372,15 @@ async def answer_question(
                 # thread's own files; skills have to be mounted up front because a
                 # tool cannot add them later. Those the thread holds already are left
                 # out, so its history does not grow by a copy each question.
-                skills = await files_to_mount(
-                    agent, thread_id, skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
-                )
+                packaged = skill_backend_files(exclude=EXCLUDED_CHAT_SKILLS)
+                skills = await files_to_mount(agent, thread_id, packaged)
                 # In code, not by the prompt: the asker can tell the model to skip a
                 # check, but not this.
                 withheld, rewritten = await withhold_unreadable(
                     (await agent.aget_state(thread_config(thread_id))).values or {},
                     graph_token,
                     conversation_id,
+                    skills=packaged.keys(),
                 )
                 result = await agent.ainvoke(
                     agent_input(

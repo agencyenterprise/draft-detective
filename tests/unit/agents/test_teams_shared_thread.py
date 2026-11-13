@@ -173,9 +173,9 @@ class TestTwoQuestionsAtOnce:
         order.clear()
         real = teams_agent.withhold_unreadable
 
-        async def checked(state: Any, token: str, conversation: Any) -> Any:
+        async def checked(state: Any, token: str, conversation: Any, **kw: Any) -> Any:
             order.append(f"check {token}")
-            return await real(state, token, conversation)
+            return await real(state, token, conversation, **kw)
 
         a_model = _SlowModel(
             messages=iter(
@@ -206,3 +206,30 @@ class TestTwoQuestionsAtOnce:
             f"check {TOKEN_B}",
         ]
         assert SECRET not in tool_results(await history(saver))[-1]
+
+
+class TestACopyReplacedAtItsPath:
+    @pytest.mark.asyncio
+    async def test_its_reads_are_withheld_though_the_new_copy_is_readable(
+        self, saver: InMemorySaver
+    ) -> None:
+        """A reads the private plan, then opens a public document at the same path."""
+
+        public = LoadedDocument(name="pub.docx", url="https://x/pub", markdown="pub")
+
+        async def resolve(url: str, *, token: str) -> dict[str, Any]:
+            if token != TOKEN_A and url == URL:
+                raise GraphError("403 accessDenied")
+            return {"name": "doc"}
+
+        await a_opens_and_reads(saver)
+        with patch.object(sharepoint.documents, "load", AsyncMock(return_value=public)):
+            await ask(
+                TOKEN_A,
+                calls("open_document", url="https://x/pub", path=PATH),
+                AIMessage(content="Opened the public one."),
+            )
+        with patch.object(sharepoint.client, "resolve", AsyncMock(side_effect=resolve)):
+            await ask(TOKEN_B, AIMessage(content="What did you read before?"))
+
+        assert not any(SECRET in r for r in tool_results(await history(saver)))

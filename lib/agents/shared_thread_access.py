@@ -10,7 +10,7 @@ When all of them answer, nothing changes: a shared thread stays shared for every
 can read what it holds. When one does not, that person must not get it from this
 thread, by any route:
 
-- every file goes but the skills: the copies, their comments and anything the agent
+- every file goes but the packaged skills: the copies, their comments and anything the agent
   wrote itself, which may have been made from one. The readable copies go too, because
   the history that recorded where each came from goes next, and a copy whose link is
   forgotten could never be checked again;
@@ -28,7 +28,7 @@ cannot be taken back.
 import asyncio
 import logging
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import Any, cast
 
 from deepagents.backends.protocol import FileData
@@ -41,21 +41,21 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from lib.agents.tools.sharepoint import OPENED, document_path
+from lib.agents.tools.sharepoint import OPENED
 from lib.services.files import images as file_images
 from lib.services.microsoft.graph import client
 from lib.services.microsoft.graph.client import redacted
 
 logger = logging.getLogger(__name__)
 
-SKILLS = "/skills/"
 
+def opened_links(messages: Sequence[BaseMessage]) -> set[str]:
+    """Every link the thread has opened a document from, still mounted or not.
 
-def opened_documents(messages: Sequence[BaseMessage]) -> dict[str, str]:
-    """Each mounted document's path and the link it was opened from; the latest wins.
-
-    Read from the history rather than from the files: the agent can write any file, but
-    not a tool call, so a path cannot be made to claim a link it was not opened from.
+    Not only those mounted now: a copy replaced at the same path, or deleted, still
+    has its reads in the history. Read from the history rather than from the files: the
+    agent can write any file, but not a tool call, so nothing can claim a link it was
+    not opened from.
     """
 
     opened = {
@@ -63,20 +63,13 @@ def opened_documents(messages: Sequence[BaseMessage]) -> dict[str, str]:
         for m in messages
         if isinstance(m, ToolMessage) and str(m.content).startswith(OPENED)
     }
-    sources: dict[str, str] = {}
-    for message in messages:
-        if not isinstance(message, AIMessage):
-            continue
-        for call in message.tool_calls:
-            if call["name"] != "open_document" or call["id"] not in opened:
-                continue
-            try:
-                sources[document_path(str(call["args"]["path"]))] = str(
-                    call["args"]["url"]
-                )
-            except (KeyError, ValueError):
-                continue
-    return sources
+    return {
+        str(call["args"].get("url"))
+        for m in messages
+        if isinstance(m, AIMessage)
+        for call in m.tool_calls
+        if call["name"] == "open_document" and call["id"] in opened
+    }
 
 
 async def _can_read(url: str, token: str) -> bool:
@@ -88,16 +81,10 @@ async def _can_read(url: str, token: str) -> bool:
     return True
 
 
-async def all_readable(
-    files: Mapping[str, Any], messages: Sequence[BaseMessage], token: str
-) -> bool:
-    """Whether ``token`` can read every document the thread has mounted."""
+async def all_readable(messages: Sequence[BaseMessage], token: str) -> bool:
+    """Whether ``token`` can read every document the thread has opened."""
 
-    urls = {
-        url
-        for path, url in opened_documents(messages).items()
-        if files.get(path) is not None
-    }
+    urls = opened_links(messages)
     return all(await asyncio.gather(*(_can_read(url, token) for url in urls)))
 
 
@@ -122,22 +109,28 @@ def public_history(messages: Sequence[BaseMessage]) -> list[BaseMessage]:
 
 
 async def withhold_unreadable(
-    state: Mapping[str, Any], token: str, conversation_id: uuid.UUID
+    state: Mapping[str, Any],
+    token: str,
+    conversation_id: uuid.UUID,
+    skills: Collection[str],
 ) -> tuple[dict[str, None], list[BaseMessage]]:
     """The file deletions and history updates that keep this turn to what ``token``
     can read, with the images the deleted files named dropped from ``conversation_id``.
-    Both empty, and nothing dropped, when it can read every document the thread holds.
+    Both empty, and nothing dropped, when it can read every document the thread opened.
+
+    ``skills`` are the packaged skill files, the only ones kept: the agent can write
+    under ``/skills/`` too, and a skill it edited is mounted again from the package.
     """
 
     files: Mapping[str, Any] = state.get("files") or {}
     messages = [m for m in state.get("messages") or [] if isinstance(m, BaseMessage)]
-    if await all_readable(files, messages, token):
+    if await all_readable(messages, token):
         return {}, []
 
     withheld = {
         path: cast(FileData, data)
         for path, data in files.items()
-        if isinstance(data, dict) and not path.startswith(SKILLS)
+        if isinstance(data, dict) and path not in skills
     }
     images = set().union(
         *(

@@ -20,7 +20,7 @@ from langchain_core.messages import (
 
 from lib.agents import shared_thread_access
 from lib.agents.shared_thread_access import (
-    opened_documents,
+    opened_links,
     public_history,
     withhold_unreadable,
 )
@@ -29,6 +29,7 @@ from lib.services.microsoft.graph.client import GraphError
 OURS = "https://x/ours.docx"
 THEIRS = "https://x/theirs.docx"
 CONVERSATION = uuid.uuid4()
+SKILLS = {"/skills/issues/SKILL.md"}
 
 
 def opening(call_id: str, url: str, path: str, result: str) -> list[BaseMessage]:
@@ -47,34 +48,28 @@ def opening(call_id: str, url: str, path: str, result: str) -> list[BaseMessage]
     ]
 
 
-class TestWhereEachCopyCameFrom:
-    def test_a_failed_reopen_does_not_relabel_the_copy_at_that_path(self) -> None:
-        """Otherwise B could reopen a link B can read at A's path, fail to load it, and
-        have A's copy checked against B's link."""
+class TestTheLinksChecked:
+    def test_a_copy_replaced_at_its_path_is_still_checked(self) -> None:
+        """Its reads are still in the history, though another copy holds the path."""
 
-        messages = [
-            *opening(
-                "1", THEIRS, "/documents/a.md", "Opened 'a.docx' at /documents/a.md"
-            ),
-            *opening("2", OURS, "/documents/a.md", "I could not open that document"),
-        ]
-
-        assert opened_documents(messages) == {"/documents/a.md": THEIRS}
-
-    def test_reopening_at_a_path_replaces_its_link(self) -> None:
         messages = [
             *opening("1", THEIRS, "a.md", "Opened 'a.docx' at /documents/a.md"),
             *opening("2", OURS, "a.md", "Opened 'b.docx' at /documents/a.md"),
         ]
 
-        assert opened_documents(messages) == {"/documents/a.md": OURS}
+        assert opened_links(messages) == {THEIRS, OURS}
+
+    def test_a_failed_open_read_nothing_to_check(self) -> None:
+        messages = opening("1", THEIRS, "a.md", "I could not open that document")
+
+        assert opened_links(messages) == set()
 
 
 IMAGE = uuid.uuid4()
 
 
 @pytest.mark.asyncio
-async def test_one_unreadable_copy_takes_every_file_but_the_skills() -> None:
+async def test_one_unreadable_copy_takes_every_file_but_the_packaged_skills() -> None:
     """The readable copy goes too: the history that said where it came from is cut,
     so it could never be checked again for whoever asks after."""
 
@@ -84,6 +79,7 @@ async def test_one_unreadable_copy_takes_every_file_but_the_skills() -> None:
         "/documents/ours.md": create_file_data("ours"),
         "/notes.md": create_file_data("a summary of the secret"),
         "/skills/issues/SKILL.md": create_file_data("skill"),
+        "/skills/cache.md": create_file_data("the secret, kept where skills live"),
         "/documents/gone.md": None,
     }
     messages = [
@@ -106,7 +102,7 @@ async def test_one_unreadable_copy_takes_every_file_but_the_skills() -> None:
         ),
     ):
         deletions, _ = await withhold_unreadable(
-            {"files": files, "messages": messages}, "token", CONVERSATION
+            {"files": files, "messages": messages}, "token", CONVERSATION, SKILLS
         )
 
     assert set(deletions) == {
@@ -114,6 +110,7 @@ async def test_one_unreadable_copy_takes_every_file_but_the_skills() -> None:
         "/documents/theirs.comments.md",
         "/documents/ours.md",
         "/notes.md",
+        "/skills/cache.md",
     }
     # Or view_image would still serve it to anyone holding the reference.
     drop.assert_awaited_once_with(CONVERSATION, {IMAGE})
@@ -131,7 +128,7 @@ async def test_when_every_copy_is_readable_nothing_changes() -> None:
         shared_thread_access.client, "resolve", AsyncMock(return_value={})
     ):
         assert await withhold_unreadable(
-            {"files": files, "messages": messages}, "t", CONVERSATION
+            {"files": files, "messages": messages}, "t", CONVERSATION, SKILLS
         ) == (
             {},
             [],
