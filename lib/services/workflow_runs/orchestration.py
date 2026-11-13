@@ -1,3 +1,9 @@
+"""Waiting to start: ``wait_for_dependencies`` holds a scheduled run until its
+dependencies end and it claims the same-type queue (``queue.py``). Also
+``wait_for_runs_to_end`` for callers that block on a batch. See
+docs/workflow-runs.md.
+"""
+
 import asyncio
 import logging
 import time
