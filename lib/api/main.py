@@ -40,6 +40,7 @@ from lib.api.routers.microsoft import routes as microsoft_routes
 from lib.api.routers.tus_upload import tus_router
 from lib.api.tus_middleware import TusTerminationMiddleware
 from lib.config.logger import setup_logger
+from lib.config.task_queue import run_task_queue_worker
 from lib.services.workflow_runs.reaper import run_reaper_loop
 
 setup_logger()
@@ -49,10 +50,12 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Run the workflow reaper; stop it and close the checkpointer pool on shutdown."""
+    """Run the workflow reaper and the job queue worker; stop both and close the
+    checkpointer pool on shutdown."""
     reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:
-        yield
+        async with run_task_queue_worker():
+            yield
     finally:
         reaper_task.cancel()
         try:

@@ -30,6 +30,17 @@ class Config(BaseModel):
     # Database Configuration
     DATABASE_URL: str
 
+    # Job queue (Procrastinate)
+    TASK_QUEUE_CONCURRENCY: int = Field(
+        default=50,
+        ge=1,
+        description=(
+            "How many jobs each API process's queue worker runs at once. High on "
+            "purpose: jobs wait on LLM calls, and the Postgres rate limiter is the "
+            "real throttle."
+        ),
+    )
+
     # Authentication
     AUTH_SECRET: str = Field(
         description="The secret key for the authentication. This is used to sign and verify JWT tokens. Shared by the frontend and backend.",
@@ -133,6 +144,7 @@ config = Config(
     FILE_UPLOADS_MOUNT_PATH=os.getenv("FILE_UPLOADS_MOUNT_PATH", "uploads"),
     FRONTEND_URL=os.getenv("FRONTEND_URL", "http://localhost:3000"),
     DATABASE_URL=os.environ["DATABASE_URL"],
+    TASK_QUEUE_CONCURRENCY=int(os.getenv("TASK_QUEUE_CONCURRENCY", "50")),
     AUTH_SECRET=os.environ["AUTH_SECRET"],
     AUTH_GOOGLE_ID=os.getenv("AUTH_GOOGLE_ID"),
     AUTH_GOOGLE_SECRET=os.getenv("AUTH_GOOGLE_SECRET"),

@@ -1,6 +1,6 @@
 from logging.config import fileConfig
 
-import alembic_postgresql_enum  # noqa: F401  registers its enum comparators with alembic
+import alembic_postgresql_enum  # registers its enum comparators with alembic
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
@@ -45,8 +45,22 @@ IGNORE_TABLES = [
 ]
 
 
+# The job queue's schema (tables, enums, functions) belongs to procrastinate and
+# is installed from its own SQL, so autogenerate must neither drop nor diff it.
+PROCRASTINATE_PREFIX = "procrastinate_"
+
+
+def _is_ours(name: str | None) -> bool:
+    return not (name or "").startswith(PROCRASTINATE_PREFIX)
+
+
+alembic_postgresql_enum.set_configuration(
+    alembic_postgresql_enum.Config(include_name=_is_ours)
+)
+
+
 def include_object(object, name, type_, reflected, compare_to):
-    if type_ == "table" and name in IGNORE_TABLES:
+    if type_ == "table" and (name in IGNORE_TABLES or not _is_ours(name)):
         return False
 
     return True
