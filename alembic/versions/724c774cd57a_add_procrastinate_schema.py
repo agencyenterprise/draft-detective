@@ -8,7 +8,7 @@ procrastinate past a version that ships SQL migrations (its
 those scripts.
 
 Revision ID: 724c774cd57a
-Revises: c7e2a9d41f03
+Revises: d4b8f1a6c2e9
 Create Date: 2026-11-12 18:45:00.000000
 
 """
@@ -20,7 +20,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "724c774cd57a"
-down_revision: str | None = "c7e2a9d41f03"
+down_revision: str | None = "d4b8f1a6c2e9"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
