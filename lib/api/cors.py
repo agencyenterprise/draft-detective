@@ -15,7 +15,7 @@ def add_cors_middleware(app: FastAPI) -> None:
     app.add_middleware(ServerErrorJSONMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # TODO: restrict to only our own origin later
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
