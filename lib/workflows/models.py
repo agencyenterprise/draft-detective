@@ -19,15 +19,6 @@ class WorkflowAbortedError(Exception):
     and its dependents are cancelled instead of running on missing input."""
 
 
-class DependencyWaitTimeoutError(Exception):
-    """Raised when wait_for_dependencies exceeds DEPENDENCY_WAIT_TIMEOUT.
-
-    Indicates a dependency, or a same-type run ahead of this one, is stuck
-    (typically itself orphaned in RUNNING). The waiting run should be marked
-    FAILED with failure_reason=dependency_timeout.
-    """
-
-
 class WorkflowErrorSeverity(StrEnum):
     """Whether an error compromised the run's output.
 

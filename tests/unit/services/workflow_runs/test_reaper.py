@@ -15,6 +15,7 @@ from lib.models.workflow_run import (
     WorkflowRunType,
 )
 from lib.services.workflow_runs import reaper as workflow_reaper
+from lib.services.workflow_runs.promoter import promote_waiting_revisions
 from lib.services.workflow_runs.reaper import (
     PENDING_GRACE_SECONDS,
     REAPER_GRACE_SECONDS,
@@ -35,10 +36,20 @@ def _stub_advisory_lock():
     full sweep body. Tests that need the lock-not-acquired path patch the
     helper themselves.
     """
-    with patch.object(
-        workflow_reaper,
-        "_reaper_advisory_lock",
-        lambda: _fake_lock(True),
+    with (
+        patch.object(
+            workflow_reaper,
+            "_reaper_advisory_lock",
+            lambda: _fake_lock(True),
+        ),
+        # The sweep's queue steps, stubbed so no test reaches a database.
+        patch.object(
+            workflow_reaper, "release_stalled_run_jobs", new=AsyncMock(return_value=[])
+        ),
+        patch.object(
+            workflow_reaper, "promote_waiting_revisions", new=AsyncMock(return_value=0)
+        ),
+        patch.object(workflow_reaper, "promote_ready_runs", new=AsyncMock()),
     ):
         yield
 
@@ -384,3 +395,55 @@ async def test_reaper_loop_log_does_not_claim_skipped_runs_were_failed(caplog):
 
     assert "found 1 stuck run(s)" in caplog.text
     assert "as FAILED" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_released_stalled_jobs_promote_each_revision_once():
+    """A dead worker's jobs are released after the sweep, and each revision
+    they belonged to is promoted once, so the next run of the type can go."""
+    released = [
+        _make_run(
+            WorkflowRunStatus.FAILED, run_type=WorkflowRunType.FIGURES_TABLES_CHECK
+        ),
+        _make_run(
+            WorkflowRunStatus.FAILED, run_type=WorkflowRunType.ABBREVIATION_SCAN_V2
+        ),
+    ]
+    with (
+        patch(
+            "lib.services.workflow_runs.reaper.release_stalled_run_jobs",
+            new=AsyncMock(return_value=released),
+        ),
+        patch(
+            "lib.services.workflow_runs.reaper.promote_ready_runs", new=AsyncMock()
+        ) as promote,
+    ):
+        await workflow_reaper._release_stalled_jobs()
+
+    promote.assert_awaited_once_with("project-1", 1)
+
+
+@pytest.mark.asyncio
+async def test_a_failing_release_does_not_stop_the_sweep():
+    with patch(
+        "lib.services.workflow_runs.reaper.release_stalled_run_jobs",
+        new=AsyncMock(side_effect=RuntimeError("queue down")),
+    ):
+        await workflow_reaper._release_stalled_jobs()
+
+
+@pytest.mark.asyncio
+async def test_the_sweep_promotes_every_waiting_revision():
+    """So a promotion a crash lost is made up within one sweep."""
+    with (
+        patch(
+            "lib.services.workflow_runs.promoter.waiting_revisions",
+            new=AsyncMock(return_value=[("p1", 1), ("p2", 3)]),
+        ),
+        patch(
+            "lib.services.workflow_runs.promoter.promote_ready_runs", new=AsyncMock()
+        ) as promote,
+    ):
+        await promote_waiting_revisions()
+
+    assert [c.args for c in promote.await_args_list] == [("p1", 1), ("p2", 3)]

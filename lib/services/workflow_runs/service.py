@@ -8,7 +8,7 @@ from typing import Any, TypeVar, cast
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from sqlalchemy import Select, case, func, select, update
+from sqlalchemy import Select, case, func, or_, select, update
 from sqlalchemy.orm import undefer
 from sqlmodel import and_, col
 
@@ -27,7 +27,6 @@ from lib.services.workflow_runs.cost.breakdown import CostBreakdown
 from lib.services.workflow_runs.cost.extractor import walk_state_for_usage
 from lib.services.workflow_runs.cost.pricing import compute_cost
 from lib.services.workflow_runs.progress import cancel_workflow_progress
-from lib.workflows.dependency_resolver import get_required_dependents
 from lib.workflows.models import BaseWorkflowState, is_user_visible_workflow
 from lib.workflows.registry import get_workflow_manifest, is_available_workflow_type
 from lib.workflows.util import as_state_type, run_type_of
@@ -127,6 +126,29 @@ async def persist_workflow_run_state(
         conditions.append(col(WorkflowRun.status) != WorkflowRunStatus.FAILED)
     async with get_async_db_session() as session:
         stmt = update(WorkflowRun).where(*conditions).values(state_json=payload)
+        await session.execute(stmt)
+        await session.commit()
+
+
+async def initialize_workflow_run_state(
+    workflow_run_id: str, state: WorkflowState
+) -> None:
+    """Write the run's first state, unless one is there already.
+
+    For what a start records before the run executes: a job that already
+    started has written its own state, which this must not replace.
+    """
+    payload = sanitize_for_postgres(state.model_dump(mode="json"))
+    empty = or_(
+        col(WorkflowRun.state_json).is_(None),
+        func.jsonb_typeof(col(WorkflowRun.state_json)) == "null",
+    )
+    async with get_async_db_session() as session:
+        stmt = (
+            update(WorkflowRun)
+            .where(col(WorkflowRun.id) == workflow_run_id, empty)
+            .values(state_json=payload)
+        )
         await session.execute(stmt)
         await session.commit()
 
@@ -338,6 +360,8 @@ async def update_workflow_run_status(
                 run.started_at = now
             if status in TERMINAL_WORKFLOW_RUN_STATUSES:
                 run.completed_at = now
+                # A request's key outlives its run only until the run ends.
+                run.encrypted_openai_api_key = None
             if status == WorkflowRunStatus.FAILED:
                 run.failure_reason = failure_reason
                 run.failure_message = (
@@ -397,11 +421,12 @@ def _own_progress_only(run: WorkflowRun) -> uuid.UUID | None:
 
 
 async def cancel_workflow_run(workflow_run_id: str, project_id: str) -> None:
-    """
-    Cancel a workflow run and recursively cancel any active runs that depend on it.
+    """Mark a workflow run CANCELLED, unless it already ended.
 
-    Only cascades through required_dependencies — optional dependents are left running
-    since they handle missing data by design.
+    A RUNNING run's node supervisor sees the status and stops its graph. The
+    caller then calls ``promote_ready_runs``, which cancels the run's waiting
+    required-dependents and drops its job if it is still queued (see
+    ``lib.services.workflow_runs.promoter.cancel_run``).
     """
     await _end_workflow_run(workflow_run_id, project_id, WorkflowRunStatus.CANCELLED)
 
@@ -413,12 +438,12 @@ async def fail_workflow_run(
     failure_message: str | None = None,
     clean_up_state: StateCleanup | None = None,
 ) -> None:
-    """Mark a workflow run as FAILED and cascade-cancel its active dependents.
+    """Mark a workflow run as FAILED.
 
-    Used for unrecoverable workflow-level halts (timeout, dependency timeout,
-    no heartbeat, unhandled exception). From a dependent's perspective a failed
-    parent is equivalent to a cancelled one — there is no salvageable output —
-    so we cascade to CANCELLED rather than FAILED.
+    Used for unrecoverable workflow-level halts (timeout, no heartbeat,
+    unhandled exception). The caller then calls ``promote_ready_runs``, which
+    cancels the run's waiting required-dependents: from their side a failed
+    dependency leaves nothing to work on, as a cancelled one does.
     """
     await _end_workflow_run(
         workflow_run_id,
@@ -438,7 +463,7 @@ async def _end_workflow_run(
     failure_message: str | None = None,
     clean_up_state: StateCleanup | None = None,
 ) -> None:
-    """Clear the run's progress, set its final status and cancel its dependents."""
+    """Clear the run's progress and set its final status."""
     run = await get_workflow_run(workflow_run_id)
     if run.project_id is None:
         raise ValueError(f"Workflow run {workflow_run_id} has no project_id")
@@ -452,19 +477,6 @@ async def _end_workflow_run(
         failure_message=failure_message,
         clean_up_state=clean_up_state,
     )
-    await _cascade_cancel_dependents(run.type, project_id, run.revision)
-
-
-async def _cascade_cancel_dependents(
-    workflow_type: WorkflowRunType, project_id: str, revision: int
-) -> None:
-    """Cancel any active (pending, running, or awaiting approval) run that required-depends on this type."""
-    for dependent_type in get_required_dependents(workflow_type):
-        dependent_run = await get_project_workflow_run_by_type(
-            project_id, dependent_type, revision=revision
-        )
-        if dependent_run and dependent_run.status in ACTIVE_WORKFLOW_RUN_STATUSES:
-            await cancel_workflow_run(str(dependent_run.id), project_id)
 
 
 def _active_status_priority():

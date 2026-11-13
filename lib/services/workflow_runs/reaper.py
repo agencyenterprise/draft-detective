@@ -1,20 +1,24 @@
 """Periodic sweep that marks heartbeat-less RUNNING and stale PENDING workflows as FAILED.
 
 The dominant cause of "stuck forever" workflow runs is a server restart or OOM
-kill that strands the row in RUNNING because the in-process background task
-died before the runner's terminal-status update could fire. The reaper is the
-self-healing path: any RUNNING row whose heartbeat goes stale is flipped to
-FAILED with failure_reason=no_heartbeat, and its dependents are cascade-
-cancelled, so dependent workflows don't wait indefinitely.
+kill that strands the row in RUNNING because the job running it died before
+its terminal-status update could fire. The reaper is the self-healing path:
+any RUNNING row whose heartbeat goes stale is flipped to FAILED with
+failure_reason=no_heartbeat, and the promoter then cancels its waiting
+dependents and lets the next run of its type go.
 
-The reaper also covers PENDING rows that were never picked up (the in-process
-background task died before run_workflow was reached, so no heartbeat ever
-ticked and wait_for_dependencies never had a chance to time the run out
-itself). PENDING rows not updated for DEPENDENCY_WAIT_TIMEOUT are mechanically
-stuck — by then a live runner would have either started them or raised
-DependencyWaitTimeoutError on its own. Age is measured from last_updated_at,
-not created_at: a run released from AWAITING_APPROVAL becomes PENDING long
-after it was created, and its two-hour window has to start at the release.
+The reaper also fails PENDING rows that waited longer than
+PENDING_GRACE_SECONDS: a run held that long behind its dependencies or its
+type's queue is treated as stuck. Age is measured from last_updated_at, not
+created_at: a run released from AWAITING_APPROVAL becomes PENDING long after
+it was created, and its window has to start at the release.
+
+Each sweep also releases the queue jobs a dead worker left running for runs
+that have ended, so their lock lets the next run of the type start (see
+``release_stalled_run_jobs``), and promotes every revision with waiting runs,
+so a promotion a crash lost (between a run's end and its pass, or a gate
+release and its job) is made up within one sweep (see
+``promote_waiting_revisions``).
 
 Multi-pod safe: every pod's lifespan starts its own reaper, but sweeps are
 serialized cluster-wide by a Postgres advisory lock (REAPER_ADVISORY_LOCK_KEY).
@@ -40,7 +44,11 @@ from lib.models.workflow_run import (
     WorkflowRunFailureReason,
     WorkflowRunStatus,
 )
-from lib.services.workflow_runs.orchestration import DEPENDENCY_WAIT_TIMEOUT
+from lib.services.workflow_runs.jobs import release_stalled_run_jobs
+from lib.services.workflow_runs.promoter import (
+    promote_ready_runs,
+    promote_waiting_revisions,
+)
 from lib.services.workflow_runs.service import (
     fail_workflow_run,
     read_workflow_run_state,
@@ -60,13 +68,11 @@ REAPER_INTERVAL_SECONDS = 30.0
 # and GC pauses without false positives.
 REAPER_GRACE_SECONDS = 60.0
 
-# How long a PENDING row may go without an update before the reaper treats it
-# as orphaned. Aligned with DEPENDENCY_WAIT_TIMEOUT: a live runner waiting on
-# dependencies would itself raise DependencyWaitTimeoutError at this point and
-# flip the run to FAILED, so anything still PENDING past this window was never
-# picked up. A fresh row's last_updated_at equals its created_at; a release
+# How long a PENDING row may go without an update before the reaper fails it:
+# the longest a run may wait on its dependencies and on the run of its type
+# ahead of it. A fresh row's last_updated_at equals its created_at; a release
 # from AWAITING_APPROVAL bumps it, which is what restarts the window.
-PENDING_GRACE_SECONDS = float(DEPENDENCY_WAIT_TIMEOUT)
+PENDING_GRACE_SECONDS = 2 * 60 * 60.0
 
 # Postgres advisory-lock key — used to serialize reaper sweeps across pods.
 # Without this, every pod's lifespan starts its own reaper and N pods each
@@ -193,7 +199,11 @@ async def _reap_once(
         if not acquired:
             logger.debug("Reaper: another pod holds the sweep lock; skipping this tick")
             return 0
-        return await _reap_once_locked(running_grace_seconds, pending_grace_seconds)
+        reaped = await _reap_once_locked(running_grace_seconds, pending_grace_seconds)
+        # After the sweep, so a job whose run it just failed is released now.
+        await _release_stalled_jobs()
+        await _promote_waiting_revisions()
+        return reaped
 
 
 async def _reap_once_locked(
@@ -219,7 +229,7 @@ async def _reap_once_locked(
             )
             failure_message = (
                 f"PENDING for >{int(pending_grace_seconds)}s without starting; "
-                "background task likely crashed before pickup"
+                "its dependencies or the run of its type ahead of it never ended"
             )
         else:
             logger.warning(
@@ -247,6 +257,7 @@ async def _reap_once_locked(
                 failure_message=failure_message,
                 clean_up_state=_run_manifest_on_cancel,
             )
+            await promote_ready_runs(str(run.project_id), run.revision)
         except Exception as e:
             # Don't let one bad row stop the sweep.
             logger.error(
@@ -254,6 +265,26 @@ async def _reap_once_locked(
             )
 
     return len(stuck)
+
+
+async def _promote_waiting_revisions() -> None:
+    """Make up any promotion a crash lost (see ``promote_waiting_revisions``)."""
+    try:
+        await promote_waiting_revisions()
+    except Exception as e:
+        logger.error(f"Reaper: failed to promote waiting runs: {e}", exc_info=True)
+
+
+async def _release_stalled_jobs() -> None:
+    """Free the locks of jobs a dead worker left behind, then promote their
+    revisions so the next run of each type can go."""
+    try:
+        released = await release_stalled_run_jobs()
+    except Exception as e:
+        logger.error(f"Reaper: failed to release stalled jobs: {e}", exc_info=True)
+        return
+    for run in {(str(run.project_id), run.revision) for run in released}:
+        await promote_ready_runs(*run)
 
 
 async def run_reaper_loop(

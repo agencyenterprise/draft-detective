@@ -52,16 +52,19 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Run the workflow reaper and the job queue worker; stop both and close the
     checkpointer pool on shutdown."""
-    reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
     try:
+        # The queue opens first: the reaper's sweeps promote runs, which queues jobs.
         async with run_task_queue_worker():
-            yield
+            reaper_task = asyncio.create_task(run_reaper_loop(), name="workflow-reaper")
+            try:
+                yield
+            finally:
+                reaper_task.cancel()
+                try:
+                    await reaper_task
+                except asyncio.CancelledError:
+                    pass
     finally:
-        reaper_task.cancel()
-        try:
-            await reaper_task
-        except asyncio.CancelledError:
-            pass
         # The agent checkpointer holds its own psycopg pool, opened lazily by the first
         # run that asks for one. Closing it here is what stops a reload from leaking
         # connections; a process that never opened it has nothing to close.
