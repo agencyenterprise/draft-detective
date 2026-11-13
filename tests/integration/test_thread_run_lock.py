@@ -47,7 +47,7 @@ async def test_runs_on_different_threads_do_not_wait() -> None:
         hold(f"test-{uuid.uuid4()}", "second", order),
     )
 
-    assert order[:2] == ["first in", "second in"]
+    assert set(order[:2]) == {"first in", "second in"}
 
 
 @pytest.mark.asyncio

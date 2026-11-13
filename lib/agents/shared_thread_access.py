@@ -14,11 +14,12 @@ thread, by any route:
   wrote itself, which may have been made from one. The readable copies go too, because
   the history that recorded where each came from goes next, and a copy whose link is
   forgotten could never be checked again;
-- so do the images those copies named, which ``view_image`` would otherwise still serve
-  to anyone in the conversation who has a reference to one;
+- so do the conversation's images, which ``view_image`` would otherwise still serve to
+  anyone in the conversation who has a reference to one;
 - the history is cut back to what was said in the chat itself, the questions and the
   answers posted, since the agent's working (tool calls, the text they returned, its
-  reasoning) may quote it.
+  reasoning) may quote it. A summary of that working, kept apart from the messages
+  under ``SUMMARY`` once a long thread is compacted, goes with it.
 
 A lookup that fails for any reason counts as a refusal. A copy taken out by mistake
 costs the next person who can read it one ``open_document``; a copy left in by mistake
@@ -29,10 +30,9 @@ import asyncio
 import logging
 import uuid
 from collections.abc import Collection, Mapping, Sequence
-from typing import Any, cast
+from typing import Any
 
-from deepagents.backends.protocol import FileData
-from deepagents.backends.utils import file_data_to_string
+from deepagents.middleware.summarization import SUMMARIZATION_EVENT_KEY
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -47,6 +47,10 @@ from lib.services.microsoft.graph import client
 from lib.services.microsoft.graph.client import redacted
 
 logger = logging.getLogger(__name__)
+
+# Where deepagents keeps a compacted thread's summary: outside ``messages``, and private,
+# so a turn's input cannot clear it; the caller clears it with ``aupdate_state``.
+SUMMARY = SUMMARIZATION_EVENT_KEY
 
 
 def opened_links(messages: Sequence[BaseMessage]) -> set[str]:
@@ -115,8 +119,9 @@ async def withhold_unreadable(
     skills: Collection[str],
 ) -> tuple[dict[str, None], list[BaseMessage]]:
     """The file deletions and history updates that keep this turn to what ``token``
-    can read, with the images the deleted files named dropped from ``conversation_id``.
-    Both empty, and nothing dropped, when it can read every document the thread opened.
+    can read, with every image of ``conversation_id`` dropped. Both empty, and nothing
+    dropped, when it can read every document the thread opened. A summary of the
+    history, which the caller holds apart from it, must go too: see ``SUMMARY``.
 
     ``skills`` are the packaged skill files, the only ones kept: the agent can write
     under ``/skills/`` too, and a skill it edited is mounted again from the package.
@@ -127,16 +132,12 @@ async def withhold_unreadable(
     if await all_readable(messages, token):
         return {}, []
 
-    withheld = {
-        path: cast(FileData, data)
+    withheld = [
+        path
         for path, data in files.items()
         if isinstance(data, dict) and path not in skills
-    }
-    images = set().union(
-        *(
-            file_images.referenced_images(file_data_to_string(d))
-            for d in withheld.values()
-        )
-    )
-    await file_images.drop_conversation_images(conversation_id, images)
+    ]
+    # Every image, not only those the copies name now: an edited copy may no longer
+    # name one an earlier answer gave away.
+    await file_images.prune_conversation_images(conversation_id, keep=set())
     return dict.fromkeys(withheld), public_history(messages)

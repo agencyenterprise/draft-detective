@@ -55,7 +55,7 @@ from lib.agents.deep_agent_setup import (
     has_deployment_key,
 )
 from lib.agents.seen_image_redaction import SeenImageRedactionMiddleware
-from lib.agents.shared_thread_access import withhold_unreadable
+from lib.agents.shared_thread_access import SUMMARY, withhold_unreadable
 from lib.agents.tools.sharepoint import check_document_for, open_document_for
 from lib.agents.tools.view_image import VIEW_IMAGE_PROMPT, view_image_for_conversation
 from lib.agents.tools.word_handoff import offer_changes_for, tenant_of
@@ -363,12 +363,12 @@ async def answer_question(
                 skills = await files_to_mount(agent, thread_id, packaged)
                 # In code, not by the prompt: the asker can tell the model to skip a
                 # check, but not this.
+                state = (await agent.aget_state(thread_config(thread_id))).values or {}
                 withheld, rewritten = await withhold_unreadable(
-                    (await agent.aget_state(thread_config(thread_id))).values or {},
-                    graph_token,
-                    conversation_id,
-                    skills=packaged.keys(),
+                    state, graph_token, conversation_id, skills=packaged.keys()
                 )
+                if rewritten and state.get(SUMMARY):
+                    await agent.aupdate_state(thread_config(thread_id), {SUMMARY: None})
                 result = await agent.ainvoke(
                     agent_input(
                         files={**skills, **withheld},

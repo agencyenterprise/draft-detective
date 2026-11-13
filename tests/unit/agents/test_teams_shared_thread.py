@@ -16,10 +16,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
-from langchain_core.messages import AIMessage, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from lib.agents import teams_agent
+from lib.agents.shared_thread_access import SUMMARY
 from lib.agents.tools import sharepoint
 from lib.services.chat.history import thread_config
 from lib.services.microsoft.graph.client import GraphError
@@ -81,6 +82,7 @@ def saver() -> Iterator[InMemorySaver]:
         patch.object(sharepoint.client, "resolve", AsyncMock(side_effect=resolve)),
         patch.object(sharepoint.file_images, "add_conversation_images", AsyncMock()),
         patch.object(sharepoint.file_images, "drop_conversation_images", AsyncMock()),
+        patch.object(sharepoint.file_images, "prune_conversation_images", AsyncMock()),
     ):
         yield memory
 
@@ -94,11 +96,14 @@ async def ask(token: str, *replies: AIMessage) -> None:
     assert not answer.failed, answer.error
 
 
-async def history(saver: InMemorySaver) -> list[BaseMessage]:
-    graph = teams_agent.build_deep_agent(
+def reader(saver: InMemorySaver) -> Any:
+    return teams_agent.build_deep_agent(
         model=_ScriptedModel(messages=iter([])), tools=[], checkpointer=saver
     )
-    snapshot = await graph.aget_state(thread_config(THREAD))
+
+
+async def history(saver: InMemorySaver) -> list[BaseMessage]:
+    snapshot = await reader(saver).aget_state(thread_config(THREAD))
     return list(snapshot.values.get("messages") or [])
 
 
@@ -141,6 +146,21 @@ class TestSomebodyWithoutAccessAsksNext:
         await ask(TOKEN_B, AIMessage(content="Here is what I read earlier."))
 
         assert not any(SECRET in r for r in tool_results(await history(saver)))
+
+    @pytest.mark.asyncio
+    async def test_a_summary_of_what_was_read_goes_too(
+        self, saver: InMemorySaver
+    ) -> None:
+        """A long thread is compacted into a summary kept apart from the messages."""
+
+        await a_opens_and_reads(saver)
+        summary = {"summary_message": HumanMessage(content=SECRET), "cutoff_index": 2}
+        await reader(saver).aupdate_state(thread_config(THREAD), {SUMMARY: summary})
+
+        await ask(TOKEN_B, AIMessage(content="What did you read before?"))
+
+        snapshot = await reader(saver).aget_state(thread_config(THREAD))
+        assert snapshot.values.get(SUMMARY) is None
 
 
 class TestSomebodyWithAccessAsksNext:

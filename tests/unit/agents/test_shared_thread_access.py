@@ -92,13 +92,13 @@ async def test_one_unreadable_copy_takes_every_file_but_the_packaged_skills() ->
             raise GraphError("403")
         return {}
 
-    drop = AsyncMock()
+    prune = AsyncMock()
     with (
         patch.object(
             shared_thread_access.client, "resolve", AsyncMock(side_effect=resolve)
         ),
         patch.object(
-            shared_thread_access.file_images, "drop_conversation_images", drop
+            shared_thread_access.file_images, "prune_conversation_images", prune
         ),
     ):
         deletions, _ = await withhold_unreadable(
@@ -112,8 +112,9 @@ async def test_one_unreadable_copy_takes_every_file_but_the_packaged_skills() ->
         "/notes.md",
         "/skills/cache.md",
     }
-    # Or view_image would still serve it to anyone holding the reference.
-    drop.assert_awaited_once_with(CONVERSATION, {IMAGE})
+    # Every image, or view_image would still serve one to anyone holding its
+    # reference, even one an edited copy no longer names.
+    prune.assert_awaited_once_with(CONVERSATION, keep=set())
 
 
 @pytest.mark.asyncio
