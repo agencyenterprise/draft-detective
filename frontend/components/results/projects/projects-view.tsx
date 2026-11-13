@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getErrorMessage } from '@/lib/api-error';
 import { listProjectsEndpointApiProjectsGet, ProjectListPage } from '@/lib/generated-api';
 import { InfiniteData, keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { FolderOpen, Loader2, Plus, Search } from 'lucide-react';
@@ -134,7 +135,7 @@ export function ProjectsView() {
           </Centred>
         ) : error ? (
           <Centred>
-            <p className="text-sm text-destructive">{error.message}</p>
+            <p className="text-sm text-destructive">{getErrorMessage(error, 'Could not load the projects')}</p>
           </Centred>
         ) : items.length === 0 && !filtered ? (
           <Centred>

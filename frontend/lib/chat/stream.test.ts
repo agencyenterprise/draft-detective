@@ -2,7 +2,8 @@ import { getSession } from 'next-auth/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { baseUrl } from '@/lib/api';
-import { errorDetail, parseEventStream, streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
+import { apiErrorFrom, ApiError, getErrorMessage } from '@/lib/api-error';
+import { parseEventStream, streamChatTurn, type ChatStreamEvent } from '@/lib/chat/stream';
 import type { ChatStreamRequest, StreamChatTurnApiChatThreadsThreadIdStreamPostData } from '@/lib/generated-api';
 
 vi.mock('next-auth/react', () => ({ getSession: vi.fn() }));
@@ -79,27 +80,34 @@ describe('parseEventStream', () => {
   });
 });
 
-describe('errorDetail', () => {
+describe('apiErrorFrom', () => {
   it("reads FastAPI's string detail", async () => {
     const response = Response.json({ detail: 'Thread not found' }, { status: 404 });
 
-    await expect(errorDetail(response)).resolves.toBe('Thread not found');
+    await expect(apiErrorFrom(response)).resolves.toEqual(new ApiError(404, 'Thread not found'));
   });
 
-  it('falls back to the status for a validation error, whose detail is a list', async () => {
+  it('has no reason for a validation error, whose detail is a list', async () => {
     const response = Response.json({ detail: [{ loc: ['body', 'message'], msg: 'Field required' }] }, { status: 422 });
 
-    await expect(errorDetail(response)).resolves.toBe('Chat request failed with status 422');
+    await expect(apiErrorFrom(response)).resolves.toMatchObject({ status: 422, detail: undefined });
   });
 
-  it('shows a body that is not JSON as it came, such as a proxy error page', async () => {
-    const response = new Response('Bad Gateway', { status: 502 });
+  it("has no reason for a proxy's error page, which is not JSON", async () => {
+    const page =
+      '<html><head><title>502 Bad Gateway</title></head><body><center><h1>502 Bad Gateway</h1></center></body></html>';
 
-    await expect(errorDetail(response)).resolves.toBe('Bad Gateway');
+    await expect(apiErrorFrom(new Response(page, { status: 502 }))).resolves.toMatchObject({
+      status: 502,
+      detail: undefined,
+    });
   });
 
-  it('falls back to the status for an empty body', async () => {
-    await expect(errorDetail(new Response(null, { status: 500 }))).resolves.toBe('Chat request failed with status 500');
+  it('has no reason for an empty body', async () => {
+    await expect(apiErrorFrom(new Response(null, { status: 500 }))).resolves.toMatchObject({
+      status: 500,
+      detail: undefined,
+    });
   });
 });
 
@@ -149,8 +157,18 @@ describe('streamChatTurn', () => {
   it("throws the backend's detail when it refuses the turn", async () => {
     fetchMock.mockResolvedValue(Response.json({ detail: 'A turn is already running' }, { status: 409 }));
 
-    await expect(collect(streamChatTurn({ threadId: 't-1', message: 'Hello' }))).rejects.toThrow(
-      'A turn is already running',
+    await expect(collect(streamChatTurn({ threadId: 't-1', message: 'Hello' }))).rejects.toEqual(
+      new ApiError(409, 'A turn is already running'),
     );
+  });
+
+  it('gives no reason, rather than the page itself, when a proxy answers with its error page', async () => {
+    fetchMock.mockResolvedValue(new Response('<html><body><h1>502 Bad Gateway</h1></body></html>', { status: 502 }));
+
+    const failure = await collect(streamChatTurn({ threadId: 't-1', message: 'Hello' })).catch(
+      (error: unknown) => error,
+    );
+
+    expect(getErrorMessage(failure, 'The turn failed.')).toBe('The turn failed.');
   });
 });

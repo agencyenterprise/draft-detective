@@ -1,6 +1,6 @@
 import { client } from '@/lib/generated-api/client.gen';
 import { baseUrl } from '@/lib/api';
-import { ApiError } from '@/lib/api-error';
+import { ApiError, detailOf } from '@/lib/api-error';
 
 /**
  * Configures the generated API client (host, token, error mapping) when this module loads, before any component renders,
@@ -21,9 +21,7 @@ client.interceptors.request.use((request) => {
 
 client.interceptors.error.use((error, response) => {
   if (response instanceof Response) {
-    // A request-validation 422 sends `detail` as a list of objects, which is no reason to show.
-    const detail: unknown = (error as { detail?: unknown })?.detail;
-    return new ApiError(response.status, typeof detail === 'string' ? detail : undefined);
+    return new ApiError(response.status, detailOf(error));
   }
   return error as Error;
 });

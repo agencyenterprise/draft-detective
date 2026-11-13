@@ -10,6 +10,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { getErrorMessage } from '@/lib/api-error';
 import { deleteProjectEndpointApiProjectProjectIdDelete } from '@/lib/generated-api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
@@ -29,8 +30,8 @@ export function DeleteProjectDialog({ projectId, projectTitle }: DeleteProjectDi
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project deleted successfully');
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete: ${error.message}`);
+    onError: (error) => {
+      toast.error(`Failed to delete: ${getErrorMessage(error, 'Unknown error')}`);
     },
   });
 

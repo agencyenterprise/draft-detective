@@ -1,3 +1,8 @@
+"""Workflow run rows: create, read, status writes (terminal statuses are
+write-once), cancel and fail (both cascade to required-dependents), heartbeat,
+state persistence and cost. When a waiting run may start is decided in
+`orchestration.py` and `queue.py`. See docs/workflow-runs.md."""
+
 import asyncio
 import logging
 import uuid
@@ -267,7 +272,12 @@ async def create_workflow_run(
     revision: int = 1,
     model: str | None = None,
 ) -> str:
-    """Create a new workflow run record."""
+    """Create a new workflow run record.
+
+    Workflow starts go through ``start_or_join_run`` in
+    ``lib.services.workflow_runs.start`` instead, which joins the waiting run
+    of the type rather than fail on its unique index.
+    """
     now = datetime.utcnow()
     async with get_async_db_session() as session:
         run = WorkflowRun(
@@ -277,6 +287,7 @@ async def create_workflow_run(
             type=type,
             revision=revision,
             model=model,
+            independent_run=get_workflow_manifest(type).independent_runs,
             completed_at=now if status == WorkflowRunStatus.COMPLETED else None,
         )
         session.add(run)

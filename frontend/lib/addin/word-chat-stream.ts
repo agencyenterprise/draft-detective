@@ -1,6 +1,6 @@
 import { baseUrl } from '@/lib/api';
-import { ApiError, isApiError } from '@/lib/api-error';
-import { ChatStreamEvent, errorDetail, parseEventStream } from '@/lib/chat/stream';
+import { apiErrorFrom, isApiError } from '@/lib/api-error';
+import { ChatStreamEvent, parseEventStream } from '@/lib/chat/stream';
 
 type WordChatTurnOptions = {
   authorization: string;
@@ -43,7 +43,7 @@ export async function* streamWordChatTurn({
     body: form,
     signal,
   });
-  if (!response.ok || !response.body) throw new ApiError(response.status, await errorDetail(response));
+  if (!response.ok || !response.body) throw await apiErrorFrom(response);
   yield* parseEventStream(response.body);
 }
 
@@ -66,7 +66,7 @@ export async function* streamWordChatResume({
     body: JSON.stringify({ url }),
     signal,
   });
-  if (!response.ok || !response.body) throw new ApiError(response.status, await errorDetail(response));
+  if (!response.ok || !response.body) throw await apiErrorFrom(response);
   yield* parseEventStream(response.body);
 }
 
