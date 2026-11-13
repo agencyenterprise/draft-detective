@@ -11,9 +11,10 @@ A pass holds a transaction-scoped advisory lock on the project revision, so
 passes on one revision take turns and each reads what the previous one wrote.
 Everything it reads goes through that one transaction, so a pass waiting for
 the lock never holds a second connection. Status moves (cascade cancels,
-parking behind a gate and releasing from it) commit with the lock; jobs are
-queued and cancelled after the commit, so a job never reads a run its pass has
-not committed yet. ``plan_promotion`` holds the rules.
+parking behind a gate and releasing from it) commit with the lock, and jobs are
+queued and dropped while it is held, so the next pass sees them. A job never
+reads a run its pass has not committed yet: it claims the run through a pass of
+its own, which waits for the lock. ``plan_promotion`` holds the rules.
 
 A job claims its run through the same pass (``claim_run``): the run starts only
 if it is still ready then, so a queued job whose dependency was started again
@@ -102,13 +103,15 @@ async def _pass(
         promotion = await _apply_status_moves(session, plan)
         claimed = await _claim(session, plan, claim) if claim else None
         to_queue = await _without_running_jobs(session, plan.ready, skip=claim)
+        # Jobs are queued and dropped while the lock is held, so the next pass
+        # sees them. A job cannot run ahead of this commit: it claims its run
+        # through a pass, which waits for this lock.
+        for run_id in promotion.cancelled:
+            await cancel_queued_job(run_id)
+        for run in to_queue:
+            if await defer_run_job(run):
+                promotion.queued.append(str(run.id))
         await session.commit()
-
-    for run_id in promotion.cancelled:
-        await cancel_queued_job(run_id)
-    for run in to_queue:
-        if await defer_run_job(run):
-            promotion.queued.append(str(run.id))
     if promotion != Promotion():
         logger.info(f"Promoted project {project_id} revision {revision}: {promotion}")
     return promotion, claimed
