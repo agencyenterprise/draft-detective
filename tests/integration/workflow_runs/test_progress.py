@@ -460,14 +460,19 @@ async def test_cancel_workflow_progress_clears_stuck_progress_from_previous_runs
     current_run_id = uuid.uuid4()
 
     async with get_async_db_session() as session:
-        for run_id in (previous_run_id, current_run_id):
+        # The previous run ended without closing its progress; a type has
+        # only one RUNNING run at a time.
+        for run_id, status in (
+            (previous_run_id, WorkflowRunStatus.FAILED),
+            (current_run_id, WorkflowRunStatus.RUNNING),
+        ):
             session.add(
                 WorkflowRun(
                     id=run_id,
                     langgraph_thread_id=str(uuid.uuid4()),
                     project_id=project_id,
                     type=WorkflowRunType.RECOMMENDATION_CHECK,
-                    status=WorkflowRunStatus.RUNNING,
+                    status=status,
                 )
             )
         await session.commit()
