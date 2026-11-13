@@ -313,3 +313,27 @@ async def _drop_jobs(scene: Scene) -> None:
             {"queue": scene.queue},
         )
         await session.commit()
+
+
+@pytest.mark.asyncio
+async def test_a_run_whose_job_a_worker_took_is_not_queued_again(scene: Scene):
+    """Between a worker taking a job and its claim, the run is still PENDING
+    and ready; a pass in that window must not queue a second job for it."""
+    await add_run(scene, DOCS, Completed)
+    figures = await start(scene, FIGURES)
+    await promote_ready_runs(scene.project_id, 1)
+    async with get_async_db_session() as session:
+        await session.execute(
+            text(
+                "UPDATE procrastinate_jobs SET status = 'doing' WHERE queue_name = :q"
+            ),
+            {"q": scene.queue},
+        )
+        await session.commit()
+
+    promotion = await promote_ready_runs(scene.project_id, 1)
+
+    assert promotion.queued == []
+    assert [(job.run_id, job.status) for job in await jobs(scene)] == [
+        (figures, "doing")
+    ]

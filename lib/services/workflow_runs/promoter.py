@@ -25,7 +25,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import BigInteger, ColumnElement, func, select, update
+from sqlalchemy import BigInteger, ColumnElement, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
@@ -101,16 +101,37 @@ async def _pass(
         plan = plan_promotion(runs, approved)
         promotion = await _apply_status_moves(session, plan)
         claimed = await _claim(session, plan, claim) if claim else None
+        to_queue = await _without_running_jobs(session, plan.ready, skip=claim)
         await session.commit()
 
     for run_id in promotion.cancelled:
         await cancel_queued_job(run_id)
-    for run in plan.ready:
-        if run.id != claim and await defer_run_job(run):
+    for run in to_queue:
+        if await defer_run_job(run):
             promotion.queued.append(str(run.id))
     if promotion != Promotion():
         logger.info(f"Promoted project {project_id} revision {revision}: {promotion}")
     return promotion, claimed
+
+
+async def _without_running_jobs(
+    session: AsyncSession, ready: list[WorkflowRun], skip: uuid.UUID | None
+) -> list[WorkflowRun]:
+    """The ready runs to queue: not the one being claimed, nor any whose job a
+    worker already took and is about to claim it with (``queueing_lock`` only
+    keeps a second job out while the first is still queued)."""
+    candidates = [run for run in ready if run.id != skip]
+    if not candidates:
+        return []
+    taken = await session.execute(
+        text(
+            "SELECT queueing_lock FROM procrastinate_jobs "
+            "WHERE status = 'doing' AND queueing_lock = ANY(:run_ids)"
+        ),
+        {"run_ids": [str(run.id) for run in candidates]},
+    )
+    busy = set(taken.scalars().all())
+    return [run for run in candidates if str(run.id) not in busy]
 
 
 async def _claim(
