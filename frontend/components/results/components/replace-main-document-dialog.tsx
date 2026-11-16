@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -27,7 +25,7 @@ import {
 } from '@/lib/generated-api';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { Loader2 } from 'lucide-react';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useProjectMutation } from '@/lib/hooks/use-project-mutation';
 
 const INITIAL_WORKFLOWS = [
   WorkflowRunType.DocumentProcessing,
@@ -56,7 +54,6 @@ export function ReplaceMainDocumentDialog({
   const [rerunAnalyses, setRerunAnalyses] = useState(true);
   const [stage, setStage] = useState<Stage>('select');
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const queryClient = useQueryClient();
   const abortRef = useRef(false);
 
   // Start fresh each time the dialog opens, during render rather than in an
@@ -72,7 +69,7 @@ export function ReplaceMainDocumentDialog({
     }
   }
 
-  const replaceMutation = useMutation({
+  const replaceMutation = useProjectMutation(projectId, {
     mutationFn: async () => {
       if (!selectedFile) throw new Error('No file selected');
       abortRef.current = false;
@@ -116,18 +113,15 @@ export function ReplaceMainDocumentDialog({
 
       setStage('complete');
     },
+    errorMessage: 'Failed to create revision',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       // Follow the newly created revision so the view doesn't stay pinned to
       // the previous one.
       onRevisionCreated?.();
       toast.success(rerunAnalyses ? 'New revision created. Assessments started.' : 'New revision created.');
       onClose();
     },
-    onError: (error) => {
-      setStage('select');
-      toast.error(getErrorMessage(error, 'Failed to create revision'));
-    },
+    onError: () => setStage('select'),
   });
 
   const handleFilesChange = useCallback((files: File[]) => {

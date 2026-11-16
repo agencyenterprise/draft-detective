@@ -1,30 +1,20 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { getErrorMessage } from '@/lib/api-error';
 import { approveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePost, WorkflowGate } from '@/lib/generated-api';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useProjectMutation } from '@/lib/hooks/use-project-mutation';
 
 /**
  * Approves a gate for the project's current revision, which starts every
- * assessment awaiting that gate. Shows a success toast and invalidates
- * project queries.
+ * assessment awaiting that gate. Shows a success toast and refreshes the
+ * project's queries.
  */
 export function useApproveGate(projectId: string, gate: WorkflowGate) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useProjectMutation(projectId, {
     mutationFn: () =>
       approveProjectGateEndpointApiProjectsProjectIdGatesGateApprovePost({
         path: { project_id: projectId, gate },
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-      toast.success('Analysis started!');
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to start analysis'));
-    },
+    successMessage: 'Analysis started!',
+    errorMessage: 'Failed to start analysis',
   });
 }
