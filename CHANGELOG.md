@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.9.0] - 2026-11-16
+
+### Added
+- Released Recommendation Check to all users and marked it as New in the assessment picker for 30 days.
+- Made assessment presets available to all users while limiting each preset to assessments they can access.
+- Added per-project, revision, and workflow-type limits of one running run and one waiting run, except for Review Assistant.
+- Added a script and documentation for running private end-to-end instances on available ports.
+- Added workflow-run lifecycle documentation and a guide to where related components live.
+
+### Changed
+- Updated `opentelemetry-api` from 1.45.1 to 1.45.2.
+- Updated `soupsieve` from 2.9 to 4.0.
+
+### Fixed
+- Returned readable CORS-enabled JSON 500 responses for unhandled backend errors.
+- Standardized frontend API error handling, including chat-stream errors, with clearer fallback messages.
+
+
 ## [v2.8.2] - 2026-11-12
 
 Added
