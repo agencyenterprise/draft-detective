@@ -21,7 +21,8 @@ interface ShareDialogProps {
   shareStatus: ShareStatusResponse | null;
   isEnabling: boolean;
   isDisabling: boolean;
-  onEnable: () => void;
+  /** Reports its own failure; the dialog only keeps the rejection from going unhandled. */
+  onEnable: () => Promise<unknown>;
   onDisable: () => void;
 }
 
@@ -72,6 +73,10 @@ export function ShareDialog({
       setHasCopied(true);
       setTimeout(() => setHasCopied(false), 2000);
     }
+  };
+
+  const handleEnable = () => {
+    onEnable().catch(() => undefined);
   };
 
   const handlePreview = () => {
@@ -182,7 +187,7 @@ export function ShareDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={onEnable} disabled={isEnabling}>
+              <Button type="button" onClick={handleEnable} disabled={isEnabling}>
                 {isEnabling ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
