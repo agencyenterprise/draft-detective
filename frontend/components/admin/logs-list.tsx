@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getErrorMessage } from '@/lib/api-error';
 import { downloadLogApiAdminLogsDownloadFilenameGet, listLogsApiAdminLogsGet, LogFileInfo } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
 import { formatBytes } from '@/lib/utils';
@@ -32,7 +33,7 @@ export function LogsList() {
       })) as string;
       downloadFile({ blob: new Blob([content], { type: 'text/plain' }), filename: file.filename });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to download log file');
+      toast.error(getErrorMessage(err, 'Failed to download log file'));
     } finally {
       setDownloading(null);
     }
@@ -54,7 +55,7 @@ export function LogsList() {
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{error instanceof Error ? error.message : 'Failed to load log files'}</p>
+            <p className="text-destructive">{getErrorMessage(error, 'Failed to load log files')}</p>
           </div>
         ) : !logFiles || logFiles.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No log files found.</div>

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
+import { ApiError } from '@/lib/api-error';
 import { downloadFile } from '@/lib/file-download';
 import {
   exportAnnotationsApiAdminAnnotationsExportGet,
@@ -100,5 +101,14 @@ describe('AnnotationResults', () => {
       'active_voice',
       'advocacy_tone_v2',
     ]);
+  });
+  it('says the sets could not load, not the bare status, when the server gives no reason', async () => {
+    await rendered.unmount();
+    vi.mocked(listAnnotationSetStatsApiAdminAnnotationsSetsGet).mockRejectedValue(new ApiError(502));
+    rendered = await renderInto(withQueryClient(testQueryClient(), <AnnotationResults />));
+    await flush();
+
+    expect(rendered.container.textContent).toContain('Could not load the annotation sets');
+    expect(rendered.container.textContent).not.toContain('HTTP 502');
   });
 });

@@ -11,6 +11,7 @@ from lib.api.services.workflow_runner import start_multiple_workflow_runs
 from lib.models.project import AccessLevel
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus, WorkflowRunType
+from lib.services.workflow_runs.start import RunStart
 from lib.workflows.registry import get_config_type
 
 
@@ -40,6 +41,22 @@ def create_run(
     )
 
 
+async def _created_run(project_id, workflow_type, revision, *, model, gated):
+    return RunStart(
+        run_id=str(uuid4()),
+        thread_id=str(uuid4()),
+        status=WorkflowRunStatus.PENDING,
+        model=model,
+        schedule=True,
+        created=True,
+    )
+
+
+def _started_types(mock_create) -> set[WorkflowRunType]:
+    """The types start_or_join_run was asked to create or join."""
+    return {call.args[1] for call in mock_create.call_args_list}
+
+
 def create_mock_config(project_id: str, workflow_type: WorkflowRunType):
     """Create a minimal valid config for the given workflow type."""
     config_type = get_config_type(workflow_type)
@@ -60,7 +77,7 @@ async def run_workflow_with_mocks(
             Lets tests model dependencies that need to be re-run.
 
     Returns:
-        Tuple of (mock_create, mock_create_config) for assertions
+        Tuple of (mock start_or_join_run, mock_create_config) for assertions
     """
     project_id_str = str(test_context["project_id"])
     request = StartMultipleWorkflowsRequest(
@@ -101,8 +118,8 @@ async def run_workflow_with_mocks(
             side_effect=mock_get_run,
         ),
         patch(
-            "lib.api.services.workflow_runner.create_workflow_run",
-            new=AsyncMock(side_effect=lambda **kwargs: str(uuid4())),
+            "lib.api.services.workflow_runner.start_or_join_run",
+            new=AsyncMock(side_effect=_created_run),
         ) as mock_create,
         patch(
             "lib.api.services.workflow_runner.create_workflow_config",
@@ -135,7 +152,7 @@ async def test_skip_completed_dependencies(test_context):
 
     # 2 workflows: DOCUMENT_PROCESSING (always_run=True) + REFERENCE_VALIDATION
     assert mock_create.call_count == 2
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    started_types = _started_types(mock_create)
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_VALIDATION_V2,
@@ -149,7 +166,7 @@ async def test_start_all_when_none_completed(test_context):
     mock_create, _ = await run_workflow_with_mocks(test_context, [])
 
     assert mock_create.call_count == 3
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    started_types = _started_types(mock_create)
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_EXTRACTION,
@@ -168,7 +185,7 @@ async def test_partial_completion(test_context):
 
     # 3 workflows: DOCUMENT_PROCESSING (always_run=True) + REFERENCE_EXTRACTION + REFERENCE_VALIDATION
     assert mock_create.call_count == 3
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    started_types = _started_types(mock_create)
     assert WorkflowRunType.DOCUMENT_PROCESSING in started_types  # always_run=True
     assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
     assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
@@ -190,7 +207,7 @@ async def test_requested_workflow_is_started_even_if_completed(test_context):
 
     # 2 workflows: DOCUMENT_PROCESSING (always_run=True) + REFERENCE_VALIDATION (requested)
     assert mock_create.call_count == 2
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    started_types = _started_types(mock_create)
     assert started_types == {
         WorkflowRunType.DOCUMENT_PROCESSING,
         WorkflowRunType.REFERENCE_VALIDATION_V2,
@@ -219,29 +236,40 @@ async def test_rerun_extraction_when_dependency_cancelled_or_failed(
         existing_runs={WorkflowRunType.REFERENCE_EXTRACTION: extraction_status},
     )
 
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
+    started_types = _started_types(mock_create)
     assert WorkflowRunType.REFERENCE_EXTRACTION in started_types
+    assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
+
+
+@pytest.mark.asyncio
+async def test_join_a_running_extraction_instead_of_starting_one(test_context):
+    """A RUNNING reference extraction pulled in as a dependency is joined: no
+    new run, and the dependent waits on the running one."""
+    mock_create, _ = await run_workflow_with_mocks(
+        test_context,
+        [WorkflowRunType.DOCUMENT_PROCESSING],
+        existing_runs={WorkflowRunType.REFERENCE_EXTRACTION: WorkflowRunStatus.RUNNING},
+    )
+
+    started_types = _started_types(mock_create)
+    assert WorkflowRunType.REFERENCE_EXTRACTION not in started_types
     assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "extraction_status",
-    [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING],
+    [WorkflowRunStatus.PENDING, WorkflowRunStatus.AWAITING_APPROVAL],
 )
-async def test_skip_extraction_when_already_in_flight(test_context, extraction_status):
-    """An in-flight reference extraction must not be duplicated.
-
-    Reference extraction runs only once per project. When it's already
-    PENDING/RUNNING, starting a dependent should NOT create a second
-    extraction run — the dependent waits on the existing one.
-    """
+async def test_a_waiting_extraction_goes_through_create_or_join(
+    test_context, extraction_status
+):
+    """A waiting dependency is not skipped here: start_or_join_run joins it,
+    so the batch never adds a second waiting run."""
     mock_create, _ = await run_workflow_with_mocks(
         test_context,
         [WorkflowRunType.DOCUMENT_PROCESSING],
         existing_runs={WorkflowRunType.REFERENCE_EXTRACTION: extraction_status},
     )
 
-    started_types = {call.kwargs["type"] for call in mock_create.call_args_list}
-    assert WorkflowRunType.REFERENCE_EXTRACTION not in started_types
-    assert WorkflowRunType.REFERENCE_VALIDATION_V2 in started_types
+    assert WorkflowRunType.REFERENCE_EXTRACTION in _started_types(mock_create)

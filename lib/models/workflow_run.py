@@ -4,7 +4,16 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, inspect
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    inspect,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlmodel import Enum as SQLModelEnum
 from sqlmodel import Field, SQLModel, String
@@ -29,11 +38,18 @@ TERMINAL_WORKFLOW_RUN_STATUSES = (
 )
 
 # Statuses of a run that has not finished: scheduled and waiting on
-# dependencies, executing, or awaiting a user's approval. A second run of the
-# same type must not be created while one of these exists.
+# dependencies, executing, or awaiting a user's approval.
 ACTIVE_WORKFLOW_RUN_STATUSES = (
     WorkflowRunStatus.PENDING,
     WorkflowRunStatus.RUNNING,
+    WorkflowRunStatus.AWAITING_APPROVAL,
+)
+
+# Statuses of a run that has not started yet. Per project, revision and type
+# there is at most one such run (and at most one RUNNING run), unless the
+# workflow runs independently: see the unique indexes on WorkflowRun.
+WAITING_WORKFLOW_RUN_STATUSES = (
+    WorkflowRunStatus.PENDING,
     WorkflowRunStatus.AWAITING_APPROVAL,
 )
 
@@ -54,6 +70,29 @@ class WorkflowRunFailureReason(str, Enum):
 
 class WorkflowRun(SQLModel, table=True):
     __tablename__ = "workflow_runs"
+    __table_args__ = (
+        # One RUNNING and one waiting run per project, revision and type: a
+        # start joins the waiting run instead of adding another (see
+        # lib.services.workflow_runs.start). Independent runs are exempt.
+        Index(
+            "uq_workflow_runs_one_running",
+            "project_id",
+            "revision",
+            "type",
+            unique=True,
+            postgresql_where=text("status = 'RUNNING' AND NOT independent_run"),
+        ),
+        Index(
+            "uq_workflow_runs_one_waiting",
+            "project_id",
+            "revision",
+            "type",
+            unique=True,
+            postgresql_where=text(
+                "status IN ('PENDING', 'AWAITING_APPROVAL') AND NOT independent_run"
+            ),
+        ),
+    )
 
     id: uuid.UUID = Field(
         sa_column=Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4),
@@ -133,6 +172,17 @@ class WorkflowRun(SQLModel, table=True):
             "The model this run was asked to run every agent on, when the start "
             "request named one. Null means each agent's own model. Kept on the run "
             "so a run released later from a gate still runs on it."
+        ),
+    )
+    independent_run: bool = Field(
+        sa_column=Column(
+            Boolean, nullable=False, default=False, server_default=text("false")
+        ),
+        default=False,
+        description=(
+            "Copied from the manifest's independent_runs when the run is created. "
+            "Such runs go side by side, so the one-running and one-waiting "
+            "indexes leave them out."
         ),
     )
     state_json: dict[str, Any] | None = Field(

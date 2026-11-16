@@ -140,7 +140,7 @@ export function UsersList() {
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-destructive">{error.message}</p>
+              <p className="text-destructive">{getErrorMessage(error, 'Could not load the users')}</p>
               <Button variant="outline" onClick={() => window.location.reload()} className="mt-4">
                 Retry
               </Button>

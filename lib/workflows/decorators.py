@@ -1,4 +1,9 @@
-"""Workflow decorators for consistent behavior across nodes."""
+"""Workflow decorators for consistent behavior across nodes.
+
+``register_node`` runs each graph node under ``_supervise_node``, which keeps
+the run's heartbeat fresh for the reaper and cancels the node once the run
+reaches a terminal status. See docs/workflow-runs.md.
+"""
 
 import asyncio
 import logging

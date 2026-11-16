@@ -142,22 +142,20 @@ async def test_awaiting_run_is_found_ahead_of_a_newer_completed_run(seeder):
 
 
 @pytest.mark.asyncio
-async def test_pending_and_running_rank_ahead_of_awaiting(seeder):
+@pytest.mark.parametrize(
+    "waiting", [WorkflowRunStatus.AWAITING_APPROVAL, WorkflowRunStatus.PENDING]
+)
+async def test_running_ranks_ahead_of_a_newer_waiting_run(seeder, waiting):
+    # A type holds at most one waiting run (unique index), so the waiting run
+    # only competes with the RUNNING one and terminal ones.
     user = await seeder.user()
     project = await seeder.project(user)
-    _awaiting_id, pending_id = await seeder.runs(
-        project,
-        [
-            (CLAIM, WorkflowRunStatus.AWAITING_APPROVAL),
-            (CLAIM, WorkflowRunStatus.PENDING),
-        ],
+    running_id, _waiting_id = await seeder.runs(
+        project, [(CLAIM, WorkflowRunStatus.RUNNING), (CLAIM, waiting)]
     )
 
     run = await get_project_workflow_run_by_type(str(project.id), CLAIM, revision=1)
-    assert run is not None and run.id == pending_id
 
-    (running_id,) = await seeder.runs(project, [(CLAIM, WorkflowRunStatus.RUNNING)])
-    run = await get_project_workflow_run_by_type(str(project.id), CLAIM, revision=1)
     assert run is not None and run.id == running_id
 
 
