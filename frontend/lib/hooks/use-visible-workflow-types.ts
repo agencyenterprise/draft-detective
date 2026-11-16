@@ -45,21 +45,17 @@ export function useVisibleWorkflowTypes() {
     [visibleGroups],
   );
 
-  // Presets are themselves an alpha feature for now, so the chips exist only
-  // for users who opted in; the API still serves them to everyone. Each one is
-  // narrowed to what this user can see, and one whose every assessment is
-  // hidden is left out rather than offered as an empty chip.
+  // Each preset is narrowed to what this user can see, and one whose every
+  // assessment is hidden is left out rather than offered as an empty chip.
   const presets = useMemo<WorkflowPreset[]>(
     () =>
-      showExperimentalFeatures
-        ? allPresets
-            .map((preset) => ({
-              ...preset,
-              workflows: preset.workflows.filter((type) => visibleTypes.includes(type)),
-            }))
-            .filter((preset) => preset.workflows.length > 0)
-        : [],
-    [allPresets, showExperimentalFeatures, visibleTypes],
+      allPresets
+        .map((preset) => ({
+          ...preset,
+          workflows: preset.workflows.filter((type) => visibleTypes.includes(type)),
+        }))
+        .filter((preset) => preset.workflows.length > 0),
+    [allPresets, visibleTypes],
   );
 
   return { visibleGroups, visibleTypes, presets, isPending };
