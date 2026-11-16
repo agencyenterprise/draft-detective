@@ -24,6 +24,7 @@ export const NEW_FEATURES: Record<string, NewFeatureRelease> = {
   'workflow:narrative_synthesis': { releasedAt: '2026-11-09' },
   'workflow:sentence_structure': { releasedAt: '2026-11-09' },
   'workflow:writing_consistency': { releasedAt: '2026-11-09' },
+  'workflow:recommendation_check': { releasedAt: '2026-11-16' },
 };
 
 /** Whether the release is inside its badge window at `now`. */

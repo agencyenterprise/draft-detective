@@ -49,7 +49,7 @@ Each check is listed below, organized by category and shown in the order it appe
 | **Methodological Alignment** | Uses web search to characterize standard methods in the field, then compares the document's methodology against them — highlighting similarities, gaps, and risks. `#web_search` | |
 | **Reproducibility Check** | Extracts the document's main results and classifies each by how reproducible it is, based on whether the underlying data is present and the methodology is described. `#experimental` | |
 | **Reviewer 2** | Simulates a full peer review of the kind a senior researcher would write — producing a structured review with strengths, weaknesses, actionable next steps, and a devil's-advocate rebuttal. Unlike the other checks, which each target a specific issue, Reviewer 2 gives an integrated evaluation of the document as a whole. `#experimental` | |
-| **Recommendation Check** | Checks whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory. `#experimental` | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/recommendation_check) |
+| **Recommendation Check** | Checks whether each recommendation is supported by the document's own findings, flagging recommendations whose backing is weak, indirect, missing, or contradictory. | [eval](https://github.com/agencyenterprise/draft-detective/tree/main/evals_inspectai/e2e/recommendation_check) |
 
 ### Editorial and Style Review
 
