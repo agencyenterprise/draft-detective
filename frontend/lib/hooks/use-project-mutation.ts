@@ -32,8 +32,12 @@ export function useProjectMutation<TData = unknown, TVariables = void>(
     ...options,
     onSuccess: async (...args) => {
       if (successMessage) toast.success(successMessage);
-      await onSuccess?.(...args);
-      await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+      try {
+        await onSuccess?.(...args);
+      } finally {
+        // The change landed on the server either way, so the cache follows it.
+        await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+      }
     },
     onError: (...args) => {
       toast.error(getErrorMessage(args[0], errorMessage));
