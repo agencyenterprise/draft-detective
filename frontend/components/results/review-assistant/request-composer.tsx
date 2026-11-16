@@ -44,7 +44,7 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
   // The staged files whose upload finished, in the order they finished.
   const finished = useRef<File[]>([]);
 
-  const start = useStartReviewAssistantRequest(projectId, onStarted);
+  const start = useStartReviewAssistantRequest(projectId);
 
   /**
    * Files that are now in the project leave the staged list and are ticked
@@ -68,6 +68,7 @@ export function RequestComposer({ overview, onStarted }: RequestComposerProps) {
     start.mutate(
       { outputs: OUTPUTS.map((o) => o.id).filter((id) => outputs.has(id)), fileIds },
       {
+        onSuccess: (response) => onStarted(response.workflow_run_id),
         onError: () => keepUploaded(matched),
         onSettled: () => setPhase('idle'),
       },
