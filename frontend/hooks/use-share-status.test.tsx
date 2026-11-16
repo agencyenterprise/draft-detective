@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { toast } from 'sonner';
 import type { QueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/api-error';
 import type { ProjectOverview, ShareStatusResponse } from '@/lib/generated-api';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
-import { flush, renderInto, testQueryClient, withQueryClient } from '@/lib/test-render';
+import { flush, type Rendered, renderInto, testQueryClient, withQueryClient } from '@/lib/test-render';
 import { useShareStatus } from './use-share-status';
 
 const mocks = vi.hoisted(() => ({ enable: vi.fn(), disable: vi.fn() }));
@@ -25,10 +25,17 @@ const DISABLED: ShareStatusResponse = { enabled: false, share_link: null };
 const overviewOf = (projectId: string, shareStatus?: ShareStatusResponse | null) =>
   ({ project: { id: projectId }, share_status: shareStatus }) as ProjectOverview;
 
+const mounted: Rendered[] = [];
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.enable.mockResolvedValue(ENABLED);
   mocks.disable.mockResolvedValue(DISABLED);
+});
+
+afterEach(async () => {
+  // One at a time: overlapping act() scopes leave React's queue unflushed for the next test.
+  for (const view of mounted.splice(0)) await view.unmount();
 });
 
 /** Mounts the hook for project p-1, with its latest and revision-1 overviews and another project's in the cache. */
@@ -42,7 +49,7 @@ async function mountShare(shareStatus: ShareStatusResponse | null = null) {
     share = useShareStatus(overviewOf('p-1', shareStatus));
     return null;
   }
-  await renderInto(withQueryClient(client, <Probe />));
+  mounted.push(await renderInto(withQueryClient(client, <Probe />)));
   return { client, share: () => share };
 }
 
