@@ -20,6 +20,8 @@ export function useStartAssessments(projectId: string, runs: { run: WorkflowRunP
       }),
     successMessage: 'Assessments started',
     errorMessage: 'Failed to start assessments',
+    // The header button goes from "Starting…" to "Running" with no idle state between.
+    waitForRefresh: true,
   });
   const startingTypes = useStartingWorkflowTypes(projectId);
 

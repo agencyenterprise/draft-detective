@@ -39,12 +39,13 @@ async function mount(options: ProjectMutationOptions<string, void>) {
 }
 
 describe('useProjectMutation', () => {
-  it('says so, runs the caller, and stays pending until the project has refetched', async () => {
+  it('says so, runs the caller, and with waitForRefresh stays pending until the project has refetched', async () => {
     const order: string[] = [];
     const { mutation, refetches } = await mount({
       mutationFn: async () => 'done',
       successMessage: 'Started',
       errorMessage: 'Failed',
+      waitForRefresh: true,
       onSuccess: () => void order.push('caller'),
     });
 
@@ -62,6 +63,19 @@ describe('useProjectMutation', () => {
     await flush();
     expect(mutation().isPending).toBe(false);
     expect(order).toEqual(['caller', 'mutate']);
+  });
+
+  it("settles without waiting for the refresh by default, so mutate's own callbacks run at once", async () => {
+    const onMutateSuccess = vi.fn();
+    const { mutation, refetches } = await mount({ mutationFn: async () => 'done', errorMessage: 'Failed' });
+
+    await act(async () => mutation().mutate(undefined, { onSuccess: onMutateSuccess }));
+    await flush();
+
+    // The refresh is still in flight, yet the caller has already heard back.
+    expect(refetches.p).toHaveLength(1);
+    expect(onMutateSuccess).toHaveBeenCalledOnce();
+    expect(mutation().isPending).toBe(false);
   });
 
   it("toasts the server's reason, or the fallback when there is none, then runs the caller", async () => {

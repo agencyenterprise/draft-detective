@@ -45,6 +45,7 @@ export function useStartReviewAssistantRequest(projectId: string) {
         body: { outputs, file_ids: fileIds },
       }),
     errorMessage: 'Failed to start the Review Assistant',
+    waitForRefresh: true,
   });
 }
 

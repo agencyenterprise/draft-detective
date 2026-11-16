@@ -10,6 +10,14 @@ export interface ProjectMutationOptions<TData, TVariables> extends UseMutationOp
   successMessage?: string;
   /** Toasted on failure when the server gives no reason. */
   errorMessage: string;
+  /**
+   * Stay pending until the project's refresh lands, so a control bound to
+   * `isPending` goes straight from "Starting…" to what the overview now shows,
+   * with no idle moment in between to invite a second click. Callbacks passed
+   * to `mutate` then also wait for the refresh. Off by default: the mutation
+   * settles as soon as the server answers, and the refresh follows.
+   */
+  waitForRefresh?: boolean;
 }
 
 /**
@@ -17,15 +25,17 @@ export interface ProjectMutationOptions<TData, TVariables> extends UseMutationOp
  * runs the caller's `onSuccess`, then refreshes everything cached for the
  * project. On failure it toasts the server's reason, or `errorMessage`, then
  * runs the caller's `onError`.
- *
- * The mutation stays pending until the refresh lands, so a control bound to
- * `isPending` goes straight from "Starting…" to what the overview now shows,
- * with no idle moment in between to invite a second click. Callbacks passed to
- * `mutate` itself run after the refresh, when the cache already holds the change.
  */
 export function useProjectMutation<TData = unknown, TVariables = void>(
   projectId: string,
-  { successMessage, errorMessage, onSuccess, onError, ...options }: ProjectMutationOptions<TData, TVariables>,
+  {
+    successMessage,
+    errorMessage,
+    waitForRefresh = false,
+    onSuccess,
+    onError,
+    ...options
+  }: ProjectMutationOptions<TData, TVariables>,
 ) {
   const queryClient = useQueryClient();
   return useMutation<TData, Error, TVariables>({
@@ -36,7 +46,8 @@ export function useProjectMutation<TData = unknown, TVariables = void>(
         await onSuccess?.(...args);
       } finally {
         // The change landed on the server either way, so the cache follows it.
-        await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+        const refresh = queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+        if (waitForRefresh) await refresh;
       }
     },
     onError: (...args) => {
