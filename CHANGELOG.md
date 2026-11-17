@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.9.1] - 2026-11-17
+
+### Changed
+- Updated dnspython from 2.9.0 to 2.9.2.
+- Consolidated frontend project mutation and project-save handling.
+- Added tests for document explorer line links, Word add-in document reading, and project share-link status behavior.
+
+### Fixed
+- Admin feedback exports now neutralize spreadsheet formulas beginning with a line feed as well as other formula prefixes.
+- Cleaned up completed and stale TUS upload files.
+- Editing project details now refreshes the project list after a rename.
+- Revisiting a document line link after navigating away now selects the linked lines again.
+- New users are provisioned correctly when their first authenticated requests arrive concurrently.
+- Failed attempts to enable project sharing no longer cause an unhandled promise rejection.
+- Running assessments can no longer be started again from the Assessments tab.
+
+### Security
+- Prevented signed-in users from deleting stored documents through the upload route.
+- Neutralized spreadsheet formulas in the admin feedback CSV export.
+
+
 ## [v2.9.0] - 2026-11-16
 
 ### Added
