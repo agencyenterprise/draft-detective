@@ -24,7 +24,7 @@ from lib.services import feedback_service
 router = APIRouter(tags=["feedback"])
 
 # A spreadsheet runs a cell that starts with one of these as a formula.
-_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
 
 
 def _csv_cell(value: object) -> object:
