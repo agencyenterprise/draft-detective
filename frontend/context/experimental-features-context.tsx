@@ -47,7 +47,7 @@ export function ExperimentalFeaturesProvider({ children }: ExperimentalFeaturesP
       );
     },
     onError: (error) => {
-      toast.error(`Failed to update preference: ${getErrorMessage(error, 'Unknown error')}`);
+      toast.error(getErrorMessage(error, 'Failed to update preference'));
     },
     onSettled: () => {
       // Refetch to ensure consistency
