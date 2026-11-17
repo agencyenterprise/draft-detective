@@ -93,7 +93,7 @@ def _get_pre_create_hook(
 
         # Nothing else cleans the working directory, so each new upload clears out
         # what old ones left behind.
-        sweep_working_dir(TUS_WORKING_DIR)
+        await sweep_working_dir(TUS_WORKING_DIR)
 
     return handler
 
@@ -137,7 +137,7 @@ def _get_completion_hook(
             revision=revision,
         )
         # tuspyserver saved the .info before calling this hook and won't touch it again.
-        remove_upload_info(file_path)
+        await remove_upload_info(file_path)
 
         if was_deduplicated:
             try:

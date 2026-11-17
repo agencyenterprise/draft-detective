@@ -24,7 +24,7 @@ from lib.api.routers.tus_upload import (
 )
 from lib.models.project import Project
 from lib.models.user import User
-from lib.services.files.tus_cleanup import sweep_working_dir
+from lib.services.files.tus_cleanup import remove_upload_info, sweep_working_dir
 
 MODULE = "lib.api.routers.tus_upload"
 TUS = {"Tus-Resumable": "1.0.0"}
@@ -90,19 +90,33 @@ def test_a_finished_upload_leaves_no_info_file(client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_failed_info_removal_does_not_fail_the_upload(tmp_path) -> None:
+    info = tmp_path / "upload.info"
+    info.write_bytes(b"{}")
+    with patch(
+        "lib.services.files.tus_cleanup.aiofiles.os.remove",
+        AsyncMock(side_effect=PermissionError),
+    ):
+        await remove_upload_info(str(tmp_path / "upload"))
+
+    assert info.exists()
+
+
+@pytest.mark.asyncio
 async def test_creating_an_upload_sweeps_the_working_dir() -> None:
     user = User(id=uuid.uuid4(), email="someone@example.com")
     handler = _get_pre_create_hook(current_user=user)
     with (
         patch(f"{MODULE}.get_project_access", AsyncMock(return_value=(PROJECT, None))),
-        patch(f"{MODULE}.sweep_working_dir") as sweep,
+        patch(f"{MODULE}.sweep_working_dir", AsyncMock()) as sweep,
     ):
         await handler({"project_id": str(PROJECT.id)}, {})
 
-    sweep.assert_called_once_with(TUS_WORKING_DIR)
+    sweep.assert_awaited_once_with(TUS_WORKING_DIR)
 
 
-def test_sweep_removes_old_files_and_keeps_recent_ones(tmp_path) -> None:
+@pytest.mark.asyncio
+async def test_sweep_removes_old_files_and_keeps_recent_ones(tmp_path) -> None:
     working_dir = tmp_path / "tus"
     locks = working_dir / ".locks"
     locks.mkdir(parents=True)
@@ -126,7 +140,7 @@ def test_sweep_removes_old_files_and_keeps_recent_ones(tmp_path) -> None:
     for path in [*old, stored]:
         os.utime(path, (THREE_DAYS_AGO, THREE_DAYS_AGO))
 
-    removed = sweep_working_dir(str(working_dir))
+    removed = await sweep_working_dir(str(working_dir))
 
     assert removed == len(old)
     assert [p for p in old if p.exists()] == []
@@ -135,8 +149,9 @@ def test_sweep_removes_old_files_and_keeps_recent_ones(tmp_path) -> None:
     assert locks.is_dir()
 
 
-def test_sweep_of_a_missing_dir_removes_nothing(tmp_path) -> None:
-    assert sweep_working_dir(str(tmp_path / "tus")) == 0
+@pytest.mark.asyncio
+async def test_sweep_of_a_missing_dir_removes_nothing(tmp_path) -> None:
+    assert await sweep_working_dir(str(tmp_path / "tus")) == 0
 
 
 def _b64(value: str) -> str:
