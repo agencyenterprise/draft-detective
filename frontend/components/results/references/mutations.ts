@@ -9,44 +9,23 @@ import {
   deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete,
   startWorkflowApiWorkflowsStartPost,
 } from '@/lib/generated-api';
-import { getErrorMessage } from '@/lib/api-error';
-import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
-
-// Helper function builders for common callbacks
-function createOnSuccess(queryClient: QueryClient, projectId: string, message: string) {
-  return () => {
-    queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-    toast.success(message);
-  };
-}
-
-function createOnError(fallbackMessage: string) {
-  return (error: unknown) => {
-    toast.error(getErrorMessage(error, fallbackMessage));
-  };
-}
+import { useProjectMutation } from '@/lib/hooks/use-project-mutation';
 
 export function useRemoveFileMutation(projectId: string, fileId: string | undefined) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useProjectMutation(projectId, {
     mutationFn: async () => {
       if (!fileId) return Promise.resolve();
       return deleteProjectFileEndpointApiProjectProjectIdFilesFileIdDelete({
         path: { project_id: projectId, file_id: fileId },
       });
     },
-    onSuccess: createOnSuccess(queryClient, projectId, 'File removed successfully'),
-    onError: createOnError('Failed to remove file'),
+    successMessage: 'File removed successfully',
+    errorMessage: 'Failed to remove file',
   });
 }
 
 export function useFetchFromWebMutation(projectId: string, referenceId: string, referenceText: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useProjectMutation(projectId, {
     mutationFn: async () => {
       await startWorkflowApiWorkflowsStartPost({
         body: {
@@ -56,8 +35,8 @@ export function useFetchFromWebMutation(projectId: string, referenceId: string, 
         },
       });
     },
-    onSuccess: createOnSuccess(queryClient, projectId, 'Reference fetch started'),
-    onError: createOnError('Failed to start reference fetch'),
+    successMessage: 'Reference fetch started',
+    errorMessage: 'Failed to start reference fetch',
   });
 }
 
@@ -66,9 +45,7 @@ export interface FetchAllFromWebParams {
 }
 
 export function useFetchAllFromWebMutation(projectId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  return useProjectMutation(projectId, {
     mutationFn: async ({ references }: FetchAllFromWebParams) => {
       await startWorkflowApiWorkflowsStartPost({
         body: {
@@ -78,7 +55,7 @@ export function useFetchAllFromWebMutation(projectId: string) {
         },
       });
     },
-    onSuccess: createOnSuccess(queryClient, projectId, 'Reference fetch started'),
-    onError: createOnError('Failed to start reference fetch'),
+    successMessage: 'Reference fetch started',
+    errorMessage: 'Failed to start reference fetch',
   });
 }

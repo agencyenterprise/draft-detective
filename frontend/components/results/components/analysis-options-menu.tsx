@@ -12,11 +12,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
-import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
+import { ProjectOverview } from '@/lib/generated-api';
+import { useProjectIssues } from '@/lib/hooks/use-project-data';
+import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
-import { getErrorMessage } from '@/lib/api-error';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -46,7 +45,6 @@ export function AnalysisOptionsMenu({
   const projectId = project.id;
   const share = useShareStatus(overview);
   const shareContext = useShare();
-  const queryClient = useQueryClient();
 
   const [showShareWarning, setShowShareWarning] = useState(false);
   const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
@@ -71,28 +69,18 @@ export function AnalysisOptionsMenu({
   // Usually already cached by the document explorer; fetched here only once the dialog asks.
   const { data: issues, isError: issuesFailed } = useProjectIssues(overview, { enabled: showShareWarning });
 
-  const updateProjectMutation = useMutation({
-    mutationFn: async (values: EditProjectFormValues) => {
-      return await updateProjectEndpointApiProjectProjectIdPatch({
-        path: { project_id: projectId },
-        body: {
-          title: values.title,
-          publication_date: values.publication_date ? new Date(values.publication_date) : null,
-          feedback_visibility: values.feedback_visibility ?? undefined,
-          group_by_severity: values.group_by_severity,
-        },
-      });
-    },
-    onSuccess: () => {
-      // Only the project's own fields changed, which the overview carries.
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
-      setIsEditDialogOpen(false);
-      toast.success('Project details updated successfully');
-    },
-    onError: (error) => {
-      toast.error(`Failed to update project: ${getErrorMessage(error, 'Unknown error')}`);
-    },
+  const updateProjectMutation = useUpdateProject(projectId, {
+    successMessage: 'Project details updated successfully',
+    errorMessage: 'Failed to update project',
+    onSuccess: () => setIsEditDialogOpen(false),
   });
+  const saveProjectDetails = (values: EditProjectFormValues) =>
+    updateProjectMutation.mutate({
+      title: values.title,
+      publication_date: values.publication_date ? new Date(values.publication_date) : null,
+      feedback_visibility: values.feedback_visibility ?? undefined,
+      group_by_severity: values.group_by_severity,
+    });
 
   const downloadWithShare = async (docxType: DocxType, includeEdits: boolean) => {
     setIsEnablingForDownload(true);
@@ -253,7 +241,7 @@ export function AnalysisOptionsMenu({
         key={editDialogKey}
         isOpen={isEditDialogOpen}
         project={project}
-        onConfirm={(values) => updateProjectMutation.mutate(values)}
+        onConfirm={saveProjectDetails}
         onCancel={() => setIsEditDialogOpen(false)}
         isSubmitting={updateProjectMutation.isPending}
       />

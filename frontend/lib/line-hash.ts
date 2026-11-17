@@ -9,7 +9,7 @@ import type { LineRange } from '@/lib/stores/document-explorer-store';
  * Parse hash format for line ranges: #L5 (single line) or #L5-15 (range).
  * Returns a [start, end] tuple, or null if the hash doesn't match.
  */
-function parseLineHash(hash: string): LineRange | null {
+export function parseLineHash(hash: string): LineRange | null {
   if (!hash.startsWith('#')) return null;
 
   const rangeMatch = hash.match(/^#L(\d+)-(\d+)$/);
@@ -39,7 +39,11 @@ export function useLineHashNavigation(onSelectRange: (range: LineRange) => void)
     const handleHashChange = () => {
       const currentHash = window.location.hash;
       const parsed = parseLineHash(currentHash);
-      if (!parsed) return;
+      if (!parsed) {
+        // Moving off a line link forgets it, so coming back to the same link selects it again.
+        lastProcessedHash.current = null;
+        return;
+      }
 
       if (lastProcessedHash.current === currentHash) return;
       lastProcessedHash.current = currentHash;

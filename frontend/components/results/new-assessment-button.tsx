@@ -4,20 +4,15 @@ import { useProjectView } from '@/components/results/project-view-context';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
-import { getErrorMessage } from '@/lib/api-error';
-import { startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
+import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { cn } from '@/lib/utils';
 import { isAnyWorkflowActive } from '@/lib/workflow-state';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ChevronDownIcon, Loader2, PlayIcon } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { RunActivityDetails } from './run-activity/run-activity-details';
-import { busyWorkflowTypes, runActivityLabel, runActivityStatus } from './run-activity/run-activity-summary';
+import { runActivityLabel, runActivityStatus } from './run-activity/run-activity-summary';
 import { RunActivity, useRunActivity } from './run-activity/use-run-activity';
-import { startAssessmentsKey, useStartingWorkflowTypes } from './run-activity/use-starting-workflow-types';
+import { useStartAssessments } from './run-activity/use-start-assessments';
 
 /**
  * Starts assessments from the project header, so it is reachable from every
@@ -45,26 +40,8 @@ export function NewAssessmentButton({
   const runsActive = isAnyWorkflowActive(runs);
   const activity = useRunActivity(projectId, runs, runsActive);
   const [open, setOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { mutate: startWorkflows } = useMutation({
-    mutationKey: startAssessmentsKey(projectId),
-    mutationFn: (values: WorkflowConfigFormValues) =>
-      startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: { project_id: projectId, workflow_types: values.workflowTypes },
-      }),
-    // Returned, so the mutation stays pending until the overview carries the
-    // new runs: the button goes from "Starting…" to "Running" with no idle
-    // "Run assessments" in between to invite a second click.
-    onSuccess: () => {
-      toast.success('Assessments started');
-      return queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-    },
-    onError: (error) => toast.error(getErrorMessage(error, 'Failed to start assessments')),
-  });
-
-  const starting = useStartingWorkflowTypes(projectId);
-  const isStarting = starting.length > 0;
+  const { startAssessments, startingTypes, busyTypes } = useStartAssessments(projectId, runs);
+  const isStarting = startingTypes.length > 0;
 
   const active = runsActive || isStarting;
   const label = <span className={collapseLabel ? 'hidden sm:inline' : undefined}>{runActivityLabel(activity)}</span>;
@@ -86,10 +63,10 @@ export function NewAssessmentButton({
       <WorkflowConfigDialog
         isOpen={open}
         projectId={projectId}
-        runningTypes={busyWorkflowTypes(runs, starting)}
+        runningTypes={busyTypes}
         onConfirm={(values) => {
           setOpen(false);
-          startWorkflows(values);
+          startAssessments(values);
         }}
         onCancel={() => setOpen(false)}
       />

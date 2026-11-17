@@ -23,6 +23,21 @@ from lib.services import feedback_service
 
 router = APIRouter(tags=["feedback"])
 
+# A spreadsheet runs a cell that starts with one of these as a formula.
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r", "\n")
+
+
+def _csv_cell(value: object) -> object:
+    """The value as a spreadsheet will read it as text, never as a formula.
+
+    The export holds text any signed-in user wrote (feedback, project titles,
+    names, issues drawn from their document), and admins open it in Excel or
+    Sheets. A leading apostrophe makes a would-be formula plain text.
+    """
+    if isinstance(value, str) and value.startswith(_FORMULA_PREFIXES):
+        return f"'{value}"
+    return value
+
 
 class FeedbackRequest(BaseModel):
     """A user's feedback on an issue"""
@@ -237,27 +252,26 @@ async def export_admin_feedbacks_csv(
         )
         for row in rows:
             issue = row["issue"]
-            writer.writerow(
-                [
-                    row["feedback"].created_at.isoformat(),
-                    row["feedback"].feedback_type.value,
-                    row["feedback"].feedback_text or "",
-                    str(row["user"].id),
-                    row["user"].name,
-                    row["user"].email,
-                    str(row["project"].id),
-                    row["project"].title,
-                    row["workflow_run"].revision,
-                    row["project"].current_revision,
-                    row["project"].feedback_visibility.value,
-                    str(issue.id),
-                    issue.title,
-                    issue.description,
-                    issue.long_description or "",
-                    issue.severity.value,
-                    issue.workflow_type,
-                ]
-            )
+            cells = [
+                row["feedback"].created_at.isoformat(),
+                row["feedback"].feedback_type.value,
+                row["feedback"].feedback_text or "",
+                str(row["user"].id),
+                row["user"].name,
+                row["user"].email,
+                str(row["project"].id),
+                row["project"].title,
+                row["workflow_run"].revision,
+                row["project"].current_revision,
+                row["project"].feedback_visibility.value,
+                str(issue.id),
+                issue.title,
+                issue.description,
+                issue.long_description or "",
+                issue.severity.value,
+                issue.workflow_type,
+            ]
+            writer.writerow([_csv_cell(cell) for cell in cells])
 
         output.seek(0)
         return StreamingResponse(
