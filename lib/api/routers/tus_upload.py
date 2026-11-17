@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_FILENAME = "unknown"
 
+# Uploads in progress, apart from the documents they become. tuspyserver's DELETE,
+# open to any signed-in user, removes whatever file the URL names in this directory,
+# and a finished upload is kept under its content hash (``finalize_file_from_path``):
+# sharing a directory would let anyone delete a stored document by naming it.
+TUS_WORKING_DIR = os.path.join(config.FILE_UPLOADS_MOUNT_PATH, "tus")
+
 
 # Roles only the retired Peer Review tab uploaded. Files that already carry
 # them still load and can be handed to the Review Assistant; new documents for
@@ -159,7 +165,7 @@ def _get_completion_hook(
 
 tus_router = create_tus_router(
     prefix="tus",
-    files_dir=config.FILE_UPLOADS_MOUNT_PATH,
+    files_dir=TUS_WORKING_DIR,
     max_size=500 * 1024 * 1024,
     days_to_keep=1,
     auth=get_current_user,  # type: ignore[arg-type]
