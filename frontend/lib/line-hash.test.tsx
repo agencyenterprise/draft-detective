@@ -28,10 +28,10 @@ function Probe({ onSelectRange }: { onSelectRange: (range: LineRange) => void })
   return null;
 }
 
+/** Sets the hash; jsdom fires `hashchange` itself, once, as a browser does. */
 async function goTo(hash: string): Promise<void> {
   await act(async () => {
     window.location.hash = hash;
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
   });
 }
 
