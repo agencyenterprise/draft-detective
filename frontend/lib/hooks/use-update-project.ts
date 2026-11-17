@@ -43,6 +43,8 @@ export function useUpdateProject(
     onSuccess: (project, ...rest) => {
       // The overview is keyed per revision, so every cached revision of it gets the project.
       if (projectId) {
+        // A poll that left before the save would land after it with the old project.
+        void queryClient.cancelQueries({ queryKey: projectQueryKeys.overviews(projectId) });
         queryClient.setQueriesData(
           { queryKey: projectQueryKeys.overviews(projectId) },
           (overview: ProjectOverview | undefined) => (overview ? { ...overview, project } : overview),

@@ -95,6 +95,34 @@ describe('useUpdateProject', () => {
     expect(listFetch).not.toHaveBeenCalled();
   });
 
+  it('keeps the saved project when an overview poll that left before the save answers after it', async () => {
+    const client = testQueryClient();
+    const key = projectQueryKeys.overview('p', null);
+    client.setQueryData(key, overview('p', 'Old', 1));
+    // While a run is active the overview polls every 3 s: this one answers late, with the old project.
+    let answerPoll!: (o: ProjectOverview) => void;
+    const poll = client.fetchQuery({
+      queryKey: key,
+      queryFn: () => new Promise<ProjectOverview>((resolve) => (answerPoll = resolve)),
+      staleTime: 0,
+    });
+    mocks.patch.mockResolvedValue(project('p', 'New'));
+    let mutation!: ReturnType<typeof useUpdateProject>;
+    function Probe() {
+      mutation = useUpdateProject('p', { errorMessage: 'Failed to save' });
+      return null;
+    }
+    rendered = await renderInto(withQueryClient(client, <Probe />));
+
+    await act(async () => mutation.mutate({ title: 'New' }));
+    await flush();
+    answerPoll(overview('p', 'Old', 1));
+    await poll.catch(() => {});
+    await flush();
+
+    expect(client.getQueryData<ProjectOverview>(key)?.project.title).toBe('New');
+  });
+
   it('sends nothing before the project exists', async () => {
     const { mutation } = await mount(null, { errorMessage: 'Failed to save' });
 
