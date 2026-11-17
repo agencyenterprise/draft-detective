@@ -80,7 +80,7 @@ export function UsersList() {
       setPendingChange(null);
     },
     onError: (error) => {
-      toast.error(`Failed to update role: ${getErrorMessage(error, 'Unknown error')}`);
+      toast.error(getErrorMessage(error, 'Failed to update role'));
       setPendingChange(null);
     },
   });

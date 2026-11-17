@@ -1,11 +1,7 @@
 'use client';
 
 import { Switch } from '@/components/ui/switch';
-import { getErrorMessage } from '@/lib/api-error';
-import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { useWizard } from './wizard-context';
 
 /**
@@ -15,25 +11,12 @@ import { useWizard } from './wizard-context';
  */
 export function useSaveGroupBySeverity() {
   const { projectId, setGroupBySeverity } = useWizard();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (value: boolean) => {
-      if (!projectId) throw new Error('No project ID');
-      return updateProjectEndpointApiProjectProjectIdPatch({
-        path: { project_id: projectId },
-        body: { group_by_severity: value },
-      });
-    },
-    onMutate: (value) => setGroupBySeverity(value),
-    onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
-    },
-    onError: (error, value) => {
-      setGroupBySeverity(!value);
-      toast.error(getErrorMessage(error, 'Failed to save the severity setting'));
-    },
+  const mutation = useUpdateProject(projectId, {
+    errorMessage: 'Failed to save the severity setting',
+    onMutate: ({ group_by_severity }) => setGroupBySeverity(!!group_by_severity),
+    onError: (_error, { group_by_severity }) => setGroupBySeverity(!group_by_severity),
   });
+  return { ...mutation, mutate: (value: boolean) => mutation.mutate({ group_by_severity: value }) };
 }
 
 interface GroupBySeveritySwitchProps {

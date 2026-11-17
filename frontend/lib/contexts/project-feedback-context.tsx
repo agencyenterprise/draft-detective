@@ -2,12 +2,8 @@
 
 import { FeedbackPrivacyDialog } from '@/components/feedback/feedback-privacy-dialog';
 import type { FeedbackResponse, FeedbackType, FeedbackVisibility } from '@/lib/generated-api';
-import { updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { useProjectFeedback } from '@/lib/hooks/use-project-feedback';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { getErrorMessage } from '@/lib/api-error';
+import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
 
 interface SubmitFeedbackParams {
@@ -46,33 +42,26 @@ export function ProjectFeedbackProvider({
   readOnly = false,
   children,
 }: ProjectFeedbackProviderProps) {
-  const queryClient = useQueryClient();
   const { getFeedbackForIssue, submitFeedback: doSubmit, isLoading, isSubmitting } = useProjectFeedback(projectId);
 
   const [pendingParams, setPendingParams] = useState<SubmitFeedbackParams | null>(null);
-  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const { mutateAsync: saveVisibility, isPending: isSavingVisibility } = useUpdateProject(projectId, {
+    errorMessage: 'Failed to save your feedback privacy choice',
+  });
 
   const handlePrivacyConfirm = useCallback(
     async (visibility: FeedbackVisibility) => {
       if (!projectId || !pendingParams) return;
-      setIsSavingVisibility(true);
       try {
-        await updateProjectEndpointApiProjectProjectIdPatch({
-          path: { project_id: projectId },
-          body: { feedback_visibility: visibility },
-        });
-        // Only the project's own fields changed, which the overview carries.
-        queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
+        await saveVisibility({ feedback_visibility: visibility });
         doSubmit(pendingParams);
-      } catch (error) {
-        // The dialog does not await this handler, so an error left here would vanish with the rating.
-        toast.error(getErrorMessage(error, 'Failed to save your feedback privacy choice'));
+      } catch {
+        // Already toasted by the save. The rating goes with the choice it was waiting on.
       } finally {
-        setIsSavingVisibility(false);
         setPendingParams(null);
       }
     },
-    [projectId, pendingParams, doSubmit, queryClient],
+    [projectId, pendingParams, doSubmit, saveVisibility],
   );
 
   const handlePrivacyCancel = useCallback(() => {

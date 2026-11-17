@@ -20,6 +20,9 @@ const REFETCH_INTERVAL_MS = 3000;
 // MCP tool). Poll slowly so the page notices without treating the wait as work.
 const AWAITING_APPROVAL_REFETCH_INTERVAL_MS = 15000;
 
+/** The projects list, under every search term it was loaded with. */
+export const PROJECT_LIST_QUERY_KEY = ['projects'] as const;
+
 /**
  * Every query of the project page lives under `['project', id]`, so the
  * mutations that invalidate that prefix refresh whichever of them are mounted.
