@@ -24,8 +24,12 @@ export interface UpdateProjectOptions extends Pick<
 /**
  * Saves changes to a project's own fields (title, date, settings). The server
  * answers with the whole project, which goes straight into every cached
- * overview of it: nothing else under `['project', id]` changed, so nothing is
- * refetched. The project list shows those fields too, so it is refreshed.
+ * overview of it, so the page shows the change at once. The overviews are then
+ * refreshed too: that cancels a poll that left before the save and would land
+ * with the old project, and restarts it, so a fetch something else is waiting
+ * on (the refresh after a start, a first load) still lands. Nothing else under
+ * `['project', id]` changed. The project list shows these fields, so it is
+ * refreshed as well.
  *
  * On failure it toasts the server's reason, or `errorMessage`.
  */
@@ -41,14 +45,13 @@ export function useUpdateProject(
       return updateProjectEndpointApiProjectProjectIdPatch({ path: { project_id: projectId }, body: changes });
     },
     onSuccess: (project, ...rest) => {
-      // The overview is keyed per revision, so every cached revision of it gets the project.
       if (projectId) {
-        // A poll that left before the save would land after it with the old project.
-        void queryClient.cancelQueries({ queryKey: projectQueryKeys.overviews(projectId) });
-        queryClient.setQueriesData(
-          { queryKey: projectQueryKeys.overviews(projectId) },
-          (overview: ProjectOverview | undefined) => (overview ? { ...overview, project } : overview),
+        // The overview is keyed per revision, so every cached revision of it gets the project.
+        const overviews = { queryKey: projectQueryKeys.overviews(projectId) };
+        queryClient.setQueriesData(overviews, (overview: ProjectOverview | undefined) =>
+          overview ? { ...overview, project } : overview,
         );
+        void queryClient.invalidateQueries(overviews);
       }
       void queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY });
       if (successMessage) toast.success(successMessage);

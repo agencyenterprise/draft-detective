@@ -32,7 +32,8 @@ async function mount(projectId: string | null, options: UpdateProjectOptions) {
   client.setQueryData(projectQueryKeys.overview('p', 1), overview('p', 'Old', 1));
   client.setQueryData(projectQueryKeys.overview('p', null), overview('p', 'Old', 2));
   client.setQueryData(projectQueryKeys.overview('q', null), overview('q', 'Other', 1));
-  const overviewFetch = vi.fn();
+  // The refresh stays in flight, so the test sees what the save wrote before it lands.
+  const overviewFetch = vi.fn(() => new Promise<ProjectOverview>(() => {}));
   for (const key of [projectQueryKeys.overview('p', 1), projectQueryKeys.overview('p', null)]) {
     new QueryObserver(client, { queryKey: key, queryFn: overviewFetch, staleTime: Infinity }).subscribe(() => {});
   }
@@ -54,7 +55,7 @@ async function mount(projectId: string | null, options: UpdateProjectOptions) {
 }
 
 describe('useUpdateProject', () => {
-  it('puts the saved project into every cached overview without refetching them, and refreshes the project list', async () => {
+  it('puts the saved project into every cached overview at once, then refreshes them and the project list', async () => {
     mocks.patch.mockResolvedValue(project('p', 'New'));
     const onSuccess = vi.fn();
     const { client, mutation, overviewFetch, listFetch } = await mount('p', {
@@ -73,7 +74,7 @@ describe('useUpdateProject', () => {
     expect(titles).toEqual(['New', 'New']);
     expect(client.getQueryData<ProjectOverview>(projectQueryKeys.overview('p', 1))?.revision).toBe(1);
     expect(client.getQueryData<ProjectOverview>(projectQueryKeys.overview('q', null))?.project.title).toBe('Other');
-    expect(overviewFetch).not.toHaveBeenCalled();
+    expect(overviewFetch).toHaveBeenCalledTimes(2);
     expect(listFetch).toHaveBeenCalledOnce();
     expect(toast.success).toHaveBeenCalledWith('Saved');
     expect(onSuccess).toHaveBeenCalledOnce();
@@ -95,17 +96,18 @@ describe('useUpdateProject', () => {
     expect(listFetch).not.toHaveBeenCalled();
   });
 
-  it('keeps the saved project when an overview poll that left before the save answers after it', async () => {
+  it('cancels an overview fetch that left before the save and fetches again, so neither the old project nor the fetch is lost', async () => {
     const client = testQueryClient();
     const key = projectQueryKeys.overview('p', null);
     client.setQueryData(key, overview('p', 'Old', 1));
-    // While a run is active the overview polls every 3 s: this one answers late, with the old project.
-    let answerPoll!: (o: ProjectOverview) => void;
-    const poll = client.fetchQuery({
-      queryKey: key,
-      queryFn: () => new Promise<ProjectOverview>((resolve) => (answerPoll = resolve)),
-      staleTime: 0,
-    });
+    // A poll, or the refresh after starting a run, leaves before the save and would answer after it with the old project.
+    let answerFirst!: (o: ProjectOverview) => void;
+    const overviewFetch = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<ProjectOverview>((resolve) => (answerFirst = resolve)))
+      .mockResolvedValue({ ...overview('p', 'New', 1), issues_version: 'after' });
+    new QueryObserver(client, { queryKey: key, queryFn: overviewFetch, staleTime: Infinity }).subscribe(() => {});
+    void client.refetchQueries({ queryKey: key });
     mocks.patch.mockResolvedValue(project('p', 'New'));
     let mutation!: ReturnType<typeof useUpdateProject>;
     function Probe() {
@@ -116,11 +118,14 @@ describe('useUpdateProject', () => {
 
     await act(async () => mutation.mutate({ title: 'New' }));
     await flush();
-    answerPoll(overview('p', 'Old', 1));
-    await poll.catch(() => {});
+    answerFirst(overview('p', 'Old', 1));
     await flush();
 
-    expect(client.getQueryData<ProjectOverview>(key)?.project.title).toBe('New');
+    expect(overviewFetch).toHaveBeenCalledTimes(2);
+    expect(client.getQueryData<ProjectOverview>(key)).toMatchObject({
+      project: { title: 'New' },
+      issues_version: 'after',
+    });
   });
 
   it('sends nothing before the project exists', async () => {
