@@ -17,11 +17,14 @@ export function useShareStatus(overview: ProjectOverview) {
   const projectId = overview.project.id;
 
   // The overview is cached per revision, and the link is the project's, so every copy gets it.
+  // They are then refreshed: that cancels a poll that left before the change and would land
+  // with the old status, and restarts it, so a fetch something else awaits still lands.
   const applyShareStatus = (shareStatus: ShareStatusResponse) => {
-    queryClient.setQueriesData(
-      { queryKey: projectQueryKeys.overviews(projectId) },
-      (curr: ProjectOverview | undefined) => (curr ? { ...curr, share_status: shareStatus } : curr),
+    const overviews = { queryKey: projectQueryKeys.overviews(projectId) };
+    queryClient.setQueriesData(overviews, (curr: ProjectOverview | undefined) =>
+      curr ? { ...curr, share_status: shareStatus } : curr,
     );
+    void queryClient.invalidateQueries(overviews);
   };
 
   const enableMutation = useMutation({
