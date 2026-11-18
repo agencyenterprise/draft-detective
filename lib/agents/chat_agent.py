@@ -1,7 +1,7 @@
 """The agent behind the /chat page.
 
-A third consumer of ``lib/agents/deep_agent_setup.py``, next to the Word and Teams
-agents. Same model construction, same rate limiter, same skills mounted into the
+Built with ``lib/agents/deep_agent_setup.py``, like the Word and Teams agents. Same
+model construction, same rate limiter, same skills mounted into the
 same virtual filesystem, so a chat answer and a workflow run on the same question
 reason from the same instructions.
 
