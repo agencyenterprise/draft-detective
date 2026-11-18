@@ -1,6 +1,7 @@
 import type { FeedbackRequest, FeedbackResponse, FeedbackType } from '@/lib/generated-api';
 import { getProjectFeedbackApiFeedbackProjectProjectIdGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
 import { getErrorMessage } from '@/lib/api-error';
+import { writeServerAnswer } from '@/lib/query-cache';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
@@ -61,9 +62,8 @@ export function useProjectFeedback(projectId: string | undefined) {
       };
       return await submitFeedbackApiFeedbackPost({ body });
     },
-    onSuccess: (newFeedback) => {
-      // Update the cache optimistically
-      queryClient.setQueryData<FeedbackResponse[]>(queryKey, (old) => {
+    onSuccess: async (newFeedback) => {
+      await writeServerAnswer<FeedbackResponse[]>(queryClient, { queryKey, exact: true }, (old) => {
         if (!old) return [newFeedback];
         const issueId = newFeedback.issue_id;
         const existingIndex = old.findIndex((f) => f.issue_id === issueId);
