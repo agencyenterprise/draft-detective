@@ -226,6 +226,8 @@ Sign-in needs the same `AUTH_SECRET` in both files, and at least one provider co
 
 `pnpm dev` trusts the host it runs on, but a production build (`pnpm start`) doesn't: add `AUTH_URL=http://localhost:3000` to `frontend/.env` before running it, or every sign-in request fails with `UntrustedHost`.
 
+Each API process also runs a worker for the job queue ([Procrastinate](https://procrastinate.readthedocs.io/), on the same Postgres; its tables come from an Alembic migration). `TASK_QUEUE_CONCURRENCY` (default `50`) is how many jobs one such worker runs at once. Keep it high: jobs spend their time waiting on LLM calls, and the Postgres rate limiter (`RATE_LIMITER_*`) is what actually throttles them. With `WORKERS=4` there are four queue workers, and each job still runs once.
+
 For production deployment, see [docs/railway-deployment.md](docs/railway-deployment.md) (Railway) or [k8s/README.md](k8s/README.md) (Kubernetes and OpenShift).
 
 

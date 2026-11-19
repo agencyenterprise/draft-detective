@@ -311,6 +311,15 @@ wheels = [
 ]
 
 [[package]]
+name = "asgiref"
+version = "3.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/90/f5fce14e95fccf53b58e8e2c47cd84d40d105d64073ae1ac75166db150e0/asgiref-3.13.0.tar.gz", hash = "sha256:034cc8cbf72d00553b4be256703ac545120b4e50af13b49dec99da899aeeecb4", size = 52941, upload-time = "2026-10-23T08:13:14.715Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/b0/ec211e1f7966247cb6469158d856bac9aa4c2fe13621bd6a352e4f850453/asgiref-3.13.0-py3-none-any.whl", hash = "sha256:f9596a2434512686473d50f96ff6207fbba49ae1a785dfac614df4aeb085674d", size = 27593, upload-time = "2026-10-23T08:13:13.394Z" },
+]
+
+[[package]]
 name = "async-lru"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -693,6 +702,18 @@ wheels = [
 ]
 
 [[package]]
+name = "croniter"
+version = "7.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/54/17/3c60d4cf8c8768f8a116328f94ddb2f205e64d5afbb1bcb85f315bfbbf42/croniter-7.0.0.tar.gz", hash = "sha256:a0b2568303c774f6a4ea2d4ce2e72b1ee911029c7070d64a1befe05cdb107f5a", size = 191123, upload-time = "2026-11-09T06:52:40.106Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4c/89/10f9987ebdef47dbe9db94e9c00dcbd91a6ff1aa46ad58bee5b50fa454c9/croniter-7.0.0-py3-none-any.whl", hash = "sha256:92090bce3cef195a037a46b78430c4cdd6250e90671d9d7dcd9e486147daaca4", size = 63225, upload-time = "2026-11-09T06:52:38.545Z" },
+]
+
+[[package]]
 name = "cryptography"
 version = "50.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -897,6 +918,7 @@ dependencies = [
     { name = "openai" },
     { name = "pgvector" },
     { name = "pillow" },
+    { name = "procrastinate" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "psycopg2-binary" },
     { name = "pyjwt" },
@@ -959,6 +981,7 @@ requires-dist = [
     { name = "openai", specifier = ">=3.1.0" },
     { name = "pgvector", specifier = ">=0.2.5,<0.4" },
     { name = "pillow", specifier = ">=13.0.0" },
+    { name = "procrastinate", specifier = "==3.11.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
     { name = "pyjwt", specifier = ">=2.13.0" },
@@ -3272,6 +3295,24 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
+]
+
+[[package]]
+name = "procrastinate"
+version = "3.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "asgiref" },
+    { name = "attrs" },
+    { name = "croniter" },
+    { name = "packaging" },
+    { name = "psycopg", extra = ["pool"] },
+    { name = "python-dateutil" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/6b/38df28033726246eb475aac18b5da6d21bf1c95fb6435ce93a28f4df2f2d/procrastinate-3.11.0.tar.gz", hash = "sha256:ab1a374f842e38043ea229d874af107c90c767dabd2e837322328ab425525433", size = 91526, upload-time = "2026-11-11T08:13:58.653Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/2f/dad6bb21373a321932441f47143e693488b0b0a7a9cd68130230daf2318f/procrastinate-3.11.0-py3-none-any.whl", hash = "sha256:97e143ad84c149ad115147b375d6478d871243e40d1db353deb4fe7a4619128d", size = 156933, upload-time = "2026-11-11T08:13:56.891Z" },
 ]
 
 [[package]]
