@@ -49,4 +49,22 @@ describe('writeServerAnswerAndRefresh', () => {
     expect(fetchDoc).toHaveBeenCalledTimes(2);
     expect(client.getQueryData(key)).toEqual({ title: 'New', version: '2' });
   });
+
+  it('fetches a query still on its first load again once that load lands, so what it read before the write does not stay', async () => {
+    const client = testQueryClient();
+    const key = ['doc', 'a'];
+    let answerFirst!: (doc: Doc) => void;
+    const fetchDoc = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<Doc>((resolve) => (answerFirst = resolve)))
+      .mockResolvedValue({ title: 'New', version: '1' });
+    new QueryObserver(client, { queryKey: key, queryFn: fetchDoc, staleTime: Infinity }).subscribe(() => {});
+
+    writeServerAnswerAndRefresh<Doc>(client, { queryKey: key }, (doc) => doc && { ...doc, title: 'New' });
+    answerFirst({ title: 'Old', version: '1' });
+    await flush();
+
+    expect(fetchDoc).toHaveBeenCalledTimes(2);
+    expect(client.getQueryData(key)).toEqual({ title: 'New', version: '1' });
+  });
 });
