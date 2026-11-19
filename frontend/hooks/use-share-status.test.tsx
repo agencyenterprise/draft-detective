@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from 'react';
 import { toast } from 'sonner';
-import type { QueryClient } from '@tanstack/react-query';
+import { QueryObserver, type QueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/api-error';
 import type { ProjectOverview, ShareStatusResponse } from '@/lib/generated-api';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
@@ -124,6 +124,36 @@ describe('useShareStatus', () => {
 
     expect(toast.error).toHaveBeenCalledWith('Failed to disable sharing');
     expect(share().isDialogOpen).toBe(true);
+    expect(cachedStatus(client, 'p-1', null)).toEqual(ENABLED);
+  });
+
+  it('cancels an overview fetch that left before the change and fetches again, so the new link stays', async () => {
+    const client = testQueryClient();
+    const key = projectQueryKeys.overview('p-1', null);
+    client.setQueryData(key, overviewOf('p-1', null));
+    // A poll, or a refetch on refocus, leaves before the enable and would answer after it with no link.
+    let answerFirst!: (o: ProjectOverview) => void;
+    const overviewFetch = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise<ProjectOverview>((resolve) => (answerFirst = resolve)))
+      .mockResolvedValue(overviewOf('p-1', ENABLED));
+    new QueryObserver(client, { queryKey: key, queryFn: overviewFetch, staleTime: Infinity }).subscribe(() => {});
+    const poll = client.refetchQueries({ queryKey: key });
+    let share!: ReturnType<typeof useShareStatus>;
+    function Probe() {
+      share = useShareStatus(overviewOf('p-1', null));
+      return null;
+    }
+    mounted.push(await renderInto(withQueryClient(client, <Probe />)));
+
+    await act(async () => {
+      await share.enable();
+    });
+    await act(async () => answerFirst(overviewOf('p-1', null)));
+    await poll;
+    await flush();
+
+    expect(overviewFetch).toHaveBeenCalledTimes(2);
     expect(cachedStatus(client, 'p-1', null)).toEqual(ENABLED);
   });
 });

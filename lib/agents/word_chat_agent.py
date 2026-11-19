@@ -1,8 +1,8 @@
 """The agent behind the Word add-in's chat.
 
-A fourth consumer of ``lib/agents/deep_agent_setup.py``. It streams like the /chat
-agent (``lib/agents/chat_agent.py``) -- same event mapping, reasoning shown, one
-LangGraph thread per conversation -- and talks about documents like the Teams agent
+Built with ``lib/agents/deep_agent_setup.py``, like the other agents. It streams like
+the /chat agent (``lib/agents/chat_agent.py``) -- same event mapping, reasoning shown,
+one LangGraph thread per conversation -- and talks about documents like the Teams agent
 (``lib/agents/teams_agent.py``), from whose prompt the rules on quoting, changing the
 document and the missing internet are taken.
 
