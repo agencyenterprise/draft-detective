@@ -38,13 +38,26 @@ export async function writeServerAnswer<T>(
  * refresh drops a fetch that left before the change and would land with the old
  * data, and starts it again, so code awaiting that fetch gets the new answer.
  * Queries in use refetch; the rest are marked stale. A query still on its first
- * load holds nothing to write into, and that load lands with what it read.
+ * load holds nothing to write into, and the refresh can't drop that load: it
+ * lands with what it read before the change. So once it lands, it is refreshed
+ * again (its awaiters still get the first answer).
  */
 export function writeServerAnswerAndRefresh<T>(
   queryClient: QueryClient,
   filters: QueryFilters,
   update: (data: T | undefined) => T | undefined,
 ): void {
+  const firstLoads = queryClient
+    .getQueryCache()
+    .findAll({ ...filters, fetchStatus: 'fetching' })
+    .filter((query) => query.state.data === undefined);
   queryClient.setQueriesData<T>(filters, update);
   void queryClient.invalidateQueries(filters);
+  for (const query of firstLoads) {
+    // A failed load brought no old data, so only a successful one is refreshed again.
+    void query.promise?.then(
+      () => queryClient.invalidateQueries({ queryKey: query.queryKey, exact: true }),
+      () => {},
+    );
+  }
 }
