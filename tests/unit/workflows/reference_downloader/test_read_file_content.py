@@ -1,4 +1,7 @@
-"""read_file_content reads downloaded PDFs with pypdfium and reports unreadable files."""
+"""read_file_content reads downloaded PDFs with pypdfium and reports unreadable files.
+
+It reads only the run's own project's files.
+"""
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -11,6 +14,8 @@ from lib.models.file import File
 from lib.workflows.reference_downloader.tools import read_file_content as rfc
 
 FILE_ID = "6f1c2a7e-0b8d-4c55-9a3e-2d4f6b8c0e11"
+PROJECT_ID = "0d2b7e4a-5c61-4f0e-8a93-1b7c2d4e6f80"
+OTHER_PROJECT_ID = "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
 TITLE = "Doctrine for the Armed Forces"
 
 
@@ -47,10 +52,11 @@ def _pdf_with_empty_inline_image_filter(text: str) -> bytes:
     return bytes(out)
 
 
-def _file(path: Path, file_type: str) -> MagicMock:
+def _file(path: Path, file_type: str, project_id: str = PROJECT_ID) -> MagicMock:
     file = MagicMock(spec=File)
     file.file_path = str(path)
     file.file_type = file_type
+    file.project_id = project_id
     return file
 
 
@@ -62,7 +68,7 @@ async def test_reads_a_pdf_that_pdfminer_cannot_parse(tmp_path: Path) -> None:
     with patch.object(
         rfc, "get_file_by_id", AsyncMock(return_value=_file(path, "application/pdf"))
     ):
-        content = await rfc._read_file_content_async(FILE_ID)
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
 
     assert TITLE in content
 
@@ -75,7 +81,7 @@ async def test_an_unreadable_file_returns_the_reason(tmp_path: Path) -> None:
     with patch.object(
         rfc, "get_file_by_id", AsyncMock(return_value=_file(path, "application/pdf"))
     ):
-        content = await rfc._read_file_content_async(FILE_ID)
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
 
     assert content.startswith(f"Could not read file {FILE_ID}")
 
@@ -88,7 +94,7 @@ async def test_a_pdf_without_text_returns_the_reason(tmp_path: Path) -> None:
     with patch.object(
         rfc, "get_file_by_id", AsyncMock(return_value=_file(path, "application/pdf"))
     ):
-        content = await rfc._read_file_content_async(FILE_ID)
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
 
     assert content.startswith(f"Could not read file {FILE_ID}")
 
@@ -98,7 +104,7 @@ async def test_an_unknown_file_id_returns_the_reason() -> None:
     missing = HTTPException(status_code=404, detail="File not found")
 
     with patch.object(rfc, "get_file_by_id", AsyncMock(side_effect=missing)):
-        content = await rfc._read_file_content_async(FILE_ID)
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
 
     assert content.startswith(f"Could not read file {FILE_ID}")
 
@@ -113,4 +119,18 @@ async def test_a_database_error_propagates() -> None:
         patch.object(rfc, "get_file_by_id", AsyncMock(side_effect=outage)),
         pytest.raises(OperationalError),
     ):
-        await rfc._read_file_content_async(FILE_ID)
+        await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
+
+
+@pytest.mark.asyncio
+async def test_a_file_of_another_project_reads_as_missing(tmp_path: Path) -> None:
+    # The agent reads ids off web pages: one naming another project's file must
+    # not return that file's text.
+    path = tmp_path / "theirs.md"
+    path.write_text("Another project's confidential draft")
+    theirs = _file(path, "text/markdown", project_id=OTHER_PROJECT_ID)
+
+    with patch.object(rfc, "get_file_by_id", AsyncMock(return_value=theirs)):
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
+
+    assert content == f"Could not read file {FILE_ID}: File not found"
