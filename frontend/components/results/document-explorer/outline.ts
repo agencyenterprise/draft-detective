@@ -11,7 +11,10 @@ export interface OutlineEntry {
 }
 
 const HEADING = /^(#{1,3})\s+(.*\S)\s*$/;
-const FENCE = /^\s*(`{3,}|~{3,})/;
+// Indented four spaces or more, a delimiter is indented code rather than a fence.
+// That holds outside lists; inside one, an item's own indent shifts it, which this
+// doesn't track. No `$`: a CRLF document's lines end in `\r`, which `.` won't match.
+const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)/;
 
 /**
  * Reads the document outline straight off the markdown source so heading line
@@ -21,18 +24,19 @@ const FENCE = /^\s*(`{3,}|~{3,})/;
 export function extractOutline(markdown: string): OutlineEntry[] {
   const entries: OutlineEntry[] = [];
   // The delimiter that opened the current fence, or null outside one. Markdown
-  // closes a fence only on the same character, at least as long as the opener,
-  // so a ~~~ line inside a ``` block is content rather than the end of it.
+  // closes a fence only on a bare run of the same character, at least as long as
+  // the opener, so a ~~~ or ```js line inside a ``` block is content rather than
+  // the end of it.
   let fence: { char: string; length: number } | null = null;
 
   markdown.split('\n').forEach((raw, index) => {
-    const delimiter = FENCE.exec(raw)?.[1];
+    const [, delimiter, rest] = FENCE.exec(raw) ?? [];
     if (delimiter) {
       if (!fence) {
         fence = { char: delimiter[0], length: delimiter.length };
         return;
       }
-      if (delimiter[0] === fence.char && delimiter.length >= fence.length) {
+      if (delimiter[0] === fence.char && delimiter.length >= fence.length && !rest.trim()) {
         fence = null;
         return;
       }

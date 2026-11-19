@@ -78,6 +78,14 @@ describe('extractOutline', () => {
     expect(headings(markdown)).toEqual([[1, 4, 'After']]);
   });
 
+  it('skips headings inside a code block in a document with Windows line endings', () => {
+    expect(headings(['```', '# not a heading', '```', '# After'].join('\r\n'))).toEqual([[1, 4, 'After']]);
+  });
+
+  it('closes a fence on a delimiter followed by spaces', () => {
+    expect(headings(['```', '# not a heading', '```  ', '# After'].join('\n'))).toEqual([[1, 4, 'After']]);
+  });
+
   it('keeps a fence open across a line of the other fence character', () => {
     const markdown = ['```', '~~~', '# not a heading', '```', '# After'].join('\n');
 
@@ -88,6 +96,19 @@ describe('extractOutline', () => {
     const markdown = ['````', '```', '# not a heading', '````', '# After'].join('\n');
 
     expect(headings(markdown)).toEqual([[1, 5, 'After']]);
+  });
+
+  it('keeps a fence open across an opening fence with a language', () => {
+    // Markdown closes a fence only on a bare delimiter: ```js inside a block is code.
+    const markdown = ['```', '```js', '# not a heading', '```', '# After'].join('\n');
+
+    expect(headings(markdown)).toEqual([[1, 5, 'After']]);
+  });
+
+  it('opens no fence on a delimiter indented four spaces, which is indented code', () => {
+    const markdown = ['Text', '', '    ```', '# Real heading'].join('\n');
+
+    expect(headings(markdown)).toEqual([[1, 4, 'Real heading']]);
   });
 
   it('lists nothing after a fence that never closes', () => {
