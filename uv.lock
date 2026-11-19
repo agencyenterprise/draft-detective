@@ -862,7 +862,7 @@ wheels = [
 
 [[package]]
 name = "draft-detective"
-version = "2.9.1"
+version = "2.9.2"
 source = { editable = "." }
 dependencies = [
     { name = "aenum" },
