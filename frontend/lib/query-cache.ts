@@ -1,5 +1,16 @@
 import type { QueryClient, QueryFilters } from '@tanstack/react-query';
 
+/*
+ * Two ways to put a server's answer into the cache over a fetch that may still
+ * be on its way. Both write at once; they differ in what they do to that fetch.
+ *
+ * - `writeServerAnswer` cancels it and asks again in the background. Use it for
+ *   lists nothing else awaits: cancelling hands the old data to anyone awaiting.
+ * - `writeServerAnswerAndRefresh` refreshes every matching query instead. Use it
+ *   where other code awaits those fetches (the project overviews: the refresh
+ *   after a start, a revision's first load), so the fetch it awaits still lands.
+ */
+
 /**
  * Writes what the server answered into the cached queries matching `filters`,
  * so the page shows it without asking again. A fetch still on its way may have
@@ -19,4 +30,20 @@ export async function writeServerAnswer<T>(
   for (const query of inFlight) {
     void queryClient.refetchQueries({ queryKey: query.queryKey, exact: true });
   }
+}
+
+/**
+ * Writes what the server answered into the cached queries matching `filters`,
+ * so the page shows it at once, then refreshes them in the background. The
+ * refresh drops a fetch that left before the change and would land with the old
+ * data, and starts it again, so code awaiting that fetch gets the new answer.
+ * Mounted queries refetch; the rest are marked stale.
+ */
+export function writeServerAnswerAndRefresh<T>(
+  queryClient: QueryClient,
+  filters: QueryFilters,
+  update: (data: T | undefined) => T | undefined,
+): void {
+  queryClient.setQueriesData<T>(filters, update);
+  void queryClient.invalidateQueries(filters);
 }
