@@ -115,3 +115,18 @@ async def test_the_projects_own_file_still_reads() -> None:
 
     assert document.markdown == SECRET
     assert summary.summary == SECRET
+
+
+@pytest.mark.asyncio
+async def test_a_file_without_a_project_is_not_found() -> None:
+    # Chat, Teams and Word attachments belong to no project.
+    service = _service()
+    attachment = _file(project_id=uuid.uuid4())
+    attachment.project_id = None
+
+    with (
+        patch(f"{MODULE}.get_file_by_id", AsyncMock(return_value=attachment)),
+        patch(f"{MODULE}.get_project_workflow_run_with_state", _no_runs()),
+        pytest.raises(ValueError, match="No workflow run found"),
+    ):
+        await service.get_file_document(str(attachment.id))
