@@ -8,6 +8,7 @@ import {
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
 import { PROJECT_LIST_QUERY_KEY, projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { writeServerAnswerAndRefresh } from '@/lib/query-cache';
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -23,13 +24,11 @@ export interface UpdateProjectOptions extends Pick<
 
 /**
  * Saves changes to a project's own fields (title, date, settings). The server
- * answers with the whole project, which goes straight into every cached
- * overview of it, so the page shows the change at once. The overviews are then
- * refreshed too: that cancels a poll that left before the save and would land
- * with the old project, and restarts it, so a fetch something else is waiting
- * on (the refresh after a start, a first load) still lands. Nothing else under
- * `['project', id]` changed. The project list shows these fields, so it is
- * refreshed as well.
+ * answers with the whole project, which goes into every cached overview of it
+ * through `writeServerAnswerAndRefresh`, so the page shows the change at once
+ * and a poll that left before the save can't bring the old project back.
+ * Nothing else under `['project', id]` changed. The project list shows these
+ * fields, so it is refreshed as well.
  *
  * On failure it toasts the server's reason, or `errorMessage`.
  */
@@ -47,11 +46,11 @@ export function useUpdateProject(
     onSuccess: (project, ...rest) => {
       if (projectId) {
         // The overview is keyed per revision, so every cached revision of it gets the project.
-        const overviews = { queryKey: projectQueryKeys.overviews(projectId) };
-        queryClient.setQueriesData(overviews, (overview: ProjectOverview | undefined) =>
-          overview ? { ...overview, project } : overview,
+        writeServerAnswerAndRefresh<ProjectOverview>(
+          queryClient,
+          { queryKey: projectQueryKeys.overviews(projectId) },
+          (overview) => overview && { ...overview, project },
         );
-        void queryClient.invalidateQueries(overviews);
       }
       void queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY });
       if (successMessage) toast.success(successMessage);
