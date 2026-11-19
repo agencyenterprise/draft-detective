@@ -11,10 +11,9 @@ export interface OutlineEntry {
 }
 
 const HEADING = /^(#{1,3})\s+(.*\S)\s*$/;
-// Indented four spaces or more, a delimiter is indented code rather than a fence.
-// That holds outside lists; inside one, an item's own indent shifts it, which this
-// doesn't track. No `$`: a CRLF document's lines end in `\r`, which `.` won't match.
-const FENCE = /^ {0,3}(`{3,}|~{3,})(.*)/;
+// Any indent: a list item's fence sits as deep as the item, and the outline doesn't
+// track list nesting. No `$`: a CRLF document's lines end in `\r`, which `.` won't match.
+const FENCE = /^\s*(`{3,}|~{3,})(.*)/;
 
 /**
  * Reads the document outline straight off the markdown source so heading line

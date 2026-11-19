@@ -105,10 +105,10 @@ describe('extractOutline', () => {
     expect(headings(markdown)).toEqual([[1, 5, 'After']]);
   });
 
-  it('opens no fence on a delimiter indented four spaces, which is indented code', () => {
-    const markdown = ['Text', '', '    ```', '# Real heading'].join('\n');
+  it("closes a list item's fence whose closer is indented differently from its opener", () => {
+    const markdown = ['1. Run:', '', '   ```bash', '   # comment', '    ```', '', '# After'].join('\n');
 
-    expect(headings(markdown)).toEqual([[1, 4, 'Real heading']]);
+    expect(headings(markdown)).toEqual([[1, 7, 'After']]);
   });
 
   it('lists nothing after a fence that never closes', () => {
