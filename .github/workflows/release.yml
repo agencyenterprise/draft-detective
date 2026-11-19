@@ -9,11 +9,12 @@ name: Release
 # The release pull request (dev -> main, kept by release-pr.yml) carries the
 # label; release-label.yml makes sure every pull request has exactly one.
 #
-# One commit carries the version bump (pyproject.toml, uv.lock and
-# frontend/package.json) and the changelog entry, and the tag points at it, so
-# `vX.Y.Z` is always a tree that says X.Y.Z and lists its own changes. Nothing
-# is pushed until the changelog is written: a failed run leaves main untouched
-# and can be re-run, or replaced by a manual run of this workflow.
+# One commit carries the version bump (pyproject.toml, uv.lock,
+# frontend/package.json and the Claude Code and Codex plugin manifests) and the
+# changelog entry, and the tag points at it, so `vX.Y.Z` is always a tree that
+# says X.Y.Z and lists its own changes. Nothing is pushed until the changelog
+# is written: a failed run leaves main untouched and can be re-run, or replaced
+# by a manual run of this workflow.
 #
 # Every push uses the release bot's token. The bot is a bypass actor on the
 # rules protecting main and dev, and a tag pushed with GITHUB_TOKEN would start
@@ -92,6 +93,8 @@ jobs:
     env:
       KIND: ${{ needs.resolve.outputs.kind }}
       DRY_RUN: ${{ needs.resolve.outputs.dry_run }}
+      # The JSON files that carry the app version besides pyproject.toml.
+      VERSIONED_JSON: frontend/package.json .claude-plugin/plugin.json .codex-plugin/plugin.json
     steps:
       - name: Create release bot token
         id: app-token
@@ -130,13 +133,22 @@ jobs:
           # pyproject.toml, without building a virtualenv to do it.
           uv version --bump "$KIND" --no-sync
           VERSION=$(uv version --short)
+          # The frontend and the Claude Code and Codex plugin manifests carry
+          # the same version. Only the "version" line changes, so each file
+          # keeps its own formatting; the read-back fails the run if a file
+          # has no top-level version to set.
           node -e '
             const fs = require("fs");
-            const path = "frontend/package.json";
-            const pkg = JSON.parse(fs.readFileSync(path, "utf8"));
-            pkg.version = process.argv[1];
-            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
-          ' "$VERSION"
+            const [version, ...paths] = process.argv.slice(1);
+            for (const path of paths) {
+              const text = fs.readFileSync(path, "utf8");
+              const updated = text.replace(/"version":\s*"[^"]*"/, `"version": "${version}"`);
+              if (JSON.parse(updated).version !== version) {
+                throw new Error(`${path}: no top-level "version" to set`);
+              }
+              fs.writeFileSync(path, updated);
+            }
+          ' "$VERSION" $VERSIONED_JSON
           echo "previous_tag=${PREVIOUS_TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "${PREVIOUS_TAG} -> v${VERSION}"
@@ -199,7 +211,7 @@ jobs:
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pyproject.toml uv.lock frontend/package.json CHANGELOG.md
+          git add pyproject.toml uv.lock $VERSIONED_JSON CHANGELOG.md
           git commit -qm "$MESSAGE"
           git tag -a "$TAG" -m "$MESSAGE"
 

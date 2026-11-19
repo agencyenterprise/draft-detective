@@ -369,4 +369,4 @@ WIP
 
 Always target `dev` unless the user names another base branch. Always fill in `.github/pull_request_template.md` for the description.
 
-Every pull request carries exactly one release label, and a required check enforces it. New pull requests default to `release:patch`. Use `release:minor` for a new feature, `release:major` for a breaking change and `norelease` for work that changes nothing a user or deployer sees (CI, tests, docs). Never edit the version in `pyproject.toml`, `uv.lock` or `frontend/package.json`: the release workflow sets all three. `CONTRIBUTING.md` explains the release flow.
+Every pull request carries exactly one release label, and a required check enforces it. New pull requests default to `release:patch`. Use `release:minor` for a new feature, `release:major` for a breaking change and `norelease` for work that changes nothing a user or deployer sees (CI, tests, docs). Never edit the version in `pyproject.toml`, `uv.lock`, `frontend/package.json`, `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`: the release workflow sets them all. `CONTRIBUTING.md` explains the release flow.
