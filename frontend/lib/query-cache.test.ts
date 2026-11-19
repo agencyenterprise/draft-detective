@@ -28,7 +28,7 @@ describe('writeServerAnswerAndRefresh', () => {
     expect(client.getQueryState(['doc', 'b', 1])?.isInvalidated).toBe(false);
   });
 
-  it('drops a fetch that left before the write and fetches again, so the old data never lands and its awaiter still settles', async () => {
+  it('drops a fetch that left before the write and fetches again, so the old data never lands and its awaiter gets the new', async () => {
     const client = testQueryClient();
     const key = ['doc', 'a'];
     client.setQueryData(key, { title: 'Old', version: '1' });
@@ -39,13 +39,13 @@ describe('writeServerAnswerAndRefresh', () => {
       .mockResolvedValue({ title: 'New', version: '2' });
     new QueryObserver(client, { queryKey: key, queryFn: fetchDoc, staleTime: Infinity }).subscribe(() => {});
     // Something, say the refresh after a start, awaits a fetch that left before the change.
-    const awaited = client.refetchQueries({ queryKey: key });
+    const awaited = client.getQueryCache().find<Doc>({ queryKey: key })!.fetch();
 
     writeServerAnswerAndRefresh<Doc>(client, { queryKey: key }, (doc) => doc && { ...doc, title: 'New' });
     answerFirst({ title: 'Old', version: '1' });
-    await awaited;
-    await flush();
 
+    await expect(awaited).resolves.toEqual({ title: 'New', version: '2' });
+    await flush();
     expect(fetchDoc).toHaveBeenCalledTimes(2);
     expect(client.getQueryData(key)).toEqual({ title: 'New', version: '2' });
   });

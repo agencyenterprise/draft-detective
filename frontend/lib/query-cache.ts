@@ -8,7 +8,7 @@ import type { QueryClient, QueryFilters } from '@tanstack/react-query';
  *   lists nothing else awaits: cancelling hands the old data to anyone awaiting.
  * - `writeServerAnswerAndRefresh` refreshes every matching query instead. Use it
  *   where other code awaits those fetches (the project overviews: the refresh
- *   after a start, a revision's first load), so the fetch it awaits still lands.
+ *   after a start), so the fetch it awaits lands with the new answer.
  */
 
 /**
@@ -37,7 +37,8 @@ export async function writeServerAnswer<T>(
  * so the page shows it at once, then refreshes them in the background. The
  * refresh drops a fetch that left before the change and would land with the old
  * data, and starts it again, so code awaiting that fetch gets the new answer.
- * Mounted queries refetch; the rest are marked stale.
+ * Queries in use refetch; the rest are marked stale. A query still on its first
+ * load holds nothing to write into, and that load lands with what it read.
  */
 export function writeServerAnswerAndRefresh<T>(
   queryClient: QueryClient,
