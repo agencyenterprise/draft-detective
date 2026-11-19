@@ -18,6 +18,7 @@ from lib.services.files.service import (
     find_main_file,
     get_file_by_id,
     get_files_by_project_id,
+    in_project,
     load_file_document,
     update_file_artifacts,
 )
@@ -156,7 +157,7 @@ class FileArtifactsService(FileArtifactsServiceType):
         an id from another project must not open that project's files.
         """
         file = await get_file_by_id(file_id)
-        if str(file.project_id) != str(self.project_id):
+        if not in_project(file, self.project_id):
             logger.warning(
                 "Refused file %s: it is not in project %s", file_id, self.project_id
             )

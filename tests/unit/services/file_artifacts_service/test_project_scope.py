@@ -130,3 +130,16 @@ async def test_a_file_without_a_project_is_not_found() -> None:
         pytest.raises(ValueError, match="No workflow run found"),
     ):
         await service.get_file_document(str(attachment.id))
+
+
+@pytest.mark.asyncio
+async def test_a_project_id_spelled_differently_still_reads_its_files() -> None:
+    # Routes build the service from the id as the request spelled it.
+    project_id = uuid.uuid4()
+    service = FileArtifactsService(project_id=project_id.hex.upper(), revision=1)
+    ours = _file(project_id=project_id)
+
+    with patch(f"{MODULE}.get_file_by_id", AsyncMock(return_value=ours)):
+        document = await service.get_file_document(str(ours.id))
+
+    assert document.markdown == SECRET

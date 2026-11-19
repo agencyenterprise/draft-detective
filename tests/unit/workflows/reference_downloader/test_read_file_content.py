@@ -3,6 +3,7 @@
 It reads only the run's own project's files.
 """
 
+import uuid
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -56,7 +57,7 @@ def _file(path: Path, file_type: str, project_id: str = PROJECT_ID) -> MagicMock
     file = MagicMock(spec=File)
     file.file_path = str(path)
     file.file_type = file_type
-    file.project_id = project_id
+    file.project_id = uuid.UUID(project_id)
     return file
 
 
@@ -134,3 +135,16 @@ async def test_a_file_of_another_project_reads_as_missing(tmp_path: Path) -> Non
         content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID)
 
     assert content == f"Could not read file {FILE_ID}: File not found"
+
+
+@pytest.mark.asyncio
+async def test_the_projects_id_reads_its_files_however_spelled(tmp_path: Path) -> None:
+    path = tmp_path / "ours.md"
+    path.write_text(TITLE)
+
+    with patch.object(
+        rfc, "get_file_by_id", AsyncMock(return_value=_file(path, "text/markdown"))
+    ):
+        content = await rfc._read_file_content_async(FILE_ID, PROJECT_ID.upper())
+
+    assert content == TITLE

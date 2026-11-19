@@ -7,7 +7,7 @@ from langchain.tools import ToolRuntime, tool
 from lib.models.file import File
 from lib.services.converters.markitdown import markitdown_converter
 from lib.services.converters.pypdfium import pypdfium_converter
-from lib.services.files.service import get_file_by_id
+from lib.services.files.service import get_file_by_id, in_project
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ async def _read_file_content_async(file_id: str, project_id: str) -> str:
         return f"Could not read file {file_id}: {exc.detail}"
     # The agent reads ids off web pages too: one from another project is
     # answered as missing, so it learns nothing about that project's files.
-    if str(file.project_id) != str(project_id):
+    if not in_project(file, project_id):
         logger.warning(
             "read_file_content: file %s is not in project %s", file_id, project_id
         )
