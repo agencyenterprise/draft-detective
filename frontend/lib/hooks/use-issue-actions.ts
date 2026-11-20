@@ -2,11 +2,10 @@ import {
   resolveIssueEndpointApiIssuesIssueIdResolvePost,
   unresolveIssueEndpointApiIssuesIssueIdUnresolvePost,
 } from '@/lib/generated-api';
-import { getErrorMessage } from '@/lib/api-error';
 import { Issue, IssueResponse } from '@/lib/generated-api';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 import { writeServerAnswer } from '@/lib/query-cache';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { projectQueryKeys } from './use-project-data';
 
 interface ResolutionChange {
@@ -22,8 +21,10 @@ interface ResolutionChange {
  */
 function useResolutionChange({ send, success, failure }: ResolutionChange) {
   const queryClient = useQueryClient();
-  return useMutation({
+  return useToastMutation({
     mutationFn: (issueId: string) => send({ path: { issue_id: issueId } }),
+    successMessage: success,
+    errorMessage: failure,
     onSuccess: async (updated) => {
       await writeServerAnswer<Issue[]>(
         queryClient,
@@ -41,10 +42,6 @@ function useResolutionChange({ send, success, failure }: ResolutionChange) {
               : issue,
           ),
       );
-      toast.success(success);
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, failure));
     },
   });
 }
