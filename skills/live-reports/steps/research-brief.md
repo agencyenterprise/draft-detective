@@ -2,7 +2,7 @@
 
 Write the brief as an email to a colleague who knows the report well: what has changed since it was published, what that does to its claims, and how sure we are. Your reader doesn't need the report explained, only what's new. Most readers will stop after the first section, so it must stand on its own; the rest is for those who want to check.
 
-You are given the research plan and the notes: one per fact, data source and angle. The claims weren't researched; judging them is your job.
+You are given the research plan and the notes: one per fact, data source and angle. The claims weren't researched; judging them is your job. Use only the notes for items in the current plan: a note for an item the plan no longer has doesn't count.
 
 ## Judge each claim
 

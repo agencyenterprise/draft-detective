@@ -98,8 +98,10 @@ touch no other file. Read `/skills/voice-and-tone/SKILL.md` first, then the \
 step's instructions, and follow them. Reply in one line, as they say.
 
 - The research brief: follow `/skills/live-reports/steps/research-brief.md`. Read \
-the research plan and every note under `{LIVE_REPORT_DIR}/research/`, then write \
-`{LIVE_REPORT_DIR}/research-brief.md`, using only what the notes contain.
+the research plan and the note under `{LIVE_REPORT_DIR}/research/` for each item \
+in it, then write `{LIVE_REPORT_DIR}/research-brief.md`, using only what those notes \
+contain. A note for an item the plan no longer has, or one you are told is stale, \
+doesn't count.
 - The addendum: follow `/skills/live-reports/steps/addendum.md`. Read the intake, \
 the approved `{LIVE_REPORT_DIR}/research-brief.md` and the user's answers you are \
 given, then write `{LIVE_REPORT_DIR}/addendum.md`, using only what the brief \

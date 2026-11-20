@@ -31,7 +31,8 @@ export const MESSAGES = {
   approvePlan: 'The plan is approved. Yes, I consent to running web search on this document. Start the research.',
   approveOutputs: 'Approved.',
   /** After a stop during research: finish the items without notes, then the brief. */
-  resumeResearch: 'Continue the research: research the items that have no notes yet, then write the brief.',
+  resumeResearch:
+    'Continue the research: research the items that have no notes yet, and again any item the plan changed since its note was written, then write the brief.',
   /** After a stop before the intake: start again on the report already attached. */
   retryIntake: 'Please read the attached report again and write the intake.',
 };
