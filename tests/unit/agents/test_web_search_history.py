@@ -7,7 +7,7 @@ from pydantic import SecretStr
 from lib.agents.web_search_history import repair_web_search_history
 
 
-def _search(args: dict | None) -> AIMessage:
+def _search(args: dict | None, provider: str = "openai") -> AIMessage:
     call: dict = {"type": "server_tool_call", "name": "web_search", "id": "ws_1"}
     if args is not None:
         call["args"] = args
@@ -17,7 +17,7 @@ def _search(args: dict | None) -> AIMessage:
             {"type": "server_tool_result", "tool_call_id": "ws_1", "status": "success"},
             {"type": "text", "text": "Nothing new."},
         ],
-        response_metadata={"model_provider": "openai"},
+        response_metadata={"model_provider": provider},
     )
 
 
@@ -62,3 +62,10 @@ def test_openai_native_blocks_are_repaired_too() -> None:
     assert repaired.content == [{"type": "web_search_call", "id": "ws_1"}]
     # The state's copy is untouched: only the request is fixed.
     assert message.content[0]["action"] == {"query": "x"}  # type: ignore[index]
+
+
+def test_another_providers_search_is_left_alone() -> None:
+    # Anthropic's searches carry {"query": …} with no type, and that is valid.
+    message = _search({"query": "office vacancy 2026"}, provider="anthropic")
+
+    assert repair_web_search_history([message])[0] is message
