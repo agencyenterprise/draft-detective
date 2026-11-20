@@ -79,3 +79,15 @@ describe('useLiveReport following a turn it is not streaming', () => {
     await view.unmount();
   });
 });
+
+describe('useLiveReport opening a report', () => {
+  it('reads the files once more when the first look finds the turn over', async () => {
+    // The turn may have ended while the first files read was in flight.
+    api.listFiles.mockClear();
+    const client = testQueryClient();
+    const view = await renderInto(withQueryClient(client, <Probe id="S" />));
+    await flush();
+    expect(api.listFiles.mock.calls.length).toBeGreaterThanOrEqual(2);
+    await view.unmount();
+  });
+});

@@ -15,26 +15,34 @@ import {
 const file = (name: string, content = '') => ({ name, content });
 
 describe('stepOf', () => {
+  const approved = 'The brief is approved. Leave the questions for the authors open.\nI want the addendum.';
+
   it('follows the files the agent has written', () => {
-    expect(stepOf([], undefined)).toBe('upload');
-    expect(stepOf([file('intake.md')], undefined)).toBe('intake');
-    expect(stepOf([file('intake.md'), file('research-plan.md')], MESSAGES.approveIntake)).toBe('plan');
-    expect(stepOf([file('research-plan.md'), file('research/F1.md')], undefined)).toBe('research');
-    expect(stepOf([file('research-plan.md'), file('research-brief.md')], undefined)).toBe('brief');
-    expect(stepOf([file('research-brief.md'), file('addendum.md')], undefined)).toBe('outputs');
-    expect(stepOf([file('research-brief.md'), file('change-plan.md')], undefined)).toBe('outputs');
+    expect(stepOf([], [])).toBe('upload');
+    expect(stepOf([file('intake.md')], [MESSAGES.start])).toBe('intake');
+    expect(stepOf([file('intake.md'), file('research-plan.md')], [MESSAGES.approveIntake])).toBe('plan');
+    expect(stepOf([file('research-plan.md'), file('research-brief.md')], [MESSAGES.approvePlan])).toBe('brief');
+    expect(stepOf([file('research-brief.md'), file('addendum.md')], [approved])).toBe('outputs');
+    expect(stepOf([file('research-brief.md'), file('change-plan.md')], [approved])).toBe('outputs');
   });
 
-  it('is researching once the plan is approved, before any note exists', () => {
-    expect(stepOf([file('research-plan.md')], MESSAGES.approvePlan)).toBe('research');
+  it('is researching from a go-ahead, before any note exists', () => {
+    expect(stepOf([file('research-plan.md')], [MESSAGES.approvePlan])).toBe('research');
+    expect(stepOf([file('research-plan.md'), file('research/F1.md')], [MESSAGES.resumeResearch])).toBe('research');
+    expect(stepOf([file('research-plan.md'), file('research/F1.md')], [MESSAGES.approveRevisedPlan])).toBe('research');
   });
 
-  it('is researching again once resumed after a stop', () => {
-    expect(stepOf([file('research-plan.md')], MESSAGES.resumeResearch)).toBe('research');
+  it('is back on the plan when it is changed after research started', () => {
+    const files = [file('research-plan.md'), file('research/F1.md')];
+    expect(stepOf(files, [MESSAGES.approvePlan, 'Drop F1 and add a fact on remote work.'])).toBe('plan');
   });
 
   it('stays on the plan while the agent revises it', () => {
-    expect(stepOf([file('research-plan.md')], 'Drop F4.')).toBe('plan');
+    expect(stepOf([file('research-plan.md')], ['Drop F4.'])).toBe('plan');
+  });
+
+  it('is on the outputs once the brief is approved, even before one is written', () => {
+    expect(stepOf([file('research-brief.md')], [MESSAGES.approvePlan, approved])).toBe('outputs');
   });
 });
 
@@ -160,7 +168,7 @@ describe('outputsMessage', () => {
 
   it('passes on the answers given, by what they are about', () => {
     const message = outputsMessage({ addendum: true, changePlan: true }, ['', 'Yes, cover them.'], questions);
-    expect(message).toContain('1. C6–C8 (A1): Yes, cover them.');
+    expect(message).toContain('2. C6–C8 (A1): Should the framework cover agentic tasks?\n   Answer: Yes, cover them.');
     expect(message).toContain('I want the addendum and the change plan.');
   });
 });
@@ -177,6 +185,10 @@ describe('missingOutputs', () => {
     expect(missingOutputs([file('addendum.md'), file('change-plan.md')], [you(both)])).toEqual([]);
     const addendumOnly = outputsMessage({ addendum: true, changePlan: false }, [], []);
     expect(missingOutputs([file('addendum.md')], [you(addendumOnly)])).toEqual([]);
+  });
+
+  it('names every output when the turn stopped before writing any', () => {
+    expect(missingOutputs([file('research-brief.md')], [you(both)])).toEqual(['addendum', 'changePlan']);
   });
 
   it('reads what was asked from the request line, not from the answers', () => {

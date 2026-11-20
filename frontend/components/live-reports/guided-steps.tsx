@@ -8,6 +8,7 @@ import {
   FILE_OF,
   fileContent,
   outputsMessage,
+  questionKey,
   researchItems,
   STEPS,
   type Outputs,
@@ -62,7 +63,7 @@ export function GuidedSteps({ report, onStart }: { report: LiveReport; onStart: 
   const [viewing, setViewing] = useState<Step | null>(null);
   // The brief's draft lives here, not in CurrentStep, so looking back at an
   // earlier step while answering it keeps what was typed and chosen.
-  const [answers, setAnswers] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [outputs, setOutputs] = useState<Outputs>({ addendum: true, changePlan: true });
   const draft: BriefDraft = { answers, setAnswers, outputs, setOutputs };
   const current = STEPS.indexOf(report.step);
@@ -169,8 +170,9 @@ function StepHeading({ title, hint }: { title: string; hint: string }) {
  * choice live here so its approve button can sit in that footer.
  */
 interface BriefDraft {
-  answers: string[];
-  setAnswers: (answers: string[]) => void;
+  /** By question (`questionKey`), so a revised brief's questions don't inherit another's answer. */
+  answers: Record<string, string>;
+  setAnswers: (answers: Record<string, string>) => void;
   outputs: Outputs;
   setOutputs: (outputs: Outputs) => void;
 }
@@ -184,8 +186,11 @@ interface CurrentStepProps {
 
 function CurrentStep({ report, draft, onStart, onFileLink }: CurrentStepProps) {
   const { step, working, lastReply } = report;
-  const { answers, setAnswers, outputs, setOutputs } = draft;
+  const { outputs, setOutputs } = draft;
   const questions = authorQuestions(fileContent(report.files, FILE_OF.brief));
+  const answers = questions.map((q) => draft.answers[questionKey(q)] ?? '');
+  const setAnswers = (next: string[]) =>
+    draft.setAnswers({ ...draft.answers, ...Object.fromEntries(questions.map((q, k) => [questionKey(q), next[k]])) });
   const researched = researchItems(fileContent(report.files, FILE_OF.plan), report.files);
   const items = researched.length;
   const researchDone = items > 0 && researched.every((item) => item.verdict);

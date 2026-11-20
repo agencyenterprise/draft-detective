@@ -88,12 +88,15 @@ export function useLiveReport(threadId: string | null) {
     queryFn: async () => {
       const wasRunning = queryClient.getQueryData<{ is_running: boolean }>(threadKey)?.is_running;
       const next = await getThreadApiChatThreadsThreadIdGet({ path: { thread_id: threadId! } });
-      // The turn just ended (one this page isn't streaming): read the files and
-      // messages once more, since their last poll may predate the turn's end.
-      // Not the thread's own key: refetching it from inside its fetch would loop.
-      if (wasRunning && !next.is_running) {
+      // As /chat's followThread does: when the turn just ended, or this is the first
+      // look and it may have ended while the files and messages were being read,
+      // read them once more. A read already in flight may predate the end, so it is
+      // cancelled first (refetching alone would reuse it while there's no data yet).
+      // Never the thread's own key: refetching it from inside its fetch would loop.
+      if (wasRunning !== false && !next.is_running) {
         for (const part of ['files', 'messages']) {
-          void queryClient.invalidateQueries({ queryKey: [...liveReportKey(threadId), part] });
+          const key = [...liveReportKey(threadId), part];
+          void queryClient.cancelQueries({ queryKey: key }).then(() => queryClient.refetchQueries({ queryKey: key }));
         }
       }
       return next;
@@ -118,7 +121,7 @@ export function useLiveReport(threadId: string | null) {
   });
 
   const conversation = conversationOf(messages.data ?? []);
-  const lastSent = conversation.findLast((m) => m.from === 'you')?.text;
+  const sent = conversation.filter((m) => m.from === 'you').map((m) => m.text);
   const lastReply = conversation.at(-1)?.from === 'agent' ? conversation.at(-1)?.text : undefined;
   const fileList = files.data ?? [];
 
@@ -155,7 +158,7 @@ export function useLiveReport(threadId: string | null) {
     messages: messages.data ?? [],
     conversation,
     lastReply,
-    step: stepOf(fileList, lastSent),
+    step: stepOf(fileList, sent),
     send: (message: string) => send(message),
     refresh,
     async stop() {

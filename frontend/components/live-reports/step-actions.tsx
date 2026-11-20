@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Check, Square } from 'lucide-react';
 import {
+  BRIEF_APPROVED,
   finishOutputsMessage,
   MESSAGES,
   missingOutputs,
@@ -26,8 +27,7 @@ function workingLabel(step: Step, lastSent: string | undefined, researchDone: bo
       ? 'All items researched. Writing the brief…'
       : 'Researching. The brief follows once every item is done…';
   }
-  if (step === 'brief')
-    return lastSent?.startsWith('The brief is approved') ? 'Writing the outputs…' : 'Updating the brief…';
+  if (step === 'brief') return lastSent?.startsWith(BRIEF_APPROVED) ? 'Writing the outputs…' : 'Updating the brief…';
   return 'Updating…';
 }
 
@@ -54,13 +54,17 @@ function approveBriefLabel({ addendum, changePlan }: Outputs): string {
 export function StepActions({ report, items, researchDone, onApproveBrief, outputs }: StepActionsProps) {
   const { step, working } = report;
   const lastSent = report.conversation.findLast((m) => m.from === 'you')?.text;
+  // Back on the plan after research began: the plan was changed, and consent was given.
+  const revised = step === 'plan' && report.files.some((f) => f.name.startsWith('research/'));
   return (
     <footer className="bg-background border-t">
       {/* Aligned with the reading column above. */}
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-2 px-6 py-3">
         {report.error && <p className="text-destructive text-sm">{report.error}</p>}
         {/* The button sends the person's consent to web search, so it says what that means. */}
-        {step === 'plan' && <p className="text-muted-foreground text-xs leading-relaxed">{SEARCH_DISCLOSURE}</p>}
+        {step === 'plan' && !revised && (
+          <p className="text-muted-foreground text-xs leading-relaxed">{SEARCH_DISCLOSURE}</p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {step === 'upload' && !working && (
             <Button onClick={() => report.send(MESSAGES.retryIntake)}>Try again</Button>
@@ -73,11 +77,16 @@ export function StepActions({ report, items, researchDone, onApproveBrief, outpu
               Approve and continue
             </Button>
           )}
-          {step === 'plan' && (
-            <Button disabled={working} onClick={() => report.send(MESSAGES.approvePlan)}>
-              Consent and start the research{items ? ` (${items} items)` : ''}
-            </Button>
-          )}
+          {step === 'plan' &&
+            (revised ? (
+              <Button disabled={working} onClick={() => report.send(MESSAGES.approveRevisedPlan)}>
+                Approve the revised plan and continue the research
+              </Button>
+            ) : (
+              <Button disabled={working} onClick={() => report.send(MESSAGES.approvePlan)}>
+                Consent and start the research{items ? ` (${items} items)` : ''}
+              </Button>
+            ))}
           {step === 'brief' && (
             <Button disabled={working || !onApproveBrief} onClick={onApproveBrief}>
               {approveBriefLabel(outputs)}

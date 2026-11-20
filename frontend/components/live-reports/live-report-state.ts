@@ -33,6 +33,9 @@ export const MESSAGES = {
   /** After a stop during research: finish the items without notes, then the brief. */
   resumeResearch:
     'Continue the research: research the items that have no notes yet, and again any item the plan changed since its note was written, then write the brief.',
+  /** A plan changed after research started: carry on with the changed scope. */
+  approveRevisedPlan:
+    'The revised plan is approved. Research the items that have no notes yet and again any item the change rewrote, then write the brief.',
   /** After a stop before the intake: start again on the report already attached. */
   retryIntake: 'Please read the attached report again and write the intake.',
 };
@@ -46,17 +49,25 @@ export interface Outputs {
   changePlan: boolean;
 }
 
+/** The start of the message that approves the brief, whatever answers and outputs follow. */
+export const BRIEF_APPROVED = 'The brief is approved';
+
+/** The messages that send the run into research. */
+const RESEARCH_GO: string[] = [MESSAGES.approvePlan, MESSAGES.resumeResearch, MESSAGES.approveRevisedPlan];
+
 /**
- * The step the run is on. Files decide most of it; the last message the person
- * sent decides the moment after the plan is approved, before any research note
- * exists, when the agent could as well be revising the plan.
+ * The step the run is on, from the files the agent wrote and the messages the
+ * person sent, in order. The messages decide two moments the files can't:
+ * - Research runs from a go-ahead until the brief is written. Any other message
+ *   after notes exist changes the plan, which then needs approving again.
+ * - An approved brief is on Outputs even before an output is written (a turn
+ *   stopped early), so the page offers to write them rather than a fresh form.
  */
-export function stepOf(files: RunFile[], lastSent: string | undefined): Step {
+export function stepOf(files: RunFile[], sent: string[]): Step {
   const has = (name: string) => files.some((f) => f.name === name);
   if (has(OUTPUT_FILES.addendum) || has(OUTPUT_FILES.changePlan)) return 'outputs';
-  if (has(FILE_OF.brief!)) return 'brief';
-  const researching = lastSent === MESSAGES.approvePlan || lastSent === MESSAGES.resumeResearch;
-  if (files.some((f) => f.name.startsWith('research/')) || researching) return 'research';
+  if (has(FILE_OF.brief!)) return sent.some((m) => m.startsWith(BRIEF_APPROVED)) ? 'outputs' : 'brief';
+  if (RESEARCH_GO.includes(sent.at(-1) ?? '')) return 'research';
   if (has(FILE_OF.plan!)) return 'plan';
   if (has(FILE_OF.intake!)) return 'intake';
   return 'upload';
@@ -77,8 +88,8 @@ function stepAfter(sent: string, step: Step): Step {
   if (sent === MESSAGES.start || sent === MESSAGES.retryIntake) return 'intake';
   if (sent === MESSAGES.approveIntake) return 'plan';
   // Research and the brief are one turn: its reply is the brief's.
-  if (sent === MESSAGES.approvePlan || sent === MESSAGES.resumeResearch) return 'brief';
-  if (sent.startsWith('The brief is approved')) return 'outputs';
+  if (RESEARCH_GO.includes(sent)) return 'brief';
+  if (sent.startsWith(BRIEF_APPROVED)) return 'outputs';
   return step;
 }
 
@@ -182,14 +193,22 @@ export function authorQuestions(brief: string | undefined): AuthorQuestion[] {
   }));
 }
 
+/** Which question an answer belongs to: its wording, not its place in the list. */
+export function questionKey(question: AuthorQuestion): string {
+  return `${question.about}|${question.text}`;
+}
+
 /** The message that approves the brief, with the person's answers and chosen outputs. */
 export function outputsMessage(outputs: Outputs, answers: string[], questions: AuthorQuestion[]): string {
   const picked = [outputs.addendum && 'the addendum', outputs.changePlan && 'the change plan'].filter(Boolean);
-  const answered = questions.map((q, i) => ({ q, answer: (answers[i] ?? '').trim() })).filter(({ answer }) => answer);
+  // Each answer keeps its question's number and wording: two questions can be about the same claim.
+  const answered = questions
+    .map((q, i) => ({ q, n: i + 1, answer: (answers[i] ?? '').trim() }))
+    .filter(({ answer }) => answer);
   const answerText = answered.length
-    ? `My answers to the questions for the authors:\n${answered.map(({ q, answer }, i) => `${i + 1}. ${q.about || `Question ${i + 1}`}: ${answer}`).join('\n')}\nLeave any other question open.`
+    ? `My answers to the questions for the authors:\n${answered.map(({ q, n, answer }) => `${n}. ${q.about ? `${q.about}: ` : ''}${q.text}\n   Answer: ${answer}`).join('\n')}\nLeave any other question open.`
     : 'Leave the questions for the authors open.';
-  return `The brief is approved. ${answerText}\nI want ${picked.join(' and ')}.`;
+  return `${BRIEF_APPROVED}. ${answerText}\nI want ${picked.join(' and ')}.`;
 }
 
 const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', changePlan: 'the change plan' };
@@ -199,7 +218,7 @@ const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', 
  * the first of two. Read from the last approval of the brief, as the button sent it.
  */
 export function missingOutputs(files: RunFile[], conversation: Exchange[]): (keyof Outputs)[] {
-  const asked = conversation.findLast((m) => m.from === 'you' && m.text.startsWith('The brief is approved'))?.text;
+  const asked = conversation.findLast((m) => m.from === 'you' && m.text.startsWith(BRIEF_APPROVED))?.text;
   if (!asked) return [];
   const wanted = asked.slice(asked.lastIndexOf('\nI want '));
   return (Object.keys(OUTPUT_NAMES) as (keyof Outputs)[]).filter(
