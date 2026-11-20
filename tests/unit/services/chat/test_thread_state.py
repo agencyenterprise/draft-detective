@@ -98,11 +98,12 @@ async def test_listing_a_directory_returns_its_own_files_only() -> None:
         listed = await thread_state.list_thread_files(
             "t-1", "/live-report", reader=CHAT
         )
-    assert listed == {
+    assert {path: file.content for path, file in listed.items()} == {
         "/live-report/intake.md": "intake",
         "/live-report/research-plan.md": "plan",
         "/live-report/research/C1.md": "notes",
     }
+    assert all(file.modified_at for file in listed.values())
 
 
 @pytest.mark.asyncio

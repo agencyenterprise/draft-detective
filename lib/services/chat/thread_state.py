@@ -24,6 +24,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
+from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.services.chat.history import thread_config
@@ -81,15 +82,26 @@ async def read_thread_file(
     return file_data_to_string(cast(FileData, data))
 
 
+class ThreadFile(BaseModel):
+    """A text file in a thread's filesystem, and when it was last written."""
+
+    content: str
+    # ISO 8601, as deepagents stamps it; None for a file written without one.
+    modified_at: str | None = None
+
+
 async def list_thread_files(
     thread_id: str, directory: str, *, reader: ThreadReader
-) -> dict[str, str]:
+) -> dict[str, ThreadFile]:
     """The text files anywhere under ``directory``, by path."""
 
     values = await load_thread_values(thread_id, reader=reader)
     prefix = directory.rstrip("/") + "/"
     return {
-        path: file_data_to_string(cast(FileData, data))
+        path: ThreadFile(
+            content=file_data_to_string(cast(FileData, data)),
+            modified_at=data.get("modified_at"),
+        )
         for path, data in sorted((values.get("files") or {}).items())
         if path.startswith(prefix) and isinstance(data, dict)
     }

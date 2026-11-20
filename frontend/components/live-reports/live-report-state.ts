@@ -15,6 +15,8 @@ export const STEPS: Step[] = ['upload', 'intake', 'plan', 'research', 'brief', '
 export interface RunFile {
   name: string;
   content: string;
+  /** When the agent last wrote it (ISO 8601, all in UTC, so they sort as text). */
+  modified_at?: string | null;
 }
 
 export const FILE_OF: Partial<Record<Step, string>> = {
@@ -66,6 +68,8 @@ const RESEARCH_GO: string[] = [MESSAGES.approvePlan, MESSAGES.resumeResearch, ME
  * person sent, in order. The messages decide two moments the files can't:
  * - Research runs from a go-ahead until the brief is written. Any other message
  *   after notes exist changes the plan, which then needs approving again.
+ * - A step whose file was revised after a later step's file reopens: a brief
+ *   changed after the outputs, or a plan changed after the brief.
  * - An approved brief is on Outputs even before an output is written (a turn
  *   stopped early), so the page offers to write them rather than a fresh form;
  *   until another message asks to change the brief, which then needs approving again.
@@ -77,9 +81,17 @@ function briefStillApproved(sent: string[]): boolean {
 }
 
 export function stepOf(files: RunFile[], sent: string[]): Step {
-  const has = (name: string) => files.some((f) => f.name === name);
-  if (has(OUTPUT_FILES.addendum) || has(OUTPUT_FILES.changePlan)) return 'outputs';
-  if (has(FILE_OF.brief!)) return briefStillApproved(sent) ? 'outputs' : 'brief';
+  const file = (name: string) => files.find((f) => f.name === name);
+  const at = (name: string) => file(name)?.modified_at ?? '';
+  // A step's file revised after a later step's was written reopens that step for
+  // approval: the later files were built on the earlier version.
+  const outputsAt = [at(OUTPUT_FILES.addendum), at(OUTPUT_FILES.changePlan)].sort().at(-1) ?? '';
+  const hasOutputs = file(OUTPUT_FILES.addendum) || file(OUTPUT_FILES.changePlan);
+  if (hasOutputs && !(at(FILE_OF.brief!) > outputsAt)) return 'outputs';
+  if (file(FILE_OF.brief!) && !(at(FILE_OF.plan!) > at(FILE_OF.brief!))) {
+    return !hasOutputs && briefStillApproved(sent) ? 'outputs' : 'brief';
+  }
+  const has = (name: string) => Boolean(file(name));
   if (RESEARCH_GO.includes(sent.at(-1) ?? '')) return 'research';
   if (has(FILE_OF.plan!)) return 'plan';
   if (has(FILE_OF.intake!)) return 'intake';

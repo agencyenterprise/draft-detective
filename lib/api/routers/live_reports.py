@@ -9,7 +9,7 @@ skill's step files under ``/live-report/``.
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lib.agents.live_report_agent import LIVE_REPORT_DIR
 from lib.agents.thread_agents import thread_agent
@@ -28,6 +28,10 @@ class LiveReportFileResponse(BaseModel):
 
     name: str
     content: str
+    modified_at: str | None = Field(
+        default=None,
+        description="When the agent last wrote it (ISO 8601): the page orders revisions by it.",
+    )
 
 
 @router.get("/{thread_id}/files", response_model=list[LiveReportFileResponse])
@@ -54,6 +58,10 @@ async def list_live_report_files(
     )
     prefix = LIVE_REPORT_DIR.rstrip("/") + "/"
     return [
-        LiveReportFileResponse(name=path.removeprefix(prefix), content=content)
-        for path, content in files.items()
+        LiveReportFileResponse(
+            name=path.removeprefix(prefix),
+            content=file.content,
+            modified_at=file.modified_at,
+        )
+        for path, file in files.items()
     ]

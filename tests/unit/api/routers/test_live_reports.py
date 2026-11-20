@@ -12,6 +12,7 @@ from lib.api.auth import get_current_user
 from lib.api.routers import live_reports
 from lib.models.chat_thread import ChatThread, ChatThreadKind
 from lib.models.user import User, UserRole
+from lib.services.chat.thread_state import ThreadFile
 
 USER = User(
     id=uuid.uuid4(),
@@ -38,10 +39,11 @@ def _client() -> TestClient:
 
 
 def test_the_files_are_listed_by_their_path_in_the_folder() -> None:
+    at = "2026-11-20T10:00:00+00:00"
     files = {
-        "/live-report/intake.md": "# Intake",
-        "/live-report/research-plan.md": "# Research plan",
-        "/live-report/research/F1.md": "# F1",
+        "/live-report/intake.md": ThreadFile(content="# Intake", modified_at=at),
+        "/live-report/research-plan.md": ThreadFile(content="# Research plan"),
+        "/live-report/research/F1.md": ThreadFile(content="# F1", modified_at=at),
     }
     with (
         patch.object(
@@ -57,9 +59,9 @@ def test_the_files_are_listed_by_their_path_in_the_folder() -> None:
 
     assert response.status_code == 200
     assert response.json() == [
-        {"name": "intake.md", "content": "# Intake"},
-        {"name": "research-plan.md", "content": "# Research plan"},
-        {"name": "research/F1.md", "content": "# F1"},
+        {"name": "intake.md", "content": "# Intake", "modified_at": at},
+        {"name": "research-plan.md", "content": "# Research plan", "modified_at": None},
+        {"name": "research/F1.md", "content": "# F1", "modified_at": at},
     ]
     listed.assert_awaited_once_with(
         str(THREAD_ID),

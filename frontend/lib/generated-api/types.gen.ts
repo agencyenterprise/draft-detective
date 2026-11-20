@@ -2983,6 +2983,12 @@ export type LiveReportFileResponse = {
    * Content
    */
   content: string;
+  /**
+   * Modified At
+   *
+   * When the agent last wrote it (ISO 8601): the page orders revisions by it.
+   */
+  modified_at?: string | null;
 };
 
 /**

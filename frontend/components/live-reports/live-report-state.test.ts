@@ -50,6 +50,19 @@ describe('stepOf', () => {
     expect(stepOf([file('research-brief.md')], [approved, finish])).toBe('outputs');
   });
 
+  it('reopens a step whose file was revised after a later one was written', () => {
+    const at = (name: string, time: string) => ({ name, content: '', modified_at: `2026-11-20T10:${time}:00+00:00` });
+    // The brief changed after the addendum: approve the brief again.
+    const briefRevised = [at('research-brief.md', '30'), at('addendum.md', '20')];
+    expect(stepOf(briefRevised, [approved, 'Make the brief shorter.'])).toBe('brief');
+    // The addendum rewritten from it: back on the outputs.
+    expect(stepOf([at('research-brief.md', '30'), at('addendum.md', '40')], [approved])).toBe('outputs');
+    // The plan changed after the brief: approve the plan again.
+    const planRevised = [at('research-plan.md', '50'), at('research-brief.md', '30')];
+    expect(stepOf(planRevised, [MESSAGES.approvePlan, 'Add an angle.'])).toBe('plan');
+    expect(stepOf(planRevised, [MESSAGES.approveRevisedPlan])).toBe('research');
+  });
+
   it('is back on the brief when it is changed after its approval, before any output', () => {
     expect(stepOf([file('research-brief.md')], [approved, 'Make the brief shorter.'])).toBe('brief');
   });
