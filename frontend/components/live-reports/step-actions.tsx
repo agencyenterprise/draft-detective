@@ -91,7 +91,8 @@ export function StepActions({ report, onApproveBrief, outputs }: StepActionsProp
             </Button>
           )}
           {step === 'outputs' && <OutputsActions report={report} />}
-          {step !== 'upload' && (step !== 'research' || !working) && (
+          {/* On Upload, a reply to the agent's question (an undated report, say). */}
+          {(step !== 'research' || !working) && (
             <RefineBox step={step === 'research' ? 'plan' : step} disabled={working} onSend={report.send} />
           )}
           {working && (

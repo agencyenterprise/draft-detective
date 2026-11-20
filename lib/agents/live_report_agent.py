@@ -33,6 +33,7 @@ from lib.agents.deep_agent_setup import (
     build_llm,
     conversation_run_config,
 )
+from lib.agents.research_guard import ResearchGuardMiddleware
 from lib.config.llm_models import LLMModel, gpt_5_6_sol_model, web_search_tool
 from lib.services.chat.thread_state import READER_API_KEY
 from lib.skills import skill_backend_files
@@ -174,6 +175,7 @@ def build_live_report_agent(
     return build_deep_agent(
         model=build_llm(model, api_key, reasoning=CHAT_REASONING, output_version="v1"),
         tools=[],
+        middleware=[ResearchGuardMiddleware(f"{LIVE_REPORT_DIR}/research")],
         subagents=live_report_subagents(model),
         skills=["/skills/"],
         system_prompt=SYSTEM_PROMPT,

@@ -29,11 +29,31 @@ export function ConversationSheet({ messages, running }: { messages: ChatMessage
         </SheetHeader>
         {/* The chat page's size: its thread root sets text-sm; ReadonlyThread does not. */}
         <div className="min-h-0 flex-1 text-sm">
-          <Transcript messages={messages} running={running} />
+          <Transcript messages={withoutImages(messages)} running={running} />
         </div>
       </SheetContent>
     </Sheet>
   );
+}
+
+/** A markdown image, `![alt](url)`, which a browser would fetch as soon as it shows. */
+const IMAGE = /!\[([^\]]*)\]\(([^)\s]*)[^)]*\)/g;
+
+/**
+ * The messages with every markdown image turned into a plain link, in any text
+ * they carry (replies, reasoning, tool results). The guided view shows no images
+ * either: a web page a researcher read could plant one whose URL carries data out.
+ */
+export function withoutImages(messages: ChatMessage[]): ChatMessage[] {
+  const clean = (value: unknown): unknown => {
+    if (typeof value === 'string') return value.replace(IMAGE, '[$1]($2)');
+    if (Array.isArray(value)) return value.map(clean);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, clean(inner)]));
+    }
+    return value;
+  };
+  return messages.map((message) => clean(message) as ChatMessage);
 }
 
 function Transcript({ messages, running }: { messages: ChatMessage[]; running: boolean }) {

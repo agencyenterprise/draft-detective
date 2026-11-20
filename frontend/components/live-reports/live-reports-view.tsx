@@ -60,7 +60,9 @@ export function LiveReportsView({ threadId }: { threadId: string | null }) {
           report={report}
           onStart={(file) =>
             report.start(file, (id) => {
-              open(id);
+              // Reading a large report takes a while: open it only if the page is
+              // still on the new report, not on one the person has opened since.
+              if (window.location.pathname === '/live-reports') open(id);
               queryClient.invalidateQueries({ queryKey: LIST_KEY });
             })
           }

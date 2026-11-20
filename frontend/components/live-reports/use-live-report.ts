@@ -176,7 +176,12 @@ export function useLiveReport(threadId: string | null) {
     send: (message: string) => send(message),
     refresh,
     async stop() {
-      if (threadId) await cancelChatTurnApiChatThreadsThreadIdCancelPost({ path: { thread_id: threadId } });
+      if (!threadId) return;
+      try {
+        await cancelChatTurnApiChatThreadsThreadIdCancelPost({ path: { thread_id: threadId } });
+      } catch (caught) {
+        setError(threadId, getErrorDetail(caught, 'The agent may still be working: stopping it failed. Try again.'));
+      }
       await refresh();
     },
     /** Start a new live report from a document; returns its id once the first turn is sent. */

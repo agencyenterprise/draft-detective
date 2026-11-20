@@ -42,7 +42,7 @@ Keep everything above the questions for the authors to about 700 words. The note
 - When a note couldn't open a primary source, say so in a clause where it matters.
 - Keep the ids next to each claim, fact and angle (`C2`, `F3`, `D1`, `A1`), so the user can ask about any of them.
 - Where confidence is low, say so; don't smooth it over.
-- When a newer figure is on a different measure from the report's (another scale, benchmark version or setup), say so in a clause, and judge only the direction of the change, not its size.
+- When a newer figure is on a different measure from the report's (another scale, benchmark version or setup), say so in a clause and don't state the size of the change. State its direction only when the note shows it on comparable terms: a series that overlaps both measures, a published calibration, or independent evidence. Otherwise say the direction is unknown.
 - If the `voice-and-tone` skill is available, follow it.
 
 ## Write `research-brief.md`
