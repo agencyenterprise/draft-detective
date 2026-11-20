@@ -13,16 +13,8 @@ import {
 } from '@/lib/generated-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import {
-  authorQuestions,
-  FILE_OF,
-  fileContent,
-  MESSAGES,
-  missingOutputs,
-  researchItems,
-  stepOf,
-  type Exchange,
-} from './live-report-state';
+import { authorQuestions, FILE_OF, fileContent, MESSAGES, researchItems, type Exchange } from './live-report-state';
+import { missingOutputs, stepOf } from './run-step';
 
 export const liveReportKey = (threadId: string | null) => ['live-report', threadId] as const;
 

@@ -27,10 +27,10 @@ export const FILE_OF: Partial<Record<Step, string>> = {
 export const OUTPUT_FILES = { addendum: 'addendum.md', changePlan: 'change-plan.md' } as const;
 
 /** Where the brief's approval names the outputs wanted ("…\nI want the addendum."). */
-const WANTS = '\nI want ';
+export const WANTS = '\nI want ';
 
 /** How a request to write the outputs a stopped turn left out ends. */
-const FINISH_OUTPUTS = ' as well, from the approved brief.';
+export const FINISH_OUTPUTS = ' as well, from the approved brief.';
 
 /** The messages the buttons send. Fixed, so the page can tell from history what was approved. */
 export const MESSAGES = {
@@ -60,45 +60,6 @@ export interface Outputs {
 /** The start of the message that approves the brief, whatever answers and outputs follow. */
 export const BRIEF_APPROVED = 'The brief is approved';
 
-/** The messages that send the run into research. */
-const RESEARCH_GO: string[] = [MESSAGES.approvePlan, MESSAGES.resumeResearch, MESSAGES.approveRevisedPlan];
-
-/**
- * The step the run is on, from the files the agent wrote and the messages the
- * person sent, in order. The messages decide two moments the files can't:
- * - Research runs from a go-ahead until the brief is written. Any other message
- *   after notes exist changes the plan, which then needs approving again.
- * - A step whose file was revised after a later step's file reopens: a brief
- *   changed after the outputs, or a plan changed after the brief.
- * - An approved brief is on Outputs even before an output is written (a turn
- *   stopped early), so the page offers to write them rather than a fresh form;
- *   until another message asks to change the brief, which then needs approving again.
- */
-/** Whether the brief's last approval still stands: only requests to write the outputs followed it. */
-function briefStillApproved(sent: string[]): boolean {
-  const at = sent.findLastIndex((m) => m.startsWith(BRIEF_APPROVED));
-  return at >= 0 && sent.slice(at + 1).every((m) => m.endsWith(FINISH_OUTPUTS));
-}
-
-export function stepOf(files: RunFile[], sent: string[]): Step {
-  const file = (name: string) => files.find((f) => f.name === name);
-  const at = (name: string) => file(name)?.modified_at ?? '';
-  // A step's file revised after a later step's was written reopens that step for
-  // approval: the later files were built on the earlier version.
-  const outputsAt = [at(OUTPUT_FILES.addendum), at(OUTPUT_FILES.changePlan)].sort().at(-1) ?? '';
-  const hasOutputs = file(OUTPUT_FILES.addendum) || file(OUTPUT_FILES.changePlan);
-  const revisedSince = (time: string) => at(FILE_OF.brief!) > time || at(FILE_OF.plan!) > time;
-  if (hasOutputs && !revisedSince(outputsAt)) return 'outputs';
-  if (file(FILE_OF.brief!) && !(at(FILE_OF.plan!) > at(FILE_OF.brief!))) {
-    return !hasOutputs && briefStillApproved(sent) ? 'outputs' : 'brief';
-  }
-  const has = (name: string) => Boolean(file(name));
-  if (RESEARCH_GO.includes(sent.at(-1) ?? '')) return 'research';
-  if (has(FILE_OF.plan!)) return 'plan';
-  if (has(FILE_OF.intake!)) return 'intake';
-  return 'upload';
-}
-
 export function fileContent(files: RunFile[], name: string | undefined): string | undefined {
   return name ? files.find((f) => f.name === name)?.content : undefined;
 }
@@ -109,32 +70,6 @@ export interface Exchange {
   text: string;
 }
 
-/** The step a message the person sent moves the run to, if it is one of the buttons'. */
-function stepAfter(sent: string, step: Step): Step {
-  if (sent === MESSAGES.start || sent === MESSAGES.retryIntake) return 'intake';
-  if (sent === MESSAGES.approveIntake) return 'plan';
-  // Research and the brief are one turn: its reply is the brief's.
-  if (RESEARCH_GO.includes(sent)) return 'brief';
-  if (sent.startsWith(BRIEF_APPROVED)) return 'outputs';
-  return step;
-}
-
-/**
- * The agent's note for each step: the last reply it gave while the run was on
- * that step. The buttons send fixed messages, so the conversation says where
- * each step ends.
- */
-export function stepNotes(conversation: Exchange[]): Partial<Record<Step, string>> {
-  const notes: Partial<Record<Step, string>> = {};
-  let step: Step = 'intake';
-  for (const entry of conversation) {
-    if (entry.from === 'you') step = stepAfter(entry.text, step);
-    else notes[step] = entry.text;
-  }
-  return notes;
-}
-
-/** A link the agent wrote to one of its files: the step that shows it, and the file. */
 export interface FileLink {
   step: Step;
   file: string;
@@ -275,20 +210,7 @@ export function outputsMessage(outputs: Outputs, answers: string[], questions: A
   return `${BRIEF_APPROVED}. ${answerText}${WANTS}${picked.join(' and ')}.`;
 }
 
-const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', changePlan: 'the change plan' };
-
-/**
- * The outputs asked for on the brief and not written yet: a turn stopped after
- * the first of two. Read from the last approval of the brief, as the button sent it.
- */
-export function missingOutputs(files: RunFile[], conversation: Exchange[]): (keyof Outputs)[] {
-  const asked = conversation.findLast((m) => m.from === 'you' && m.text.startsWith(BRIEF_APPROVED))?.text;
-  if (!asked) return [];
-  const wanted = asked.slice(asked.lastIndexOf(WANTS));
-  return (Object.keys(OUTPUT_NAMES) as (keyof Outputs)[]).filter(
-    (key) => wanted.includes(OUTPUT_NAMES[key]) && !files.some((f) => f.name === OUTPUT_FILES[key]),
-  );
-}
+export const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', changePlan: 'the change plan' };
 
 /** The names of some outputs, for a sentence: "the addendum and the change plan". */
 export function outputNames(keys: (keyof Outputs)[]): string {
@@ -298,17 +220,4 @@ export function outputNames(keys: (keyof Outputs)[]): string {
 /** Asks for the outputs a stopped turn left unwritten. */
 export function finishOutputsMessage(missing: (keyof Outputs)[]): string {
   return `Write ${outputNames(missing)}${FINISH_OUTPUTS}`;
-}
-
-/** What the Outputs step's action bar offers. */
-export type OutputsAction = 'approved' | 'finish' | 'approve';
-
-/**
- * Approving the outputs, once every one asked for is written: a turn stopped
- * between the two leaves one missing, which is written first.
- */
-export function outputsAction(lastSent: string | undefined, missing: unknown[], working: boolean): OutputsAction {
-  if (lastSent === MESSAGES.approveOutputs && !working) return 'approved';
-  if (missing.length && !working) return 'finish';
-  return 'approve';
 }

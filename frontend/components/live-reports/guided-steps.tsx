@@ -9,10 +9,10 @@ import {
   STEPS,
   type Outputs,
   fileAnchor,
-  stepNotes,
   type FileLink,
   type Step,
 } from './live-report-state';
+import { stepNotes } from './run-step';
 import { StepActions } from './step-actions';
 import { StepBody } from './step-body';
 import { BriefForm, Doc } from './step-parts';

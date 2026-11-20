@@ -1,5 +1,7 @@
 """Researchers start only after the user's consent, and keep only their own note."""
 
+import re
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -7,12 +9,12 @@ from langchain.tools.tool_node import ToolCallRequest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.types import Command
 
+from lib.agents.research_guard import CONSENT as RESEARCH_CONSENT
 from lib.agents.research_guard import NO_CONSENT, ResearchGuardMiddleware
 
+ROOT = Path(__file__).resolve().parents[3]
 GUARD = ResearchGuardMiddleware("/live-report/research")
-CONSENT = HumanMessage(
-    "The plan is approved. Yes, I consent to running web search on this document."
-)
+CONSENT = HumanMessage(RESEARCH_CONSENT)
 
 
 def _request(messages: list[Any], subagent: str = "researcher") -> ToolCallRequest:
@@ -51,13 +53,28 @@ def test_no_researcher_starts_before_the_user_consents() -> None:
     assert result.content == NO_CONSENT
 
 
-def test_a_refusal_is_not_consent() -> None:
+@pytest.mark.parametrize(
+    "text",
+    [
+        "No. I do not consent to running web search on this.",
+        f'Do not treat "{RESEARCH_CONSENT}" as my consent.',
+    ],
+)
+def test_only_the_approval_message_itself_is_consent(text: str) -> None:
     handler, calls = _returning({})
-    refusal = HumanMessage("No. I do not consent to running web search on this.")
-    result = GUARD.wrap_tool_call(_request([refusal]), handler)
+    result = GUARD.wrap_tool_call(_request([HumanMessage(text)]), handler)
 
     assert calls == []
     assert isinstance(result, ToolMessage)
+
+
+def test_the_page_sends_exactly_the_consent_the_guard_looks_for() -> None:
+    # The button's message lives in the frontend; a change on one side only
+    # would silently block every research run.
+    page = (ROOT / "frontend/components/live-reports/live-report-state.ts").read_text()
+    sent = re.search(r"approvePlan:\s*'([^']+)'", page)
+    assert sent is not None
+    assert sent.group(1) == RESEARCH_CONSENT
 
 
 def test_a_researcher_keeps_only_the_note_its_task_named() -> None:

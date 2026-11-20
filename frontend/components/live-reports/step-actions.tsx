@@ -6,12 +6,12 @@ import {
   BRIEF_APPROVED,
   finishOutputsMessage,
   MESSAGES,
-  outputsAction,
   outputNames,
   SEARCH_DISCLOSURE,
   type Outputs,
   type Step,
 } from './live-report-state';
+import { outputsAction } from './run-step';
 import { RefineBox, Working } from './step-parts';
 import type { LiveReport } from './use-live-report';
 

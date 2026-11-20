@@ -61,8 +61,8 @@ export function StepBody({ step, report, onStart, onFileLink }: StepBodyProps) {
       <div className="flex flex-col gap-10 [&>section+section]:border-t [&>section+section]:pt-10">
         {missing.length > 0 && (
           <Notice>
-            The agent stopped before it wrote {outputNames(missing)}. Have it write {missing.length > 1 ? 'them' : 'it'}{' '}
-            before approving.
+            The agent hasn&apos;t written {outputNames(missing)} from the current brief. Have it write{' '}
+            {missing.length > 1 ? 'them' : 'it'} before approving.
           </Notice>
         )}
         {addendum && (

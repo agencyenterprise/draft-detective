@@ -5,8 +5,8 @@ each researcher to write only its own note. Prompts alone can be talked out of
 both: by instructions in the uploaded report, or in a page a researcher reads. This
 middleware wraps the orchestrator's ``task`` tool so neither rests on the model:
 
-- No researcher starts until a message from the user consents to web search. The
-  page's plan-approval button sends that consent; the call is refused before it.
+- No researcher starts until the user has sent the page's plan-approval message,
+  which consents to web search; the call is refused before it.
 - Of the files a researcher hands back, only notes under the research folder whose
   file the task named are kept: one researcher can't rewrite a sibling's note or
   an approved file.
@@ -27,9 +27,14 @@ from lib.agents.subagent_files import TASK_TOOL, ToolResult
 
 RESEARCHER = "researcher"
 
-# The user's consent, as the page's plan-approval button words it. An affirmation,
-# so a refusal ("I do not consent to running web search") doesn't pass.
-CONSENT = "yes, i consent to running web search"
+# The user's consent: the message the page's plan-approval button sends
+# (``MESSAGES.approvePlan`` in ``frontend/components/live-reports/live-report-state.ts``),
+# matched whole. A message that only contains the words, such as a refusal that
+# quotes them, is not consent.
+CONSENT = (
+    "The plan is approved. Yes, I consent to running web search on this document. "
+    "Start the research."
+)
 
 NO_CONSENT = (
     "Not started: research needs the user's consent to web search, and none was "
@@ -41,8 +46,13 @@ NO_CONSENT = (
 def _consented(state: Mapping[str, Any] | None) -> bool:
     messages = (state or {}).get("messages") or []
     return any(
-        isinstance(m, HumanMessage) and CONSENT in m.text.lower() for m in messages
+        isinstance(m, HumanMessage) and _normalized(m.text) == _normalized(CONSENT)
+        for m in messages
     )
+
+
+def _normalized(text: str) -> str:
+    return " ".join(text.split()).lower()
 
 
 def _is_research_task(request: ToolCallRequest) -> bool:
