@@ -51,6 +51,15 @@ def test_no_researcher_starts_before_the_user_consents() -> None:
     assert result.content == NO_CONSENT
 
 
+def test_a_refusal_is_not_consent() -> None:
+    handler, calls = _returning({})
+    refusal = HumanMessage("No. I do not consent to running web search on this.")
+    result = GUARD.wrap_tool_call(_request([refusal]), handler)
+
+    assert calls == []
+    assert isinstance(result, ToolMessage)
+
+
 def test_a_researcher_keeps_only_the_note_its_task_named() -> None:
     files = {
         "/live-report/research/F1.md": "mine",

@@ -61,6 +61,9 @@ describe('stepOf', () => {
     const planRevised = [at('research-plan.md', '50'), at('research-brief.md', '30')];
     expect(stepOf(planRevised, [MESSAGES.approvePlan, 'Add an angle.'])).toBe('plan');
     expect(stepOf(planRevised, [MESSAGES.approveRevisedPlan])).toBe('research');
+    // The plan changed after the outputs too: approve the plan again.
+    const underOutputs = [...planRevised, at('addendum.md', '40')];
+    expect(stepOf(underOutputs, [approved, 'Add an angle.'])).toBe('plan');
   });
 
   it('is back on the brief when it is changed after its approval, before any output', () => {

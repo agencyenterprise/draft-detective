@@ -87,7 +87,8 @@ export function stepOf(files: RunFile[], sent: string[]): Step {
   // approval: the later files were built on the earlier version.
   const outputsAt = [at(OUTPUT_FILES.addendum), at(OUTPUT_FILES.changePlan)].sort().at(-1) ?? '';
   const hasOutputs = file(OUTPUT_FILES.addendum) || file(OUTPUT_FILES.changePlan);
-  if (hasOutputs && !(at(FILE_OF.brief!) > outputsAt)) return 'outputs';
+  const revisedSince = (time: string) => at(FILE_OF.brief!) > time || at(FILE_OF.plan!) > time;
+  if (hasOutputs && !revisedSince(outputsAt)) return 'outputs';
   if (file(FILE_OF.brief!) && !(at(FILE_OF.plan!) > at(FILE_OF.brief!))) {
     return !hasOutputs && briefStillApproved(sent) ? 'outputs' : 'brief';
   }

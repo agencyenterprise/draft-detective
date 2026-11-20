@@ -27,8 +27,9 @@ from lib.agents.subagent_files import TASK_TOOL, ToolResult
 
 RESEARCHER = "researcher"
 
-# What the user's consent says, as the page's button and the skill's question put it.
-CONSENT = "consent to running web search"
+# The user's consent, as the page's plan-approval button words it. An affirmation,
+# so a refusal ("I do not consent to running web search") doesn't pass.
+CONSENT = "yes, i consent to running web search"
 
 NO_CONSENT = (
     "Not started: research needs the user's consent to web search, and none was "
