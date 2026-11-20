@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 
 from langchain.agents.structured_output import StructuredOutputValidationError
+from langchain_core.exceptions import ModelRefusalError
 from langchain_core.messages import AIMessage
 
 from lib.workflows.error_details import (
@@ -64,6 +65,19 @@ def test_captures_raw_model_output_from_structured_output_error():
 
     assert details.error_type == "StructuredOutputValidationError"
     assert details.raw_model_output == TRUNCATED_JSON
+
+
+def test_captures_the_response_a_model_refusal_was_raised_over():
+    refused = AIMessage(
+        content="I can't help with that.",
+        response_metadata={"model_name": "gpt-5.5", "finish_reason": "content_filter"},
+    )
+
+    details = _raise_and_capture(ModelRefusalError(raw_message=refused))
+
+    assert details.raw_model_output == "I can't help with that."
+    assert details.llm_metadata is not None
+    assert details.llm_metadata["finish_reason"] == "content_filter"
 
 
 def test_captures_finish_reason_and_token_usage():
