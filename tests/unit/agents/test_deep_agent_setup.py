@@ -61,7 +61,8 @@ class TestModelConstruction:
         with patch("lib.agents.deep_agent_setup.init_chat_model") as init:
             build_llm(DEFAULT_MODEL, api_key="sk-test")
 
-        assert init.call_args.kwargs["default_headers"] == {"api-key": "sk-test"}
+        kwargs = init.call_args.kwargs
+        assert kwargs["http_async_client"].headers["api-key"] == "sk-test"
 
 
 class TestConversationRunConfig:

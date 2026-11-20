@@ -7,8 +7,9 @@ from langchain_core.rate_limiters import BaseRateLimiter
 from langchain_core.runnables.config import RunnableConfig
 from pydantic import BaseModel
 
-from lib.config.env import get_model_api_key, openai_header_kwargs
+from lib.config.env import get_model_api_key
 from lib.config.llm_models import LLMModel
+from lib.config.openai_key_header import openai_http_client_kwargs
 from lib.config.rate_limiter import get_rate_limiter, hash_api_key
 from lib.workflows.context import ContextSchema
 
@@ -84,7 +85,7 @@ class LangChainAgent(BaseAgent):
         if api_key:
             init_kwargs["api_key"] = api_key
         if self.model.provider == "openai":
-            init_kwargs.update(openai_header_kwargs(api_key))
+            init_kwargs.update(openai_http_client_kwargs(api_key))
 
         return init_kwargs
 

@@ -7,8 +7,9 @@ from typing import Any
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from lib.config.env import get_model_api_key, openai_header_kwargs
+from lib.config.env import get_model_api_key
 from lib.config.llm_models import gpt_5_6_luna_model
+from lib.config.openai_key_header import openai_http_client_kwargs
 from lib.services.chat.messages import ChatTurnMessage
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ async def generate_title(
         "reasoning": TITLE_REASONING,
         "timeout": 15,
         "max_retries": 1,
-        **openai_header_kwargs(resolved),
+        **openai_http_client_kwargs(resolved),
     }
     if resolved:
         kwargs["api_key"] = resolved

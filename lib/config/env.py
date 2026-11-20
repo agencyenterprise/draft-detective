@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -175,13 +174,3 @@ config = Config(
 def get_model_api_key(model_name: str) -> str | None:
     """Return the API key configured for a specific model name, or None."""
     return config.MODEL_API_KEYS.get(model_name)
-
-
-def openai_header_kwargs(api_key: str | None) -> dict[str, Any]:
-    """``default_headers`` for an OpenAI client, sending ``api_key`` (or the server's
-    key) in the header ``OPENAI_API_KEY_HEADER`` names. Empty when that is unset."""
-
-    key = api_key or config.OPENAI_API_KEY
-    if not config.OPENAI_API_KEY_HEADER or not key:
-        return {}
-    return {"default_headers": {config.OPENAI_API_KEY_HEADER: key}}

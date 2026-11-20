@@ -1,9 +1,13 @@
 """Unit tests for per-model API key support."""
 
+import json
 from unittest.mock import MagicMock, patch
 
-from lib.config.env import config, openai_header_kwargs
+from langchain_core.load import dumpd
+
+from lib.config.env import config
 from lib.config.llm_models import LLMModel
+from lib.config.openai_key_header import openai_key_header
 from lib.config.rate_limiter import get_rate_limiter as get_rl
 from lib.config.rate_limiter import hash_api_key
 from lib.models.agent import LangChainAgent
@@ -106,21 +110,31 @@ class TestKeyHeader:
 
         kwargs = agent.get_init_chat_model_kwargs()
 
-        assert kwargs["default_headers"] == {"api-key": "sk-context-key"}
+        assert kwargs["http_client"].headers["api-key"] == "sk-context-key"
+        assert kwargs["http_async_client"].headers["api-key"] == "sk-context-key"
 
     def test_falls_back_to_the_server_key(self, monkeypatch):
         monkeypatch.setattr(config, "OPENAI_API_KEY_HEADER", "api-key")
         monkeypatch.setattr(config, "OPENAI_API_KEY", "sk-server")
 
-        assert openai_header_kwargs(None) == {
-            "default_headers": {"api-key": "sk-server"}
-        }
+        assert openai_key_header(None) == {"api-key": "sk-server"}
+
+    def test_the_key_stays_out_of_the_serialized_model(self, monkeypatch):
+        """Callbacks (Langfuse) receive the serialized model: LangChain redacts its
+        api_key but would print a key placed in default_headers."""
+
+        monkeypatch.setattr(config, "OPENAI_API_KEY_HEADER", "api-key")
+        agent = _TestAgent(_make_context(openai_api_key="sk-context-key"))
+
+        serialized = json.dumps(dumpd(agent.create_llm()))
+
+        assert "sk-context-key" not in serialized
 
     def test_no_header_unless_configured(self, monkeypatch):
         monkeypatch.setattr(config, "OPENAI_API_KEY_HEADER", None)
         agent = _TestAgent(_make_context(openai_api_key="sk-context-key"))
 
-        assert "default_headers" not in agent.get_init_chat_model_kwargs()
+        assert "http_client" not in agent.get_init_chat_model_kwargs()
 
     def test_no_header_for_other_providers(self, monkeypatch):
         monkeypatch.setattr(config, "OPENAI_API_KEY_HEADER", "api-key")
@@ -128,4 +142,4 @@ class TestKeyHeader:
         agent = _TestAgent(_make_context())
         agent.model = LLMModel(provider="anthropic", name="claude-sonnet-5-5")
 
-        assert "default_headers" not in agent.get_init_chat_model_kwargs()
+        assert "http_client" not in agent.get_init_chat_model_kwargs()
