@@ -28,7 +28,9 @@ export function DeleteProjectDialog({ projectId, projectTitle }: DeleteProjectDi
     mutationFn: () => deleteProjectEndpointApiProjectProjectIdDelete({ path: { project_id: projectId } }),
     successMessage: 'Project deleted successfully',
     errorMessage: 'Failed to delete project',
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY });
+    },
   });
 
   return (
