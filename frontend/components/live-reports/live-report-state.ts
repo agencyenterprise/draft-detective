@@ -27,6 +27,9 @@ export const OUTPUT_FILES = { addendum: 'addendum.md', changePlan: 'change-plan.
 /** Where the brief's approval names the outputs wanted ("…\nI want the addendum."). */
 const WANTS = '\nI want ';
 
+/** How a request to write the outputs a stopped turn left out ends. */
+const FINISH_OUTPUTS = ' as well, from the approved brief.';
+
 /** The messages the buttons send. Fixed, so the page can tell from history what was approved. */
 export const MESSAGES = {
   start: 'Please bring this report up to date.',
@@ -64,12 +67,19 @@ const RESEARCH_GO: string[] = [MESSAGES.approvePlan, MESSAGES.resumeResearch, ME
  * - Research runs from a go-ahead until the brief is written. Any other message
  *   after notes exist changes the plan, which then needs approving again.
  * - An approved brief is on Outputs even before an output is written (a turn
- *   stopped early), so the page offers to write them rather than a fresh form.
+ *   stopped early), so the page offers to write them rather than a fresh form;
+ *   until another message asks to change the brief, which then needs approving again.
  */
+/** Whether the brief's last approval still stands: only requests to write the outputs followed it. */
+function briefStillApproved(sent: string[]): boolean {
+  const at = sent.findLastIndex((m) => m.startsWith(BRIEF_APPROVED));
+  return at >= 0 && sent.slice(at + 1).every((m) => m.endsWith(FINISH_OUTPUTS));
+}
+
 export function stepOf(files: RunFile[], sent: string[]): Step {
   const has = (name: string) => files.some((f) => f.name === name);
   if (has(OUTPUT_FILES.addendum) || has(OUTPUT_FILES.changePlan)) return 'outputs';
-  if (has(FILE_OF.brief!)) return sent.some((m) => m.startsWith(BRIEF_APPROVED)) ? 'outputs' : 'brief';
+  if (has(FILE_OF.brief!)) return briefStillApproved(sent) ? 'outputs' : 'brief';
   if (RESEARCH_GO.includes(sent.at(-1) ?? '')) return 'research';
   if (has(FILE_OF.plan!)) return 'plan';
   if (has(FILE_OF.intake!)) return 'intake';
@@ -274,7 +284,7 @@ export function outputNames(keys: (keyof Outputs)[]): string {
 
 /** Asks for the outputs a stopped turn left unwritten. */
 export function finishOutputsMessage(missing: (keyof Outputs)[]): string {
-  return `Write ${outputNames(missing)} as well, from the approved brief.`;
+  return `Write ${outputNames(missing)}${FINISH_OUTPUTS}`;
 }
 
 /** What the Outputs step's action bar offers. */

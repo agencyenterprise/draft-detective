@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   authorQuestions,
   fileLinkOf,
+  finishOutputsMessage,
   missingOutputs,
   outputsAction,
   verdictKind,
@@ -45,6 +46,12 @@ describe('stepOf', () => {
 
   it('is on the outputs once the brief is approved, even before one is written', () => {
     expect(stepOf([file('research-brief.md')], [MESSAGES.approvePlan, approved])).toBe('outputs');
+    const finish = finishOutputsMessage(['addendum']);
+    expect(stepOf([file('research-brief.md')], [approved, finish])).toBe('outputs');
+  });
+
+  it('is back on the brief when it is changed after its approval, before any output', () => {
+    expect(stepOf([file('research-brief.md')], [approved, 'Make the brief shorter.'])).toBe('brief');
   });
 });
 
