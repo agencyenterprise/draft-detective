@@ -10,9 +10,6 @@ from lib.config.llm_models import gpt_5_6_terra_model, web_search_tool
 from lib.workflows.literature_review_v2.manifest import (
     _SYSTEM_PROMPT as LITERATURE_REVIEW_PROMPT,
 )
-from lib.workflows.live_reports_v2.manifest import (
-    _SYSTEM_PROMPT as LIVE_REPORTS_PROMPT,
-)
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 from lib.workflows.simple_deep_agent.agent import (
@@ -37,7 +34,6 @@ _MARKDOWN_WORKFLOWS = [
     WorkflowRunType.DOCUMENT_STRUCTURE,
     WorkflowRunType.FIGURES_TABLES_CHECK,
     WorkflowRunType.LITERATURE_REVIEW_V2,
-    WorkflowRunType.LIVE_REPORTS_V2,
     WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
     WorkflowRunType.RECOMMENDATION_CHECK,
     WorkflowRunType.RESULTS_EXTRACTION,
@@ -128,7 +124,7 @@ def test_markdown_workflows_run_on_the_simple_deep_agent(
 
 @pytest.mark.parametrize(
     "prompt",
-    [SIMPLE_AGENT_PROMPT, LITERATURE_REVIEW_PROMPT, LIVE_REPORTS_PROMPT],
+    [SIMPLE_AGENT_PROMPT, LITERATURE_REVIEW_PROMPT],
 )
 def test_markdown_prompts_name_both_delivery_channels(prompt: str):
     assert MARKDOWN_REPORT_PATH in prompt
@@ -137,7 +133,7 @@ def test_markdown_prompts_name_both_delivery_channels(prompt: str):
     assert "final message" in prompt
 
 
-@pytest.mark.parametrize("prompt", [LITERATURE_REVIEW_PROMPT, LIVE_REPORTS_PROMPT])
+@pytest.mark.parametrize("prompt", [LITERATURE_REVIEW_PROMPT])
 def test_custom_prompts_do_not_repeat_the_issue_tool_schema(prompt: str):
     for field in (
         "`title`",
@@ -257,7 +253,6 @@ _TEXT_ONLY_WORKFLOWS = [
     WorkflowRunType.ADVOCACY_TONE_V2,
     WorkflowRunType.DOCUMENT_STRUCTURE,
     WorkflowRunType.LITERATURE_REVIEW_V2,
-    WorkflowRunType.LIVE_REPORTS_V2,
     WorkflowRunType.METHODOLOGICAL_ALIGNMENT,
 ]
 

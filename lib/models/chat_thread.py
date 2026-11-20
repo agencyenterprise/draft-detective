@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -12,6 +13,15 @@ from sqlmodel import Field, SQLModel
 # turn blocks the loop for this long (a sync parse or HTTP call in a tool). One that
 # did would let a second turn claim the thread while the first still writes to it.
 STALE_TURN = timedelta(minutes=2)
+
+
+class ChatThreadKind(str, Enum):
+    """Which agent a thread talks to, and which page shows it."""
+
+    # The /chat page's assistant.
+    CHAT = "chat"
+    # The /live-reports page's orchestrator (``lib/agents/live_report_agent.py``).
+    LIVE_REPORT = "live_report"
 
 
 class ChatThread(SQLModel, table=True):
@@ -45,6 +55,16 @@ class ChatThread(SQLModel, table=True):
             nullable=False,
         ),
         description="Owner of the thread",
+    )
+    kind: ChatThreadKind = Field(
+        default=ChatThreadKind.CHAT,
+        sa_column=Column(
+            String,
+            nullable=False,
+            default=ChatThreadKind.CHAT.value,
+            server_default=ChatThreadKind.CHAT.value,
+        ),
+        description="Which agent the thread talks to; fixed when the thread is created",
     )
     title: str | None = Field(
         default=None,

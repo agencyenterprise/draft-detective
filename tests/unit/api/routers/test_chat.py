@@ -22,9 +22,10 @@ from langchain_core.messages import AIMessage, HumanMessage
 from starlette.datastructures import UploadFile
 
 from lib.agents import chat_agent as chat_agent_module
+from lib.agents import live_report_agent
 from lib.api.auth import get_current_user
 from lib.api.routers import chat
-from lib.models.chat_thread import ChatThread
+from lib.models.chat_thread import ChatThread, ChatThreadKind
 from lib.models.user import User, UserRole
 from lib.services.converters import archive_limits
 
@@ -90,6 +91,12 @@ class TestCatalogues:
         ]
         assert [row["is_default"] for row in rows].count(True) == 1
         assert rows[0]["id"] == chat_agent_module.DEFAULT_CHAT_MODEL.name
+
+    def test_each_kind_of_thread_has_its_own_default_model(self) -> None:
+        rows = _client().get("/api/chat/models?kind=live_report").json()
+        (default,) = [row["id"] for row in rows if row["is_default"]]
+        assert default == live_report_agent.LIVE_REPORT_DEFAULT_MODEL.name
+        assert default != chat_agent_module.DEFAULT_CHAT_MODEL.name
 
     def test_skills_leave_out_the_excluded_ones(self) -> None:
         names = {row["name"] for row in _client().get("/api/chat/skills").json()}
@@ -309,7 +316,9 @@ class TestHistory:
                 "tool_calls": [],
             },
         ]
-        load.assert_awaited_once_with(str(THREAD_ID), reader=chat.chat_reader)
+        load.assert_awaited_once_with(
+            str(THREAD_ID), reader=chat_agent_module.chat_reader
+        )
 
     def test_only_attachments_are_served(self) -> None:
         """The same filesystem holds the mounted skills; those are not the page's to read."""
@@ -490,3 +499,69 @@ class TestExtract:
                 "/api/chat/extract", files={"file": ("bomb.docx", buffer.getvalue())}
             )
         assert response.status_code == 413
+
+
+@pytest.mark.usefixtures("claims")
+class TestThreadKinds:
+    """A live report is a chat thread of another kind, served by its own agent."""
+
+    def _live_thread(self) -> ChatThread:
+        thread = _thread()
+        thread.kind = ChatThreadKind.LIVE_REPORT
+        return thread
+
+    def test_a_live_report_turn_runs_its_own_agent(self) -> None:
+        calls: list[dict[str, Any]] = []
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "touch_thread",
+                AsyncMock(return_value=self._live_thread()),
+            ),
+            patch.object(chat, "run_chat_turn", _turn([], calls)),
+        ):
+            _client().post(
+                f"/api/chat/threads/{THREAD_ID}/stream", json={"message": "go"}
+            )
+        (call,) = calls
+        assert call["build_agent"] is live_report_agent.build_live_report_agent
+        assert call["build_input"] is live_report_agent.build_live_report_input
+        assert call["model"] == live_report_agent.LIVE_REPORT_DEFAULT_MODEL
+
+    def test_a_live_report_is_read_through_its_own_agent(self) -> None:
+        with (
+            patch.object(
+                chat.chat_thread_service,
+                "get_thread",
+                AsyncMock(return_value=self._live_thread()),
+            ),
+            patch.object(
+                chat, "load_thread_messages", AsyncMock(return_value=[])
+            ) as load,
+        ):
+            _client().get(f"/api/chat/threads/{THREAD_ID}/messages")
+        load.assert_awaited_once_with(
+            str(THREAD_ID), reader=live_report_agent.live_report_reader
+        )
+
+    def test_lists_and_creates_ask_for_a_kind(self) -> None:
+        with (
+            patch.object(
+                chat.chat_thread_service, "list_threads", AsyncMock(return_value=[])
+            ) as listed,
+            patch.object(
+                chat.chat_thread_service,
+                "create_thread",
+                AsyncMock(return_value=self._live_thread()),
+            ) as created,
+        ):
+            _client().get("/api/chat/threads")
+            _client().get("/api/chat/threads", params={"kind": "live_report"})
+            response = _client().post("/api/chat/threads", json={"kind": "live_report"})
+        assert [c.kwargs["kind"] for c in listed.await_args_list] == [
+            ChatThreadKind.CHAT,
+            ChatThreadKind.LIVE_REPORT,
+        ]
+        assert created.await_args is not None
+        assert created.await_args.kwargs["kind"] == ChatThreadKind.LIVE_REPORT
+        assert response.json()["kind"] == "live_report"

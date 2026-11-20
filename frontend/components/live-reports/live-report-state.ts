@@ -1,0 +1,217 @@
+/**
+ * What the /live-reports page derives from a run: which step it is on, and what
+ * the buttons need from the files the agent wrote. The agent writes the
+ * `live-reports` skill's files under `/live-report/`; the backend serves them by
+ * their path in that folder (`GET /api/live-reports/{id}/files`), research
+ * notes as `research/<id>.md`.
+ *
+ * The conversation behind the page is driven by the buttons: each sends one of
+ * the messages below.
+ */
+
+export type Step = 'upload' | 'intake' | 'plan' | 'research' | 'brief' | 'outputs';
+export const STEPS: Step[] = ['upload', 'intake', 'plan', 'research', 'brief', 'outputs'];
+
+export interface RunFile {
+  name: string;
+  content: string;
+}
+
+export const FILE_OF: Partial<Record<Step, string>> = {
+  intake: 'intake.md',
+  plan: 'research-plan.md',
+  brief: 'research-brief.md',
+};
+export const OUTPUT_FILES = { addendum: 'addendum.md', changePlan: 'change-plan.md' } as const;
+
+/** The messages the buttons send. Fixed, so the page can tell from history what was approved. */
+export const MESSAGES = {
+  start: 'Please bring this report up to date.',
+  approveIntake: 'The intake is right. Approved.',
+  approvePlan: 'The plan is approved. Yes, I consent to running web search on this document. Start the research.',
+  approveOutputs: 'Approved.',
+  /** After a stop during research: finish the items without notes, then the brief. */
+  resumeResearch: 'Continue the research: research the items that have no notes yet, then write the brief.',
+  /** After a stop before the intake: start again on the report already attached. */
+  retryIntake: 'Please read the attached report again and write the intake.',
+};
+
+/** What approving the plan agrees to, shown beside the button: the skill's own consent question. */
+export const SEARCH_DISCLOSURE =
+  "Starting the research sends parts of your document, and possibly the whole document, to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine.";
+
+export interface Outputs {
+  addendum: boolean;
+  changePlan: boolean;
+}
+
+/**
+ * The step the run is on. Files decide most of it; the last message the person
+ * sent decides the moment after the plan is approved, before any research note
+ * exists, when the agent could as well be revising the plan.
+ */
+export function stepOf(files: RunFile[], lastSent: string | undefined): Step {
+  const has = (name: string) => files.some((f) => f.name === name);
+  if (has(OUTPUT_FILES.addendum) || has(OUTPUT_FILES.changePlan)) return 'outputs';
+  if (has(FILE_OF.brief!)) return 'brief';
+  const researching = lastSent === MESSAGES.approvePlan || lastSent === MESSAGES.resumeResearch;
+  if (files.some((f) => f.name.startsWith('research/')) || researching) return 'research';
+  if (has(FILE_OF.plan!)) return 'plan';
+  if (has(FILE_OF.intake!)) return 'intake';
+  return 'upload';
+}
+
+export function fileContent(files: RunFile[], name: string | undefined): string | undefined {
+  return name ? files.find((f) => f.name === name)?.content : undefined;
+}
+
+/** One message of the conversation behind the buttons. */
+export interface Exchange {
+  from: 'you' | 'agent';
+  text: string;
+}
+
+/** The step a message the person sent moves the run to, if it is one of the buttons'. */
+function stepAfter(sent: string, step: Step): Step {
+  if (sent === MESSAGES.start || sent === MESSAGES.retryIntake) return 'intake';
+  if (sent === MESSAGES.approveIntake) return 'plan';
+  // Research and the brief are one turn: its reply is the brief's.
+  if (sent === MESSAGES.approvePlan || sent === MESSAGES.resumeResearch) return 'brief';
+  if (sent.startsWith('The brief is approved')) return 'outputs';
+  return step;
+}
+
+/**
+ * The agent's note for each step: the last reply it gave while the run was on
+ * that step. The buttons send fixed messages, so the conversation says where
+ * each step ends.
+ */
+export function stepNotes(conversation: Exchange[]): Partial<Record<Step, string>> {
+  const notes: Partial<Record<Step, string>> = {};
+  let step: Step = 'intake';
+  for (const entry of conversation) {
+    if (entry.from === 'you') step = stepAfter(entry.text, step);
+    else notes[step] = entry.text;
+  }
+  return notes;
+}
+
+/** A link the agent wrote to one of its files: the step that shows it, and the file. */
+export interface FileLink {
+  step: Step;
+  file: string;
+}
+
+const STEP_OF_FILE: Record<string, Step> = {
+  'intake.md': 'intake',
+  'research-plan.md': 'plan',
+  'research-brief.md': 'brief',
+  'addendum.md': 'outputs',
+  'change-plan.md': 'outputs',
+};
+
+/**
+ * The step a link opens, when it points at one of the run's files. The agent
+ * links them as `sandbox:/live-report/addendum.md`, `/live-report/…` or by bare
+ * name; research notes live under `research/`.
+ */
+export function fileLinkOf(href: string | null | undefined): FileLink | null {
+  if (!href) return null;
+  const path = href.replace(/^sandbox:/, '').replace(/[?#].*$/, '');
+  const file = path.replace(/^\/?live-report\//, '').replace(/^\//, '');
+  if (/^research\/[^/]+\.md$/.test(file)) return { step: 'research', file };
+  const step = STEP_OF_FILE[file];
+  return step ? { step, file } : null;
+}
+
+/** The id a file's place on the page carries, so a link to the file can scroll to it. */
+export function fileAnchor(file: string): string {
+  return `live-report-${file.replace(/[^a-z0-9]+/gi, '-')}`;
+}
+
+export interface ResearchItem {
+  id: string;
+  text: string;
+  /** The note's verdict, once the note exists. */
+  verdict?: string;
+  /** The researcher's full note, once written. */
+  note?: string;
+}
+
+/**
+ * The items the plan sends to research (facts, data and angles; claims aren't
+ * searched), each with its note's verdict once written.
+ */
+export function researchItems(plan: string | undefined, files: RunFile[]): ResearchItem[] {
+  if (!plan) return [];
+  const items: ResearchItem[] = [];
+  for (const match of plan.matchAll(/^- \*\*([FDA]\d+)\b[^*]*\*\*\s*(.*)$/gm)) {
+    const [, id, text] = match;
+    const note = fileContent(files, `research/${id}.md`);
+    items.push({
+      id,
+      text: text.replace(/\s*From:.*$/, '').trim(),
+      verdict: note ? verdictOf(note) : undefined,
+      note,
+    });
+  }
+  return items;
+}
+
+/** A note's verdict, short: the label before any explanation. */
+export function verdictOf(note: string): string {
+  const raw = note.match(/\*\*Verdict:\*\*\s*([^\n]+)/)?.[1] ?? 'Done';
+  const label = raw.split(/[.;(]/)[0].trim();
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export interface AuthorQuestion {
+  /** The ids the question is about, as the brief writes them: "C3", "C6–C8 (A1)". */
+  about: string;
+  text: string;
+}
+
+/** The brief's "Questions for the authors", one per numbered item. */
+export function authorQuestions(brief: string | undefined): AuthorQuestion[] {
+  const section = brief?.match(/^## Questions for the authors\s*\n([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1];
+  if (!section) return [];
+  return [...section.matchAll(/^\d+\.\s+(?:\*\*([^*]+?)\.?\*\*\s*)?(.+)$/gm)].map(([, about, text]) => ({
+    about: (about ?? '').trim(),
+    text: text.trim(),
+  }));
+}
+
+/** The message that approves the brief, with the person's answers and chosen outputs. */
+export function outputsMessage(outputs: Outputs, answers: string[], questions: AuthorQuestion[]): string {
+  const picked = [outputs.addendum && 'the addendum', outputs.changePlan && 'the change plan'].filter(Boolean);
+  const answered = questions.map((q, i) => ({ q, answer: (answers[i] ?? '').trim() })).filter(({ answer }) => answer);
+  const answerText = answered.length
+    ? `My answers to the questions for the authors:\n${answered.map(({ q, answer }, i) => `${i + 1}. ${q.about || `Question ${i + 1}`}: ${answer}`).join('\n')}\nLeave any other question open.`
+    : 'Leave the questions for the authors open.';
+  return `The brief is approved. ${answerText}\nI want ${picked.join(' and ')}.`;
+}
+
+const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', changePlan: 'the change plan' };
+
+/**
+ * The outputs asked for on the brief and not written yet: a turn stopped after
+ * the first of two. Read from the last approval of the brief, as the button sent it.
+ */
+export function missingOutputs(files: RunFile[], conversation: Exchange[]): (keyof Outputs)[] {
+  const asked = conversation.findLast((m) => m.from === 'you' && m.text.startsWith('The brief is approved'))?.text;
+  if (!asked) return [];
+  const wanted = asked.slice(asked.lastIndexOf('\nI want '));
+  return (Object.keys(OUTPUT_NAMES) as (keyof Outputs)[]).filter(
+    (key) => wanted.includes(OUTPUT_NAMES[key]) && !files.some((f) => f.name === OUTPUT_FILES[key]),
+  );
+}
+
+/** The names of some outputs, for a sentence: "the addendum and the change plan". */
+export function outputNames(keys: (keyof Outputs)[]): string {
+  return keys.map((key) => OUTPUT_NAMES[key]).join(' and ');
+}
+
+/** Asks for the outputs a stopped turn left unwritten. */
+export function finishOutputsMessage(missing: (keyof Outputs)[]): string {
+  return `Write ${outputNames(missing)} as well, from the approved brief.`;
+}

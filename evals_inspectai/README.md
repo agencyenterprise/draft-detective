@@ -21,7 +21,6 @@ evals_inspectai/
 │   ├── headers_skimmability/
 │   ├── inference_validation_v2/
 │   ├── literature_review_v2/
-│   ├── live_reports_v2/
 │   ├── methodological_alignment/
 │   ├── narrative_synthesis/
 │   ├── recommendation_check/
@@ -63,7 +62,6 @@ Each eval directory contains a task module (`<name>_e2e.py`) and its dataset. Ea
 | `e2e/headers_skimmability` | Checks the bottom line up front, headers that state each section's point, bold lead sentences and the key findings box. |
 | `e2e/inference_validation_v2` | Flags invalid inferences, logical fallacies, and unsupported conclusions. |
 | `e2e/literature_review_v2` | Finds relevant academic sources — supporting and conflicting — that aren't already cited. |
-| `e2e/live_reports_v2` | Finds sources published after the document's date that may update or contradict its claims. |
 | `e2e/methodological_alignment` | Compares the document's methodology against standard field practice (uses web search). |
 | `e2e/narrative_synthesis` | Reviews the argument's order, framing questions, data dumps and restated points. |
 | `e2e/recommendation_check` | Checks whether each recommendation is backed by the document's own findings. |

@@ -68,6 +68,23 @@ async def read_thread_file(
     return file_data_to_string(cast(FileData, data))
 
 
+async def list_thread_files(
+    thread_id: str, directory: str, *, reader: ThreadReader, recursive: bool = False
+) -> dict[str, str]:
+    """The text files in ``directory``, by path: directly in it, or anywhere under
+    it when ``recursive``."""
+
+    values = await load_thread_values(thread_id, reader=reader)
+    prefix = directory.rstrip("/") + "/"
+    return {
+        path: file_data_to_string(cast(FileData, data))
+        for path, data in sorted((values.get("files") or {}).items())
+        if path.startswith(prefix)
+        and (recursive or "/" not in path[len(prefix) :])
+        and isinstance(data, dict)
+    }
+
+
 async def files_to_mount(
     graph: CompiledStateGraph, thread_id: str, files: Mapping[str, Any]
 ) -> dict[str, Any]:

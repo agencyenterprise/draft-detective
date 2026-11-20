@@ -211,7 +211,7 @@ async def test_the_dated_solver_puts_the_publication_date_on_the_project():
         patch.object(api_solver, "create_project_and_start_workflows", create),
         patch.object(api_solver, "poll_until_complete", poll),
     ):
-        await api_workflow_solver("live_reports_v2")(state, AsyncMock())
+        await api_workflow_solver("literature_review_v2")(state, AsyncMock())
     assert create.await_args.kwargs["publication_date"] == "2015-01-01"
     assert '"issues": []' in state.output.completion
 

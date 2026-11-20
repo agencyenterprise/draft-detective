@@ -114,6 +114,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in seen["middleware"][:-1]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
         assert seen["middleware"][-1] is own
 
@@ -126,6 +128,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in subagent["middleware"]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
 
     def test_a_callers_own_general_purpose_subagent_is_kept(self) -> None:
@@ -151,6 +155,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in declared["middleware"][:-1]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
         assert declared["middleware"][-1] is own
 
@@ -160,6 +166,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in subagent["middleware"]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
 
     def test_a_precompiled_subagent_is_used_as_given(self) -> None:

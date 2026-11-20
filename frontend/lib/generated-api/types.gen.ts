@@ -1317,6 +1317,20 @@ export type ChatSurfaceUsage = {
 };
 
 /**
+ * ChatThreadKind
+ *
+ * Which agent a thread talks to, and which page shows it.
+ */
+export const ChatThreadKind = { Chat: 'chat', LiveReport: 'live_report' } as const;
+
+/**
+ * ChatThreadKind
+ *
+ * Which agent a thread talks to, and which page shows it.
+ */
+export type ChatThreadKind = (typeof ChatThreadKind)[keyof typeof ChatThreadKind];
+
+/**
  * ChatThreadResponse
  */
 export type ChatThreadResponse = {
@@ -1324,6 +1338,7 @@ export type ChatThreadResponse = {
    * Id
    */
   id: string;
+  kind: ChatThreadKind;
   /**
    * Title
    */
@@ -1644,6 +1659,10 @@ export type CreateThreadRequest = {
    * Title
    */
   title?: string | null;
+  /**
+   * Which agent the thread talks to; fixed for the thread's life.
+   */
+  kind?: ChatThreadKind;
 };
 
 /**
@@ -2947,6 +2966,23 @@ export type LinkReferenceFileResponse = {
    * File Id
    */
   file_id: string;
+};
+
+/**
+ * LiveReportFileResponse
+ *
+ * One of the files, as it stands now. ``name`` is relative to the live
+ * report's folder: ``intake.md``, or ``research/F1.md`` for a research note.
+ */
+export type LiveReportFileResponse = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Content
+   */
+  content: string;
 };
 
 /**
@@ -5093,6 +5129,12 @@ export type WorkflowRun = {
    */
   model?: string | null;
   /**
+   * Independent Run
+   *
+   * Copied from the manifest's independent_runs when the run is created. Such runs go side by side, so the one-running and one-waiting indexes leave them out.
+   */
+  independent_run?: boolean;
+  /**
    * State Json
    *
    * Serialized WorkflowState; written after every node yield. Schema is the WorkflowState subclass for `type`.
@@ -5259,7 +5301,6 @@ export const WorkflowRunType = {
   MethodologicalAlignment: 'methodological_alignment',
   ReferenceDownloader: 'reference_downloader',
   LiteratureReviewV2: 'literature_review_v2',
-  LiveReportsV2: 'live_reports_v2',
   ReferenceValidationV2: 'reference_validation_v2',
   ResultsExtraction: 'results_extraction',
   InferenceValidationV2: 'inference_validation_v2',
@@ -5954,9 +5995,24 @@ export type ListAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGetResponse =
 export type ListThreadsApiChatThreadsGetData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Each page lists its own kind.
+     */
+    kind?: ChatThreadKind;
+  };
   url: '/api/chat/threads';
 };
+
+export type ListThreadsApiChatThreadsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListThreadsApiChatThreadsGetError =
+  ListThreadsApiChatThreadsGetErrors[keyof ListThreadsApiChatThreadsGetErrors];
 
 export type ListThreadsApiChatThreadsGetResponses = {
   /**
@@ -6232,9 +6288,24 @@ export type CancelChatTurnApiChatThreadsThreadIdCancelPostResponse =
 export type ListChatModelsApiChatModelsGetData = {
   body?: never;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * The kind of thread the picker is for; each has its own default.
+     */
+    kind?: ChatThreadKind;
+  };
   url: '/api/chat/models';
 };
+
+export type ListChatModelsApiChatModelsGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListChatModelsApiChatModelsGetError =
+  ListChatModelsApiChatModelsGetErrors[keyof ListChatModelsApiChatModelsGetErrors];
 
 export type ListChatModelsApiChatModelsGetResponses = {
   /**
@@ -6325,6 +6396,40 @@ export type ExtractAttachmentTextApiChatExtractPostResponses = {
 
 export type ExtractAttachmentTextApiChatExtractPostResponse =
   ExtractAttachmentTextApiChatExtractPostResponses[keyof ExtractAttachmentTextApiChatExtractPostResponses];
+
+export type ListLiveReportFilesApiLiveReportsThreadIdFilesGetData = {
+  body?: never;
+  path: {
+    /**
+     * Thread Id
+     */
+    thread_id: string;
+  };
+  query?: never;
+  url: '/api/live-reports/{thread_id}/files';
+};
+
+export type ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListLiveReportFilesApiLiveReportsThreadIdFilesGetError =
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors[keyof ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors];
+
+export type ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses = {
+  /**
+   * Response List Live Report Files Api Live Reports  Thread Id  Files Get
+   *
+   * Successful Response
+   */
+  200: Array<LiveReportFileResponse>;
+};
+
+export type ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponse =
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses[keyof ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses];
 
 export type StartWorkflowApiWorkflowsStartPostData = {
   /**
