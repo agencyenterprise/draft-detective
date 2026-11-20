@@ -256,6 +256,40 @@ class TestUpdates:
         payload = {"PatchToolCallsMiddleware.before_agent": {"messages": rewritten}}
         assert mapper.map("updates", payload) == []
 
+    def test_the_model_nodes_reply_after_a_repaired_history_is_new_output(
+        self,
+    ) -> None:
+        """langchain 1.4.3+ answers a malformed tool call with an error result, then
+        writes the repaired history followed by the model's reply. The history is
+        old; the reply is what the client is waiting for."""
+        mapper = GraphEventMapper()
+        mapper.map("updates", {"model": {"messages": [AIMessage(content="", id="a1")]}})
+        rewritten = [
+            RemoveMessage(id=REMOVE_ALL_MESSAGES),
+            HumanMessage(content="hi", id="h1"),
+            AIMessage(
+                content="",
+                id="a1",
+                tool_calls=[{"id": "old", "name": "ls", "args": {}}],
+                invalid_tool_calls=[
+                    {"id": "bad", "name": "ls", "args": '{"x', "error": "json"}
+                ],
+            ),
+            ToolMessage(content="bad args", tool_call_id="bad", status="error"),
+            ToolMessage(content="ok", tool_call_id="old", id="t-old"),
+            AIMessage(
+                content="",
+                id="a2",
+                tool_calls=[{"id": "new", "name": "ls", "args": {}}],
+            ),
+        ]
+        events = mapper.map("updates", {"model": {"messages": rewritten}})
+        assert events == [
+            {"t": "message", "id": "a2"},
+            {"t": "tool", "id": "new", "name": "ls", "args": {}},
+            {"t": "message_end", "id": "a2"},
+        ]
+
     def test_a_single_message_write_is_handled_like_a_list(self) -> None:
         mapper = GraphEventMapper()
         message = ToolMessage(content="ok", tool_call_id="c1", id="t1")

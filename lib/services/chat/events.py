@@ -55,7 +55,8 @@ ChatEvent = dict[str, Any]
 STREAM_MODES: list[StreamMode] = ["messages", "updates"]
 
 
-# The node of a LangChain agent that runs its tools.
+# The nodes of a LangChain agent that call the model and run its tools.
+MODEL_NODE = "model"
 TOOLS_NODE = "tools"
 
 
@@ -126,25 +127,38 @@ def content_blocks(content: Any) -> list[dict[str, Any]]:
     return []
 
 
-def new_messages(channel_value: Any) -> list[BaseMessage]:
+def new_messages(channel_value: Any, node: str = "") -> list[BaseMessage]:
     """The messages a node appended, from whatever it wrote to the channel.
 
-    A node may write one message or a list. deepagents' ``PatchToolCallsMiddleware``
-    instead rewrites the whole history before the first model call, when a tool call
-    was left without a result (an answer paused on a card, then a new message): an
-    ``Overwrite``, or, in deepagents 0.7, a list that starts by removing every
-    message. Either is a rewrite of what the client already has, not new output, so
-    it is skipped rather than re-announced.
+    A node may write one message or a list. Two writers instead rewrite the whole
+    history, as an ``Overwrite`` or a list that starts by removing every message:
+
+    - deepagents' ``PatchToolCallsMiddleware``, before the first model call, when a
+      tool call was left without a result (an answer paused on a card, then a new
+      message). That is only what the client already has, so nothing is new.
+    - LangChain's model node (langchain 1.4.3+), when it answered a malformed tool
+      call with an error result before calling the model. The history is followed
+      by this call's response, which starts at the last ``AIMessage``: a model call
+      always follows a human or tool message.
     """
 
-    if isinstance(channel_value, Overwrite) or _rewrites_history(channel_value):
+    if isinstance(channel_value, Overwrite):
         return []
+    if _rewrites_history(channel_value):
+        return _response_after_rewrite(channel_value) if node == MODEL_NODE else []
     if isinstance(channel_value, BaseMessage):
         return [channel_value]
     if isinstance(channel_value, list):
         return [
             message for message in channel_value if isinstance(message, BaseMessage)
         ]
+    return []
+
+
+def _response_after_rewrite(messages: list[Any]) -> list[BaseMessage]:
+    for index in range(len(messages) - 1, 0, -1):
+        if isinstance(messages[index], AIMessage):
+            return [m for m in messages[index:] if isinstance(m, BaseMessage)]
     return []
 
 
@@ -204,7 +218,7 @@ class GraphEventMapper:
         for node, channels in payload.items():
             if not isinstance(channels, dict):
                 continue
-            for message in new_messages(channels.get("messages")):
+            for message in new_messages(channels.get("messages"), node):
                 if isinstance(message, AIMessage):
                     events.extend(self._from_ai_message(message))
                 # Only the tools node's are new results: a middleware rewriting one in

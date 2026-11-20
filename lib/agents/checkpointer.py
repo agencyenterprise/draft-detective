@@ -7,8 +7,9 @@ Three non-obvious constraints, two of which fail silently:
 
 - **A psycopg pool, not the SQLAlchemy engine.** ``AsyncPostgresSaver`` accepts neither,
   so this is a second pool on the same database.
-- **A fresh saver per call over a shared pool.** Each saver holds its own
-  ``asyncio.Lock``, so sharing one serialises every concurrent run.
+- **A fresh saver per call over a shared pool.** Over a pool, a saver takes no lock
+  (langgraph-checkpoint-postgres 3.2.1+) and each call checks out its own connection,
+  so savers are cheap handles; the pool's ``max_size`` is what bounds concurrent runs.
 - **Not ``from_conn_string``**, which holds a connection for a whole run.
 
 Connections: the SQLAlchemy engine is capped at 8 + 3 per process and this adds 4, so a
@@ -111,7 +112,7 @@ async def get_checkpointer() -> AsyncIterator[AsyncPostgresSaver]:
     """A saver over the shared pool, opening the pool on first use.
 
     Yields a new saver each time on purpose -- see the module docstring. The pool is
-    what is shared; the saver is a handle with a lock attached.
+    what is shared; the saver is only a handle on it.
     """
 
     await _ensure_pool_ready()
