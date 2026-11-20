@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
@@ -89,6 +90,15 @@ class Config(BaseModel):
         description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
     )
 
+    OPENAI_API_KEY_HEADER: str | None = Field(
+        default=None,
+        description=(
+            "Name of an extra header that carries the OpenAI key on every request "
+            "(e.g. `api-key`), for a gateway that reads the key from its own header "
+            "rather than from `Authorization`."
+        ),
+    )
+
     ALLOW_WORKFLOW_MODEL_OVERRIDE: bool = Field(
         default=False,
         description=(
@@ -149,6 +159,7 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    OPENAI_API_KEY_HEADER=os.getenv("OPENAI_API_KEY_HEADER") or None,
     ALLOW_WORKFLOW_MODEL_OVERRIDE=os.getenv(
         "ALLOW_WORKFLOW_MODEL_OVERRIDE", "false"
     ).lower()
@@ -164,3 +175,13 @@ config = Config(
 def get_model_api_key(model_name: str) -> str | None:
     """Return the API key configured for a specific model name, or None."""
     return config.MODEL_API_KEYS.get(model_name)
+
+
+def openai_header_kwargs(api_key: str | None) -> dict[str, Any]:
+    """``default_headers`` for an OpenAI client, sending ``api_key`` (or the server's
+    key) in the header ``OPENAI_API_KEY_HEADER`` names. Empty when that is unset."""
+
+    key = api_key or config.OPENAI_API_KEY
+    if not config.OPENAI_API_KEY_HEADER or not key:
+        return {}
+    return {"default_headers": {config.OPENAI_API_KEY_HEADER: key}}

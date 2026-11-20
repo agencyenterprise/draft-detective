@@ -35,7 +35,7 @@ from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
 
 from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
-from lib.config.env import config, get_model_api_key
+from lib.config.env import config, get_model_api_key, openai_header_kwargs
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 from lib.config.llm_models import LLMModel, gpt_5_6_terra_model
@@ -207,6 +207,8 @@ def build_llm(
     }
     if resolved:
         kwargs["api_key"] = resolved
+    if model.provider == "openai":
+        kwargs.update(openai_header_kwargs(resolved))
     if output_version:
         kwargs["output_version"] = output_version
     return init_chat_model(**kwargs)

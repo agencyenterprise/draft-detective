@@ -1,6 +1,8 @@
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
+from lib.config.env import openai_header_kwargs
+
 EMBEDDING_MODEL_LARGE = "text-embedding-3-large"
 
 
@@ -10,7 +12,7 @@ def init_embeddings(
 ) -> OpenAIEmbeddings:
     """Common builder for OpenAIEmbeddings."""
 
-    kwargs: dict = {"model": model}
+    kwargs: dict = {"model": model, **openai_header_kwargs(api_key)}
 
     if api_key:
         kwargs["api_key"] = api_key

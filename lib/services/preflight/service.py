@@ -2,7 +2,7 @@ import logging
 
 from openai import APIError, AsyncOpenAI, AuthenticationError
 
-from lib.config.env import config
+from lib.config.env import config, openai_header_kwargs
 from lib.services.preflight.models import (
     PreflightRequest,
     PreflightResult,
@@ -36,7 +36,9 @@ class PreflightValidationService:
                 )
             ]
 
-        async with AsyncOpenAI(api_key=api_key) as client:
+        async with AsyncOpenAI(
+            api_key=api_key, **openai_header_kwargs(api_key)
+        ) as client:
             return await self._test_connection(client)
 
     async def _test_connection(self, client: AsyncOpenAI) -> list[ValidationIssue]:
