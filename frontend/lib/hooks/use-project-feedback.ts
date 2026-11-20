@@ -1,10 +1,9 @@
 import type { FeedbackRequest, FeedbackResponse, FeedbackType } from '@/lib/generated-api';
 import { getProjectFeedbackApiFeedbackProjectProjectIdGet, submitFeedbackApiFeedbackPost } from '@/lib/generated-api';
-import { getErrorMessage } from '@/lib/api-error';
 import { writeServerAnswer } from '@/lib/query-cache';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
-import { toast } from 'sonner';
 
 /**
  * Hook to fetch all issue feedback for a project in a single call.
@@ -45,7 +44,7 @@ export function useProjectFeedback(projectId: string | undefined) {
     [feedbackByIssueId],
   );
 
-  const submitMutation = useMutation({
+  const submitMutation = useToastMutation({
     mutationFn: async ({
       issueId,
       feedbackType,
@@ -62,6 +61,8 @@ export function useProjectFeedback(projectId: string | undefined) {
       };
       return await submitFeedbackApiFeedbackPost({ body });
     },
+    successMessage: 'Thanks for your feedback!',
+    errorMessage: 'Failed to submit feedback',
     onSuccess: async (newFeedback) => {
       await writeServerAnswer<FeedbackResponse[]>(queryClient, { queryKey, exact: true }, (old) => {
         if (!old) return [newFeedback];
@@ -74,10 +75,6 @@ export function useProjectFeedback(projectId: string | undefined) {
         }
         return [...old, newFeedback];
       });
-      toast.success('Thanks for your feedback!');
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to submit feedback'));
     },
   });
 

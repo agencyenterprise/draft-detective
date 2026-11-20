@@ -18,7 +18,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { listUsersApiUsersGet, updateRoleApiUsersUserIdRolePatch, UserResponse, UserRole } from '@/lib/generated-api';
 import { getErrorMessage } from '@/lib/api-error';
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, Loader2, Search, ShieldCheck, ShieldQuestion, User } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
@@ -68,21 +69,19 @@ export function UsersList() {
 
   const users = usersData?.pages.flat() ?? [];
 
-  const updateRoleMutation = useMutation({
+  const updateRoleMutation = useToastMutation({
     mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
       updateRoleApiUsersUserIdRolePatch({
         path: { user_id: userId },
         body: { role },
       }),
+    errorMessage: 'Failed to update role',
     onSuccess: async (updatedUser) => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users-list'] });
       toast.success(`Updated ${updatedUser.name}'s role to ${updatedUser.role}`);
       setPendingChange(null);
     },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to update role'));
-      setPendingChange(null);
-    },
+    onError: () => setPendingChange(null),
   });
 
   const handleRoleSelectChange = (user: UserResponse, newRole: UserRole) => {

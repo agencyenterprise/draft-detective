@@ -1,6 +1,5 @@
 'use client';
 
-import { getErrorMessage } from '@/lib/api-error';
 import {
   type Project,
   type ProjectOverview,
@@ -8,19 +7,14 @@ import {
   updateProjectEndpointApiProjectProjectIdPatch,
 } from '@/lib/generated-api';
 import { PROJECT_LIST_QUERY_KEY, projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useToastMutation, type ToastMutationOptions } from '@/lib/hooks/use-toast-mutation';
 import { writeServerAnswerAndRefresh } from '@/lib/query-cache';
-import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
-export interface UpdateProjectOptions extends Pick<
-  UseMutationOptions<Project, Error, UpdateProjectRequest>,
-  'onMutate' | 'onSuccess' | 'onError'
-> {
-  /** Toasted on success. Leave it out when the caller says it some other way. */
-  successMessage?: string;
-  /** Toasted on failure when the server gives no reason. */
-  errorMessage: string;
-}
+export type UpdateProjectOptions = Pick<
+  ToastMutationOptions<Project, UpdateProjectRequest>,
+  'onMutate' | 'onSuccess' | 'onError' | 'successMessage' | 'errorMessage'
+>;
 
 /**
  * Saves changes to a project's own fields (title, date, settings). The server
@@ -30,14 +24,14 @@ export interface UpdateProjectOptions extends Pick<
  * Nothing else under `['project', id]` changed. The project list shows these
  * fields, so it is refreshed as well.
  *
- * On failure it toasts the server's reason, or `errorMessage`.
+ * It toasts like `useToastMutation`.
  */
 export function useUpdateProject(
   projectId: string | null | undefined,
-  { successMessage, errorMessage, onSuccess, onError, ...options }: UpdateProjectOptions,
+  { onSuccess, ...options }: UpdateProjectOptions,
 ) {
   const queryClient = useQueryClient();
-  return useMutation<Project, Error, UpdateProjectRequest>({
+  return useToastMutation<Project, UpdateProjectRequest>({
     ...options,
     mutationFn: (changes) => {
       if (!projectId) throw new Error('No project ID');
@@ -53,12 +47,7 @@ export function useUpdateProject(
         );
       }
       void queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY });
-      if (successMessage) toast.success(successMessage);
       return onSuccess?.(project, ...rest);
-    },
-    onError: (...args) => {
-      toast.error(getErrorMessage(args[0], errorMessage));
-      return onError?.(...args);
     },
   });
 }
