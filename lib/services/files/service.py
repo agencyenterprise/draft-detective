@@ -84,6 +84,20 @@ async def create_file_record(
         return file
 
 
+def in_project(file: File, project_id: str | uuid.UUID) -> bool:
+    """Whether ``file`` belongs to ``project_id``, however the id is spelled.
+
+    Compared as UUIDs: a route passes the id as the request spelled it (upper
+    case, no hyphens), which names the same project as the row's own.
+    """
+    try:
+        return file.project_id is not None and file.project_id == uuid.UUID(
+            str(project_id)
+        )
+    except ValueError:
+        return False
+
+
 async def get_file_by_id(file_id: uuid.UUID | str) -> File:
     """
     Get a single file by ID.

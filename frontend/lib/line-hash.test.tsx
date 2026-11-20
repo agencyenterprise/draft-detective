@@ -2,7 +2,7 @@ import { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LineRange } from '@/lib/stores/document-explorer-store';
 import { renderInto, type Rendered } from '@/lib/test-render';
-import { parseLineHash, useLineHashNavigation } from './line-hash';
+import { formatLineHash, parseLineHash, useLineHashNavigation } from './line-hash';
 
 describe('parseLineHash', () => {
   it.each([
@@ -21,6 +21,29 @@ describe('parseLineHash', () => {
       expect(parseLineHash(hash)).toBeNull();
     },
   );
+});
+
+describe('formatLineHash', () => {
+  it.each([
+    [[5, 5], '#L5'],
+    [[5, 15], '#L5-15'],
+  ] as [LineRange, string][])('writes lines %j as %s', (range, hash) => {
+    expect(formatLineHash(range)).toBe(hash);
+  });
+
+  it('writes no hash without a range', () => {
+    expect(formatLineHash(undefined)).toBeUndefined();
+  });
+
+  // The assessments tab writes the link and the document explorer reads it: a
+  // change to either side alone would send the reader to the wrong lines.
+  it.each([
+    [1, 1],
+    [5, 15],
+    [120, 121],
+  ] as LineRange[])('reads back the lines it wrote for %j', (start, end) => {
+    expect(parseLineHash(formatLineHash([start, end])!)).toEqual([start, end]);
+  });
 });
 
 function Probe({ onSelectRange }: { onSelectRange: (range: LineRange) => void }) {
