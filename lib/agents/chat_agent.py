@@ -20,7 +20,7 @@ Two things are particular to the chat:
   ``stream_mode="messages"``; see ``build_llm``.
 """
 
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from typing import Any
 
 from langchain_core.messages import HumanMessage
@@ -74,7 +74,8 @@ DEFAULT_CHAT_MODEL = CHAT_MODELS[0].model
 
 # Skills on disk that no agent talking to a user mounts: the chat, the Word add-in
 # and the Teams agent all exclude this one list, so they always offer the same set.
-# The SKILL.md files stay on disk for the workflows that load them.
+# The SKILL.md files stay on disk for the workflows and agents that load them
+# (live-reports is mounted by ``live_report_agent.py``).
 EXCLUDED_CHAT_SKILLS = frozenset(
     {
         # They go looking for new literature rather than reviewing a draft the
@@ -211,8 +212,10 @@ def chat_skill_catalogue() -> list[SkillSummary]:
     return catalogue
 
 
-def resolve_chat_model(model_id: str | None) -> LLMModel:
-    """The allowlisted model for an id, or the default for anything else.
+def resolve_chat_model(
+    model_id: str | None, default: LLMModel = DEFAULT_CHAT_MODEL
+) -> LLMModel:
+    """The allowlisted model for an id, or ``default`` for anything else.
 
     Falls back rather than failing so an old client, or a picker that still names
     a retired model, keeps working. The route can never be driven to an arbitrary
@@ -222,7 +225,7 @@ def resolve_chat_model(model_id: str | None) -> LLMModel:
     for option in CHAT_MODELS:
         if option.id == model_id:
             return option.model
-    return DEFAULT_CHAT_MODEL
+    return default
 
 
 def build_chat_agent(
@@ -262,6 +265,12 @@ def build_chat_input(message: HumanMessage, files: dict[str, Any]) -> dict[str, 
     }
 
 
+# How a thread's agent is put together for one turn (one set per kind of thread).
+AgentBuilder = Callable[[LLMModel, str | None, BaseCheckpointSaver], CompiledStateGraph]
+InputBuilder = Callable[[HumanMessage, dict[str, Any]], dict[str, Any]]
+RunConfigBuilder = Callable[[str, str], RunnableConfig]
+
+
 def chat_run_config(thread_id: str, user_id: str) -> RunnableConfig:
     """Tracing keyed as the other conversation agents are: one thread, one session."""
 
@@ -279,15 +288,22 @@ async def run_chat_turn(
     text: str,
     attachments: Sequence[ChatAttachment] = (),
     message_id: str | None = None,
+    build_agent: AgentBuilder,
+    build_input: InputBuilder,
+    run_config: RunConfigBuilder,
 ) -> AsyncIterator[ChatEvent]:
-    """One turn of a thread, as the page's events, checkpointed as it goes."""
+    """One turn of a thread, as the page's events, checkpointed as it goes.
+
+    The agent, its input and its tracing are the thread kind's
+    (``lib/agents/thread_agents.py``), always passed: a thread must be run and read
+    back through the same graph, so there is no default to fall back on.
+    """
 
     message, files = build_user_turn(text, attachments, message_id)
     async with get_checkpointer() as saver:
-        agent = build_chat_agent(model, api_key, saver)
-        turn = build_chat_input(message, files)
+        agent = build_agent(model, api_key, saver)
+        turn = build_input(message, files)
         turn["files"] = await files_to_mount(agent, thread_id, turn["files"])
-        async for event in stream_chat_events(
-            agent, turn, chat_run_config(thread_id, user_id)
-        ):
+        config = run_config(thread_id, user_id)
+        async for event in stream_chat_events(agent, turn, config):
             yield event

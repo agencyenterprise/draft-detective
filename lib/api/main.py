@@ -26,6 +26,7 @@ from lib.api.routers import (
     files,
     health,
     issues,
+    live_reports,
     logs,
     project_views,
     projects,
@@ -92,6 +93,7 @@ app.include_router(about.router)
 app.include_router(admin_dashboard.router)
 app.include_router(annotations.router)
 app.include_router(chat.router)
+app.include_router(live_reports.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)
 app.include_router(files.router)

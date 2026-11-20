@@ -32,11 +32,6 @@ _CASES = [
         "literature-review",
         "### Extracted bibliography",
     ),
-    (
-        WorkflowRunType.LIVE_REPORTS_V2,
-        "live-reports",
-        "### Current bibliography from the document (already cited — do not re-list these)",
-    ),
 ]
 
 
@@ -146,7 +141,6 @@ async def test_agent_runs_with_web_search_a_long_timeout_and_its_own_system_prom
     ("workflow_type", "label"),
     [
         (WorkflowRunType.LITERATURE_REVIEW_V2, "Review literature"),
-        (WorkflowRunType.LIVE_REPORTS_V2, "Generate live report"),
     ],
 )
 def test_node_keeps_its_progress_label(workflow_type: WorkflowRunType, label: str):

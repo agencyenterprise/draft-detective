@@ -27,7 +27,7 @@ export function ApplicationShell({ children }: ApplicationShellProps) {
   }
 
   // Chat uses the full page width (no centered max-width container or padding).
-  const isFullBleed = pathname.startsWith('/chat');
+  const isFullBleed = pathname.startsWith('/chat') || pathname.startsWith('/live-reports');
 
   return (
     <div className="bg-background text-foreground flex h-dvh flex-col">

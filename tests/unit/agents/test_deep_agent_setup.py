@@ -9,6 +9,8 @@ is covered with the rest of ``lib/skills.py`` in ``tests/unit/test_skills.py``.
 from typing import Any
 from unittest.mock import patch
 
+from deepagents.graph import DeepAgentState
+
 from lib.agents.deep_agent_setup import (
     DEFAULT_MODEL,
     RECURSION_LIMIT,
@@ -108,12 +110,22 @@ class TestBuildingADeepAgent:
         assert _with_our_additions(create)(**kwargs) == "graph"
         return seen
 
+    def test_subagents_store_message_deltas_unless_the_caller_says_otherwise(
+        self,
+    ) -> None:
+        # Subagents share the checkpointer; a plain message list is stored whole
+        # at every step of every researcher.
+        assert self._captured(model="m")["state_schema"] is DeepAgentState
+        assert self._captured(model="m", state_schema=dict)["state_schema"] is dict
+
     def test_our_middleware_runs_ahead_of_the_callers(self) -> None:
         own = object()
         seen = self._captured(model="m", middleware=[own])
         assert [type(m).__name__ for m in seen["middleware"][:-1]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
         assert seen["middleware"][-1] is own
 
@@ -126,6 +138,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in subagent["middleware"]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
 
     def test_a_callers_own_general_purpose_subagent_is_kept(self) -> None:
@@ -151,6 +165,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in declared["middleware"][:-1]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
         assert declared["middleware"][-1] is own
 
@@ -160,6 +176,8 @@ class TestBuildingADeepAgent:
         assert [type(m).__name__ for m in subagent["middleware"]] == [
             "TodoListMiddleware",
             "ReadFileLineNumbersMiddleware",
+            "SubagentFileChangesMiddleware",
+            "WebSearchHistoryMiddleware",
         ]
 
     def test_a_precompiled_subagent_is_used_as_given(self) -> None:
