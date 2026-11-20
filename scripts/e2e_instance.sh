@@ -69,6 +69,11 @@ stop() {
   rm -f "$STATE/$1.pid" "$STATE/$1.start"
 }
 
+stop_each() {
+  local name
+  for name in "$@"; do stop "$name"; done
+}
+
 # True when a process in PID's group listens on PORT, so another server can't pass for ours.
 owns_port() {
   local listener
@@ -183,12 +188,18 @@ cmd_restart() {
     die "no saved ports in $STATE: start the instance with $0 up"
   [[ -n "${E2E_RELOAD:-}" ]] && echo "$E2E_RELOAD" >"$STATE/backend.reload"
   for name in "${names[@]}"; do stop "$name"; done
-  for name in "${names[@]}"; do
+  # Both ports, not just the restarted ones: the other server's port must be free or still ours,
+  # or a restarted frontend would talk to someone else's backend.
+  for name in backend frontend; do
     port=$(saved "$name.port")
-    listening "$port" && die "port $port ($name) is now taken by another process; run $0 down, then $0 up for new ports"
+    listening "$port" || continue
+    owns_port "$(saved "$name.pid")" "$port" && continue
+    die "port $port ($name) is now taken by another process; run $0 down, then $0 up for new ports"
   done
   # A failed or interrupted restart stops what it started; a server it didn't touch keeps running.
-  trap 'for name in "${names[@]}"; do stop "$name"; done' EXIT
+  # The names are expanded now: Bash may drop this function's locals before the trap runs.
+  # shellcheck disable=SC2064
+  trap "stop_each ${names[*]}" EXIT
   trap 'exit 1' INT TERM HUP
   launch "${names[@]}"
   trap - EXIT INT TERM HUP
