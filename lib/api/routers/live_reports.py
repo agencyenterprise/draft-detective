@@ -51,7 +51,6 @@ async def list_live_report_files(
         str(thread_id),
         LIVE_REPORT_DIR,
         reader=thread_agent(thread.kind).reader,
-        recursive=True,
     )
     prefix = LIVE_REPORT_DIR.rstrip("/") + "/"
     return [

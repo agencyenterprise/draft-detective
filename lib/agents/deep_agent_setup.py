@@ -24,6 +24,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ParamSpec, TypeVar, cast
 
 from deepagents import create_deep_agent
+from deepagents.graph import DeepAgentState
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT, SubAgent
 from langchain.agents.middleware import (
     AgentMiddleware,
@@ -167,6 +168,10 @@ def _with_our_additions(create: Callable[_P, _R]) -> Callable[_P, _R]:
         ):
             subagents.append(general_purpose_subagent(skills=skills))
         kwargs["subagents"] = subagents
+        # Subagents share the caller's checkpointer and default to a plain message
+        # list, stored whole at every step (18 MB per live report against 2 MB).
+        # DeepAgentState stores message deltas; the root already defaults to it.
+        kwargs.setdefault("state_schema", DeepAgentState)
         return create(*args, **kwargs)
 
     return build

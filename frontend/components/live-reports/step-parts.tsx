@@ -18,16 +18,19 @@ import {
   type Outputs,
   type ResearchItem,
   type Step,
+  type VerdictKind,
+  verdictKind,
 } from './live-report-state';
 
-function toneOf(label: string): string {
-  if (/no longer|overturned/i.test(label)) return 'bg-rose-50 text-rose-800 border-rose-200';
-  if (/superseded|weakened|contested|contrary|authors/i.test(label))
-    return 'bg-amber-50 text-amber-900 border-amber-200';
-  if (/newer|significant|strengthened|with updates/i.test(label)) return 'bg-sky-50 text-sky-800 border-sky-200';
-  if (/nothing|no newer/i.test(label)) return 'bg-muted text-muted-foreground';
-  return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-}
+const TONES: Record<VerdictKind, string> = {
+  holds: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  update: 'bg-sky-50 text-sky-800 border-sky-200',
+  caution: 'bg-amber-50 text-amber-900 border-amber-200',
+  broken: 'bg-rose-50 text-rose-800 border-rose-200',
+  nothing: 'bg-muted text-muted-foreground',
+};
+
+const toneOf = (label: string) => TONES[verdictKind(label)];
 
 export function VerdictBadge({ label }: { label: string }) {
   return (
@@ -58,7 +61,11 @@ export function Doc({ markdown, onFileLink }: { markdown: string; onFileLink?: (
         }
       }}
     >
-      <Markdown urlTransform={onFileLink ? keepFileLinks : undefined}>{markdown}</Markdown>
+      {/* No images: a web page a researcher read could plant one whose URL carries
+          data out, and the browser would fetch it as soon as the note shows. */}
+      <Markdown urlTransform={onFileLink ? keepFileLinks : undefined} disallowedElements={['img']}>
+        {markdown}
+      </Markdown>
     </div>
   );
 }

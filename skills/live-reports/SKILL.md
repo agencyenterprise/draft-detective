@@ -13,7 +13,7 @@ This check sends parts of the user's document to an external web search provider
    > To run this assessment, parts of your document — and possibly the whole document — will be sent to a web search provider as search queries. Don't proceed if the document contains confidential information you aren't comfortable sharing with an external search engine. Do you consent to running web search on this document?
 
 2. Continue only on an explicit yes. One consent covers this document for the rest of the conversation — don't re-ask per reference or per section.
-3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the check needs web access, and offer one that doesn't (the `capabilities` skill marks which checks need web search).
+3. If the user declines, stop and do not search. Do not fall back on memory or on what you can infer without searching, and do not report partial findings as if the check ran. Say the update needs web search to find what has changed; the intake and the research plan are still useful without it.
 
 Intake and the research plan need no web access, so you can do them first. Ask for consent at the latest when the user approves the research plan.
 <!-- interactive-only:end -->
@@ -74,8 +74,8 @@ If you can delegate work to subagents or helpers:
 
 - **Research:** start one helper per fact, data source and angle in the research plan, in parallel; claims aren't researched. Give each one the item exactly as written in the plan, the report's title, the cutoff that applies to the item (the data-through date for data sources and the facts inferred from them, when it is earlier than publication; otherwise the publication date) and what it means (what matters is what changed between that date and today, not whether the item held at the time), the plan's source guidance, where to write its notes, and the instructions in `steps/research.md`. Ask each to reply in at most three lines: its verdict and where its notes are.
 - **Plan changed after research started:** a note answers the item as it was written when it was researched. Research again every item the change rewrote or added, and leave out the notes of items it removed. Tell the brief's helper which notes no longer count.
-- **Research brief:** hand the research plan and the notes to one helper with the instructions in `steps/research-brief.md`.
-- **Addendum:** hand the intake, the approved brief and the user's answers to one helper with the instructions in `steps/addendum.md`. When the user chose both outputs, start the helper first, then write the change plan yourself while it runs.
+- **Research brief:** hand the research plan, the notes and the report to one helper with the instructions in `steps/research-brief.md`.
+- **Addendum:** hand the intake, the report, the approved brief and the user's answers to one helper with the instructions in `steps/addendum.md`. When the user chose both outputs, start the helper first, then write the change plan yourself while it runs.
 - **Stay lean.** Don't read the research notes yourself. Work from the helpers' short replies and the brief, and open a note only when the user asks about that item.
 
 If you can't delegate, do the same work yourself, one item at a time, following the same instructions and writing the same files.

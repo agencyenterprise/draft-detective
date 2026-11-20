@@ -457,8 +457,6 @@ export {
   type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponse,
   type ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses,
   type ListChatModelsApiChatModelsGetData,
-  type ListChatModelsApiChatModelsGetError,
-  type ListChatModelsApiChatModelsGetErrors,
   type ListChatModelsApiChatModelsGetResponse,
   type ListChatModelsApiChatModelsGetResponses,
   type ListChatSkillsApiChatSkillsGetData,

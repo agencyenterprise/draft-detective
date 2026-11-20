@@ -6,7 +6,7 @@ import {
   BRIEF_APPROVED,
   finishOutputsMessage,
   MESSAGES,
-  missingOutputs,
+  outputsAction,
   outputNames,
   SEARCH_DISCLOSURE,
   type Outputs,
@@ -33,9 +33,6 @@ function workingLabel(step: Step, lastSent: string | undefined, researchDone: bo
 
 interface StepActionsProps {
   report: LiveReport;
-  /** How many items the plan sends to research. */
-  items: number;
-  researchDone: boolean;
   /** Approves the brief with the person's answers and output choice; absent while no output is chosen. */
   onApproveBrief?: () => void;
   /** The outputs chosen on the brief. */
@@ -51,9 +48,10 @@ function approveBriefLabel({ addendum, changePlan }: Outputs): string {
 }
 
 /** The action bar under the current step: its buttons, the refine box, and what the agent is doing. */
-export function StepActions({ report, items, researchDone, onApproveBrief, outputs }: StepActionsProps) {
+export function StepActions({ report, onApproveBrief, outputs }: StepActionsProps) {
   const { step, working } = report;
-  const lastSent = report.conversation.findLast((m) => m.from === 'you')?.text;
+  const { lastSent, researchDone } = report;
+  const items = report.research.length;
   // Back on the plan after research began: the plan was changed, and consent was given.
   const revised = step === 'plan' && report.files.some((f) => f.name.startsWith('research/'));
   return (
@@ -92,7 +90,7 @@ export function StepActions({ report, items, researchDone, onApproveBrief, outpu
               {approveBriefLabel(outputs)}
             </Button>
           )}
-          {step === 'outputs' && <OutputsActions report={report} lastSent={lastSent} />}
+          {step === 'outputs' && <OutputsActions report={report} />}
           {step !== 'upload' && (step !== 'research' || !working) && (
             <RefineBox step={step === 'research' ? 'plan' : step} disabled={working} onSend={report.send} />
           )}
@@ -116,21 +114,18 @@ export function StepActions({ report, items, researchDone, onApproveBrief, outpu
   );
 }
 
-/**
- * Approving the outputs, once every one asked for is written. A turn stopped
- * between the two leaves one missing: finish it first.
- */
-function OutputsActions({ report, lastSent }: { report: LiveReport; lastSent: string | undefined }) {
-  const { working } = report;
-  const missing = missingOutputs(report.files, report.conversation);
-  if (lastSent === MESSAGES.approveOutputs && !working) {
+/** The Outputs step's action: see ``outputsAction``. */
+function OutputsActions({ report }: { report: LiveReport }) {
+  const { working, missing } = report;
+  const action = outputsAction(report.lastSent, missing, working);
+  if (action === 'approved') {
     return (
       <span className="inline-flex items-center gap-2 py-2 text-sm font-medium text-emerald-800">
         <Check className="size-4" /> Approved
       </span>
     );
   }
-  if (missing.length && !working) {
+  if (action === 'finish') {
     return <Button onClick={() => report.send(finishOutputsMessage(missing))}>Write {outputNames(missing)}</Button>;
   }
   return (

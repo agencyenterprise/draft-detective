@@ -5,8 +5,6 @@
 graph a thread's state is read back through: always the one that wrote it.
 """
 
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict
 
 from lib.agents.chat_agent import (
@@ -41,15 +39,6 @@ class ThreadAgent(BaseModel):
     run_config: RunConfigBuilder
     reader: ThreadReader
     default_model: LLMModel
-
-    def turn_options(self) -> dict[str, Any]:
-        """The keyword arguments ``run_chat_turn`` takes for this agent."""
-
-        return {
-            "build_agent": self.build_agent,
-            "build_input": self.build_input,
-            "run_config": self.run_config,
-        }
 
 
 THREAD_AGENTS: dict[ChatThreadKind, ThreadAgent] = {

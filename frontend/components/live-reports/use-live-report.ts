@@ -13,7 +13,16 @@ import {
 } from '@/lib/generated-api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { MESSAGES, stepOf } from './live-report-state';
+import {
+  authorQuestions,
+  FILE_OF,
+  fileContent,
+  MESSAGES,
+  missingOutputs,
+  researchItems,
+  stepOf,
+  type Exchange,
+} from './live-report-state';
 
 export const liveReportKey = (threadId: string | null) => ['live-report', threadId] as const;
 
@@ -37,13 +46,8 @@ export function loadFailure(error: Error | null, kind: string | undefined): 'not
 }
 
 /** The person's messages and the agent's replies to them, without tool traffic. */
-export interface ConversationEntry {
-  from: 'you' | 'agent';
-  text: string;
-}
-
-export function conversationOf(messages: ChatMessage[]): ConversationEntry[] {
-  return messages.flatMap((message): ConversationEntry[] => {
+export function conversationOf(messages: ChatMessage[]): Exchange[] {
+  return messages.flatMap((message): Exchange[] => {
     const text = messageText(message).trim();
     if (!text) return [];
     if (message.type === 'human') return [{ from: 'you', text }];
@@ -124,6 +128,7 @@ export function useLiveReport(threadId: string | null) {
   const sent = conversation.filter((m) => m.from === 'you').map((m) => m.text);
   const lastReply = conversation.at(-1)?.from === 'agent' ? conversation.at(-1)?.text : undefined;
   const fileList = files.data ?? [];
+  const research = researchItems(fileContent(fileList, FILE_OF.plan), fileList);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: liveReportKey(threadId) });
 
@@ -157,7 +162,16 @@ export function useLiveReport(threadId: string | null) {
     /** The stored messages, tool calls included, for the conversation panel. */
     messages: messages.data ?? [],
     conversation,
+    /** The last message the person (a button) sent. */
+    lastSent: sent.at(-1),
     lastReply,
+    /** The plan's researched items, each with its note's verdict once written. */
+    research,
+    researchDone: research.length > 0 && research.every((item) => item.verdict),
+    /** Outputs asked for on the brief and not written; none while the agent works. */
+    missing: working ? [] : missingOutputs(fileList, conversation),
+    /** The brief's questions for the authors. */
+    questions: authorQuestions(fileContent(fileList, FILE_OF.brief)),
     step: stepOf(fileList, sent),
     send: (message: string) => send(message),
     refresh,

@@ -4,12 +4,8 @@ import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
 import {
-  authorQuestions,
-  FILE_OF,
-  fileContent,
   outputsMessage,
   questionKey,
-  researchItems,
   STEPS,
   type Outputs,
   fileAnchor,
@@ -165,9 +161,8 @@ function StepHeading({ title, hint }: { title: string; hint: string }) {
 }
 
 /**
- * The step the run is on: the agent's note and the document scroll; the action
- * bar is the card's footer, always in view. The brief's answers and output
- * choice live here so its approve button can sit in that footer.
+ * The brief's answers and output choice. Held by GuidedSteps so they survive
+ * looking at another step, and read by the footer's approve button.
  */
 interface BriefDraft {
   /** By question (`questionKey`), so a revised brief's questions don't inherit another's answer. */
@@ -184,16 +179,14 @@ interface CurrentStepProps {
   onFileLink: (link: FileLink) => void;
 }
 
+/** The step the run is on: the agent's note and the document scroll; the action bar stays in view under them. */
 function CurrentStep({ report, draft, onStart, onFileLink }: CurrentStepProps) {
   const { step, working, lastReply } = report;
   const { outputs, setOutputs } = draft;
-  const questions = authorQuestions(fileContent(report.files, FILE_OF.brief));
+  const { questions } = report;
   const answers = questions.map((q) => draft.answers[questionKey(q)] ?? '');
   const setAnswers = (next: string[]) =>
     draft.setAnswers({ ...draft.answers, ...Object.fromEntries(questions.map((q, k) => [questionKey(q), next[k]])) });
-  const researched = researchItems(fileContent(report.files, FILE_OF.plan), report.files);
-  const items = researched.length;
-  const researchDone = items > 0 && researched.every((item) => item.verdict);
   const noOutput = !outputs.addendum && !outputs.changePlan;
 
   return (
@@ -222,8 +215,6 @@ function CurrentStep({ report, draft, onStart, onFileLink }: CurrentStepProps) {
       {(step !== 'upload' || report.conversation.length > 0) && (
         <StepActions
           report={report}
-          items={items}
-          researchDone={researchDone}
           onApproveBrief={noOutput ? undefined : () => report.send(outputsMessage(outputs, answers, questions))}
           outputs={outputs}
         />

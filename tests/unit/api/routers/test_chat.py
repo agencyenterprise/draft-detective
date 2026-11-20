@@ -92,12 +92,6 @@ class TestCatalogues:
         assert [row["is_default"] for row in rows].count(True) == 1
         assert rows[0]["id"] == chat_agent_module.DEFAULT_CHAT_MODEL.name
 
-    def test_each_kind_of_thread_has_its_own_default_model(self) -> None:
-        rows = _client().get("/api/chat/models?kind=live_report").json()
-        (default,) = [row["id"] for row in rows if row["is_default"]]
-        assert default == live_report_agent.LIVE_REPORT_DEFAULT_MODEL.name
-        assert default != chat_agent_module.DEFAULT_CHAT_MODEL.name
-
     def test_skills_leave_out_the_excluded_ones(self) -> None:
         names = {row["name"] for row in _client().get("/api/chat/skills").json()}
         assert "reference-validation" in names

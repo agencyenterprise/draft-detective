@@ -10,13 +10,16 @@ from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import patch
 
+from deepagents.middleware.filesystem import _check_fs_permission
 from langchain_core.messages import HumanMessage
 
 from lib.agents import chat_agent, live_report_agent
 from lib.agents.chat_agent import CHAT_REASONING, resolve_chat_model
 from lib.agents.live_report_agent import (
     LIVE_REPORT_SKILLS,
+    RESEARCHER_PERMISSIONS,
     RESEARCHER_PROMPT,
+    SYNTHESIZER_PERMISSIONS,
     SYNTHESIZER_PROMPT,
     SYSTEM_PROMPT,
     build_live_report_agent,
@@ -100,10 +103,50 @@ class TestThreadAgents:
         chat = thread_agent(ChatThreadKind.CHAT)
         live = thread_agent("live_report")
         assert chat.reader is chat_agent.chat_reader
-        assert chat.turn_options()["build_agent"] is chat_agent.build_chat_agent
+        assert chat.build_agent is chat_agent.build_chat_agent
         assert live.reader is live_report_agent.live_report_reader
-        assert live.turn_options() == {
-            "build_agent": build_live_report_agent,
-            "build_input": build_live_report_input,
-            "run_config": live_report_run_config,
+        assert (live.build_agent, live.build_input, live.run_config) == (
+            build_live_report_agent,
+            build_live_report_input,
+            live_report_run_config,
+        )
+
+
+class TestWhatSubagentsMayTouch:
+    """Enforced by the file tools: a page a researcher reads can carry instructions."""
+
+    def test_a_researcher_writes_only_its_notes_and_never_reads_the_report(
+        self,
+    ) -> None:
+        def check(operation: Any, path: str) -> str:
+            return _check_fs_permission(RESEARCHER_PERMISSIONS, operation, path)
+
+        assert check("write", "/live-report/research/F1.md") == "allow"
+        assert check("write", "/live-report/research-plan.md") == "deny"
+        assert check("write", "/live-report/research-brief.md") == "deny"
+        assert check("read", "/attachments/report.md") == "deny"
+        assert check("read", "/skills/live-reports/steps/research.md") == "allow"
+
+    def test_the_synthesizer_writes_only_the_brief_and_the_addendum(self) -> None:
+        def check(path: str) -> str:
+            return _check_fs_permission(SYNTHESIZER_PERMISSIONS, "write", path)
+
+        assert check("/live-report/research-brief.md") == "allow"
+        assert check("/live-report/addendum.md") == "allow"
+        assert check("/live-report/research-plan.md") == "deny"
+        assert check("/live-report/research/F1.md") == "deny"
+        # It reads the report: the brief and the addendum need it.
+        assert (
+            _check_fs_permission(SYNTHESIZER_PERMISSIONS, "read", "/attachments/r.md")
+            == "allow"
+        )
+
+    def test_each_subagent_carries_its_rules(self) -> None:
+        specs = {
+            s["name"]: s
+            for s in live_report_agent.live_report_subagents(
+                resolve_chat_model("gpt-5.6-sol")
+            )
         }
+        assert specs["researcher"]["permissions"] is RESEARCHER_PERMISSIONS
+        assert specs["synthesizer"]["permissions"] is SYNTHESIZER_PERMISSIONS

@@ -7,10 +7,8 @@ import {
   FILE_OF,
   fileAnchor,
   fileContent,
-  missingOutputs,
   outputNames,
   OUTPUT_FILES,
-  researchItems,
   type FileLink,
   type Step,
 } from './live-report-state';
@@ -32,24 +30,24 @@ export function StepBody({ step, report, onStart, onFileLink }: StepBodyProps) {
     if (report.step !== 'upload') return <UploadedReport name={report.title} />;
     if (report.conversation.length && !report.working) {
       return (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <Notice>
           The agent stopped before it wrote the intake. Try again on the same report, or start a new live report.
-        </p>
+        </Notice>
       );
     }
     return <UploadBox disabled={report.working} onFile={onStart} />;
   }
   if (step === 'research') {
-    const items = researchItems(fileContent(files, FILE_OF.plan), files);
+    const items = report.research;
     const done = items.filter((item) => item.verdict).length;
     const stopped = report.step === 'research' && !report.working;
     return (
       <div className="flex flex-col gap-4">
         {stopped && !report.lastReply && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            The research stopped before it finished: {done} of {items.length} items are done. Resume it to research the
-            rest and write the brief, or ask for changes to the plan.
-          </p>
+          <Notice>
+            The research stopped before it finished: {done} of {items.length} items are done. Resume it to research
+            what&apos;s left (and any item you changed) and write the brief, or ask for changes to the plan.
+          </Notice>
         )}
         <ResearchProgress items={items} running={report.working} />
       </div>
@@ -58,14 +56,14 @@ export function StepBody({ step, report, onStart, onFileLink }: StepBodyProps) {
   if (step === 'outputs') {
     const addendum = fileContent(files, OUTPUT_FILES.addendum);
     const changePlan = fileContent(files, OUTPUT_FILES.changePlan);
-    const missing = report.working ? [] : missingOutputs(files, report.conversation);
+    const { missing } = report;
     return (
       <div className="flex flex-col gap-10 [&>section+section]:border-t [&>section+section]:pt-10">
         {missing.length > 0 && (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <Notice>
             The agent stopped before it wrote {outputNames(missing)}. Have it write {missing.length > 1 ? 'them' : 'it'}{' '}
             before approving.
-          </p>
+          </Notice>
         )}
         {addendum && (
           <OutputDoc
@@ -151,4 +149,9 @@ function UploadBox({ disabled, onFile }: { disabled: boolean; onFile: (file: Fil
       />
     </label>
   );
+}
+
+/** Why a step stopped short, and what to do about it. */
+function Notice({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{children}</p>;
 }

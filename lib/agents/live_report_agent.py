@@ -8,8 +8,8 @@ machinery (``chat_threads``, the checkpointer, ``run_chat_turn``, the same event
 only the agent differs, chosen by the thread's kind in ``thread_agents.py``.
 
 The orchestrator talks to the user and decides what happens next. It holds no web
-search of its own: the research runs in ``researcher`` subagents, one per item of
-the plan and in parallel, and the brief and the addendum in a ``synthesizer``. Subagents share the
+search of its own: the research runs in ``researcher`` subagents, one per fact, data
+source and angle of the plan, in parallel, and the brief and the addendum in a ``synthesizer``. Subagents share the
 thread's filesystem, so their notes land under ``/live-report/research/`` without
 passing through the orchestrator's context; they reply in a few lines.
 
@@ -20,6 +20,7 @@ orchestrator's filesystem and prompt stay small.
 from datetime import UTC, datetime
 from typing import Any
 
+from deepagents.middleware.filesystem import FilesystemPermission
 from deepagents.middleware.subagents import SubAgent
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
@@ -62,11 +63,12 @@ never keep a second copy.
 - You have no web search. Research runs in the `researcher` subagent: start one \
 per fact, data source and angle of the approved plan (claims aren't \
 researched), all in the same response so they run in parallel, \
-and give each the item, the report's title and cutoff date, the plan's source \
-guidance and the path for its notes (`{LIVE_REPORT_DIR}/research/<item id>.md`). \
-Then hand the plan and the notes to the `synthesizer` subagent for the brief. \
-For an addendum, hand the `synthesizer` the intake, the approved brief and the \
-user's answers, and name `steps/addendum.md`; when the user wants both outputs, \
+and give each the item, the report's title, the cutoff that applies to the item \
+(see the plan's time window), the plan's source guidance and the path for its \
+notes (`{LIVE_REPORT_DIR}/research/<item id>.md`). Then hand the plan, the notes \
+and the report's path to the `synthesizer` subagent for the brief. For an \
+addendum, hand the `synthesizer` the intake, the approved brief, the report's path \
+and the user's answers, and name `steps/addendum.md`; when the user wants both outputs, \
 start it before writing the change plan yourself, so they run in parallel.
 - Stay lean: don't read the research notes yourself unless the user asks about \
 an item. Work from the subagents' short replies and the brief.
@@ -76,8 +78,8 @@ the detail.\
 """
 
 RESEARCHER_PROMPT = f"""\
-You research one item of a live report's research plan: what has changed between \
-the report's cutoff date and today ({{today}}). Confirming that the item was true \
+You research one fact, data source or angle of a live report's research plan: \
+what has changed between the cutoff you are given for it and today ({{today}}). Confirming that the item was true \
 when the report was written adds nothing; find out whether it is still true now. \
 Read `/skills/live-reports/steps/research.md` first and follow it exactly. Use the \
 `web_search` tool to find and read sources. Write your notes to the path you are \
@@ -98,15 +100,39 @@ touch no other file. Read `/skills/voice-and-tone/SKILL.md` first, then the \
 step's instructions, and follow them. Reply in one line, as they say.
 
 - The research brief: follow `/skills/live-reports/steps/research-brief.md`. Read \
-the research plan and the note under `{LIVE_REPORT_DIR}/research/` for each item \
-in it, then write `{LIVE_REPORT_DIR}/research-brief.md`, using only what those notes \
+the research plan, the report at the path you are given, and the note under \
+`{LIVE_REPORT_DIR}/research/` for each item in it, then write `{LIVE_REPORT_DIR}/research-brief.md`, using only what those notes \
 contain. A note for an item the plan no longer has, or one you are told is stale, \
 doesn't count.
 - The addendum: follow `/skills/live-reports/steps/addendum.md`. Read the intake, \
-the approved `{LIVE_REPORT_DIR}/research-brief.md` and the user's answers you are \
+the report at the path you are given, the approved `{LIVE_REPORT_DIR}/research-brief.md` and the user's answers you are \
 given, then write `{LIVE_REPORT_DIR}/addendum.md`, using only what the brief \
 contains.\
 """
+
+
+# What each subagent may touch, enforced by the file tools rather than asked of the
+# model: a web page a researcher reads can carry instructions. A researcher writes
+# only its notes and can't read the report, so a page can't make it leak the report
+# or change a file the user approved. First match wins; anything else is allowed.
+RESEARCHER_PERMISSIONS = [
+    FilesystemPermission(operations=["read"], paths=["/attachments/**"], mode="deny"),
+    FilesystemPermission(
+        operations=["write"], paths=[f"{LIVE_REPORT_DIR}/research/**"], mode="allow"
+    ),
+    FilesystemPermission(operations=["write"], paths=["/**"], mode="deny"),
+]
+SYNTHESIZER_PERMISSIONS = [
+    FilesystemPermission(
+        operations=["write"],
+        paths=[
+            f"{LIVE_REPORT_DIR}/research-brief.md",
+            f"{LIVE_REPORT_DIR}/addendum.md",
+        ],
+        mode="allow",
+    ),
+    FilesystemPermission(operations=["write"], paths=["/**"], mode="deny"),
+]
 
 
 def live_report_subagents(model: LLMModel) -> list[SubAgent]:
@@ -116,13 +142,15 @@ def live_report_subagents(model: LLMModel) -> list[SubAgent]:
         {
             "name": "researcher",
             "description": (
-                "Researches ONE item of the approved research plan on the web and "
-                "writes its notes. Give it the item as written in the plan, the "
-                "report's title and cutoff date, the plan's source guidance and the "
-                "path for its notes. Start one per item, in parallel."
+                "Researches ONE fact, data source or angle (F…, D…, A…) of the "
+                "approved research plan on the web and writes its notes; claims "
+                "aren't researched. Give it the item as written in the plan, the "
+                "report's title, the item's cutoff, the plan's source guidance and "
+                "the path for its notes. Start one per such item, in parallel."
             ),
             "system_prompt": researcher_prompt(datetime.now(UTC)),
             "tools": [web_search_tool(model)],
+            "permissions": RESEARCHER_PERMISSIONS,
         },
         {
             "name": "synthesizer",
@@ -133,6 +161,7 @@ def live_report_subagents(model: LLMModel) -> list[SubAgent]:
             ),
             "system_prompt": SYNTHESIZER_PROMPT,
             "tools": [],
+            "permissions": SYNTHESIZER_PERMISSIONS,
         },
     ]
 

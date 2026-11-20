@@ -3,6 +3,8 @@ import {
   authorQuestions,
   fileLinkOf,
   missingOutputs,
+  outputsAction,
+  verdictKind,
   stepNotes,
   MESSAGES,
   outputsMessage,
@@ -74,6 +76,11 @@ describe('researchItems', () => {
     ]);
   });
 
+  it('leaves out the candidates the plan did not include', () => {
+    const plan = `${PLAN}\n\n## Not included\n\n- **F16 (S4).** A fact left out.`;
+    expect(researchItems(plan, []).map((item) => item.id)).toEqual(['F1', 'F2', 'D1', 'A1']);
+  });
+
   it('is empty before there is a plan', () => {
     expect(researchItems(undefined, [])).toEqual([]);
   });
@@ -93,7 +100,7 @@ describe('stepNotes', () => {
       agent('Plan drafted: 14 items.'),
       you(MESSAGES.approvePlan),
       agent('The brief is ready.'),
-      you('The brief is approved. Leave the questions open.\nI want the addendum.'),
+      you(outputsMessage({ addendum: true, changePlan: false }, [], [])),
       agent('The addendum is ready.'),
     ]);
     expect(notes).toEqual({
@@ -198,5 +205,33 @@ describe('missingOutputs', () => {
       [{ about: 'C1', text: 'Q?' }],
     );
     expect(missingOutputs([file('addendum.md')], [you(answered)])).toEqual([]);
+  });
+});
+
+describe('verdictKind', () => {
+  it('tells apart verdicts that share words', () => {
+    expect(verdictKind('Newer release')).toBe('update');
+    expect(verdictKind('No newer release')).toBe('nothing');
+    expect(verdictKind('Discontinued or replaced')).toBe('caution');
+    expect(verdictKind('Still holds')).toBe('holds');
+  });
+
+  it("is neutral for a verdict the skill doesn't list", () => {
+    expect(verdictKind('Done')).toBe('nothing');
+  });
+});
+
+describe('outputsAction', () => {
+  it('is approved once the approval is sent and the agent is idle', () => {
+    expect(outputsAction(MESSAGES.approveOutputs, [], false)).toBe('approved');
+  });
+
+  it('writes what is missing before anything can be approved', () => {
+    expect(outputsAction('Make the addendum shorter.', ['changePlan'], false)).toBe('finish');
+  });
+
+  it('offers approval otherwise, and while the agent works', () => {
+    expect(outputsAction('Make the addendum shorter.', [], false)).toBe('approve');
+    expect(outputsAction(MESSAGES.approveOutputs, ['changePlan'], true)).toBe('approve');
   });
 });

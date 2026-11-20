@@ -151,6 +151,9 @@ class TestRunChatTurn:
                     text="Read this.",
                     attachments=[ChatAttachment(name="draft.pdf", text="body")],
                     message_id="page-id-1",
+                    build_agent=chat_agent.build_chat_agent,
+                    build_input=chat_agent.build_chat_input,
+                    run_config=chat_agent.chat_run_config,
                 )
             )
 

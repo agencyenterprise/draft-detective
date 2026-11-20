@@ -174,7 +174,6 @@ import type {
   ListAnnotationSetStatsApiAdminAnnotationsSetsGetData,
   ListAnnotationSetStatsApiAdminAnnotationsSetsGetResponses,
   ListChatModelsApiChatModelsGetData,
-  ListChatModelsApiChatModelsGetErrors,
   ListChatModelsApiChatModelsGetResponses,
   ListChatSkillsApiChatSkillsGetData,
   ListChatSkillsApiChatSkillsGetResponses,
@@ -766,17 +765,12 @@ export const cancelChatTurnApiChatThreadsThreadIdCancelPost = <ThrowOnError exte
 /**
  * List Chat Models
  *
- * The models the picker offers, with the default of this kind of thread.
+ * The models /chat's picker offers, with its default.
  */
 export const listChatModelsApiChatModelsGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListChatModelsApiChatModelsGetData, ThrowOnError>,
-): RequestResult<ListChatModelsApiChatModelsGetResponses, ListChatModelsApiChatModelsGetErrors, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<
-    ListChatModelsApiChatModelsGetResponses,
-    ListChatModelsApiChatModelsGetErrors,
-    ThrowOnError,
-    'data'
-  >({
+): RequestResult<ListChatModelsApiChatModelsGetResponses, unknown, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<ListChatModelsApiChatModelsGetResponses, unknown, ThrowOnError, 'data'>({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/chat/models',

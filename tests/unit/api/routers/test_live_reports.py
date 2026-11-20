@@ -65,7 +65,6 @@ def test_the_files_are_listed_by_their_path_in_the_folder() -> None:
         str(THREAD_ID),
         "/live-report",
         reader=live_report_agent.live_report_reader,
-        recursive=True,
     )
 
 

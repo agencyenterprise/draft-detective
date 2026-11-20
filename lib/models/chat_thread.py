@@ -29,8 +29,8 @@ class ChatThread(SQLModel, table=True):
 
     What was said lives in the LangGraph checkpointer, keyed by this row's id
     (see ``lib/services/chat/history.py``). This table holds what the
-    checkpointer cannot: who owns the thread, its title, and whether it is
-    archived, and whether a turn is running on it now (see
+    checkpointer cannot: who owns the thread, which agent it talks to (``kind``),
+    its title, whether it is archived, and whether a turn is running on it now (see
     ``lib/services/chat/turn_claims.py``). Its id is its row's in ``conversations``
     (``lib/models/conversation.py``); deleting the thread deletes that row, and
     this one with it.

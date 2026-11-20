@@ -37,9 +37,9 @@ For a fact, pick one:
 - **Overturned:** it is no longer true.
 - **Superseded:** newer figures or a newer version replace it, though the fact was right at the time.
 - **Contested:** credible sources disagree about the same thing at the same time, or the newer evidence points both ways. Use it when the evidence splits, not when one weak source dissents, and not when sources measure different things (see step 5). Your summary gives each side and its strongest source, without picking a winner.
+- **Nothing new found.**
 
 Later evidence is not a disagreement. When a source after the cutoff reports that things have moved on (newer models score higher, a law was replaced), the fact is superseded, strengthened, weakened or overturned, even if the source says the report's statement no longer holds.
-- **Nothing new found.**
 
 For a data source: **newer release** (give the old and new figures for what the report used), **discontinued or replaced** (name the replacement, if any) or **no newer release**.
 

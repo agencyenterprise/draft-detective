@@ -24,13 +24,16 @@ export const FILE_OF: Partial<Record<Step, string>> = {
 };
 export const OUTPUT_FILES = { addendum: 'addendum.md', changePlan: 'change-plan.md' } as const;
 
+/** Where the brief's approval names the outputs wanted ("…\nI want the addendum."). */
+const WANTS = '\nI want ';
+
 /** The messages the buttons send. Fixed, so the page can tell from history what was approved. */
 export const MESSAGES = {
   start: 'Please bring this report up to date.',
   approveIntake: 'The intake is right. Approved.',
   approvePlan: 'The plan is approved. Yes, I consent to running web search on this document. Start the research.',
   approveOutputs: 'Approved.',
-  /** After a stop during research: finish the items without notes, then the brief. */
+  /** After a stop during research: the items with no note, and again those the plan changed since, then the brief. */
   resumeResearch:
     'Continue the research: research the items that have no notes yet, and again any item the plan changed since its note was written, then write the brief.',
   /** A plan changed after research started: carry on with the changed scope. */
@@ -115,11 +118,8 @@ export interface FileLink {
 }
 
 const STEP_OF_FILE: Record<string, Step> = {
-  'intake.md': 'intake',
-  'research-plan.md': 'plan',
-  'research-brief.md': 'brief',
-  'addendum.md': 'outputs',
-  'change-plan.md': 'outputs',
+  ...Object.fromEntries(Object.entries(FILE_OF).map(([step, file]) => [file, step as Step])),
+  ...Object.fromEntries(Object.values(OUTPUT_FILES).map((file) => [file, 'outputs' as Step])),
 };
 
 /**
@@ -156,8 +156,13 @@ export interface ResearchItem {
  */
 export function researchItems(plan: string | undefined, files: RunFile[]): ResearchItem[] {
   if (!plan) return [];
+  // Only the sections that are researched: "Not included" lists candidates with ids too.
+  const researched = plan
+    .split(/^(?=## )/m)
+    .filter((section) => RESEARCHED_SECTIONS.some((heading) => section.startsWith(`## ${heading}`)))
+    .join('\n');
   const items: ResearchItem[] = [];
-  for (const match of plan.matchAll(/^- \*\*([FDA]\d+)\b[^*]*\*\*\s*(.*)$/gm)) {
+  for (const match of researched.matchAll(/^- \*\*([FDA]\d+)\b[^*]*\*\*\s*(.*)$/gm)) {
     const [, id, text] = match;
     const note = fileContent(files, `research/${id}.md`);
     items.push({
@@ -168,6 +173,42 @@ export function researchItems(plan: string | undefined, files: RunFile[]): Resea
     });
   }
   return items;
+}
+
+/** The plan's sections whose items are researched, as the skill's template names them. */
+const RESEARCHED_SECTIONS = ['Facts to check', 'Data', 'Angles beyond the report'];
+
+/** What a research verdict means for the report, which sets its badge's colour. */
+export type VerdictKind = 'holds' | 'update' | 'caution' | 'broken' | 'nothing';
+
+/** Every verdict the skill's research step can give (`steps/research.md`), by what it means. */
+export const VERDICT_KINDS: Record<string, VerdictKind> = {
+  'still holds': 'holds',
+  'agreeing views only': 'holds',
+  strengthened: 'update',
+  'newer release': 'update',
+  'significant developments': 'update',
+  'minor developments': 'update',
+  weakened: 'caution',
+  superseded: 'caution',
+  contested: 'caution',
+  'contrary views found': 'caution',
+  'discontinued or replaced': 'caution',
+  overturned: 'broken',
+  'nothing new found': 'nothing',
+  'no newer release': 'nothing',
+};
+
+/** A verdict's kind; one the skill doesn't list (a model's own wording) is neutral. */
+export function verdictKind(label: string): VerdictKind {
+  return (
+    VERDICT_KINDS[
+      label
+        .toLowerCase()
+        .replace(/[.:]+$/, '')
+        .trim()
+    ] ?? 'nothing'
+  );
 }
 
 /** A note's verdict, short: the label before any explanation. */
@@ -208,7 +249,7 @@ export function outputsMessage(outputs: Outputs, answers: string[], questions: A
   const answerText = answered.length
     ? `My answers to the questions for the authors:\n${answered.map(({ q, n, answer }) => `${n}. ${q.about ? `${q.about}: ` : ''}${q.text}\n   Answer: ${answer}`).join('\n')}\nLeave any other question open.`
     : 'Leave the questions for the authors open.';
-  return `${BRIEF_APPROVED}. ${answerText}\nI want ${picked.join(' and ')}.`;
+  return `${BRIEF_APPROVED}. ${answerText}${WANTS}${picked.join(' and ')}.`;
 }
 
 const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', changePlan: 'the change plan' };
@@ -220,7 +261,7 @@ const OUTPUT_NAMES: Record<keyof Outputs, string> = { addendum: 'the addendum', 
 export function missingOutputs(files: RunFile[], conversation: Exchange[]): (keyof Outputs)[] {
   const asked = conversation.findLast((m) => m.from === 'you' && m.text.startsWith(BRIEF_APPROVED))?.text;
   if (!asked) return [];
-  const wanted = asked.slice(asked.lastIndexOf('\nI want '));
+  const wanted = asked.slice(asked.lastIndexOf(WANTS));
   return (Object.keys(OUTPUT_NAMES) as (keyof Outputs)[]).filter(
     (key) => wanted.includes(OUTPUT_NAMES[key]) && !files.some((f) => f.name === OUTPUT_FILES[key]),
   );
@@ -234,4 +275,17 @@ export function outputNames(keys: (keyof Outputs)[]): string {
 /** Asks for the outputs a stopped turn left unwritten. */
 export function finishOutputsMessage(missing: (keyof Outputs)[]): string {
   return `Write ${outputNames(missing)} as well, from the approved brief.`;
+}
+
+/** What the Outputs step's action bar offers. */
+export type OutputsAction = 'approved' | 'finish' | 'approve';
+
+/**
+ * Approving the outputs, once every one asked for is written: a turn stopped
+ * between the two leaves one missing, which is written first.
+ */
+export function outputsAction(lastSent: string | undefined, missing: unknown[], working: boolean): OutputsAction {
+  if (lastSent === MESSAGES.approveOutputs && !working) return 'approved';
+  if (missing.length && !working) return 'finish';
+  return 'approve';
 }

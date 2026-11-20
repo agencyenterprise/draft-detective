@@ -1,4 +1,6 @@
 """Everything the /chat page needs from the backend, scoped to the signed-in user.
+It backs the /live-reports page's threads too: a thread's ``kind`` picks its agent
+(``lib/agents/thread_agents.py``).
 
 Two halves in one router. The thread index backs the assistant-ui thread list:
 ``chat_threads`` rows with owner, title and archived flag. The conversation
@@ -26,6 +28,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lib.agents.chat_agent import (
     CHAT_MODELS,
+    DEFAULT_CHAT_MODEL,
     chat_skill_catalogue,
     resolve_chat_model,
     run_chat_turn,
@@ -283,7 +286,9 @@ async def stream_chat_turn(
         text=request.message,
         attachments=request.attachments,
         message_id=request.message_id,
-        **agent.turn_options(),
+        build_agent=agent.build_agent,
+        build_input=agent.build_input,
+        run_config=agent.run_config,
     )
     try:
         turn = await start_turn(thread.id, events)
@@ -318,20 +323,15 @@ async def cancel_chat_turn(
 
 @router.get("/models", response_model=list[ChatModelResponse])
 async def list_chat_models(
-    kind: ChatThreadKind = Query(
-        default=ChatThreadKind.CHAT,
-        description="The kind of thread the picker is for; each has its own default.",
-    ),
     _current_user: User = Depends(get_current_user),
 ) -> list[ChatModelResponse]:
-    """The models the picker offers, with the default of this kind of thread."""
+    """The models /chat's picker offers, with its default."""
 
-    default = thread_agent(kind).default_model
     return [
         ChatModelResponse(
             id=option.id,
             name=option.name,
-            is_default=option.model == default,
+            is_default=option.model == DEFAULT_CHAT_MODEL,
         )
         for option in CHAT_MODELS
     ]

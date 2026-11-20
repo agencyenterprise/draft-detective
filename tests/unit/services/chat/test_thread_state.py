@@ -101,13 +101,8 @@ async def test_listing_a_directory_returns_its_own_files_only() -> None:
     assert listed == {
         "/live-report/intake.md": "intake",
         "/live-report/research-plan.md": "plan",
+        "/live-report/research/C1.md": "notes",
     }
-    with reader, graph:
-        everything = await thread_state.list_thread_files(
-            "t-1", "/live-report", reader=CHAT, recursive=True
-        )
-    assert everything["/live-report/research/C1.md"] == "notes"
-    assert "/live-reports/other.md" not in everything
 
 
 @pytest.mark.asyncio
@@ -187,3 +182,21 @@ class TestFilesToMount:
         )
 
         assert mounted == {"/attachments/a.md": changed}
+
+
+@pytest.mark.asyncio
+async def test_a_reader_graph_is_built_once_and_reused() -> None:
+    # Building a graph takes ~50 ms of blocking CPU, and the page polls.
+    built: list[Any] = []
+
+    def reader(checkpointer: Any) -> Any:
+        built.append(checkpointer)
+        return create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=checkpointer
+        )
+
+    get_checkpointer, _ = _patched(InMemorySaver())
+    with get_checkpointer:
+        await thread_state.load_thread_values("t-1", reader=reader)
+        await thread_state.load_thread_values("t-1", reader=reader)
+    assert len(built) == 1

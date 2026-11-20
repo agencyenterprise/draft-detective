@@ -6288,24 +6288,9 @@ export type CancelChatTurnApiChatThreadsThreadIdCancelPostResponse =
 export type ListChatModelsApiChatModelsGetData = {
   body?: never;
   path?: never;
-  query?: {
-    /**
-     * The kind of thread the picker is for; each has its own default.
-     */
-    kind?: ChatThreadKind;
-  };
+  query?: never;
   url: '/api/chat/models';
 };
-
-export type ListChatModelsApiChatModelsGetErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type ListChatModelsApiChatModelsGetError =
-  ListChatModelsApiChatModelsGetErrors[keyof ListChatModelsApiChatModelsGetErrors];
 
 export type ListChatModelsApiChatModelsGetResponses = {
   /**
