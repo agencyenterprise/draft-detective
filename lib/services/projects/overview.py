@@ -135,7 +135,9 @@ def _run_state() -> Any:
     in-memory copy that the paths then share, and OFFSET 0 keeps the planner
     from inlining the subquery, which would decompress the state once per path
     again. A JSON null state comes out as an array, which every path reads as
-    NULL.
+    NULL. The planner runs the copy after the latest-run-per-type filter, on
+    the few rows that pass it; nothing forces that order, but the plan has
+    held on every project measured.
     """
     copied = _STATE.op("||")(literal_column("'{}'::jsonb"))
     state = select(type_coerce(copied, JSONB).label("state")).correlate(WorkflowRun)
