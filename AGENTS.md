@@ -45,7 +45,7 @@ cd frontend && pnpm run lint
 cd frontend && pnpm run openapi-generate   # Regenerate API types
 
 # A private backend + frontend on free ports (see "Running a Private Instance")
-scripts/e2e_instance.sh up | status | down
+scripts/e2e_instance.sh up | restart [backend|frontend] | status | down
 ```
 
 ## Before Handing Back Work
@@ -63,6 +63,7 @@ If a check fails and you can't fix it, tell the user which one and why. Never ha
 Other workers' servers and the user's own (:8000, :3000) share this machine. For end-to-end checks, always start your own instance with `scripts/e2e_instance.sh up`. Never reuse a fixed port pair, and never kill a process by port or name pattern.
 
 - `up` picks free ports, starts the backend (no auto-reload; `E2E_RELOAD=1` turns it on) and the frontend pointed at it through `NEXT_PUBLIC_API_URL`. It waits until both answer, then prints the URLs. The first run in a fresh worktree installs `node_modules` and builds `.venv`, and a cold page compile takes about 10 s. Let it finish. `down` stops only what `up` started, `status` shows what's running. PIDs, ports and logs are in `.e2e/`, one instance per checkout.
+- **After changing backend code, run `scripts/e2e_instance.sh restart backend`, never `down` then `up`.** `restart` stops and starts the servers on the same ports, so the URLs the user follows stay valid (`restart` alone does both servers, `restart frontend` only the frontend, which needs it only for `.env` or config changes: Next hot-reloads code). It keeps the auto-reload mode `up` chose. If another process took a port meanwhile, it stops with an error instead of moving: run `down` and `up` then. `up` also reuses the checkout's last ports when they're free.
 - Open pages at `localhost`, never `127.0.0.1`. The Next dev server blocks its dev resources (`/_next/hmr`) from other hostnames, and the login cookie belongs to `localhost`. Cookies ignore the port, so the user's :3000 login carries over.
 - The health route is `/api/health` (`/health` returns 404). Backend logs are plain text with timestamps: the script sets `LOG_RICH_HANDLER=false` unless you set it.
 - Shell variables override `.env` and `frontend/.env`. Flags such as `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG` stay on unless you set them: `NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=false scripts/e2e_instance.sh up`.

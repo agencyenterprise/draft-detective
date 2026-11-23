@@ -7,7 +7,7 @@ from langchain.tools import ToolRuntime, tool
 from lib.models.file import File
 from lib.services.converters.markitdown import markitdown_converter
 from lib.services.converters.pypdfium import pypdfium_converter
-from lib.services.files.service import get_file_by_id
+from lib.services.files.service import get_file_by_id, in_project
 from lib.workflows.context import ContextSchema
 
 logger = logging.getLogger(__name__)
@@ -27,10 +27,10 @@ async def read_file_content(file_id: str, runtime: ToolRuntime[ContextSchema]):
         The first 4000 characters of the content of the file in markdown format, or a message saying why the file could not be read.
     """
 
-    return await _read_file_content_async(file_id)
+    return await _read_file_content_async(file_id, runtime.context.project_id)
 
 
-async def _read_file_content_async(file_id: str) -> str:
+async def _read_file_content_async(file_id: str, project_id: str) -> str:
     # A file that cannot be read must not fail the whole reference: the agent
     # gets the reason back and can try another copy or conclude without it.
     # Other lookup errors (the database) still propagate, so the agent's retry
@@ -40,6 +40,13 @@ async def _read_file_content_async(file_id: str) -> str:
     except HTTPException as exc:
         logger.warning("read_file_content: no file %s: %s", file_id, exc.detail)
         return f"Could not read file {file_id}: {exc.detail}"
+    # The agent reads ids off web pages too: one from another project is
+    # answered as missing, so it learns nothing about that project's files.
+    if not in_project(file, project_id):
+        logger.warning(
+            "read_file_content: file %s is not in project %s", file_id, project_id
+        )
+        return f"Could not read file {file_id}: File not found"
 
     try:
         content = await _file_to_markdown(file)

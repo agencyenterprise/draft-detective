@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getErrorMessage } from '@/lib/api-error';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 import { useWizard } from './wizard-context';
 import { MAX_FILE_SIZE_BYTES } from '@/lib/constants';
 import { uploadSingleFile, formatBytes, UploadProgress } from '@/lib/hooks/upload';
@@ -57,7 +56,7 @@ export function useStepUpload(onComplete: () => void) {
   const formatStatus = validateDocument(mainDocument);
   const attempt = useRef<Attempt | null>(null);
 
-  const createProjectAndProcess = useMutation({
+  const createProjectAndProcess = useToastMutation({
     mutationFn: async () => {
       if (!mainDocument) throw new Error('No document selected');
 
@@ -95,16 +94,16 @@ export function useStepUpload(onComplete: () => void) {
       setUploadStage('complete');
       return project;
     },
+    successMessage: 'Project created - document processing started',
+    errorMessage: 'Failed to create project',
     onSuccess: (project) => {
       setProjectId(project.id);
       setGroupBySeverity(project.group_by_severity ?? true);
-      toast.success('Project created - document processing started');
       onComplete();
     },
-    onError: (error) => {
+    onError: () => {
       setUploadStage('idle');
       setUploadProgress(null);
-      toast.error(getErrorMessage(error, 'Failed to create project'));
     },
   });
 
