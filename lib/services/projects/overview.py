@@ -15,7 +15,8 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import Select, case, func, literal_column, select, true, type_coerce
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -126,30 +127,34 @@ class _OverviewRuns(BaseModel):
     has_docx: bool = False
 
 
-def _only_for(workflow_type: WorkflowRunType, expr: Any) -> Any:
-    """`expr` on runs of one type, NULL on the rest.
+def _run_state() -> Any:
+    """Each run's state, decompressed once for all the paths the overview reads.
 
-    Each path read from `state_json` decompresses the whole value, which runs to
-    several MB for document processing, so a path one run type needs is never
-    evaluated on the others.
+    Postgres decompresses a TOASTed jsonb whole for every path read from it, and
+    document processing's state runs to tens of MB. `|| '{}'` makes one
+    in-memory copy that the paths then share, and OFFSET 0 keeps the planner
+    from inlining the subquery, which would decompress the state once per path
+    again. A JSON null state comes out as an array, which every path reads as
+    NULL. The planner runs the copy after the latest-run-per-type filter, on
+    the few rows that pass it; nothing forces that order, but the plan has
+    held on every project measured.
     """
-    return case((col(WorkflowRun.type) == workflow_type, expr), else_=None)
+    copied = _STATE.op("||")(literal_column("'{}'::jsonb"))
+    state = select(type_coerce(copied, JSONB).label("state")).correlate(WorkflowRun)
+    return state.offset(0).lateral()
 
 
 def _overview_runs_stmt(project_id: str, revision: int) -> Select[Any]:
     """The latest run per type, with the few state fields the overview reads."""
-    ref_count = _json_array_length(_STATE["extracted_references"])
-    main_file_path = _STATE["file"]["file_path"].astext
+    run_state = _run_state()
+    state = run_state.c.state
     return (
         latest_run_per_type_stmt(project_id, revision)
+        .outerjoin(run_state, true())
         .add_columns(
-            _STATE["errors"].label("errors"),
-            _only_for(WorkflowRunType.REFERENCE_EXTRACTION, ref_count).label(
-                "ref_count"
-            ),
-            _only_for(WorkflowRunType.DOCUMENT_PROCESSING, main_file_path).label(
-                "main_file_path"
-            ),
+            state["errors"].label("errors"),
+            _json_array_length(state["extracted_references"]).label("ref_count"),
+            state["file"]["file_path"].astext.label("main_file_path"),
         )
         .order_by(col(WorkflowRun.created_at).asc())
     )
