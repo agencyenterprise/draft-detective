@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.9.3] - 2026-11-23
+
+### Changed
+- Upgraded deepagents, langchain, langgraph, and related provider packages to their latest releases.
+- Consolidated frontend mutation outcome notifications while preserving existing toast messages.
+- Centralized how cached project overviews apply and refresh saved changes.
+
+### Fixed
+- Restored chat replies that could be missing after malformed tool calls.
+- Refreshed project overviews when a save completes during their initial load.
+- Fixed document outlines incorrectly treating code-fence content as headings.
+
+### Security
+- Restricted agent file-reading tools to files belonging to the current project.
+
+
 ## [v2.9.2] - 2026-11-19
 
 ### Fixed
