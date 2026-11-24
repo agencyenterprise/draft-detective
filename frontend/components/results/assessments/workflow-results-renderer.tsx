@@ -93,7 +93,6 @@ export function renderWorkflowResults({
     case WorkflowRunType.RecommendationCheck:
     case WorkflowRunType.AdvocacyToneV2:
     case WorkflowRunType.LiteratureReviewV2:
-    case WorkflowRunType.LiveReportsV2:
       return (
         <SimpleDeepAgentResults
           issues={issues}

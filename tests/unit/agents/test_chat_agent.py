@@ -44,6 +44,11 @@ class TestResolveChatModel:
         assert resolve_chat_model(None) == DEFAULT_CHAT_MODEL
         assert resolve_chat_model("") == DEFAULT_CHAT_MODEL
 
+    def test_a_caller_can_name_its_own_fallback(self) -> None:
+        sol = resolve_chat_model("gpt-5.6-sol")
+        assert resolve_chat_model(None, sol) == sol
+        assert resolve_chat_model("gpt-5.6-luna", sol).name == "gpt-5.6-luna"
+
     def test_ids_are_unique(self) -> None:
         ids = [option.id for option in CHAT_MODELS]
         assert len(ids) == len(set(ids))
@@ -146,6 +151,9 @@ class TestRunChatTurn:
                     text="Read this.",
                     attachments=[ChatAttachment(name="draft.pdf", text="body")],
                     message_id="page-id-1",
+                    build_agent=chat_agent.build_chat_agent,
+                    build_input=chat_agent.build_chat_input,
+                    run_config=chat_agent.chat_run_config,
                 )
             )
 

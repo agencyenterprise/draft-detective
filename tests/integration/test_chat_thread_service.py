@@ -15,6 +15,7 @@ from sqlalchemy import delete
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
+from lib.models.chat_thread import ChatThreadKind
 from lib.models.conversation import Conversation, ConversationKind
 from lib.models.user import User
 from lib.services import chat_thread_service as svc
@@ -66,6 +67,21 @@ async def test_list_threads_scoped_to_owner(user, other_user):
     threads = await svc.list_threads(user)
 
     assert {t.id for t in threads} == {mine_a.id, mine_b.id}
+
+
+@pytest.mark.asyncio
+async def test_each_kind_is_listed_apart(user):
+    chat = await svc.create_thread(user, title="chat")
+    report = await svc.create_thread(
+        user, title="report", kind=ChatThreadKind.LIVE_REPORT
+    )
+
+    chats = await svc.list_threads(user)
+    reports = await svc.list_threads(user, kind=ChatThreadKind.LIVE_REPORT)
+
+    assert [t.id for t in chats] == [chat.id]
+    assert [t.id for t in reports] == [report.id]
+    assert reports[0].kind == ChatThreadKind.LIVE_REPORT
 
 
 @pytest.mark.asyncio
