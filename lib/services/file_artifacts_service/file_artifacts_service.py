@@ -45,6 +45,10 @@ from lib.workflows.util import run_type_of
 logger = logging.getLogger(__name__)
 
 
+class MainFileNotFoundError(ValueError):
+    """The revision has no main document uploaded yet."""
+
+
 def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
     """The ids that parse as UUIDs; any other cannot name a file, so it drops out."""
     parsed: list[uuid.UUID] = []
@@ -224,7 +228,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         if revision is not None:
             if main_file is None:
-                raise ValueError(
+                raise MainFileNotFoundError(
                     f"No main file found for revision {rev} in project {self.project_id}"
                 )
             return await self._load_file_document_with_markdown(main_file)
