@@ -1,4 +1,6 @@
 """Everything the /chat page needs from the backend, scoped to the signed-in user.
+It backs the /live-reports page's threads too: a thread's ``kind`` picks its agent
+(``lib/agents/thread_agents.py``).
 
 Two halves in one router. The thread index backs the assistant-ui thread list:
 ``chat_threads`` rows with owner, title and archived flag. The conversation
@@ -27,13 +29,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from lib.agents.chat_agent import (
     CHAT_MODELS,
     DEFAULT_CHAT_MODEL,
-    chat_reader,
     chat_skill_catalogue,
     resolve_chat_model,
     run_chat_turn,
 )
+from lib.agents.thread_agents import thread_agent
 from lib.api.auth import get_current_user
-from lib.models.chat_thread import ChatThread
+from lib.models.chat_thread import ChatThread, ChatThreadKind
 from lib.models.user import User
 from lib.services import chat_thread_service
 from lib.services.chat import turn_claims
@@ -66,6 +68,7 @@ class ChatThreadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    kind: ChatThreadKind
     title: str | None
     is_archived: bool
     is_running: bool = Field(
@@ -77,6 +80,10 @@ class ChatThreadResponse(BaseModel):
 
 class CreateThreadRequest(BaseModel):
     title: str | None = None
+    kind: ChatThreadKind = Field(
+        default=ChatThreadKind.CHAT,
+        description="Which agent the thread talks to; fixed for the thread's life.",
+    )
 
 
 class UpdateThreadRequest(BaseModel):
@@ -129,9 +136,12 @@ class ExtractResponse(BaseModel):
 
 @router.get("/threads", response_model=list[ChatThreadResponse])
 async def list_threads(
+    kind: ChatThreadKind = Query(
+        default=ChatThreadKind.CHAT, description="Each page lists its own kind."
+    ),
     current_user: User = Depends(get_current_user),
 ) -> list[ChatThread]:
-    return list(await chat_thread_service.list_threads(user=current_user))
+    return list(await chat_thread_service.list_threads(user=current_user, kind=kind))
 
 
 @router.post("/threads", response_model=ChatThreadResponse)
@@ -140,7 +150,7 @@ async def create_thread(
     current_user: User = Depends(get_current_user),
 ) -> ChatThread:
     return await chat_thread_service.create_thread(
-        user=current_user, title=request.title
+        user=current_user, title=request.title, kind=request.kind
     )
 
 
@@ -198,10 +208,11 @@ async def list_messages(
 ) -> list[dict[str, Any]]:
     """The thread's messages from the checkpointer, in the shape the page renders."""
 
-    await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
-    return to_ui_messages(
-        await load_thread_messages(str(thread_id), reader=chat_reader)
+    thread = await chat_thread_service.get_thread(
+        thread_id=thread_id, user=current_user
     )
+    reader = thread_agent(thread.kind).reader
+    return to_ui_messages(await load_thread_messages(str(thread_id), reader=reader))
 
 
 @router.get("/threads/{thread_id}/files", response_model=ThreadFileResponse)
@@ -222,8 +233,11 @@ async def read_thread_file_content(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
         )
-    await chat_thread_service.get_thread(thread_id=thread_id, user=current_user)
-    content = await read_thread_file(str(thread_id), path, reader=chat_reader)
+    thread = await chat_thread_service.get_thread(
+        thread_id=thread_id, user=current_user
+    )
+    reader = thread_agent(thread.kind).reader
+    content = await read_thread_file(str(thread_id), path, reader=reader)
     if content is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="File not found"
@@ -263,14 +277,18 @@ async def stream_chat_turn(
         thread_id=thread_id, user=current_user
     )
 
+    agent = thread_agent(thread.kind)
     events = run_chat_turn(
         thread_id=str(thread.id),
         user_id=str(current_user.id),
-        model=resolve_chat_model(request.model),
+        model=resolve_chat_model(request.model, agent.default_model),
         api_key=get_user_decrypted_api_key(current_user),
         text=request.message,
         attachments=request.attachments,
         message_id=request.message_id,
+        build_agent=agent.build_agent,
+        build_input=agent.build_input,
+        run_config=agent.run_config,
     )
     try:
         turn = await start_turn(thread.id, events)
@@ -307,6 +325,8 @@ async def cancel_chat_turn(
 async def list_chat_models(
     _current_user: User = Depends(get_current_user),
 ) -> list[ChatModelResponse]:
+    """The models /chat's picker offers, with its default."""
+
     return [
         ChatModelResponse(
             id=option.id,

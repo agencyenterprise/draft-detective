@@ -62,11 +62,10 @@ WORKFLOW_DISPLAY_CONFIG: list[CategoryConfig] = [
     # Checks (GER), declared by skills/structural-checks-ger/SKILL.md, runs their rules
     # in one check and replaces both in the picker. They stay registered, so existing
     # runs still list and render and the API can still start them by type.
-    # The Research & Writing Assistant workflows (LITERATURE_REVIEW_V2 and
-    # LIVE_REPORTS_V2) are deliberately absent. Draft Detective is positioned as a
-    # suite of checks that review a draft the author already has; these instead go
-    # looking for new literature, which is a different product, so they are kept
-    # out of the assessment picker. Like the workflows above, they stay
+    # LITERATURE_REVIEW_V2 is deliberately absent. Draft Detective is positioned as a
+    # suite of checks that review a draft the author already has; it instead goes
+    # looking for new literature, which is a different product, so it is kept
+    # out of the assessment picker. Like the workflows above, it stays
     # registered: existing runs still list and render, and the API, MCP, and eval
-    # suites can still start them by type.
+    # suites can still start it by type.
 ]

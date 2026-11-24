@@ -16,26 +16,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
-from lib.models.chat_thread import ChatThread
+from lib.models.chat_thread import ChatThread, ChatThreadKind
 from lib.models.conversation import ConversationKind
 from lib.models.user import User
 from lib.services import conversations
 
 
-async def list_threads(user: User) -> Sequence[ChatThread]:
+async def list_threads(
+    user: User, kind: ChatThreadKind = ChatThreadKind.CHAT
+) -> Sequence[ChatThread]:
+    """The user's threads of one kind: each page lists only its own."""
+
     async with get_async_db_session() as session:
         stmt = (
             select(ChatThread)
             .where(col(ChatThread.user_id) == user.id)
+            .where(col(ChatThread.kind) == kind)
             .order_by(col(ChatThread.last_updated_at).desc())
         )
         return list((await session.execute(stmt)).scalars().all())
 
 
-async def create_thread(user: User, title: str | None = None) -> ChatThread:
+async def create_thread(
+    user: User,
+    title: str | None = None,
+    kind: ChatThreadKind = ChatThreadKind.CHAT,
+) -> ChatThread:
     async with get_async_db_session() as session:
         thread_id = await conversations.start(session, ConversationKind.WEB, user.id)
-        thread = ChatThread(id=thread_id, user_id=user.id, title=title)
+        thread = ChatThread(id=thread_id, user_id=user.id, title=title, kind=kind)
         session.add(thread)
         await session.commit()
         await session.refresh(thread)
