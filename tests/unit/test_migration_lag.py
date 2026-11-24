@@ -1,6 +1,6 @@
 """`scripts/migration_lag.py` warns when the database isn't at the checkout's head."""
 
-from scripts.migration_lag import describe_lag
+from scripts.migration_lag import describe_lag, libpq_url
 
 KNOWN = {"a1", "b2", "c3"}
 
@@ -44,3 +44,9 @@ def test_warns_on_an_empty_database() -> None:
 
     assert warning is not None
     assert "at none" in warning
+
+
+def test_libpq_url_drops_the_sqlalchemy_driver() -> None:
+    url = libpq_url("postgresql+psycopg://user:pw@localhost:5432/ai_reviewer")
+
+    assert url == "postgresql://user:pw@localhost:5432/ai_reviewer"

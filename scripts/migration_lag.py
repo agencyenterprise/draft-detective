@@ -50,6 +50,13 @@ def describe_lag(
     )
 
 
+def libpq_url(url: str) -> str:
+    """psycopg rejects a SQLAlchemy dialect suffix such as `postgresql+psycopg://`."""
+    return (
+        make_url(url).set(drivername="postgresql").render_as_string(hide_password=False)
+    )
+
+
 def applied_revisions(url: str) -> set[str]:
     options = f"-c statement_timeout={STATEMENT_TIMEOUT_MS}"
     with psycopg.connect(
@@ -71,7 +78,7 @@ def migration_scripts() -> ScriptDirectory:
 
 def main() -> None:
     try:
-        applied = applied_revisions(config.DATABASE_URL)
+        applied = applied_revisions(libpq_url(config.DATABASE_URL))
     except psycopg.Error:
         return
     script = migration_scripts()
