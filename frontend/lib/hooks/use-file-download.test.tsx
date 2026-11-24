@@ -69,4 +69,12 @@ describe('useFileDownload', () => {
       'Failed to download',
     ]);
   });
+
+  it("keeps a server error's detail out of the toast", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The DOCX route's catch-all 500 sends the exception's text, which can name a file path on the server.
+    await run(() => Promise.reject(new ApiError(500, 'Failed to generate DOCX: Original file not found: /app/x.docx')));
+
+    expect(toast.error).toHaveBeenCalledWith('Failed to download', { id: 't1', description: null });
+  });
 });
