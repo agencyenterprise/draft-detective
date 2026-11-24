@@ -234,7 +234,7 @@ async def _owner_share_status(
     # served this overview, and admins reading a project were never shown it.
     if access_level != AccessLevel.WRITE:
         return None
-    return await get_share_status("project", project.id)
+    return await get_share_status(project.id)
 
 
 async def get_workflow_run_summaries_by_type(

@@ -229,18 +229,14 @@ async def page() -> AsyncIterator[dict[str, Any]]:
         status=IssueStatus.ARCHIVED,
     )
 
-    def _share(resource_type: str) -> ShareLink:
-        return ShareLink(
-            id=uuid.uuid4(),
-            token=uuid.uuid4().hex,
-            resource_type=resource_type,
-            resource_id=project.id,
-            created_by_user_id=owner.id,
-            is_active=True,
-            created_at=now,
-        )
-
-    share, other_share = _share("project"), _share("workflow_run")
+    share = ShareLink(
+        id=uuid.uuid4(),
+        token=uuid.uuid4().hex,
+        project_id=project.id,
+        created_by_user_id=owner.id,
+        is_active=True,
+        created_at=now,
+    )
 
     async with get_async_db_session() as session:
         session.add_all([owner, stranger])
@@ -249,7 +245,7 @@ async def page() -> AsyncIterator[dict[str, Any]]:
         session.add(project)
         await session.commit()
     async with get_async_db_session() as session:
-        session.add_all([*runs, share, other_share])
+        session.add_all([*runs, share])
         await session.commit()
     async with get_async_db_session() as session:
         session.add_all([issue, archived])
@@ -263,13 +259,10 @@ async def page() -> AsyncIterator[dict[str, Any]]:
         "issue_id": issue.id,
         "token": share.token,
         "share_id": share.id,
-        "other_token": other_share.token,
     }
 
     async with get_async_db_session() as session:
-        await session.execute(
-            delete(ShareLink).where(col(ShareLink.id).in_([share.id, other_share.id]))
-        )
+        await session.execute(delete(ShareLink).where(col(ShareLink.id) == share.id))
         # Deleting the project cascades to its runs and issues.
         await session.execute(delete(Project).where(col(Project.id) == project.id))
         await session.execute(

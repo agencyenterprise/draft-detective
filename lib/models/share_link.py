@@ -13,7 +13,7 @@ def generate_share_token() -> str:
 
 
 class ShareLink(SQLModel, table=True):
-    """Represents a shareable link for read-only access to a resource."""
+    """A shareable link that grants read-only access to a project."""
 
     __tablename__ = "share_links"
 
@@ -27,20 +27,14 @@ class ShareLink(SQLModel, table=True):
         description="URL-safe unique token for accessing the shared resource",
     )
 
-    # Projects are the only resource that can be shared, so resource_id is a
-    # foreign key to projects: deleting a project deletes its links.
-    resource_type: str = Field(
-        sa_column=Column(String(50), nullable=False),
-        description="Type of resource being shared (e.g., 'project')",
-    )
-    resource_id: uuid.UUID = Field(
+    project_id: uuid.UUID = Field(
         sa_column=Column(
             UUID(as_uuid=True),
             ForeignKey("projects.id", ondelete="CASCADE"),
             nullable=False,
             index=True,
         ),
-        description="ID of the project being shared",
+        description="The project this link shares",
     )
 
     # Ownership and management
