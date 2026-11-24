@@ -1,12 +1,11 @@
-import { useState } from 'react';
-import { toast } from 'sonner';
 import {
   downloadProjectDocxApiProjectsProjectIdDocxDownloadGet,
   DocxManipulatorType,
   SeverityEnum,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { downloadFile, filenameFromContentDisposition } from '@/lib/file-download';
+import { type FileResponse, saveFileResponse } from '@/lib/file-download';
+import { type FileDownloadMessages, useFileDownload } from '@/lib/hooks/use-file-download';
 
 export type DocxType = DocxManipulatorType | 'original';
 
@@ -41,10 +40,7 @@ export async function downloadDocxFile({
   includeEdits,
   revision,
 }: DownloadDocxRequest): Promise<void> {
-  // 'fields' rather than the SDK's 'data', for the response headers: the backend
-  // names the file after the uploaded document, and that name is what people
-  // track the file by once it leaves the app.
-  const { data, response } = (await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
+  const file = (await downloadProjectDocxApiProjectsProjectIdDocxDownloadGet({
     path: { project_id: projectId },
     query: {
       share_token: shareToken,
@@ -56,59 +52,28 @@ export async function downloadDocxFile({
       revision: revision,
     },
     responseStyle: 'fields',
-  })) as unknown as { data: unknown; response: Response };
-
-  if (!(data instanceof Blob)) {
-    throw new Error('Unexpected response type from DOCX download');
-  }
+  })) as unknown as FileResponse;
 
   const timestamp = new Date().toISOString().split('T')[0];
-  const filename =
-    filenameFromContentDisposition(response.headers.get('content-disposition')) ??
-    `document_${projectId}_${timestamp}.docx`;
-
-  downloadFile({ blob: data, filename });
+  saveFileResponse(file, `document_${projectId}_${timestamp}.docx`);
 }
 
-export function useDownloadDocx({
-  projectId,
-  shareToken,
-  severities,
-  workflowTypes,
-  includePassing,
-  revision,
-}: UseDownloadDocxOptions) {
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const download = async (docxType: DocxType, includeEdits: boolean) => {
-    setIsDownloading(true);
-
-    const loadingMessage =
-      docxType === 'comments-with-links' ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...';
-
-    const toastId = toast.loading(loadingMessage, {
-      description: 'This may take a few moments',
-    });
-
-    try {
-      await downloadDocxFile({
-        projectId,
-        shareToken,
-        severities,
-        workflowTypes,
-        docxType,
-        includePassing,
-        includeEdits,
-        revision,
-      });
-      toast.success('DOCX file downloaded successfully', { id: toastId, description: null });
-    } catch (error) {
-      console.error('Failed to download docx:', error);
-      toast.error('Failed to download DOCX file', { id: toastId, description: null });
-    } finally {
-      setIsDownloading(false);
-    }
+/** The toasts of a DOCX export, wherever it starts. */
+export function docxDownloadMessages(docxType: DocxType): FileDownloadMessages {
+  return {
+    loading:
+      docxType === 'comments-with-links' ? 'Preparing DOCX with share links...' : 'Preparing DOCX for download...',
+    description: 'This may take a few moments',
+    success: 'DOCX file downloaded successfully',
+    error: 'Failed to download DOCX file',
   };
+}
+
+export function useDownloadDocx(options: UseDownloadDocxOptions) {
+  const { download: run, isDownloading } = useFileDownload();
+
+  const download = (docxType: DocxType, includeEdits: boolean) =>
+    run(() => downloadDocxFile({ ...options, docxType, includeEdits }), docxDownloadMessages(docxType));
 
   return { download, isDownloading };
 }

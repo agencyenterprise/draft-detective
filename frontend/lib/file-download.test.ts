@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { filenameFromContentDisposition } from './file-download';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { filenameFromContentDisposition, saveFileResponse } from './file-download';
 
 describe('filenameFromContentDisposition', () => {
   it('reads a quoted filename', () => {
@@ -26,5 +26,29 @@ describe('filenameFromContentDisposition', () => {
   it('returns null when there is no filename', () => {
     expect(filenameFromContentDisposition(null)).toBeNull();
     expect(filenameFromContentDisposition('attachment')).toBeNull();
+  });
+});
+
+describe('saveFileResponse', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  function savedName(headers: HeadersInit): string {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    saveFileResponse({ data: new Blob(['x']), response: new Response(null, { headers }) }, 'fallback.zip');
+    return (click.mock.contexts[0] as HTMLAnchorElement).download;
+  }
+
+  it('saves the file under the name the server gives', () => {
+    expect(savedName({ 'content-disposition': 'attachment; filename="Report_files.zip"' })).toBe('Report_files.zip');
+  });
+
+  it('falls back to the given name when the server gives none', () => {
+    expect(savedName({})).toBe('fallback.zip');
+  });
+
+  it('refuses a body that is not a file', () => {
+    expect(() => saveFileResponse({ data: { detail: 'x' }, response: new Response() }, 'f.zip')).toThrow();
   });
 });
