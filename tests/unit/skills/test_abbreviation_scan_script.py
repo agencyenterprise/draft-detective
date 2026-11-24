@@ -71,7 +71,10 @@ def test_partial_ratio_scores_equal_rapidfuzz():
 
 
 def test_long_definitions_match_quickly():
-    """Definitions of a thousand characters stay well under a second."""
+    """Definitions of a thousand characters match in well under the 30 s the cubic version took.
+
+    About 0.4 s locally; the bound leaves room for a loaded CI runner under coverage.
+    """
     rng = random.Random(1)
     long_a = " ".join(rng.choice(_WORDS) for _ in range(120))
     long_b = long_a.replace("office", "offices")
@@ -82,7 +85,7 @@ def test_long_definitions_match_quickly():
         _script._default_process(long_a), _script._default_process(long_b)
     )
 
-    assert time.perf_counter() - started < 1.0
+    assert time.perf_counter() - started < 5.0
     assert actual == pytest.approx(expected, abs=1e-9)
 
 
