@@ -139,13 +139,6 @@ async def test_public_share_rejects_unknown_and_disabled_links(page):
 
 
 @pytest.mark.asyncio
-async def test_public_share_serves_only_projects(page):
-    with pytest.raises(HTTPException) as exc:
-        await get_shared_resource(page["other_token"])
-    assert exc.value.status_code == 400
-
-
-@pytest.mark.asyncio
 async def test_runs_that_never_wrote_a_state_still_show(page):
     # A run saved with `state_json=None` holds a JSON null, one saved through
     # SQL holds NULL. Neither may break the read of the other runs' states.

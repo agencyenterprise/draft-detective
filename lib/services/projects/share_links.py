@@ -48,14 +48,11 @@ def _to_response(share_link: ShareLink) -> ShareLinkResponse:
     )
 
 
-async def get_active_share_link(
-    resource_type: str, resource_id: uuid.UUID
-) -> ShareLink | None:
-    """Get the active share link for a resource if it exists."""
+async def get_active_share_link(project_id: uuid.UUID) -> ShareLink | None:
+    """Get the active share link of a project if it exists."""
     async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
-            col(ShareLink.resource_type) == resource_type,
-            col(ShareLink.resource_id) == resource_id,
+            col(ShareLink.project_id) == project_id,
             col(ShareLink.is_active).is_(True),
         )
         result = await session.execute(stmt)
@@ -63,7 +60,7 @@ async def get_active_share_link(
 
 
 async def get_resource_by_token(token: str) -> ShareLink | None:
-    """Get resource info by share token. Returns None if token is invalid or inactive."""
+    """Get the share link of a token. Returns None if it is invalid or inactive."""
     async with get_async_db_session() as session:
         stmt = select(ShareLink).where(
             col(ShareLink.token) == token, col(ShareLink.is_active).is_(True)
@@ -72,43 +69,30 @@ async def get_resource_by_token(token: str) -> ShareLink | None:
         return result.scalar_one_or_none()
 
 
-async def enable_sharing(
-    resource_type: str, resource_id: uuid.UUID, user: User
-) -> ShareStatusResponse:
-    """Enable sharing for a resource. Returns existing active link or creates new one."""
-    # Check for existing active link
-    existing = await get_active_share_link(resource_type, resource_id)
+async def enable_sharing(project_id: uuid.UUID, user: User) -> ShareStatusResponse:
+    """Enable sharing for a project. Returns its active link or creates one."""
+    existing = await get_active_share_link(project_id)
     if existing:
         return ShareStatusResponse(enabled=True, share_link=_to_response(existing))
 
-    # Create new share link
     async with get_async_db_session() as session:
-        share_link = ShareLink(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            created_by_user_id=user.id,
-        )
+        share_link = ShareLink(project_id=project_id, created_by_user_id=user.id)
         session.add(share_link)
         await session.commit()
         await session.refresh(share_link)
 
-        logger.info(
-            f"Created share link for {resource_type}/{resource_id}: {share_link.token}"
-        )
+        logger.info(f"Created share link for project {project_id}: {share_link.token}")
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
 
 
-async def disable_sharing(
-    resource_type: str, resource_id: uuid.UUID
-) -> ShareStatusResponse:
-    """Disable ALL active sharing for a resource."""
+async def disable_sharing(project_id: uuid.UUID) -> ShareStatusResponse:
+    """Disable ALL active sharing for a project."""
     async with get_async_db_session() as session:
         # Deactivate ALL active links (fixes potential orphaned links)
         stmt = (
             update(ShareLink)
             .where(
-                col(ShareLink.resource_type) == resource_type,
-                col(ShareLink.resource_id) == resource_id,
+                col(ShareLink.project_id) == project_id,
                 col(ShareLink.is_active).is_(True),
             )
             .values(is_active=False)
@@ -118,18 +102,14 @@ async def disable_sharing(
         await session.commit()
 
         if updated:
-            logger.info(
-                f"Disabled {updated} share link(s) for {resource_type}/{resource_id}"
-            )
+            logger.info(f"Disabled {updated} share link(s) for project {project_id}")
 
     return ShareStatusResponse(enabled=False, share_link=None)
 
 
-async def get_share_status(
-    resource_type: str, resource_id: uuid.UUID
-) -> ShareStatusResponse:
-    """Get the current share status for a resource."""
-    share_link = await get_active_share_link(resource_type, resource_id)
+async def get_share_status(project_id: uuid.UUID) -> ShareStatusResponse:
+    """Get the current share status of a project."""
+    share_link = await get_active_share_link(project_id)
 
     if share_link:
         return ShareStatusResponse(enabled=True, share_link=_to_response(share_link))
