@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { getErrorDetail } from '@/lib/api-error';
+import { isApiError } from '@/lib/api-error';
 
 export interface FileDownloadMessages {
   loading: string;
@@ -12,8 +12,16 @@ export interface FileDownloadMessages {
 }
 
 /**
+ * The server's reason for refusing a download, when it is one the user can act on. A 4xx names the
+ * request's problem ("Project not found"); a 5xx's detail can carry an internal exception's text.
+ */
+function refusalReason(error: unknown): string | undefined {
+  return isApiError(error) && error.status < 500 ? error.detail : undefined;
+}
+
+/**
  * Runs a download behind one toast: `loading` while `save` runs, then `success`, or on failure the
- * server's reason (else `error`). `isDownloading` is true meanwhile.
+ * server's reason for refusing it (else `error`). `isDownloading` is true meanwhile.
  */
 export function useFileDownload() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -27,7 +35,7 @@ export function useFileDownload() {
       toast.success(messages.success, { id, description: null });
     } catch (error) {
       console.error(`${messages.error}:`, error);
-      toast.error(getErrorDetail(error, messages.error), { id, description: null });
+      toast.error(refusalReason(error) || messages.error, { id, description: null });
     } finally {
       setIsDownloading(false);
     }
