@@ -1,7 +1,7 @@
 """delete a project's share links when the project is deleted
 
 Revision ID: 3df04e45e428
-Revises: d4b8f1a6c2e9
+Revises: 54a6404e27e1
 Create Date: 2026-11-24 16:30:00.000000
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "3df04e45e428"
-down_revision: str | None = "d4b8f1a6c2e9"
+down_revision: str | None = "54a6404e27e1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
