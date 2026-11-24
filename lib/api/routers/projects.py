@@ -23,6 +23,9 @@ from lib.services.docx.service import (
     UnsupportedMainFileError,
     generate_docx,
 )
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    MainFileNotFoundError,
+)
 from lib.services.files.service import get_files_by_project_id
 from lib.services.projects.revisions import (
     RevisionListItem,
@@ -179,7 +182,11 @@ async def download_project_docx(
             include_edits=include_edits,
             revision=revision,
         )
-    except (RevisionNotFoundError, UnsupportedMainFileError) as e:
+    except (
+        RevisionNotFoundError,
+        MainFileNotFoundError,
+        UnsupportedMainFileError,
+    ) as e:
         # The caller's request, not ours, and its message names nothing on the
         # server: the frontend shows it to the user.
         logger.warning("Rejected DOCX export for project %s: %s", project_id, e)

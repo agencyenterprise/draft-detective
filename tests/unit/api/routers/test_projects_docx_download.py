@@ -10,6 +10,9 @@ from fastapi import HTTPException
 from lib.api.routers.projects import download_project_docx
 from lib.models.project import Project
 from lib.services.docx.service import UnsupportedMainFileError, generate_docx
+from lib.services.file_artifacts_service.file_artifacts_service import (
+    MainFileNotFoundError,
+)
 
 
 async def _export_error(
@@ -80,6 +83,16 @@ async def test_non_word_main_file_is_still_a_bad_request_with_its_reason():
     error = await _export_error(
         AsyncMock(side_effect=UnsupportedMainFileError(message))
     )
+
+    assert error.status_code == 400
+    assert error.detail == message
+
+
+@pytest.mark.asyncio
+async def test_revision_without_a_main_document_is_still_a_bad_request():
+    """A revision created but not yet uploaded to: the caller's state, not ours."""
+    message = "No main file found for revision 2 in project p1"
+    error = await _export_error(AsyncMock(side_effect=MainFileNotFoundError(message)))
 
     assert error.status_code == 400
     assert error.detail == message
