@@ -18,8 +18,8 @@ import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
 import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
+import { useFileDownload } from '@/lib/hooks/use-file-download';
+import { docxDownloadMessages, downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
 import { exportCounts, shareLinksAvailable } from '@/lib/export-scope';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 import { RevisionSwitcher } from './revision-switcher';
@@ -47,7 +47,6 @@ export function AnalysisOptionsMenu({
   const shareContext = useShare();
 
   const [showShareWarning, setShowShareWarning] = useState(false);
-  const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   // Remounts the edit form on every open, so values left by a cancelled edit are not submitted later.
   const [editDialogKey, setEditDialogKey] = useState(0);
@@ -64,6 +63,7 @@ export function AnalysisOptionsMenu({
     includePassing: filter.showPassing,
     revision: selectedRevision,
   });
+  const shareDownload = useFileDownload();
 
   const hasDocx = overview.has_docx ?? false;
   // Usually already cached by the document explorer; fetched here only once the dialog asks.
@@ -82,11 +82,9 @@ export function AnalysisOptionsMenu({
       group_by_severity: values.group_by_severity,
     });
 
-  const downloadWithShare = async (docxType: DocxType, includeEdits: boolean) => {
-    setIsEnablingForDownload(true);
-    const toastId = toast.loading('Preparing DOCX with share links...', { description: 'This may take a few moments' });
-
-    try {
+  // Enabling sharing first is part of the same export, under the same toast.
+  const downloadWithShare = (docxType: DocxType, includeEdits: boolean) =>
+    shareDownload.download(async () => {
       const shareResponse = await share.enable();
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
@@ -101,14 +99,7 @@ export function AnalysisOptionsMenu({
         includeEdits,
         revision: selectedRevision,
       });
-      toast.success('DOCX file downloaded successfully', { id: toastId });
-    } catch (error) {
-      console.error('Failed to enable sharing and download:', error);
-      toast.error('Failed to download DOCX file', { id: toastId });
-    } finally {
-      setIsEnablingForDownload(false);
-    }
-  };
+    }, docxDownloadMessages(docxType));
 
   // Execute the actual download based on pending action
   const executeDownload = (docxType: DocxType, includeEdits: boolean) => {
@@ -225,7 +216,7 @@ export function AnalysisOptionsMenu({
         open={showShareWarning}
         onOpenChange={setShowShareWarning}
         isProjectPublic={share.isEnabled || !!shareContext.shareToken}
-        isEnablingShare={isEnablingForDownload || share.isEnabling}
+        isEnablingShare={shareDownload.isDownloading || share.isEnabling}
         isDownloading={isDownloading}
         filters={{ severity: filter.severity, workflowType: filter.workflowType, showPassing: filter.showPassing }}
         counts={issues ? exportCounts(issues, filter) : null}
