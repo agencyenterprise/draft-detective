@@ -57,17 +57,16 @@ def libpq_url(url: str) -> str:
     )
 
 
-def applied_revisions(url: str) -> set[str]:
-    options = f"-c statement_timeout={STATEMENT_TIMEOUT_MS}"
-    with psycopg.connect(
-        url, connect_timeout=CONNECT_TIMEOUT_SECONDS, options=options
-    ) as conn:
+def applied_revisions(url: str) -> tuple[str, set[str]]:
+    """The database libpq connected to, and the revisions in its alembic_version."""
+    with psycopg.connect(url, connect_timeout=CONNECT_TIMEOUT_SECONDS) as conn:
+        # Set on the session, so the URL's own `options` (search_path) still apply.
+        conn.execute(f"SET statement_timeout = {STATEMENT_TIMEOUT_MS}")
         table = conn.execute("SELECT to_regclass('alembic_version')").fetchone()
         if not table or table[0] is None:
-            return set()
-        return {
-            row[0] for row in conn.execute("SELECT version_num FROM alembic_version")
-        }
+            return conn.info.dbname, set()
+        rows = conn.execute("SELECT version_num FROM alembic_version")
+        return conn.info.dbname, {row[0] for row in rows}
 
 
 def migration_scripts() -> ScriptDirectory:
@@ -78,12 +77,11 @@ def migration_scripts() -> ScriptDirectory:
 
 def main() -> None:
     try:
-        applied = applied_revisions(libpq_url(config.DATABASE_URL))
+        database, applied = applied_revisions(libpq_url(config.DATABASE_URL))
     except psycopg.Error:
         return
     script = migration_scripts()
     known = {revision.revision for revision in script.walk_revisions()}
-    database = make_url(config.DATABASE_URL).database or "from .env"
     warning = describe_lag(applied, set(script.get_heads()), known, database)
     if warning:
         print(warning, file=sys.stderr)
