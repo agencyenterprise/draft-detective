@@ -13,6 +13,7 @@
 # PIDs, ports and logs go to .e2e/ in this checkout (git-ignored). Shell variables override
 # .env and frontend/.env (NEXT_PUBLIC_REQUIRE_OPENAI_API_KEY_CONFIG=false scripts/e2e_instance.sh up).
 # E2E_RELOAD=1 starts the backend with auto-reload; `restart` keeps the mode `up` chose.
+# `up` and a backend restart warn when the .env database isn't at this checkout's migration head.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -148,6 +149,11 @@ launch() {
   done
 }
 
+# Warn when the .env database isn't at this checkout's migration head (read-only, never migrates).
+warn_if_migrations_lag() {
+  (cd "$ROOT" && uv run --quiet python -m scripts.migration_lag) || true
+}
+
 print_urls() {
   echo "backend   http://localhost:$(saved backend.port)   (log: $STATE/backend.log)"
   echo "frontend  http://localhost:$(saved frontend.port)   (log: $STATE/frontend.log)"
@@ -172,6 +178,7 @@ cmd_up() {
   launch backend frontend
   trap - EXIT INT TERM HUP
   print_urls
+  warn_if_migrations_lag
 }
 
 # Stop and start again on the same ports, so the URLs stay valid. A server that isn't running
@@ -204,6 +211,7 @@ cmd_restart() {
   launch "${names[@]}"
   trap - EXIT INT TERM HUP
   print_urls
+  if [[ " ${names[*]} " == *" backend "* ]]; then warn_if_migrations_lag; fi
 }
 
 cmd_status() {
