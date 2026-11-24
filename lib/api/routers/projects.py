@@ -18,10 +18,15 @@ from lib.models.file import File, FileRole
 from lib.models.project import AccessLevel, Project
 from lib.models.user import User
 from lib.models.workflow_run import WorkflowRunType
-from lib.services.docx.service import DocxManipulatorType, generate_docx
+from lib.services.docx.service import (
+    DocxManipulatorType,
+    UnsupportedMainFileError,
+    generate_docx,
+)
 from lib.services.files.service import get_files_by_project_id
 from lib.services.projects.revisions import (
     RevisionListItem,
+    RevisionNotFoundError,
     list_project_revisions,
     resolve_revision,
 )
@@ -174,16 +179,16 @@ async def download_project_docx(
             include_edits=include_edits,
             revision=revision,
         )
-    except ValueError as e:
-        # A revision the project does not have: the caller's request, not ours.
+    except (RevisionNotFoundError, UnsupportedMainFileError) as e:
+        # The caller's request, not ours, and its message names nothing on the
+        # server: the frontend shows it to the user.
         logger.warning("Rejected DOCX export for project %s: %s", project_id, e)
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
+        # The message can carry server paths (a missing upload names where it
+        # was stored): it goes to the log only.
         logger.error("Failed to generate DOCX: %s", e, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to generate DOCX: {str(e)}",
-        ) from e
+        raise HTTPException(status_code=500, detail="Failed to generate DOCX") from e
 
     return FileResponse(
         path=file_path,

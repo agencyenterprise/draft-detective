@@ -23,6 +23,10 @@ class RevisionListItem(BaseModel):
     created_at: datetime | None = None
 
 
+class RevisionNotFoundError(ValueError):
+    """A request named a revision the project does not have."""
+
+
 def resolve_revision(project: Project, revision: int | None) -> int:
     """The revision a request asked for, or the project's current one when it
     named none."""
@@ -34,11 +38,11 @@ def resolve_existing_revision(project: Project, revision: int | None) -> int:
     have rather than pass it through.
 
     Raises:
-        ValueError: ``revision`` is outside 1 to ``project.current_revision``.
+        RevisionNotFoundError: ``revision`` is outside 1 to ``project.current_revision``.
     """
     resolved = resolve_revision(project, revision)
     if not 1 <= resolved <= project.current_revision:
-        raise ValueError(
+        raise RevisionNotFoundError(
             f"Revision {resolved} does not exist for this project "
             f"(it has revisions 1 to {project.current_revision})"
         )
