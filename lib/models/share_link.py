@@ -27,14 +27,20 @@ class ShareLink(SQLModel, table=True):
         description="URL-safe unique token for accessing the shared resource",
     )
 
-    # Polymorphic reference to any resource
+    # Projects are the only resource that can be shared, so resource_id is a
+    # foreign key to projects: deleting a project deletes its links.
     resource_type: str = Field(
         sa_column=Column(String(50), nullable=False),
         description="Type of resource being shared (e.g., 'project')",
     )
     resource_id: uuid.UUID = Field(
-        sa_column=Column(UUID(as_uuid=True), nullable=False, index=True),
-        description="ID of the resource being shared",
+        sa_column=Column(
+            UUID(as_uuid=True),
+            ForeignKey("projects.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        ),
+        description="ID of the project being shared",
     )
 
     # Ownership and management

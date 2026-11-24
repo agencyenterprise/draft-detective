@@ -25,7 +25,7 @@ from lib.services.files.service import (
     delete_project_files,
     find_main_file,
 )
-from lib.services.projects.share_links import delete_share_links, get_resource_by_token
+from lib.services.projects.share_links import get_resource_by_token
 from lib.services.references.service import (
     remove_fetch_result_for_file,
     remove_file_from_references,
@@ -475,6 +475,5 @@ async def delete_project(project_id: str, user: User) -> None:
 
         await delete_project_files(project_id)
 
-        await delete_share_links(session, "project", project.id)
         await session.delete(project)
         await session.commit()
