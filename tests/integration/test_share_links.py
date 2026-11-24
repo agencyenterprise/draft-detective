@@ -22,7 +22,7 @@ from lib.config.env import config
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
-from lib.services.projects.service import get_project_access
+from lib.services.projects.service import delete_project, get_project_access
 from lib.services.projects.share_links import (
     ShareStatusResponse,
     disable_sharing,
@@ -234,3 +234,18 @@ async def test_only_the_owner_may_toggle_sharing(
     # The owner's link is untouched: not revoked, and no second one created.
     [link] = await _links(project)
     assert (link.token, link.is_active) == (token, True)
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_project_removes_its_share_links_only(
+    setup: dict[str, Any],
+) -> None:
+    project, other, owner = setup["project"], setup["other_project"], setup["owner"]
+    token = await _enabled_token(project, owner)
+    other_token = await _enabled_token(other, owner)
+
+    await delete_project(str(project.id), user=owner)
+
+    assert await _links(project) == []
+    assert await get_resource_by_token(token) is None
+    assert await _reads_with_token(other, other_token)

@@ -4,7 +4,8 @@ import logging
 import uuid
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -123,6 +124,22 @@ async def disable_sharing(
             )
 
     return ShareStatusResponse(enabled=False, share_link=None)
+
+
+async def delete_share_links(
+    session: AsyncSession, resource_type: str, resource_id: uuid.UUID
+) -> None:
+    """Delete every share link of a resource, in the caller's transaction.
+
+    `share_links.resource_id` has no foreign key (the link is polymorphic), so
+    nothing cascades: whoever deletes a resource deletes its links too.
+    """
+    await session.execute(
+        delete(ShareLink).where(
+            col(ShareLink.resource_type) == resource_type,
+            col(ShareLink.resource_id) == resource_id,
+        )
+    )
 
 
 async def get_share_status(
