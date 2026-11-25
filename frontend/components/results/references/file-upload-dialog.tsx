@@ -56,7 +56,10 @@ export function FileUploadDialog({
       }),
     successMessage: 'Files uploaded. Matching them to your references.',
     errorMessage: 'Failed to match the files to your references',
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) }),
+    // Not awaited: the mutation would wait for every project query to refetch before closing the dialog.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+    },
     onSettled: () => onComplete?.(),
   });
   const { mutate: startMatchingMutate, reset: resetStartMatching } = startMatching;

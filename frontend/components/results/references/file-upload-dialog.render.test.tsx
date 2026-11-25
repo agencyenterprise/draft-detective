@@ -3,6 +3,8 @@ import { act } from 'react';
 import { toast } from 'sonner';
 import { ApiError } from '@/lib/api-error';
 import { startMultipleWorkflowsApiWorkflowsStartMultiplePost, WorkflowRunType } from '@/lib/generated-api';
+import { QueryObserver, type QueryClient } from '@tanstack/react-query';
+import { projectQueryKeys } from '@/lib/hooks/use-project-data';
 import { flush, renderInto, testQueryClient, withQueryClient, type Rendered } from '@/lib/test-render';
 import { FileUploadDialog } from '@/components/results/references/file-upload-dialog';
 import { heldUpload, resetFakeTus } from '@/lib/hooks/upload/fake-tus';
@@ -45,11 +47,11 @@ async function pressEscape(): Promise<void> {
   await flush();
 }
 
-async function renderDialog(referenceId: string | undefined): Promise<void> {
+async function renderDialog(referenceId: string | undefined, client: QueryClient = testQueryClient()): Promise<void> {
   await rendered?.unmount();
   rendered = await renderInto(
     withQueryClient(
-      testQueryClient(),
+      client,
       <FileUploadDialog
         isOpen
         projectId="project-1"
@@ -147,6 +149,28 @@ describe('FileUploadDialog without a reference', () => {
     });
     expect(toast.success).toHaveBeenCalledWith('Files uploaded. Matching them to your references.');
     expect(onComplete).toHaveBeenCalledOnce();
+  });
+
+  it("doesn't hold the dialog open while the project's data refetches", async () => {
+    vi.mocked(startMultipleWorkflowsApiWorkflowsStartMultiplePost).mockResolvedValue({
+      project_id: 'project-1',
+      types: [WorkflowRunType.ReferenceFileMatching],
+      workflow_run_ids: ['run-1'],
+      message: 'Started',
+    });
+    // An active project query whose refetch never ends, as a slow overview would.
+    const client = testQueryClient();
+    const observer = new QueryObserver(client, {
+      queryKey: projectQueryKeys.all('project-1'),
+      queryFn: () => new Promise<never>(() => {}),
+    });
+    const unsubscribe = observer.subscribe(() => {});
+    await renderDialog(undefined, client);
+
+    await uploadOne();
+
+    expect(onComplete).toHaveBeenCalledOnce();
+    unsubscribe();
   });
 
   it("still completes when matching can't start, and says why", async () => {
