@@ -6,16 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getErrorMessage } from '@/lib/api-error';
 import { downloadLogApiAdminLogsDownloadFilenameGet, listLogsApiAdminLogsGet, LogFileInfo } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 import { formatBytes } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Download, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 export function LogsList() {
-  const [downloading, setDownloading] = useState<string | null>(null);
-
   const {
     data: logFiles,
     isLoading,
@@ -25,19 +22,16 @@ export function LogsList() {
     queryFn: () => listLogsApiAdminLogsGet(),
   });
 
-  const handleDownload = async (file: LogFileInfo) => {
-    setDownloading(file.filename);
-    try {
+  const download = useToastMutation({
+    mutationFn: async (file: LogFileInfo) => {
       const content = (await downloadLogApiAdminLogsDownloadFilenameGet({
         path: { filename: file.filename },
       })) as string;
       downloadFile({ blob: new Blob([content], { type: 'text/plain' }), filename: file.filename });
-    } catch (err) {
-      toast.error(getErrorMessage(err, 'Failed to download log file'));
-    } finally {
-      setDownloading(null);
-    }
-  };
+    },
+    errorMessage: 'Failed to download log file',
+  });
+  const downloading = download.isPending ? download.variables?.filename : null;
 
   return (
     <Card>
@@ -81,7 +75,7 @@ export function LogsList() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(file)}
+                      onClick={() => download.mutate(file)}
                       disabled={downloading === file.filename}
                     >
                       {downloading === file.filename ? (
