@@ -4,11 +4,12 @@ import logging
 import uuid
 
 from pydantic import BaseModel, Field
-from sqlalchemy import select, update
+from sqlalchemy import Select, select, update
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
 from lib.config.env import config
+from lib.models.project import Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User
 
@@ -48,14 +49,17 @@ def _to_response(share_link: ShareLink) -> ShareLinkResponse:
     )
 
 
+def _active_link_query(project_id: uuid.UUID) -> Select[tuple[ShareLink]]:
+    return select(ShareLink).where(
+        col(ShareLink.project_id) == project_id,
+        col(ShareLink.is_active).is_(True),
+    )
+
+
 async def get_active_share_link(project_id: uuid.UUID) -> ShareLink | None:
     """Get the active share link of a project if it exists."""
     async with get_async_db_session() as session:
-        stmt = select(ShareLink).where(
-            col(ShareLink.project_id) == project_id,
-            col(ShareLink.is_active).is_(True),
-        )
-        result = await session.execute(stmt)
+        result = await session.execute(_active_link_query(project_id))
         return result.scalar_one_or_none()
 
 
@@ -76,6 +80,19 @@ async def enable_sharing(project_id: uuid.UUID, user: User) -> ShareStatusRespon
         return ShareStatusResponse(enabled=True, share_link=_to_response(existing))
 
     async with get_async_db_session() as session:
+        # Lock the project row so concurrent enables (a double-click) wait here
+        # and find the link the first one created instead of adding a second.
+        await session.execute(
+            select(col(Project.id))
+            .where(col(Project.id) == project_id)
+            .with_for_update()
+        )
+        existing = (
+            await session.execute(_active_link_query(project_id))
+        ).scalar_one_or_none()
+        if existing:
+            return ShareStatusResponse(enabled=True, share_link=_to_response(existing))
+
         share_link = ShareLink(project_id=project_id, created_by_user_id=user.id)
         session.add(share_link)
         await session.commit()
