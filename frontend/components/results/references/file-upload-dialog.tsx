@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { getErrorMessage } from '@/lib/api-error';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +19,7 @@ import { FileRole, startMultipleWorkflowsApiWorkflowsStartMultiplePost, Workflow
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 
 export interface FileUploadDialogProps {
   isOpen: boolean;
@@ -44,34 +44,36 @@ export function FileUploadDialog({
   onComplete,
 }: FileUploadDialogProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [isStartingWorkflow, setIsStartingWorkflow] = useState(false);
   const queryClient = useQueryClient();
 
-  const handleAllComplete = useCallback(async () => {
+  const startMatching = useToastMutation({
+    mutationFn: () =>
+      startMultipleWorkflowsApiWorkflowsStartMultiplePost({
+        body: {
+          project_id: projectId,
+          workflow_types: [WorkflowRunType.ReferenceFileMatching],
+        },
+      }),
+    successMessage: 'Files uploaded. Matching them to your references.',
+    errorMessage: 'Failed to match the files to your references',
+    // Not awaited: the mutation would wait for every project query to refetch before closing the dialog.
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
+    },
+    onSettled: () => onComplete?.(),
+  });
+  const { mutate: startMatchingMutate, reset: resetStartMatching } = startMatching;
+  const isStartingWorkflow = startMatching.isPending;
+
+  const handleAllComplete = useCallback(() => {
     if (referenceId) {
       queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
       toast.success('File uploaded and matched to reference.');
       onComplete?.();
       return;
     }
-
-    try {
-      setIsStartingWorkflow(true);
-      await startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: {
-          project_id: projectId,
-          workflow_types: [WorkflowRunType.ReferenceFileMatching],
-        },
-      });
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-      toast.success('Files uploaded. Matching them to your references.');
-    } catch (error) {
-      toast.error(getErrorMessage(error, 'Failed to match the files to your references'));
-    } finally {
-      setIsStartingWorkflow(false);
-      onComplete?.();
-    }
-  }, [referenceId, projectId, queryClient, onComplete]);
+    startMatchingMutate();
+  }, [referenceId, projectId, queryClient, onComplete, startMatchingMutate]);
 
   const uploadHook = useUpload({
     projectId,
@@ -85,17 +87,17 @@ export function FileUploadDialog({
   const [wasOpen, setWasOpen] = useState(isOpen);
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
-    if (isOpen) {
-      setSelectedFiles([]);
-      setIsStartingWorkflow(false);
-    }
+    if (isOpen) setSelectedFiles([]);
   }
 
-  // The upload hook owns an Uppy instance, so clearing it is a side effect.
+  // The upload hook owns an Uppy instance and the matching call lives in the
+  // query client, so clearing them is a side effect.
   const resetUploads = uploadHook.reset;
   useEffect(() => {
-    if (isOpen) resetUploads();
-  }, [isOpen, resetUploads]);
+    if (!isOpen) return;
+    resetUploads();
+    resetStartMatching();
+  }, [isOpen, resetUploads, resetStartMatching]);
 
   const handleFilesChange = (newFiles: File[]) => {
     setSelectedFiles(multiple ? newFiles : newFiles.slice(-1));
