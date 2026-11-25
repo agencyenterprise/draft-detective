@@ -6,6 +6,7 @@ routes: a revoked link must stop granting access, and only the owner may turn
 sharing on or off.
 """
 
+import asyncio
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
@@ -22,6 +23,7 @@ from lib.config.env import config
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
+from lib.services.projects import share_links
 from lib.services.projects.service import delete_project, get_project_access
 from lib.services.projects.share_links import (
     ShareStatusResponse,
@@ -246,3 +248,30 @@ async def test_deleting_a_project_removes_its_share_links_only(
     assert await _links(project) == []
     assert await get_resource_by_token(token) is None
     assert await _reads_with_token(other, other_token)
+
+
+@pytest.mark.asyncio
+async def test_enabling_at_once_creates_one_link(
+    setup: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A double-click: each enable used to find no link and insert its own, and
+    # two active links made the owner's share status raise MultipleResultsFound.
+    project, owner = setup["project"], setup["owner"]
+    lookup = share_links.get_active_share_link
+
+    async def slow_lookup(project_id: uuid.UUID) -> ShareLink | None:
+        link = await lookup(project_id)
+        await asyncio.sleep(0.2)  # Both requests read before either writes.
+        return link
+
+    monkeypatch.setattr(share_links, "get_active_share_link", slow_lookup)
+    tokens = await asyncio.gather(
+        _enabled_token(project, owner), _enabled_token(project, owner)
+    )
+    monkeypatch.undo()
+
+    assert tokens[0] == tokens[1]
+    assert len(await _links(project)) == 1
+    status = await get_share_status(project.id)
+    assert status.share_link is not None
+    assert status.share_link.token == tokens[0]
