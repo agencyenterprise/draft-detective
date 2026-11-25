@@ -17,7 +17,7 @@ const project = [
   file('markup', FileRole.ReviewInput),
   file('smith', FileRole.Support, { file_name: 'Smith 2020.pdf', description: 'Survey of housing costs' }),
   file('jones', FileRole.Support, { file_name: 'paper.pdf' }),
-  file('figure', FileRole.ExtractedImage),
+  file('appendix', FileRole.Support, { file_name: 'appendix.docx' }),
 ];
 
 describe('listedFiles', () => {
@@ -78,7 +78,7 @@ describe('filterFiles', () => {
     expect(ids(filterFiles(project, 'memo', '', noReferences))).toEqual(['memo']);
     expect(ids(filterFiles(project, 'response', '', noReferences))).toEqual(['reply']);
     expect(ids(filterFiles(project, 'review', '', noReferences))).toEqual(['markup']);
-    expect(ids(filterFiles(project, 'source', '', noReferences))).toEqual(['smith', 'jones', 'figure']);
+    expect(ids(filterFiles(project, 'source', '', noReferences))).toEqual(['smith', 'jones', 'appendix']);
   });
 
   it('finds a file by name, ignoring case and surrounding spaces', () => {
@@ -95,7 +95,7 @@ describe('filterFiles', () => {
   });
 
   it('applies the lens and the search together', () => {
-    expect(ids(filterFiles(project, 'source', 'pdf', noReferences))).toEqual(['smith', 'jones', 'figure']);
+    expect(ids(filterFiles(project, 'source', 'pdf', noReferences))).toEqual(['smith', 'jones']);
     expect(ids(filterFiles(project, 'main', 'smith', noReferences))).toEqual([]);
   });
 
