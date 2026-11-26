@@ -89,6 +89,15 @@ class Config(BaseModel):
         description="Per-model API key overrides. Keys are model names (e.g. Azure deployment IDs).",
     )
 
+    OPENAI_API_KEY_HEADER: str | None = Field(
+        default=None,
+        description=(
+            "Name of an extra header that carries the OpenAI key on every request "
+            "(e.g. `api-key`), for a gateway that reads the key from its own header "
+            "rather than from `Authorization`."
+        ),
+    )
+
     ALLOW_WORKFLOW_MODEL_OVERRIDE: bool = Field(
         default=False,
         description=(
@@ -149,6 +158,7 @@ config = Config(
         os.getenv("RATE_LIMITER_CHECK_EVERY_N_SECONDS", "0.25")
     ),
     MODEL_API_KEYS=json.loads(os.getenv("MODEL_API_KEYS", "{}")),
+    OPENAI_API_KEY_HEADER=os.getenv("OPENAI_API_KEY_HEADER") or None,
     ALLOW_WORKFLOW_MODEL_OVERRIDE=os.getenv(
         "ALLOW_WORKFLOW_MODEL_OVERRIDE", "false"
     ).lower()

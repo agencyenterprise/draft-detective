@@ -173,5 +173,6 @@ The backend health endpoint is `/api/health`. If health checks fail:
 | `AUTH_URL`                                    | Frontend | ✅       | -                           | Frontend's public URL, for sign-in                       |
 | `NEXT_PUBLIC_API_URL`                         | Frontend | ✅       | `http://localhost:8000`     | Backend's public URL, set at build time                  |
 | `OPENAI_API_KEY`                              | Backend  | ❌       | -                           | Server-wide OpenAI key; without it users bring their own |
+| `OPENAI_API_KEY_HEADER`                       | Backend  | ❌       | -                           | Extra header that also carries the OpenAI key, for a gateway that reads it there (e.g. `api-key`) |
 | `LANGFUSE_*`                                  | Backend  | ❌       | -                           | Langfuse observability config                            |
 | `LANGGRAPH_MAX_CONCURRENCY`                   | Backend  | ❌       | `30`                        | Max parallel workflow nodes                              |

@@ -19,6 +19,7 @@ from lib.agents.deep_agent_setup import (
     conversation_run_config,
     general_purpose_subagent,
 )
+from lib.config.env import config as env_config
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
 
@@ -51,6 +52,19 @@ class TestModelConstruction:
         assert kwargs["reasoning"] == {"effort": "low", "summary": "detailed"}
         assert kwargs["output_version"] == "v1"
         assert kwargs["api_key"] == "sk-test"
+
+    def test_the_chat_model_sends_the_key_in_the_gateway_header(
+        self, monkeypatch
+    ) -> None:
+        """The chat agents build their model here, not in LangChainAgent: a gateway
+        that reads the key from its own header rejects them without it."""
+
+        monkeypatch.setattr(env_config, "OPENAI_API_KEY_HEADER", "api-key")
+        with patch("lib.agents.deep_agent_setup.init_chat_model") as init:
+            build_llm(DEFAULT_MODEL, api_key="sk-test")
+
+        kwargs = init.call_args.kwargs
+        assert kwargs["http_async_client"].headers["api-key"] == "sk-test"
 
 
 class TestConversationRunConfig:
