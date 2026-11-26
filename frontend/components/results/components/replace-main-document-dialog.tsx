@@ -16,7 +16,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
-import { uploadSingleFile, formatBytes, type UploadProgress } from '@/lib/hooks/upload';
+import { formatBytes, type UploadProgress } from '@/lib/hooks/upload/types';
 import {
   createRevisionEndpointApiProjectProjectIdRevisionsPost,
   FileRole,
@@ -84,6 +84,8 @@ export function ReplaceMainDocumentDialog({
 
       // Step 2: Upload new main document
       setStage('uploading');
+      // Loaded here: the upload client (Uppy and tus) is only needed once someone replaces the document.
+      const { uploadSingleFile } = await import('@/lib/hooks/upload/upload-single');
       await uploadSingleFile(selectedFile, {
         projectId,
         fileRole: FileRole.Main,

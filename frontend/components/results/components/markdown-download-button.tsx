@@ -8,8 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { markdownToDocx } from '@/lib/markdown-docx';
-import { downloadDocx } from '@mohtasham/md-to-docx';
 import { ChevronDown, Download, FileText, Loader2, Printer } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -23,7 +21,7 @@ interface MarkdownDownloadButtonProps {
 
 /**
  * A "Download" dropdown that exports the given markdown as DOCX or PDF, entirely
- * client-side. DOCX conversion uses `@mohtasham/md-to-docx`; PDF uses a print
+ * client-side. DOCX conversion uses `@mohtasham/md-to-docx`, loaded on demand; PDF uses a print
  * window populated with the rendered markdown and the current page styles.
  */
 export function MarkdownDownloadButton({ markdown, fileName }: MarkdownDownloadButtonProps) {
@@ -33,8 +31,9 @@ export function MarkdownDownloadButton({ markdown, fileName }: MarkdownDownloadB
   const handleDownloadDocx = async () => {
     setIsConverting(true);
     try {
-      const blob = await markdownToDocx(markdown);
-      await downloadDocx(blob, `${fileName}.docx`);
+      // Loaded on click: the DOCX libraries are large and most visits never export.
+      const { downloadMarkdownAsDocx } = await import('@/lib/markdown-docx');
+      await downloadMarkdownAsDocx(markdown, fileName);
     } catch (error) {
       console.error('Failed to convert markdown to DOCX:', error);
       toast.error('Failed to generate DOCX file');

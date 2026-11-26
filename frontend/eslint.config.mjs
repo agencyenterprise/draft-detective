@@ -7,6 +7,22 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   prettier,
+  {
+    // The DOCX export libraries are about 170 KB gzipped: load them with `import()` on demand.
+    files: ['**/*.{ts,tsx}'],
+    ignores: ['lib/markdown-docx.ts', 'lib/markdown-docx.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: '@mohtasham/md-to-docx', message: 'Use `await import(\'@/lib/markdown-docx\')` when the user exports.' },
+            { name: '@/lib/markdown-docx', message: 'Load it with `await import()` when the user exports.', allowTypeImports: true },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([
     'node_modules/**',
     '.next/**',
