@@ -79,15 +79,15 @@ class WorkflowManifest[
     # List of workflow types that this workflow depends on.
     # Used to determine the order in which the workflows should be run.
     # Starting several workflows at once also schedules these (transitively)
-    # unless an existing run can be reused (see _should_skip_existing in
-    # lib/api/services/workflow_runner.py). A run waits for each to complete;
-    # it is cancelled if one is cancelled or fails, and fails if one has no
-    # run at all.
+    # unless an existing run can be reused (see _reused_dependency_run in
+    # lib/api/services/workflow_batch.py). A run waits for each to complete;
+    # it is cancelled if one last ended cancelled or failed, or never ran
+    # (see lib/services/workflow_runs/promotion_plan.py).
     required_dependencies: list[WorkflowRunType] = []
 
     # List of workflow types that this workflow depends on optionally.
     # Used to determine the order in which the workflows should be run.
-    # In case a workflow is started and an optional dependency is pending, running or awaiting approval, the workflow waits until it ends, in any status, before starting (up to DEPENDENCY_WAIT_TIMEOUT, after which the run fails); otherwise, it starts immediately.
+    # In case a workflow is started and an optional dependency is pending, running or awaiting approval, the workflow waits until it ends, in any status, before starting; otherwise, it starts immediately.
     optional_dependencies: list[WorkflowRunType] = []
 
     # The state and config classes named in the subclass's

@@ -4,7 +4,7 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import HTTPException
 
 from lib.api.routers.workflows import approve_project_gate_endpoint
 from lib.models.project import AccessLevel
@@ -28,7 +28,6 @@ def _user() -> MagicMock:
 async def test_approve_returns_released_runs_for_the_current_revision():
     project = _project(revision=3)
     user = _user()
-    background_tasks = BackgroundTasks()
 
     with (
         patch(
@@ -43,16 +42,13 @@ async def test_approve_returns_released_runs_for_the_current_revision():
         response = await approve_project_gate_endpoint(
             str(project.id),
             WorkflowGate.REFERENCE_REVIEW,
-            background_tasks,
             current_user=user,
         )
 
     access.assert_awaited_once_with(
         str(project.id), user=user, required_level=AccessLevel.WRITE
     )
-    approve.assert_awaited_once_with(
-        project, WorkflowGate.REFERENCE_REVIEW, user, background_tasks
-    )
+    approve.assert_awaited_once_with(project, WorkflowGate.REFERENCE_REVIEW, user)
     assert response.gate == WorkflowGate.REFERENCE_REVIEW
     assert response.revision == 3
     assert response.released_workflow_run_ids == ["run-1", "run-2"]
@@ -78,7 +74,6 @@ async def test_approve_requires_write_access():
             await approve_project_gate_endpoint(
                 str(uuid.uuid4()),
                 WorkflowGate.REFERENCE_REVIEW,
-                BackgroundTasks(),
                 current_user=user,
             )
 

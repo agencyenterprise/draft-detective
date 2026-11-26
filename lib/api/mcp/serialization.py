@@ -2,7 +2,7 @@ import json
 import uuid
 
 from lib.api.mcp.helpers import build_project_url
-from lib.api.services.workflow_runner import WorkflowGateRequiredError
+from lib.api.services.workflow_batch import WorkflowGateRequiredError
 from lib.models.user import User
 from lib.services.issue_persistence import get_project_issues
 from lib.services.projects.content import get_project_document

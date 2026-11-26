@@ -144,9 +144,7 @@ async def test_cancel_endpoint_refuses_a_run_without_a_project(
     stranger: User, projectless_run: WorkflowRun
 ) -> None:
     """The route authorizes through the helper, so the check above guards it."""
-    with patch(
-        "lib.api.routers.workflows.cancel_workflow_run", new=AsyncMock()
-    ) as cancel:
+    with patch("lib.api.routers.workflows.cancel_run", new=AsyncMock()) as cancel:
         with pytest.raises(HTTPException) as exc:
             await cancel_workflow_run_endpoint(
                 str(projectless_run.id), current_user=stranger
@@ -173,9 +171,7 @@ async def test_cancel_endpoint_refuses_an_admin_on_a_shared_project(
     admin: User, owned_run: WorkflowRun
 ) -> None:
     """Cancelling is the owner's call: reading a shared project is not enough."""
-    with patch(
-        "lib.api.routers.workflows.cancel_workflow_run", new=AsyncMock()
-    ) as cancel:
+    with patch("lib.api.routers.workflows.cancel_run", new=AsyncMock()) as cancel:
         with pytest.raises(HTTPException) as exc:
             await cancel_workflow_run_endpoint(str(owned_run.id), current_user=admin)
     assert exc.value.status_code == 403

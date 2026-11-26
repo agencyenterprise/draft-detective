@@ -101,13 +101,20 @@ def claim_reference_validation_v2_solver(
             supporting_files=[(s["file_name"], s["markdown"]) for s in sources],
         )
 
-        # The run waits in awaiting_approval until the reference review is
-        # approved, while its upstream prep runs. Approve it the way a user
-        # would; the released run still waits for its dependencies.
+        # The run is pending while its upstream prep runs, then waits in
+        # awaiting_approval for the reference review: approve it then, the way
+        # a user does once the review banner shows. A run that ends without
+        # parking (its prep failed) falls through to poll_until_complete.
         detail = await poll_until_status(
             project_id=project_id,
             workflow_type=WORKFLOW_TYPE,
-            target_statuses={"awaiting_approval", "pending", "running", "completed"},
+            target_statuses={
+                "awaiting_approval",
+                "running",
+                "completed",
+                "failed",
+                "cancelled",
+            },
             timeout_s=timeout_s,
             interval_s=poll_interval_s,
         )

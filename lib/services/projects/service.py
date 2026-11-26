@@ -30,6 +30,8 @@ from lib.services.references.service import (
     remove_fetch_result_for_file,
     remove_file_from_references,
 )
+from lib.services.workflow_runs.jobs import cancel_queued_job
+from lib.services.workflow_runs.promoter import promote_ready_runs
 from lib.services.workflow_runs.service import (
     WorkflowRunDetail,
     cancel_workflow_run,
@@ -407,6 +409,9 @@ async def create_new_revision(
         if manifest is not None and manifest.independent_runs:
             continue
         await cancel_workflow_run(str(run.id), project_id)
+        await cancel_queued_job(str(run.id))
+    if active_runs:
+        await promote_ready_runs(project_id, old_revision)
 
     async with get_async_db_session() as session:
         # Collect previous workflow types

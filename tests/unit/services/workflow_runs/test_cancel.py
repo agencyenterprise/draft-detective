@@ -1,4 +1,5 @@
-"""Unit tests for cancel_workflow_run cascade logic."""
+"""Unit tests for cancel_workflow_run. Cancelling dependents is the promoter's
+job (tests/unit/services/workflow_runs/test_promotion_plan.py)."""
 
 import uuid
 from unittest.mock import AsyncMock, patch
@@ -25,7 +26,7 @@ def _make_run(
 
 
 # ---------------------------------------------------------------------------
-# Basic cancellation (no cascade)
+# Cancellation
 # ---------------------------------------------------------------------------
 
 
@@ -47,14 +48,6 @@ async def test_cancel_marks_run_cancelled():
             "lib.services.workflow_runs.service.update_workflow_run_status",
             new=AsyncMock(),
         ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[],
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=None),
-        ),
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
@@ -85,14 +78,6 @@ async def test_cancel_calls_cancel_workflow_progress():
             "lib.services.workflow_runs.service.update_workflow_run_status",
             new=AsyncMock(),
         ),
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[],
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=None),
-        ),
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
@@ -119,261 +104,9 @@ async def test_cancelling_one_independent_run_leaves_the_others_progress():
             "lib.services.workflow_runs.service.update_workflow_run_status",
             new=AsyncMock(),
         ),
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[],
-        ),
     ):
         await cancel_workflow_run(str(run.id), "project-1")
 
     mock_cancel_progress.assert_awaited_once_with(
         run.project_id, run.type, only_run_id=run.id
     )
-
-
-# ---------------------------------------------------------------------------
-# Cascade behaviour
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_cancel_cascades_to_pending_dependent():
-    """A PENDING dependent that requires the cancelled run is also cancelled."""
-    run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(
-        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.PENDING
-    )
-
-    runs_by_id = {str(run.id): run, str(dependent_run.id): dependent_run}
-
-    def dependents_for(workflow_type):
-        return (
-            [WorkflowRunType.REFERENCE_EXTRACTION]
-            if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
-            else []
-        )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)]),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            side_effect=dependents_for,
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=dependent_run),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    cancelled_ids = {call.args[0] for call in mock_update.await_args_list}
-    assert str(dependent_run.id) in cancelled_ids
-
-
-@pytest.mark.asyncio
-async def test_cancel_cascades_to_running_dependent():
-    """A RUNNING dependent is also cancelled."""
-    run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(
-        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.RUNNING
-    )
-
-    runs_by_id = {str(run.id): run, str(dependent_run.id): dependent_run}
-
-    def dependents_for(workflow_type):
-        return (
-            [WorkflowRunType.REFERENCE_EXTRACTION]
-            if workflow_type == WorkflowRunType.DOCUMENT_PROCESSING
-            else []
-        )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)]),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            side_effect=dependents_for,
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=dependent_run),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    cancelled_ids = {call.args[0] for call in mock_update.await_args_list}
-    assert str(dependent_run.id) in cancelled_ids
-
-
-@pytest.mark.asyncio
-async def test_cancel_does_not_cascade_to_completed_dependent():
-    """A COMPLETED dependent is left untouched."""
-    run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(
-        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.COMPLETED
-    )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(return_value=run),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=dependent_run),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    cancelled_ids = {call.args[0] for call in mock_update.await_args_list}
-    assert str(dependent_run.id) not in cancelled_ids
-
-
-@pytest.mark.asyncio
-async def test_cancel_does_not_cascade_to_already_cancelled_dependent():
-    """An already-CANCELLED dependent is not cancelled again."""
-    run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(
-        WorkflowRunType.REFERENCE_EXTRACTION, WorkflowRunStatus.CANCELLED
-    )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(return_value=run),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=dependent_run),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    # Only the original run should be cancelled
-    cancelled_ids = {call.args[0] for call in mock_update.await_args_list}
-    assert str(dependent_run.id) not in cancelled_ids
-
-
-@pytest.mark.asyncio
-async def test_cancel_skips_missing_dependent():
-    """When no active run exists for a dependent type, cancellation proceeds silently."""
-    run = _make_run(WorkflowRunType.DOCUMENT_PROCESSING, WorkflowRunStatus.RUNNING)
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(return_value=run),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            return_value=[WorkflowRunType.REFERENCE_EXTRACTION],
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=None),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    # Only the original run is updated
-    assert mock_update.await_count == 1
-    assert mock_update.await_args_list[0].args[0] == str(run.id)
-
-
-@pytest.mark.asyncio
-async def test_cancel_cascades_to_dependent_awaiting_approval():
-    """A dependent awaiting a gate has no upstream left to wait for, so it is cancelled too."""
-    run = _make_run(WorkflowRunType.REFERENCE_FILE_MATCHING, WorkflowRunStatus.RUNNING)
-    dependent_run = _make_run(
-        WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-        WorkflowRunStatus.AWAITING_APPROVAL,
-    )
-
-    runs_by_id = {str(run.id): run, str(dependent_run.id): dependent_run}
-
-    def dependents_for(workflow_type):
-        return (
-            [WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2]
-            if workflow_type == WorkflowRunType.REFERENCE_FILE_MATCHING
-            else []
-        )
-
-    with (
-        patch(
-            "lib.services.workflow_runs.service.get_workflow_run",
-            new=AsyncMock(side_effect=lambda rid, **kw: runs_by_id[str(rid)]),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.cancel_workflow_progress",
-            new=AsyncMock(),
-        ),
-        patch(
-            "lib.services.workflow_runs.service.update_workflow_run_status",
-            new=AsyncMock(),
-        ) as mock_update,
-        patch(
-            "lib.services.workflow_runs.service.get_required_dependents",
-            side_effect=dependents_for,
-        ),
-        patch(
-            "lib.services.workflow_runs.service.get_project_workflow_run_by_type",
-            new=AsyncMock(return_value=dependent_run),
-        ),
-    ):
-        await cancel_workflow_run(str(run.id), "project-1")
-
-    cancelled_ids = {call.args[0] for call in mock_update.await_args_list}
-    assert str(dependent_run.id) in cancelled_ids

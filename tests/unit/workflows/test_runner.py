@@ -2,9 +2,9 @@
 
 `run_workflow` has four exit paths: success → COMPLETED, WorkflowCancelledError
 → on_cancel + leave CANCELLED, asyncio.TimeoutError → on_cancel + FAILED+timeout,
-generic Exception → persist error to state_json + FAILED+unhandled_exception. The
-wrapper `run_workflow_with_dependency_check` adds a fifth:
-DependencyWaitTimeoutError → FAILED+dependency_timeout. These tests drive each
+generic Exception → persist error to state_json + FAILED+unhandled_exception.
+`execute_claimed_run`, which the queue job calls, fails the run on errors
+before the graph starts. These tests drive each
 branch with a mocked graph so the behavior contract is locked in even though we
 don't spin up real LangGraph.
 """
@@ -16,18 +16,19 @@ from uuid import uuid4
 
 import pytest
 
-from lib.models.workflow_run import WorkflowRunFailureReason, WorkflowRunType
+from lib.models.workflow_run import (
+    WorkflowRun,
+    WorkflowRunFailureReason,
+    WorkflowRunStatus,
+    WorkflowRunType,
+)
 from lib.services.file_artifacts_service.mock import MockFileArtifactsService
 from lib.workflows.context import ContextSchema
-from lib.workflows.models import (
-    BaseWorkflowState,
-    DependencyWaitTimeoutError,
-    WorkflowCancelledError,
-)
+from lib.workflows.models import BaseWorkflowState, WorkflowCancelledError
 from lib.workflows.runner import (
+    execute_claimed_run,
     run_workflow,
     run_workflow_from_config,
-    run_workflow_with_dependency_check,
 )
 from lib.workflows.workflow_types import WorkflowState
 
@@ -266,112 +267,61 @@ async def test_run_workflow_cancelled_runs_on_cancel_without_failing():
 
 
 # ---------------------------------------------------------------------------
-# run_workflow_with_dependency_check — dependency timeout branch
+# execute_claimed_run — failures before the graph starts
 # ---------------------------------------------------------------------------
 
 
+def _claimed_run() -> WorkflowRun:
+    return WorkflowRun(
+        id=uuid4(),
+        project_id=uuid4(),
+        type=WorkflowRunType.REFERENCE_VALIDATION_V2,
+        langgraph_thread_id=str(uuid4()),
+        status=WorkflowRunStatus.RUNNING,
+    )
+
+
+def _execution_patches(run_side_effect: BaseException, fail: AsyncMock):
+    return (
+        patch(
+            "lib.workflows.runner._config_of", new=AsyncMock(return_value=MagicMock())
+        ),
+        patch("lib.workflows.runner._starter_of", new=AsyncMock(return_value=None)),
+        patch(
+            "lib.workflows.runner.run_workflow_from_config",
+            new=AsyncMock(side_effect=run_side_effect),
+        ),
+        patch("lib.workflows.runner.fail_workflow_run", new=fail),
+    )
+
+
 @pytest.mark.asyncio
-async def test_dependency_wait_timeout_marks_failed_with_dependency_timeout_reason():
-    """The wrapper translates DependencyWaitTimeoutError into FAILED+dependency_timeout."""
-    workflow_run_id = str(uuid4())
-    project_id = str(uuid4())
-
-    config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
-    config.project_id = project_id
-
+async def test_execute_claimed_run_fails_the_run_on_errors_before_the_graph():
+    """Setup errors (no API key, building the state) mark the run FAILED."""
+    run = _claimed_run()
     fail = AsyncMock()
 
-    with (
-        patch(
-            "lib.workflows.runner.wait_for_dependencies",
-            new=AsyncMock(side_effect=DependencyWaitTimeoutError("waited too long")),
-        ),
-        patch(
-            "lib.workflows.runner.run_workflow_from_config", new=AsyncMock()
-        ) as mock_run,
-        patch("lib.workflows.runner.fail_workflow_run", new=fail),
-    ):
-        await run_workflow_with_dependency_check(
-            config=config,
-            thread_id=str(uuid4()),
-            workflow_run_id=workflow_run_id,
-            user=MagicMock(),
-            revision=1,
-        )
-
-    # The actual workflow body never ran.
-    mock_run.assert_not_awaited()
+    with contextlib.ExitStack() as stack:
+        for p in _execution_patches(RuntimeError("setup failure"), fail):
+            stack.enter_context(p)
+        await execute_claimed_run(run, openai_api_key=None)
 
     fail.assert_awaited_once()
     args, kwargs = fail.await_args
-    assert args[0] == workflow_run_id
-    assert args[1] == project_id
-    assert kwargs["failure_reason"] == WorkflowRunFailureReason.DEPENDENCY_TIMEOUT
-    assert "waited too long" in kwargs["failure_message"]
-
-
-@pytest.mark.asyncio
-async def test_dependency_check_wraps_unexpected_exceptions_into_failed():
-    """Unexpected exceptions raised before run_workflow are caught and mapped to UNHANDLED_EXCEPTION."""
-    workflow_run_id = str(uuid4())
-    project_id = str(uuid4())
-
-    config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
-    config.project_id = project_id
-
-    fail = AsyncMock()
-
-    with (
-        patch(
-            "lib.workflows.runner.wait_for_dependencies",
-            new=AsyncMock(side_effect=RuntimeError("setup failure")),
-        ),
-        patch("lib.workflows.runner.run_workflow_from_config", new=AsyncMock()),
-        patch("lib.workflows.runner.fail_workflow_run", new=fail),
-    ):
-        await run_workflow_with_dependency_check(
-            config=config,
-            thread_id=str(uuid4()),
-            workflow_run_id=workflow_run_id,
-            user=MagicMock(),
-            revision=1,
-        )
-
-    fail.assert_awaited_once()
-    kwargs = fail.await_args.kwargs
+    assert args == (str(run.id), str(run.project_id))
     assert kwargs["failure_reason"] == WorkflowRunFailureReason.UNHANDLED_EXCEPTION
     assert kwargs["failure_message"] == "setup failure"
 
 
 @pytest.mark.asyncio
-async def test_dependency_check_swallows_workflow_cancelled_error():
-    """WorkflowCancelledError leaving wait_for_dependencies does not call fail_workflow_run."""
-    workflow_run_id = str(uuid4())
-    project_id = str(uuid4())
-
-    config = MagicMock()
-    config.type = WorkflowRunType.REFERENCE_VALIDATION_V2
-    config.project_id = project_id
-
+async def test_execute_claimed_run_leaves_a_cancelled_run_cancelled():
+    """A run cancelled before its graph starts keeps CANCELLED; nothing fails it."""
     fail = AsyncMock()
 
-    with (
-        patch(
-            "lib.workflows.runner.wait_for_dependencies",
-            new=AsyncMock(side_effect=WorkflowCancelledError("dep cancelled")),
-        ),
-        patch("lib.workflows.runner.run_workflow_from_config", new=AsyncMock()),
-        patch("lib.workflows.runner.fail_workflow_run", new=fail),
-    ):
-        await run_workflow_with_dependency_check(
-            config=config,
-            thread_id=str(uuid4()),
-            workflow_run_id=workflow_run_id,
-            user=MagicMock(),
-            revision=1,
-        )
+    with contextlib.ExitStack() as stack:
+        for p in _execution_patches(WorkflowCancelledError("cancelled"), fail):
+            stack.enter_context(p)
+        await execute_claimed_run(_claimed_run(), openai_api_key=None)
 
     fail.assert_not_awaited()
 
@@ -533,3 +483,19 @@ async def test_run_workflow_cancel_does_not_fail_run_when_teardown_fails(
 
     manifest.on_cancel.assert_awaited_once()
     fail.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_execute_claimed_run_runs_on_the_request_key_over_any_other():
+    """A start request's own key wins over the user's stored key and the
+    server's, as it did before runs went through the queue."""
+    config = MagicMock(openai_api_key=None)
+    run_config = AsyncMock()
+    with (
+        patch("lib.workflows.runner._config_of", new=AsyncMock(return_value=config)),
+        patch("lib.workflows.runner._starter_of", new=AsyncMock(return_value=None)),
+        patch("lib.workflows.runner.run_workflow_from_config", new=run_config),
+    ):
+        await execute_claimed_run(_claimed_run(), openai_api_key="sk-request")
+
+    assert run_config.await_args.kwargs["config"].openai_api_key == "sk-request"

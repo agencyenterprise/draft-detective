@@ -1,9 +1,9 @@
 """The manifests' dependency graph must be acyclic, optional edges included.
 
-``wait_for_dependencies`` blocks on both required and optional dependencies
-while they are pending, and a concurrent batch creates every run record as
-PENDING before any of them starts. A cycle anywhere in that graph therefore
-deadlocks the whole batch until the dependency timeout. The resolver only
+``promote_ready_runs`` holds a run back while a required or optional
+dependency is active, and a batch creates every run record as PENDING before
+any of them starts. A cycle anywhere in that graph therefore deadlocks the
+whole batch until the reaper fails its runs. The resolver only
 validates required edges, so this test covers the full graph.
 """
 

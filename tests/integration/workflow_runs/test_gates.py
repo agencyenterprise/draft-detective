@@ -1,12 +1,11 @@
 """Integration tests for the workflow gate service against real Postgres.
 
-Covers the approval record itself (per project revision, idempotent) and the
-release of runs awaiting approval once every gate they need is approved.
+Covers the approval record itself (per project revision, idempotent). Parking
+runs behind a gate and releasing them is the promoter's (test_promoter.py).
 """
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime, timedelta
 
 import pytest
 import pytest_asyncio
@@ -19,16 +18,11 @@ from lib.models.user import User, UserRole
 from lib.models.workflow_gate_approval import WorkflowGateApproval
 from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.services.workflow_runs.gates import (
-    _gates_satisfied,
     approve_gate,
-    claim_run_awaiting_approval,
     get_approved_gates,
     get_effective_gates,
     get_unsatisfied_gates,
-    release_runs_awaiting_approval,
 )
-from lib.services.workflow_runs.reaper import PENDING_GRACE_SECONDS, _find_stuck_runs
-from lib.services.workflow_runs.service import update_workflow_run_status
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 
 
@@ -115,16 +109,6 @@ async def seeder():
     await s.cleanup()
 
 
-async def _status_of(run_id: uuid.UUID) -> WorkflowRunStatus:
-    async with get_async_db_session() as session:
-        run = (
-            await session.execute(
-                select(WorkflowRun).where(col(WorkflowRun.id) == run_id)
-            )
-        ).scalar_one()
-        return run.status
-
-
 async def _approval_rows(project_id: uuid.UUID) -> list[WorkflowGateApproval]:
     async with get_async_db_session() as session:
         return list(
@@ -154,26 +138,6 @@ def test_claim_reference_validation_is_gated_on_reference_review():
 def test_ungated_workflows_have_no_effective_gates():
     assert get_effective_gates(WorkflowRunType.DOCUMENT_PROCESSING) == []
     assert get_effective_gates(WorkflowRunType.REFERENCE_FILE_MATCHING) == []
-
-
-def test_gates_satisfied_follows_the_approved_set():
-    assert (
-        _gates_satisfied(WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2, set()) is False
-    )
-    assert (
-        _gates_satisfied(
-            WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-            {WorkflowGate.REFERENCE_REVIEW},
-        )
-        is True
-    )
-    # Accepts the raw slug a database row carries.
-    assert _gates_satisfied("document_processing", set()) is True
-
-
-def test_gates_satisfied_never_releases_a_retired_workflow():
-    """A row whose slug no longer maps to a workflow has nothing to start."""
-    assert _gates_satisfied("human_approval", {WorkflowGate.REFERENCE_REVIEW}) is False
 
 
 # ---------------------------------------------------------------------------
@@ -249,213 +213,3 @@ async def test_approval_is_scoped_to_the_revision(seeder):
         WorkflowGate.REFERENCE_REVIEW
     }
     assert await get_approved_gates(str(project.id), 2) == set()
-
-
-# ---------------------------------------------------------------------------
-# Releasing runs awaiting approval
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_release_moves_awaiting_runs_to_pending_once_approved(seeder):
-    user = await seeder.user()
-    project = await seeder.project(user)
-    (awaiting_id,) = await seeder.runs(
-        project,
-        [
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            )
-        ],
-    )
-
-    # Nothing approved yet: the run keeps waiting.
-    assert await release_runs_awaiting_approval(str(project.id), 1) == []
-    assert await _status_of(awaiting_id) == WorkflowRunStatus.AWAITING_APPROVAL
-
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-    released = await release_runs_awaiting_approval(str(project.id), 1)
-
-    assert [r.id for r in released] == [awaiting_id]
-    assert released[0].status == WorkflowRunStatus.PENDING
-    assert await _status_of(awaiting_id) == WorkflowRunStatus.PENDING
-
-
-@pytest.mark.asyncio
-async def test_release_leaves_other_revisions_and_non_awaiting_runs_alone(seeder):
-    user = await seeder.user()
-    project = await seeder.project(user, current_revision=2)
-    rev1_awaiting, rev2_awaiting, rev1_pending, rev1_done = await seeder.runs(
-        project,
-        [
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            ),
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                2,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            ),
-            (WorkflowRunType.DOCUMENT_PROCESSING, 1, WorkflowRunStatus.PENDING),
-            (WorkflowRunType.REFERENCE_FILE_MATCHING, 1, WorkflowRunStatus.COMPLETED),
-        ],
-    )
-
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-    released = await release_runs_awaiting_approval(str(project.id), 1)
-
-    assert [r.id for r in released] == [rev1_awaiting]
-    assert await _status_of(rev1_awaiting) == WorkflowRunStatus.PENDING
-    assert await _status_of(rev2_awaiting) == WorkflowRunStatus.AWAITING_APPROVAL
-    assert await _status_of(rev1_pending) == WorkflowRunStatus.PENDING
-    assert await _status_of(rev1_done) == WorkflowRunStatus.COMPLETED
-
-
-@pytest.mark.asyncio
-async def test_release_is_a_no_op_when_run_twice(seeder):
-    user = await seeder.user()
-    project = await seeder.project(user)
-    await seeder.runs(
-        project,
-        [
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            )
-        ],
-    )
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-
-    first = await release_runs_awaiting_approval(str(project.id), 1)
-    second = await release_runs_awaiting_approval(str(project.id), 1)
-
-    assert len(first) == 1
-    assert second == []
-
-
-@pytest.mark.asyncio
-async def test_claim_moves_one_awaiting_run_to_pending_exactly_once(seeder):
-    user = await seeder.user()
-    project = await seeder.project(user)
-    (awaiting_id,) = await seeder.runs(
-        project,
-        [
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            )
-        ],
-    )
-
-    assert await claim_run_awaiting_approval(str(awaiting_id)) is True
-    assert await _status_of(awaiting_id) == WorkflowRunStatus.PENDING
-    # A second claimant (or a batch release) finds nothing left to move.
-    assert await claim_run_awaiting_approval(str(awaiting_id)) is False
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-    assert await release_runs_awaiting_approval(str(project.id), 1) == []
-
-
-@pytest.mark.asyncio
-async def test_claim_loses_to_a_batch_release_and_to_a_cancel(seeder):
-    user = await seeder.user()
-    project = await seeder.project(user)
-    released_id, cancelled_id = await seeder.runs(
-        project,
-        [
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.AWAITING_APPROVAL,
-            ),
-            (
-                WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                1,
-                WorkflowRunStatus.CANCELLED,
-            ),
-        ],
-    )
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-    await release_runs_awaiting_approval(str(project.id), 1)
-
-    assert await claim_run_awaiting_approval(str(released_id)) is False
-    assert await claim_run_awaiting_approval(str(cancelled_id)) is False
-    assert await _status_of(cancelled_id) == WorkflowRunStatus.CANCELLED
-
-
-# ---------------------------------------------------------------------------
-# A released run gets a fresh reaper window
-# ---------------------------------------------------------------------------
-
-
-async def _park_long_ago(seeder: Seeder, project: Project) -> uuid.UUID:
-    """An AWAITING_APPROVAL run whose timestamps predate the pending grace."""
-    long_ago = datetime.utcnow() - timedelta(seconds=PENDING_GRACE_SECONDS * 3)
-    async with get_async_db_session() as session:
-        run_id = uuid.uuid4()
-        session.add(
-            WorkflowRun(
-                id=run_id,
-                project_id=project.id,
-                type=WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2,
-                langgraph_thread_id=str(uuid.uuid4()),
-                status=WorkflowRunStatus.AWAITING_APPROVAL,
-                revision=1,
-                created_at=long_ago,
-                last_updated_at=long_ago,
-            )
-        )
-        await session.commit()
-    return run_id
-
-
-@pytest.mark.asyncio
-async def test_batch_release_is_not_reaped_as_a_stale_pending_run(seeder):
-    """Approving hours after parking must not hand the run straight to the reaper."""
-    user = await seeder.user()
-    project = await seeder.project(user)
-    run_id = await _park_long_ago(seeder, project)
-
-    await approve_gate(str(project.id), 1, WorkflowGate.REFERENCE_REVIEW, user.id)
-    released = await release_runs_awaiting_approval(str(project.id), 1)
-
-    assert [r.id for r in released] == [run_id]
-    assert run_id not in {
-        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
-    }
-
-
-@pytest.mark.asyncio
-async def test_in_place_release_is_not_reaped_as_a_stale_pending_run(seeder):
-    """The runner's own release path (an awaiting run whose gate was approved
-    meanwhile) goes through update_workflow_run_status and must behave the same."""
-    user = await seeder.user()
-    project = await seeder.project(user)
-    run_id = await _park_long_ago(seeder, project)
-
-    await update_workflow_run_status(str(run_id), WorkflowRunStatus.PENDING)
-
-    assert await _status_of(run_id) == WorkflowRunStatus.PENDING
-    assert run_id not in {
-        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
-    }
-
-
-@pytest.mark.asyncio
-async def test_claimed_run_is_not_reaped_as_a_stale_pending_run(seeder):
-    """The single-start release path (claim_run_awaiting_approval) must also
-    hand the run a fresh reaper window."""
-    user = await seeder.user()
-    project = await seeder.project(user)
-    run_id = await _park_long_ago(seeder, project)
-
-    assert await claim_run_awaiting_approval(str(run_id)) is True
-
-    assert run_id not in {
-        r.id for r in await _find_stuck_runs(60.0, PENDING_GRACE_SECONDS)
-    }

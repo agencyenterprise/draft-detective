@@ -150,6 +150,10 @@ async def test_create_new_revision_cancels_active_workflows():
             "lib.services.projects.service.cancel_workflow_run",
             new=mock_cancel,
         ),
+        patch("lib.services.projects.service.cancel_queued_job", new=AsyncMock()),
+        patch(
+            "lib.services.projects.service.promote_ready_runs", new=AsyncMock()
+        ) as mock_promote,
     ):
         await create_new_revision(str(project.id), MagicMock())
 
@@ -157,6 +161,8 @@ async def test_create_new_revision_cancels_active_workflows():
     cancelled_ids = {call.args[0] for call in mock_cancel.await_args_list}
     assert str(pending_run.id) in cancelled_ids
     assert str(running_run.id) in cancelled_ids
+    # The promoter then cancels their waiting dependents and queued jobs.
+    mock_promote.assert_awaited_once_with(str(project.id), 1)
 
 
 @pytest.mark.asyncio
@@ -188,6 +194,8 @@ async def test_create_new_revision_leaves_independent_runs_running():
             side_effect=lambda: next(session_iter),
         ),
         patch("lib.services.projects.service.cancel_workflow_run", new=mock_cancel),
+        patch("lib.services.projects.service.cancel_queued_job", new=AsyncMock()),
+        patch("lib.services.projects.service.promote_ready_runs", new=AsyncMock()),
     ):
         await create_new_revision(str(project.id), MagicMock())
 

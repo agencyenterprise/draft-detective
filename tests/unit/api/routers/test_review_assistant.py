@@ -2,7 +2,7 @@
 
 Starting a request needs write access and documents that belong to the
 project, and both are checked before a run starts. A started run gets its
-request recorded straight away. Listing needs only read access. The services
+request recorded as soon as it is created, before it can be queued. Listing needs only read access. The services
 have their own tests, so here they are stubbed and only the routing is under test.
 """
 
@@ -42,6 +42,12 @@ def _client(signed_in: bool = True) -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
+async def _start_and_report_created(*, config, user, on_created) -> str:
+    """As a start that creates the run: reports it before anything can queue it."""
+    await on_created(RUN)
+    return RUN
+
+
 @pytest.fixture
 def steps(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Every call the routes make, on one parent mock so their order shows."""
@@ -49,7 +55,7 @@ def steps(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     stubs = {
         "get_project_access": AsyncMock(return_value=(MagicMock(), AccessLevel.WRITE)),
         "assert_project_files": AsyncMock(),
-        "start_workflow_run": AsyncMock(return_value=RUN),
+        "start_workflow_run": AsyncMock(side_effect=_start_and_report_created),
         "record_request": AsyncMock(),
         "list_review_assistant_requests": AsyncMock(return_value=[]),
     }

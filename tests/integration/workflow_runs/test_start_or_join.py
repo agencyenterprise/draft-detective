@@ -7,35 +7,37 @@ one RUNNING and one waiting run, so mocks could not show it.
 import asyncio
 import uuid
 from collections.abc import AsyncIterator
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
-from fastapi import BackgroundTasks
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col
 
 from lib.api.services.workflow_runner import start_workflow_run
 from lib.config.database import get_async_db_session
-from lib.models.project import AccessLevel, Project
+from lib.models.project import Project
 from lib.models.user import User, UserRole
 from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunStatus,
     WorkflowRunType,
 )
-from lib.services.workflow_runs.gates import (
-    approve_gate,
-    release_runs_awaiting_approval,
+from lib.services.encryption import decrypt_value
+from lib.services.review_assistant_requests import record_request
+from lib.services.workflow_runs.service import (
+    get_workflow_run,
+    persist_workflow_run_state,
 )
-from lib.services.workflow_runs.start import start_or_join_run
-from lib.workflows.models import WorkflowGate
+from lib.services.workflow_runs.start import RunStart, start_or_join_run
 from lib.workflows.registry import get_config_type
+from lib.workflows.review_assistant.state import (
+    ReviewAssistantConfig,
+    ReviewAssistantState,
+)
 
 ABBREVIATIONS = WorkflowRunType.ABBREVIATION_SCAN_V2
-CLAIM = WorkflowRunType.CLAIM_REFERENCE_VALIDATION_V2
 REVIEW_ASSISTANT = WorkflowRunType.REVIEW_ASSISTANT
 
 
@@ -63,16 +65,34 @@ async def project_id() -> AsyncIterator[str]:
         await session.commit()
 
 
+@pytest_asyncio.fixture
+async def user_id(project_id: str) -> uuid.UUID:
+    """The owner of the test's project."""
+    async with get_async_db_session() as session:
+        project = await session.get(Project, uuid.UUID(project_id))
+    assert project is not None
+    return project.user_id
+
+
 async def _start(
     project_id: str,
     workflow_type: WorkflowRunType = ABBREVIATIONS,
     *,
     revision: int = 1,
-    gated: bool = False,
     model: str | None = None,
-):
+    started_by: uuid.UUID | None = None,
+    api_key: str | None = None,
+) -> RunStart:
+    config = get_config_type(workflow_type).model_validate(
+        {
+            "project_id": project_id,
+            "type": workflow_type,
+            "model": model,
+            "openai_api_key": api_key,
+        }
+    )
     return await start_or_join_run(
-        project_id, workflow_type, revision, model=model, gated=gated
+        config, workflow_type, revision, started_by=started_by
     )
 
 
@@ -84,6 +104,13 @@ async def _set_status(run_id: str, status: WorkflowRunStatus) -> None:
             .values(status=status)
         )
         await session.commit()
+
+
+async def _run(run_id: str) -> WorkflowRun:
+    async with get_async_db_session() as session:
+        run = await session.get(WorkflowRun, uuid.UUID(run_id))
+    assert run is not None
+    return run
 
 
 async def _statuses(
@@ -110,11 +137,10 @@ async def test_a_start_while_one_runs_queues_one_and_a_third_joins_it(project_id
     second = await _start(project_id, model="openai:gpt-5.6-sol")
     third = await _start(project_id, model="openai:gpt-5.6-luna")
 
-    assert second.created and second.schedule
-    assert third.run_id == second.run_id
-    assert not third.created and not third.schedule
+    assert second.created
+    assert third.run_id == second.run_id and not third.created
     # The joined run keeps the model its row records.
-    assert third.model == "openai:gpt-5.6-sol"
+    assert (await _run(third.run_id)).model == "openai:gpt-5.6-sol"
     assert await _statuses(project_id, ABBREVIATIONS) == [
         WorkflowRunStatus.RUNNING,
         WorkflowRunStatus.PENDING,
@@ -122,11 +148,32 @@ async def test_a_start_while_one_runs_queues_one_and_a_third_joins_it(project_id
 
 
 @pytest.mark.asyncio
-async def test_concurrent_starts_create_one_run_and_schedule_it_once(project_id):
+async def test_a_run_stores_its_config_its_starter_and_its_key_encrypted_apart(
+    project_id, user_id
+):
+    start = await _start(
+        project_id, model="openai:gpt-5.6-sol", started_by=user_id, api_key="sk-secret"
+    )
+
+    run = await _run(start.run_id)
+    assert run.started_by_user_id == user_id
+    assert run.config_json is not None
+    assert run.config_json["project_id"] == project_id
+    assert run.config_json["model"] == "openai:gpt-5.6-sol"
+    assert "openai_api_key" not in run.config_json
+    assert "sk-secret" not in str(run.config_json)
+    # The request's key is kept apart, encrypted, for the job to take.
+    assert run.encrypted_openai_api_key is not None
+    assert "sk-secret" not in run.encrypted_openai_api_key
+    assert decrypt_value(run.encrypted_openai_api_key) == "sk-secret"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_starts_create_one_run(project_id):
     starts = await asyncio.gather(*(_start(project_id) for _ in range(8)))
 
     assert len({start.run_id for start in starts}) == 1
-    assert sum(start.schedule for start in starts) == 1
+    assert sum(start.created for start in starts) == 1
     assert await _statuses(project_id, ABBREVIATIONS) == [WorkflowRunStatus.PENDING]
 
 
@@ -137,7 +184,7 @@ async def test_independent_runs_get_a_new_row_each(project_id):
     starts.append(await _start(project_id, REVIEW_ASSISTANT))
 
     assert len({start.run_id for start in starts}) == 4
-    assert all(start.created and start.schedule for start in starts)
+    assert all(start.created for start in starts)
 
 
 @pytest.mark.asyncio
@@ -147,8 +194,18 @@ async def test_a_cancelled_waiting_run_is_not_joined(project_id):
 
     fresh = await _start(project_id)
 
-    assert fresh.run_id != cancelled.run_id
-    assert fresh.created and fresh.schedule
+    assert fresh.run_id != cancelled.run_id and fresh.created
+
+
+@pytest.mark.asyncio
+async def test_a_start_joins_a_run_parked_behind_a_gate(project_id):
+    parked = await _start(project_id)
+    await _set_status(parked.run_id, WorkflowRunStatus.AWAITING_APPROVAL)
+
+    again = await _start(project_id)
+
+    assert again.run_id == parked.run_id and not again.created
+    assert again.status == WorkflowRunStatus.AWAITING_APPROVAL
 
 
 @pytest.mark.asyncio
@@ -167,53 +224,6 @@ async def test_the_database_refuses_a_second_waiting_run(project_id):
                 )
             )
             await session.commit()
-
-
-@pytest.mark.asyncio
-async def test_a_gated_start_parks_and_later_starts_join_the_parked_run(project_id):
-    parked = await _start(project_id, CLAIM, gated=True, model="openai:gpt-5.6-sol")
-    again = await _start(project_id, CLAIM, gated=True)
-
-    assert parked.status == WorkflowRunStatus.AWAITING_APPROVAL
-    assert not parked.schedule
-    assert again.run_id == parked.run_id and not again.schedule
-
-    # The gate was approved but nothing released the run: an ungated start
-    # releases it and schedules it, on the model its row records.
-    await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
-    released = await _start(project_id, CLAIM, model="openai:gpt-5.6-luna")
-    after = await _start(project_id, CLAIM)
-
-    assert released.run_id == parked.run_id
-    assert released.status == WorkflowRunStatus.PENDING and released.schedule
-    assert released.model == "openai:gpt-5.6-sol"
-    assert after.run_id == parked.run_id and not after.schedule
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("revision", range(1, 7))
-async def test_a_start_racing_a_gate_approval_schedules_the_run_once(
-    project_id, revision
-):
-    """Starts that read the gate as unapproved (gated) and as approved race the
-    approval and its release: one waiting run, scheduled exactly once."""
-
-    async def approve_and_release():
-        await approve_gate(project_id, revision, WorkflowGate.REFERENCE_REVIEW)
-        return await release_runs_awaiting_approval(project_id, revision)
-
-    results = await asyncio.gather(
-        _start(project_id, CLAIM, revision=revision, gated=True),
-        approve_and_release(),
-        _start(project_id, CLAIM, revision=revision, gated=True),
-        _start(project_id, CLAIM, revision=revision),
-    )
-    starts = [results[0], results[2], results[3]]
-    released = results[1]
-
-    assert await _statuses(project_id, CLAIM, revision) == [WorkflowRunStatus.PENDING]
-    assert len({start.run_id for start in starts}) == 1
-    assert sum(start.schedule for start in starts) + len(released) == 1
 
 
 @pytest.mark.asyncio
@@ -236,112 +246,61 @@ async def test_one_running_run_per_type(project_id):
 
 
 @pytest.mark.asyncio
-async def test_start_workflow_run_queues_one_behind_a_running_run(project_id):
-    """Through the API's start path: the second start queues a run and
-    schedules it; the third joins it and schedules nothing."""
-    project = MagicMock(id=uuid.UUID(project_id), current_revision=1)
+async def test_start_workflow_run_queues_one_behind_a_running_run(project_id, user_id):
+    """Through the API's start path: the second start creates the waiting run,
+    the third joins it, and each start ends with a promoter pass."""
+    project = Project(id=uuid.UUID(project_id), user_id=user_id, title="t")
     config = get_config_type(ABBREVIATIONS)(project_id=project_id)
-    background_tasks = BackgroundTasks()
+    user = User(id=user_id, email="u@example.com", name="u")
     with (
         patch(
-            "lib.api.services.workflow_runner.get_project_access",
-            new=AsyncMock(return_value=(project, AccessLevel.WRITE)),
+            "lib.api.services.workflow_runner.authorized_project",
+            new=AsyncMock(return_value=project),
         ),
+        patch("lib.api.services.workflow_runner.assert_api_key_available"),
         patch(
-            "lib.api.services.workflow_runner.assert_project_has_main_file",
-            new=AsyncMock(),
-        ),
-        patch("lib.api.services.workflow_runner._assert_api_key_available"),
+            "lib.api.services.workflow_runner.promote_ready_runs", new=AsyncMock()
+        ) as promote,
     ):
-        user = MagicMock()
-        first = await start_workflow_run(config, user, background_tasks)
+        first = await start_workflow_run(config, user)
         await _set_status(first, WorkflowRunStatus.RUNNING)
-        second = await start_workflow_run(config, user, background_tasks)
-        third = await start_workflow_run(config, user, background_tasks)
+        second = await start_workflow_run(config, user)
+        third = await start_workflow_run(config, user)
 
-    assert third == second != first
-    assert [task.kwargs["workflow_run_id"] for task in background_tasks.tasks] == [
-        first,
-        second,
-    ]
-    assert await _statuses(project_id, ABBREVIATIONS) == [
-        WorkflowRunStatus.RUNNING,
-        WorkflowRunStatus.PENDING,
-    ]
+    assert len({first, second}) == 2 and third == second
+    assert promote.await_count == 3
+    promote.assert_awaited_with(project_id, 1)
 
 
-def _released_meanwhile(run_id: str, status: WorkflowRunStatus) -> Any:
-    """A claim that loses because another request released the run first and
-    its runner moved it on to ``status``."""
-
-    async def lose_claim(claimed_id: str) -> bool:
-        assert claimed_id == run_id
-        await _set_status(run_id, status)
-        return False
-
-    return patch(
-        "lib.services.workflow_runs.start.claim_run_awaiting_approval",
-        new=AsyncMock(side_effect=lose_claim),
+@pytest.mark.asyncio
+async def test_a_request_recorded_after_its_job_started_leaves_the_jobs_state(
+    project_id,
+):
+    """The Review Assistant records its request once its run exists, and a job
+    on another worker may have started (and written state) by then."""
+    start = await _start(project_id, REVIEW_ASSISTANT)
+    config = ReviewAssistantConfig(project_id=project_id)
+    await persist_workflow_run_state(
+        start.run_id, ReviewAssistantState(config=config, guard_message="ran first")
     )
 
+    await record_request(start.run_id, config)
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "moved_to",
-    [
-        WorkflowRunStatus.PENDING,
-        WorkflowRunStatus.RUNNING,
-        WorkflowRunStatus.COMPLETED,
-        WorkflowRunStatus.FAILED,
-    ],
-)
-async def test_a_lost_release_joins_the_run_someone_else_released(project_id, moved_to):
-    parked = await _start(project_id, CLAIM, gated=True)
-    await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
-
-    with _released_meanwhile(parked.run_id, moved_to):
-        start = await _start(project_id, CLAIM)
-
-    assert start.run_id == parked.run_id
-    assert start.status == moved_to
-    assert not start.schedule and not start.created
-    assert await _statuses(project_id, CLAIM) == [moved_to]
+    run = await _run_with_state(start.run_id)
+    assert run.state_json is not None
+    assert run.state_json["guard_message"] == "ran first"
 
 
 @pytest.mark.asyncio
-async def test_a_lost_release_of_a_cancelled_run_starts_a_new_one(project_id):
-    parked = await _start(project_id, CLAIM, gated=True)
-    await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
+async def test_a_request_is_recorded_on_a_run_with_no_state_yet(project_id):
+    start = await _start(project_id, REVIEW_ASSISTANT)
 
-    with _released_meanwhile(parked.run_id, WorkflowRunStatus.CANCELLED):
-        start = await _start(project_id, CLAIM)
+    await record_request(start.run_id, ReviewAssistantConfig(project_id=project_id))
 
-    assert start.run_id != parked.run_id
-    assert start.created and start.schedule
-    assert await _statuses(project_id, CLAIM) == [
-        WorkflowRunStatus.CANCELLED,
-        WorkflowRunStatus.PENDING,
-    ]
+    run = await _run_with_state(start.run_id)
+    assert run.state_json is not None
+    assert run.state_json["config"]["project_id"] == project_id
 
 
-@pytest.mark.asyncio
-async def test_a_parked_run_released_by_an_approval_right_after_insert(project_id):
-    """The approval lands between this start's insert and its gate re-check,
-    and releases the run first: the start reports it PENDING, not gated, and
-    leaves scheduling to the approval."""
-    released: list[WorkflowRun] = []
-
-    async def approve_meanwhile(*args: object) -> list[WorkflowGate]:
-        await approve_gate(project_id, 1, WorkflowGate.REFERENCE_REVIEW)
-        released.extend(await release_runs_awaiting_approval(project_id, 1))
-        return []
-
-    with patch(
-        "lib.services.workflow_runs.start.get_unsatisfied_gates",
-        new=AsyncMock(side_effect=approve_meanwhile),
-    ):
-        start = await _start(project_id, CLAIM, gated=True)
-
-    assert [str(run.id) for run in released] == [start.run_id]
-    assert start.status == WorkflowRunStatus.PENDING
-    assert start.created and not start.schedule
+async def _run_with_state(run_id: str) -> WorkflowRun:
+    return await get_workflow_run(run_id, include_state=True)

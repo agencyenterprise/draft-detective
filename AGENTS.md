@@ -14,7 +14,7 @@ Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, env
 | App startup, lifespan | `lib/api/main.py` |
 | Workflows | `lib/workflows/<name>/` (`manifest.py`, graph, nodes), registered in `lib/workflows/registry.py` |
 | Skill-declared workflows | `skills/*/SKILL.md` frontmatter, see `docs/skill-workflows.md` |
-| Workflow run lifecycle | `lib/services/workflow_runs/` (service, reaper, gates, start), see `docs/workflow-runs.md` |
+| Workflow run lifecycle | `lib/services/workflow_runs/` (service, start, promoter, jobs, gates, reaper), the queue task in `lib/services/task_queue/tasks.py`, see `docs/workflow-runs.md` |
 | Domain services | `lib/services/` (`projects/`, `files/`, `users.py`, `references/`, ...) |
 | LLM agents and tools | `lib/agents/` |
 | Database models | `lib/models/`; migrations in `alembic/versions/` |

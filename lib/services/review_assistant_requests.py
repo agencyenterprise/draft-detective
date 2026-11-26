@@ -21,7 +21,7 @@ from lib.models.workflow_run import WorkflowRun, WorkflowRunPublic
 from lib.services.files.service import get_files_by_project_id
 from lib.services.projects.overview import current_run_errors
 from lib.services.uuid_utils import ensure_uuid
-from lib.services.workflow_runs.service import persist_workflow_run_state
+from lib.services.workflow_runs.service import initialize_workflow_run_state
 from lib.workflows.models import WorkflowError, WorkflowRunType
 from lib.workflows.review_assistant.state import (
     ReviewAssistantConfig,
@@ -81,8 +81,9 @@ async def record_request(workflow_run_id: str, config: ReviewAssistantConfig) ->
 
     The runner writes the run's state once it starts, which may be after the
     list is next read; until then the list would not know what was asked for.
+    Only a run with no state yet gets it: a job may already have started it.
     """
-    await persist_workflow_run_state(
+    await initialize_workflow_run_state(
         workflow_run_id, ReviewAssistantState(config=config)
     )
 

@@ -5,22 +5,22 @@ A gate is a consent the user gives once per project revision (see
 inherits the gates of everything it required-depends on, so a dependent of a
 gated workflow waits alongside it instead of failing to find its dependency.
 
-Nothing waits in-process on such a run: the row sits in AWAITING_APPROVAL
-until ``approve_gate`` writes the approval and ``release_runs_awaiting_approval`` moves
-every run whose gates are now all satisfied back to PENDING for scheduling.
+Nothing waits in-process on such a run: ``promote_ready_runs`` parks it in
+AWAITING_APPROVAL once the gate is all that holds it back, and moves it back to
+PENDING (and queues it) on the pass after ``approve_gate`` writes the approval.
 """
 
 import logging
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_, col
 
 from lib.config.database import get_async_db_session
 from lib.models.workflow_gate_approval import WorkflowGateApproval
-from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.models import WorkflowGate, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
@@ -53,21 +53,29 @@ def get_effective_gates(workflow_type: WorkflowRunType) -> list[WorkflowGate]:
     return ordered
 
 
-async def get_approved_gates(project_id: str, revision: int) -> set[WorkflowGate]:
+async def get_approved_gates(
+    project_id: str, revision: int, session: AsyncSession | None = None
+) -> set[WorkflowGate]:
     """Gates already approved for this project revision.
 
     The column is a plain string, so a value written by a gate that has since
     been renamed or retired is skipped rather than allowed to break every
     workflow start for the revision.
+
+    ``session`` reads through the caller's transaction (the promoter's, which
+    must not wait on a second connection while it holds its lock).
     """
-    async with get_async_db_session() as session:
-        stmt = select(col(WorkflowGateApproval.gate)).where(
-            and_(
-                col(WorkflowGateApproval.project_id) == project_id,
-                col(WorkflowGateApproval.revision) == revision,
-            )
+    stmt = select(col(WorkflowGateApproval.gate)).where(
+        and_(
+            col(WorkflowGateApproval.project_id) == project_id,
+            col(WorkflowGateApproval.revision) == revision,
         )
+    )
+    if session is not None:
         rows = (await session.execute(stmt)).scalars().all()
+    else:
+        async with get_async_db_session() as own_session:
+            rows = (await own_session.execute(stmt)).scalars().all()
     approved: set[WorkflowGate] = set()
     for row in rows:
         try:
@@ -115,100 +123,3 @@ async def approve_gate(
     logger.info(
         f"Gate {gate.value} approved for project {project_id} revision {revision}"
     )
-
-
-async def get_runs_awaiting_approval(
-    project_id: str, revision: int
-) -> list[WorkflowRun]:
-    """Runs of this project revision sitting in AWAITING_APPROVAL."""
-    async with get_async_db_session() as session:
-        stmt = (
-            select(WorkflowRun)
-            .where(
-                and_(
-                    col(WorkflowRun.project_id) == project_id,
-                    col(WorkflowRun.revision) == revision,
-                    col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
-                )
-            )
-            .order_by(col(WorkflowRun.created_at).asc())
-        )
-        return list((await session.execute(stmt)).scalars().all())
-
-
-async def claim_run_awaiting_approval(run_id: str) -> bool:
-    """Move one run from AWAITING_APPROVAL to PENDING, if it is still waiting.
-
-    Returns whether this call moved it. False means a concurrent approval
-    already released it (and scheduled it), or it was cancelled meanwhile; the
-    caller must not schedule it then.
-    """
-    return bool(await _move_awaiting_runs_to_pending([uuid.UUID(run_id)]))
-
-
-async def _move_awaiting_runs_to_pending(run_ids: list[uuid.UUID]) -> list[uuid.UUID]:
-    """Conditionally move runs to PENDING and return the ids this call moved."""
-    async with get_async_db_session() as session:
-        stmt = (
-            update(WorkflowRun)
-            .where(
-                and_(
-                    col(WorkflowRun.id).in_(run_ids),
-                    # Only release runs that are still waiting: a concurrent
-                    # cancel or release must win.
-                    col(WorkflowRun.status) == WorkflowRunStatus.AWAITING_APPROVAL,
-                )
-            )
-            .values(status=WorkflowRunStatus.PENDING)
-            .returning(col(WorkflowRun.id))
-        )
-        moved_ids = list((await session.execute(stmt)).scalars().all())
-        await session.commit()
-    return moved_ids
-
-
-async def release_runs_awaiting_approval(
-    project_id: str, revision: int
-) -> list[WorkflowRun]:
-    """Move every run awaiting approval whose gates are all satisfied to PENDING.
-
-    Returns the released runs so the caller can schedule them. Runs still
-    blocked by another gate keep waiting.
-    """
-    approved = await get_approved_gates(project_id, revision)
-    candidates = {
-        run.id: run
-        for run in await get_runs_awaiting_approval(project_id, revision)
-        if _gates_satisfied(run.type, approved)
-    }
-    if not candidates:
-        return []
-
-    released_ids = await _move_awaiting_runs_to_pending(list(candidates))
-
-    released: list[WorkflowRun] = []
-    for run_id in released_ids:
-        run = candidates[run_id]
-        run.status = WorkflowRunStatus.PENDING
-        released.append(run)
-    if released:
-        logger.info(
-            f"Released {len(released)} runs awaiting approval for project {project_id} "
-            f"revision {revision}: {[r.type for r in released]}"
-        )
-    return released
-
-
-def _gates_satisfied(
-    workflow_type: WorkflowRunType | str, approved: set[WorkflowGate]
-) -> bool:
-    # Rows outlive workflows: a retired slug may not even be an enum member any
-    # more. Such a run has nothing left to start, so leave it waiting rather
-    # than schedule something that cannot run.
-    try:
-        resolved = WorkflowRunType(workflow_type)
-    except ValueError:
-        return False
-    if get_workflow_manifest(resolved, raise_exception=False) is None:
-        return False
-    return all(g in approved for g in get_effective_gates(resolved))

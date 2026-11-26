@@ -3,14 +3,13 @@
 Per project, revision and type the database holds at most one RUNNING run and
 at most one waiting run (PENDING or AWAITING_APPROVAL); workflows whose
 manifest sets ``independent_runs`` are exempt (see the unique indexes on
-``WorkflowRun``). A start inserts its waiting run with ``ON CONFLICT DO
+``WorkflowRun``). A start inserts its run PENDING with ``ON CONFLICT DO
 NOTHING``; when a waiting run already holds the slot, the start joins it and
 creates nothing. So a start while a run is RUNNING queues one run behind it,
 and every later start joins that one.
 
-A waiting run is scheduled exactly once: by the start that created it PENDING,
-or by whoever moves it from AWAITING_APPROVAL to PENDING, which is one
-conditional update that only one caller wins.
+A start never schedules anything: ``promote_ready_runs`` decides when a
+waiting run runs, and whether it waits on a gate.
 """
 
 import logging
@@ -27,122 +26,63 @@ from lib.models.workflow_run import (
     WorkflowRun,
     WorkflowRunStatus,
 )
-from lib.services.workflow_runs.gates import (
-    claim_run_awaiting_approval,
-    get_unsatisfied_gates,
-)
-from lib.services.workflow_runs.service import get_workflow_run_status
-from lib.workflows.models import WorkflowRunType
+from lib.services.encryption import encrypt_value
+from lib.workflows.models import BaseWorkflowConfig, WorkflowRunType
 from lib.workflows.registry import get_workflow_manifest
 
 logger = logging.getLogger(__name__)
 
 # Each attempt either creates or joins a run, unless the waiting run left its
-# slot (started, released or cancelled) in between; a few cover any real race.
+# slot (started or cancelled) in between; a few cover any real race.
 MAX_START_ATTEMPTS = 5
+
+# Never stored in the run's config: a request's key is stored encrypted on its
+# own column, which the job clears as it claims the run.
+_SECRET_CONFIG_FIELDS = {"openai_api_key"}
 
 
 class RunStart(BaseModel):
-    """The waiting run that serves a start, and whether that start schedules it."""
+    """The waiting run that serves a start."""
 
     run_id: str
-    thread_id: str
     status: WorkflowRunStatus
-    # The model the run is to use: the one its row records, so a joined run
-    # keeps the model it was created with.
-    model: str | None
-    # True when this start created the run PENDING or released it from
-    # AWAITING_APPROVAL: the caller must schedule it. False when it is parked
-    # behind a gate, or someone else already scheduled it.
-    schedule: bool
     created: bool
 
 
 async def start_or_join_run(
-    project_id: str,
+    config: BaseWorkflowConfig,
     workflow_type: WorkflowRunType,
     revision: int,
     *,
-    model: str | None,
-    gated: bool,
+    started_by: uuid.UUID | None,
 ) -> RunStart:
-    """Create the waiting run of this type, or join the one that exists.
+    """Create the PENDING run of this type, or join the waiting one.
 
-    ``gated`` says whether an unapproved gate holds the workflow back: the run
-    is then parked in AWAITING_APPROVAL. Ungated, a joined AWAITING_APPROVAL
-    run is released to PENDING, and scheduled by this start if it wins the
-    move.
+    A created run stores ``config`` (its API key encrypted apart) and
+    ``started_by`` for the job that runs it; a joined run keeps those it was
+    created with.
     """
     for _ in range(MAX_START_ATTEMPTS):
-        start = await _attempt(project_id, workflow_type, revision, model, gated)
-        if start is not None:
-            return start
+        created = await _insert_waiting_run(config, workflow_type, revision, started_by)
+        if created is not None:
+            return RunStart(run_id=str(created.id), status=created.status, created=True)
+        waiting = await get_waiting_run(config.project_id, workflow_type, revision)
+        if waiting is not None:
+            logger.info(f"Joined waiting {waiting.type} run {waiting.id}")
+            return RunStart(
+                run_id=str(waiting.id), status=waiting.status, created=False
+            )
     raise RuntimeError(
         f"Could not create or join a {workflow_type.value} run for project "
-        f"{project_id} revision {revision}"
+        f"{config.project_id} revision {revision}"
     )
-
-
-async def _attempt(
-    project_id: str,
-    workflow_type: WorkflowRunType,
-    revision: int,
-    model: str | None,
-    gated: bool,
-) -> RunStart | None:
-    status = WorkflowRunStatus.AWAITING_APPROVAL if gated else WorkflowRunStatus.PENDING
-    created = await _insert_waiting_run(
-        project_id, workflow_type, revision, status, model
-    )
-    if created is not None:
-        if gated:
-            return await _release_if_gate_approved_meanwhile(created)
-        return _start_of(created, schedule=True, created=True)
-
-    waiting = await get_waiting_run(project_id, workflow_type, revision)
-    if waiting is None:
-        return None  # It left the slot after our insert: try again.
-    if waiting.status == WorkflowRunStatus.PENDING or gated:
-        return _start_of(waiting, schedule=False, created=False)
-    # Parked behind a gate that is approved by now: release it here.
-    if await claim_run_awaiting_approval(str(waiting.id)):
-        waiting.status = WorkflowRunStatus.PENDING
-        return _start_of(waiting, schedule=True, created=False)
-    # A concurrent approval released it (it may be running or done by now):
-    # this start is served by it. Only a cancelled or deleted run is retried.
-    current = await get_workflow_run_status(str(waiting.id))
-    if current is None or current == WorkflowRunStatus.CANCELLED:
-        return None
-    waiting.status = current
-    return _start_of(waiting, schedule=False, created=False)
-
-
-async def _release_if_gate_approved_meanwhile(run: WorkflowRun) -> RunStart:
-    """Close the race with a gate approval that read the waiting runs before
-    this one was inserted: whichever of the two looks last releases it, and the
-    conditional move lets only one of them schedule it."""
-    still_gated = await get_unsatisfied_gates(
-        str(run.project_id), run.revision, WorkflowRunType(run.type)
-    )
-    if still_gated:
-        return _start_of(run, schedule=False, created=True)
-    if await claim_run_awaiting_approval(str(run.id)):
-        run.status = WorkflowRunStatus.PENDING
-        return _start_of(run, schedule=True, created=True)
-    # The approval released it first (or a cancel ended it): report where it
-    # is now, so the caller waits on it instead of reporting it as gated.
-    run.status = (
-        await get_workflow_run_status(str(run.id)) or WorkflowRunStatus.CANCELLED
-    )
-    return _start_of(run, schedule=False, created=True)
 
 
 async def _insert_waiting_run(
-    project_id: str,
+    config: BaseWorkflowConfig,
     workflow_type: WorkflowRunType,
     revision: int,
-    status: WorkflowRunStatus,
-    model: str | None,
+    started_by: uuid.UUID | None,
 ) -> WorkflowRun | None:
     """Insert the run, or return None when a waiting run already holds the slot.
 
@@ -154,12 +94,17 @@ async def _insert_waiting_run(
         pg_insert(WorkflowRun)
         .values(
             id=uuid.uuid4(),
-            project_id=uuid.UUID(project_id),
+            project_id=uuid.UUID(config.project_id),
             type=workflow_type.value,
             langgraph_thread_id=str(uuid.uuid4()),
-            status=status,
+            status=WorkflowRunStatus.PENDING,
             revision=revision,
-            model=model,
+            model=config.model,
+            config_json=config.model_dump(mode="json", exclude=_SECRET_CONFIG_FIELDS),
+            started_by_user_id=started_by,
+            encrypted_openai_api_key=(
+                encrypt_value(config.openai_api_key) if config.openai_api_key else None
+            ),
             independent_run=get_workflow_manifest(workflow_type).independent_runs,
         )
         .on_conflict_do_nothing()
@@ -184,16 +129,3 @@ async def get_waiting_run(
     )
     async with get_async_db_session() as session:
         return (await session.execute(stmt)).scalar_one_or_none()
-
-
-def _start_of(run: WorkflowRun, *, schedule: bool, created: bool) -> RunStart:
-    if not created:
-        logger.info(f"Joined waiting {run.type} run {run.id} ({run.status.value})")
-    return RunStart(
-        run_id=str(run.id),
-        thread_id=run.langgraph_thread_id,
-        status=run.status,
-        model=run.model,
-        schedule=schedule,
-        created=created,
-    )
