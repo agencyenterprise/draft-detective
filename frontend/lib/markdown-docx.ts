@@ -1,8 +1,8 @@
 import { convertMarkdownToDocx, downloadDocx } from '@mohtasham/md-to-docx';
 
 /**
- * Markdown to DOCX export. The converter pulls in `docx`, JSZip and an XML parser (about
- * 170 KB gzipped), so callers load this module with `import()` when the user asks for a
+ * Markdown to DOCX export. The converter pulls in `docx`, highlight.js, JSZip and an XML
+ * parser (about 235 KB gzipped), so callers load this module with `import()` when the user asks for a
  * DOCX, never with a static import (the lint config enforces it).
  */
 
