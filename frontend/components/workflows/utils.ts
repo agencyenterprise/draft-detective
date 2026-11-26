@@ -47,10 +47,7 @@ export function hasWebSearchRequirement(
 /**
  * Workflow types that require a publication date to be specified.
  */
-const WORKFLOWS_REQUIRING_PUBLICATION_DATE: WorkflowRunType[] = [
-  WorkflowRunType.LiteratureReviewV2,
-  WorkflowRunType.LiveReportsV2,
-];
+const WORKFLOWS_REQUIRING_PUBLICATION_DATE: WorkflowRunType[] = [WorkflowRunType.LiteratureReviewV2];
 
 /**
  * Checks if any of the selected workflow types require a publication date.

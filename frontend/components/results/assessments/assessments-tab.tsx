@@ -8,21 +8,19 @@ import { TabError, TabLoading } from '@/components/results/tab-status';
 import { Button } from '@/components/ui/button';
 import { StatusIndicator } from '@/components/ui/status-indicator';
 import { StartWorkflowButton } from '@/components/workflows/start-workflow-button';
-import { WorkflowConfigDialog, WorkflowConfigFormValues } from '@/components/workflows/workflow-config-dialog';
+import { WorkflowConfigDialog } from '@/components/workflows/workflow-config-dialog';
 import { WorkflowRunCost } from '@/components/workflows/workflow-run-cost';
-import { getErrorMessage } from '@/lib/api-error';
 import { AccessLevel, ProjectOverview, startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
-import { useProjectIssues, useWorkflowRunDetail, projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useProjectIssues, useWorkflowRunDetail } from '@/lib/hooks/use-project-data';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { isAssessmentRun } from '@/lib/review-assistant';
 import { getDisplayStatus, isWorkflowAwaitingApproval } from '@/lib/workflow-state';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { PlayIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { WorkflowRunHistory } from '@/components/workflows/workflow-run-history';
 import { Rail, RailToggle, useRailState } from '../panes';
+import { useStartAssessments } from '../run-activity/use-start-assessments';
 import { AssessmentRail } from './assessment-rail';
 
 interface AssessmentsTabProps {
@@ -51,7 +49,6 @@ export function AssessmentsTab({
   );
   // Left undefined until loaded: an empty list would read as an all-clear.
   const { data: issues, error: issuesError } = useProjectIssues(overview);
-  const queryClient = useQueryClient();
   const { getWorkflowTypeName, getWorkflowTypeDescription, isWorkflowTypeVisible } = useWorkflowTypes();
 
   const rail = useRailState();
@@ -81,17 +78,8 @@ export function AssessmentsTab({
     selectedWorkflowRun ?? undefined,
   );
 
-  const { mutate: startWorkflows } = useMutation({
-    mutationFn: (values: WorkflowConfigFormValues) =>
-      startMultipleWorkflowsApiWorkflowsStartMultiplePost({
-        body: { project_id: projectId, workflow_types: values.workflowTypes },
-      }),
-    onSuccess: () => {
-      toast.success('Assessments started');
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-    },
-    onError: (error) => toast.error(getErrorMessage(error, 'Failed to start assessments')),
-  });
+  // The same start as the header's Run assessments button, so each sees what the other started.
+  const { startAssessments, busyTypes } = useStartAssessments(projectId, overview.workflow_runs ?? []);
 
   const description = selectedWorkflowRun ? getWorkflowTypeDescription(selectedWorkflowRun.run.type) : null;
   // A run waiting on the user has nothing to re-run and nothing to show; the
@@ -103,9 +91,10 @@ export function AssessmentsTab({
       <WorkflowConfigDialog
         isOpen={configOpen}
         projectId={projectId}
+        runningTypes={busyTypes}
         onConfirm={(values) => {
           setConfigOpen(false);
-          startWorkflows(values);
+          startAssessments(values);
         }}
         onCancel={() => setConfigOpen(false)}
       />

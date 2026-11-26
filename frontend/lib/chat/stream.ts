@@ -1,4 +1,5 @@
 import { baseUrl, getAuthHeader } from '@/lib/api';
+import { apiErrorFrom } from '@/lib/api-error';
 import type { ChatAttachment } from '@/lib/generated-api';
 
 /**
@@ -39,7 +40,8 @@ interface StreamChatTurnOptions {
  *
  * Talks to FastAPI directly, like the rest of the app, rather than through a
  * Next.js route. The response is server-sent events: each `data:` line is one
- * JSON `ChatStreamEvent`; comment lines are heartbeats and are skipped.
+ * JSON `ChatStreamEvent`; comment lines are heartbeats and are skipped. A refusal (a 409
+ * while another turn runs, a 401, a 5xx) throws an `ApiError` before any turn starts.
  */
 export async function* streamChatTurn({
   threadId,
@@ -61,34 +63,9 @@ export async function* streamChatTurn({
     signal,
   });
 
-  if (!response.ok || !response.body) {
-    throw new ChatRequestError(response.status, await errorDetail(response));
-  }
+  if (!response.ok || !response.body) throw await apiErrorFrom(response);
 
   yield* parseEventStream(response.body);
-}
-
-/** The backend refused the turn (a 409 while another runs, a 401, a 5xx): no turn started. */
-export class ChatRequestError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'ChatRequestError';
-  }
-}
-
-export async function errorDetail(response: Response): Promise<string> {
-  const fallback = `Chat request failed with status ${response.status}`;
-  const text = await response.text().catch(() => '');
-  if (!text) return fallback;
-  try {
-    const parsed = JSON.parse(text) as { detail?: unknown };
-    return typeof parsed.detail === 'string' ? parsed.detail : fallback;
-  } catch {
-    return text;
-  }
 }
 
 /** Parse an SSE body into events, ignoring heartbeats and blank lines. */

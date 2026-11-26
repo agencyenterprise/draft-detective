@@ -3,18 +3,16 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getErrorMessage } from '@/lib/api-error';
 import { downloadLogApiAdminLogsDownloadFilenameGet, listLogsApiAdminLogsGet, LogFileInfo } from '@/lib/generated-api';
 import { downloadFile } from '@/lib/file-download';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 import { formatBytes } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Download, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 export function LogsList() {
-  const [downloading, setDownloading] = useState<string | null>(null);
-
   const {
     data: logFiles,
     isLoading,
@@ -24,19 +22,16 @@ export function LogsList() {
     queryFn: () => listLogsApiAdminLogsGet(),
   });
 
-  const handleDownload = async (file: LogFileInfo) => {
-    setDownloading(file.filename);
-    try {
+  const download = useToastMutation({
+    mutationFn: async (file: LogFileInfo) => {
       const content = (await downloadLogApiAdminLogsDownloadFilenameGet({
         path: { filename: file.filename },
       })) as string;
       downloadFile({ blob: new Blob([content], { type: 'text/plain' }), filename: file.filename });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to download log file');
-    } finally {
-      setDownloading(null);
-    }
-  };
+    },
+    errorMessage: 'Failed to download log file',
+  });
+  const downloading = download.isPending ? download.variables?.filename : null;
 
   return (
     <Card>
@@ -54,7 +49,7 @@ export function LogsList() {
           </div>
         ) : error ? (
           <div className="text-center py-8">
-            <p className="text-destructive">{error instanceof Error ? error.message : 'Failed to load log files'}</p>
+            <p className="text-destructive">{getErrorMessage(error, 'Failed to load log files')}</p>
           </div>
         ) : !logFiles || logFiles.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">No log files found.</div>
@@ -80,7 +75,7 @@ export function LogsList() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(file)}
+                      onClick={() => download.mutate(file)}
                       disabled={downloading === file.filename}
                     >
                       {downloading === file.filename ? (

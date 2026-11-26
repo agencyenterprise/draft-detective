@@ -19,7 +19,6 @@ from lib.workflows.inference_validation_v2.manifest import (
     InferenceValidationV2Manifest,
 )
 from lib.workflows.literature_review_v2.manifest import LiteratureReviewV2Manifest
-from lib.workflows.live_reports_v2.manifest import LiveReportsV2Manifest
 from lib.workflows.manifest import WorkflowManifest
 from lib.workflows.methodological_alignment.manifest import (
     MethodologicalAlignmentManifest,
@@ -134,7 +133,6 @@ def register_all_workflow_manifests():
         AbbreviationScanV2Manifest(),
         InferenceValidationV2Manifest(),
         LiteratureReviewV2Manifest(),
-        LiveReportsV2Manifest(),
         MethodologicalAlignmentManifest(),
         ReferenceDownloaderManifest(),
         ReferenceValidationV2Manifest(),

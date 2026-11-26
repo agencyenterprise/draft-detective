@@ -24,6 +24,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ParamSpec, TypeVar, cast
 
 from deepagents import create_deep_agent
+from deepagents.graph import DeepAgentState
 from deepagents.middleware.subagents import GENERAL_PURPOSE_SUBAGENT, SubAgent
 from langchain.agents.middleware import (
     AgentMiddleware,
@@ -35,6 +36,8 @@ from langchain_core.messages import BaseMessage
 from langchain_core.runnables import RunnableConfig
 
 from lib.agents.read_file_line_numbers import ReadFileLineNumbersMiddleware
+from lib.agents.subagent_files import SubagentFileChangesMiddleware
+from lib.agents.web_search_history import WebSearchHistoryMiddleware
 from lib.config.env import config, get_model_api_key
 from lib.config.langfuse import langfuse_handler
 from lib.config.llm_error_logger import ErrorLoggingCallback
@@ -103,8 +106,17 @@ def agent_middleware() -> list[AgentMiddleware[Any, Any, Any]]:
 
     `TodoListMiddleware` gives the agent its `write_todos` planning tool. deepagents
     included it by default until 0.7, so it is added back here.
+    `SubagentFileChangesMiddleware` keeps parallel subagents from writing stale
+    copies of each other's files back to the parent (see ``subagent_files``).
+    `WebSearchHistoryMiddleware` keeps a failed web search from failing every later
+    model call (see ``web_search_history``).
     """
-    return [TodoListMiddleware(), ReadFileLineNumbersMiddleware()]
+    return [
+        TodoListMiddleware(),
+        ReadFileLineNumbersMiddleware(),
+        SubagentFileChangesMiddleware(),
+        WebSearchHistoryMiddleware(),
+    ]
 
 
 def general_purpose_subagent(skills: list[str] | None = None) -> SubAgent:
@@ -156,6 +168,10 @@ def _with_our_additions(create: Callable[_P, _R]) -> Callable[_P, _R]:
         ):
             subagents.append(general_purpose_subagent(skills=skills))
         kwargs["subagents"] = subagents
+        # Subagents share the caller's checkpointer and default to a plain message
+        # list, stored whole at every step (18 MB per live report against 2 MB).
+        # DeepAgentState stores message deltas; the root already defaults to it.
+        kwargs.setdefault("state_schema", DeepAgentState)
         return create(*args, **kwargs)
 
     return build

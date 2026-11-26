@@ -1,3 +1,13 @@
+"""Starting workflows: the single and batch starts the API and the MCP tool
+use, and gate approval.
+
+Each start creates (or joins) the waiting runs, then schedules the ones it owns
+as FastAPI background tasks running ``run_workflow_with_dependency_check``
+(the blocking MCP batch awaits them in the request instead).
+Executing a run is ``lib/workflows/runner.py``; the run rows and the waiting
+rules are ``lib/services/workflow_runs/``. See docs/workflow-runs.md.
+"""
+
 import asyncio
 import logging
 

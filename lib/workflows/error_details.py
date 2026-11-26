@@ -49,12 +49,15 @@ def _find_ai_message(exc: BaseException) -> AIMessage | None:
     """Locate the LLM response an exception was raised over.
 
     LangChain's structured-output errors expose the offending `AIMessage` as an
-    `ai_message` attribute. Matched by attribute rather than by exception class
-    so this keeps working across LangChain refactors and covers any other
-    exception that adopts the same convention.
+    `ai_message` attribute, and `ModelRefusalError` (a refusal or content filter)
+    as `raw_message`. Matched by attribute rather than by exception class so this
+    keeps working across LangChain refactors and covers any other exception that
+    adopts the same convention.
     """
     for link in _causes(exc):
-        candidate = getattr(link, "ai_message", None)
+        candidate = getattr(link, "ai_message", None) or getattr(
+            link, "raw_message", None
+        )
         if isinstance(candidate, AIMessage):
             return candidate
     return None

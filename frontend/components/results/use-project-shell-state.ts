@@ -1,19 +1,15 @@
 'use client';
 
-import { getErrorMessage } from '@/lib/api-error';
-import { AccessLevel, ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { projectQueryKeys, useProjectOverview } from '@/lib/hooks/use-project-data';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { AccessLevel } from '@/lib/generated-api';
+import { useProjectOverview } from '@/lib/hooks/use-project-data';
+import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { useCallback, useState } from 'react';
-import { toast } from 'sonner';
 
 /**
  * Everything the project chrome needs that is not chrome: the project itself,
  * which revision is being viewed, and saving the title.
  */
 export function useProjectShellState(projectId: string) {
-  const queryClient = useQueryClient();
-
   // null means "follow the latest revision"
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
 
@@ -32,31 +28,14 @@ export function useProjectShellState(projectId: string) {
     setSelectedRevision(null);
   }, []);
 
-  const updateTitleMutation = useMutation({
-    mutationFn: async (newTitle: string) => {
-      return await updateProjectEndpointApiProjectProjectIdPatch({
-        path: { project_id: projectId },
-        body: { title: newTitle },
-      });
-    },
-    onSuccess: (updatedProject) => {
-      // The overview is keyed per revision, so patch every cached revision of it.
-      // Only the overviews: the other queries under ['project', id] are not shaped like one.
-      queryClient.setQueriesData(
-        { queryKey: projectQueryKeys.overviews(projectId) },
-        (curr: ProjectOverview | undefined) => (curr ? { ...curr, project: updatedProject } : curr),
-      );
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Title updated successfully');
-    },
-    onError: (mutationError) => {
-      toast.error(`Failed to update title: ${getErrorMessage(mutationError, 'Unknown error')}`);
-    },
+  const updateTitleMutation = useUpdateProject(projectId, {
+    successMessage: 'Title updated successfully',
+    errorMessage: 'Failed to update title',
   });
 
   const handleTitleSave = useCallback(
     async (newTitle: string) => {
-      await updateTitleMutation.mutateAsync(newTitle);
+      await updateTitleMutation.mutateAsync({ title: newTitle });
     },
     [updateTitleMutation],
   );

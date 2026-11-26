@@ -115,7 +115,10 @@ def strip_interactive_markers(content: str) -> str:
 
 
 def skill_backend_files(
-    *, interactive: bool = False, exclude: Collection[str] = ()
+    *,
+    interactive: bool = False,
+    exclude: Collection[str] = (),
+    include: Collection[str] | None = None,
 ) -> dict[str, Any]:
     """Every skill under ``skills/``, keyed by its path on the agent filesystem.
 
@@ -127,7 +130,8 @@ def skill_backend_files(
     address an agent driven by a user. A backend run has its consent already and
     nobody to ask, so by default they are removed; an agent that talks to a user
     passes ``interactive=True`` to keep them, minus the marker comments.
-    ``exclude`` names skill directories to leave out of the mount entirely.
+    ``exclude`` names skill directories to leave out of the mount entirely;
+    ``include``, when given, names the only ones to mount.
     """
     clean = strip_interactive_markers if interactive else strip_interactive_only
     project_root = _SKILLS_DIR.parent
@@ -136,7 +140,8 @@ def skill_backend_files(
         # Importing a skill's script (load_skill_script) leaves bytecode behind.
         if not skill_file.is_file() or "__pycache__" in skill_file.parts:
             continue
-        if skill_file.relative_to(_SKILLS_DIR).parts[0] in exclude:
+        skill = skill_file.relative_to(_SKILLS_DIR).parts[0]
+        if skill in exclude or (include is not None and skill not in include):
             continue
         virtual_path = "/" + skill_file.relative_to(project_root).as_posix()
         files[virtual_path] = create_file_data(

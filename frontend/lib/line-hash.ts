@@ -1,15 +1,26 @@
 /**
- * Utilities for parsing line-range selections from the URL hash.
+ * Line-range selections in the URL hash: writing them, reading them back, and
+ * following them as the hash changes.
  */
 
 import { useEffect, useRef } from 'react';
 import type { LineRange } from '@/lib/stores/document-explorer-store';
 
 /**
+ * The hash that selects `lineRange` in the document explorer: `#L5` for one
+ * line, `#L5-12` for several. Nothing without a range.
+ */
+export function formatLineHash(lineRange?: LineRange): string | undefined {
+  if (!lineRange) return undefined;
+  const [start, end] = lineRange;
+  return start === end ? `#L${start}` : `#L${start}-${end}`;
+}
+
+/**
  * Parse hash format for line ranges: #L5 (single line) or #L5-15 (range).
  * Returns a [start, end] tuple, or null if the hash doesn't match.
  */
-function parseLineHash(hash: string): LineRange | null {
+export function parseLineHash(hash: string): LineRange | null {
   if (!hash.startsWith('#')) return null;
 
   const rangeMatch = hash.match(/^#L(\d+)-(\d+)$/);
@@ -39,7 +50,11 @@ export function useLineHashNavigation(onSelectRange: (range: LineRange) => void)
     const handleHashChange = () => {
       const currentHash = window.location.hash;
       const parsed = parseLineHash(currentHash);
-      if (!parsed) return;
+      if (!parsed) {
+        // Moving off a line link forgets it, so coming back to the same link selects it again.
+        lastProcessedHash.current = null;
+        return;
+      }
 
       if (lastProcessedHash.current === currentHash) return;
       lastProcessedHash.current = currentHash;

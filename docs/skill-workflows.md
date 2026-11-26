@@ -116,10 +116,9 @@ document text plus the finding, never when it needs a new fact or new prose.
 - `lib/agents/chat_agent.py` describes the chat's `/skill` commands with the picker text.
   Hand-written workflows are mapped to their skill by hand there; a skill-declared
   workflow is found through its manifest, so it needs no entry.
-- Frontend: the picker draws a declared icon with lucide's `DynamicIcon`, the state
-  type map falls back to `SimpleDeepAgentState` for any type it does not list, and the
-  results renderer's default branch shows the deep-agent results view. No per-type edit
-  is needed.
+- Frontend: the picker draws a declared icon with lucide's `DynamicIcon`, and the
+  results renderer's default branch shows the deep-agent results view, reading the run's
+  state as `SimpleDeepAgentState`. No per-type edit is needed.
 
 ## Evals
 
@@ -196,7 +195,7 @@ the kind of issue (Claim Reference Validation titles each citation with its supp
 suite is loaded with `pair_on_location=True`: reports then pair with expected issues on quote and
 line alone, so a wrong verdict is scored by `title_correct` instead of pairing the report with a
 neighbouring claim that shares the verdict. A workflow that recommends sources found by web
-search (Literature Review, Live Reports) has no stable titles and may raise several issues on one
+search (Literature Review) has no stable titles and may raise several issues on one
 claim, so its expected issues are untitled and it loads with `pairing="several_per_expected"`; its sources are
 not asserted, but the shared `source_checks` scorer (`evals_inspectai/common/source_citations.py`)
 reads every link-bearing line of an issue as a citation and checks it has a year, falls on the right
@@ -210,7 +209,7 @@ document: anything reported on it is a false positive. Fixture documents live un
 Up to four scorers, kept separate because their key sets have different owners, and each
 metric named so a regression points at itself (see
 `evals_inspectai/e2e/active_voice/active_voice_e2e.py`, which uses all four; Recommendation
-Check uses the first two plus its image check):
+Check also uses all four, its own check being whether the agent viewed the chart image):
 
 1. **`issue_checks`, deterministic, the same keys for every sample of an eval.** Keys the
    inventory can never score (edit hygiene when no edits are expected, the title check when

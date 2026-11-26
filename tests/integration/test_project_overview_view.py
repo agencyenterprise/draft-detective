@@ -5,17 +5,19 @@ reads (each run's own errors, the reference count, whether the main file is
 Word, the share status for the owner) and no run state.
 """
 
+import uuid
 from datetime import UTC, datetime
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import null, update
 from sqlmodel import col
 
 from lib.api.routers.public import get_shared_resource
 from lib.config.database import get_async_db_session
 from lib.models.issue import Issue
 from lib.models.project import AccessLevel
+from lib.models.workflow_run import WorkflowRun, WorkflowRunStatus
 from lib.workflows.models import WorkflowRunType
 from tests.integration.project_page_support import (  # noqa: F401  # `page` is a fixture
     ASSESSMENT,
@@ -137,7 +139,47 @@ async def test_public_share_rejects_unknown_and_disabled_links(page):
 
 
 @pytest.mark.asyncio
-async def test_public_share_serves_only_projects(page):
-    with pytest.raises(HTTPException) as exc:
-        await get_shared_resource(page["other_token"])
-    assert exc.value.status_code == 400
+async def test_runs_that_never_wrote_a_state_still_show(page):
+    # A run saved with `state_json=None` holds a JSON null, one saved through
+    # SQL holds NULL. Neither may break the read of the other runs' states.
+    async with get_async_db_session() as session:
+        session.add_all(
+            [
+                _run_without_state(page, WorkflowRunType.DOCUMENT_PROCESSING),
+                _run_without_state(page, WorkflowRunType.REFERENCE_EXTRACTION),
+            ]
+        )
+        await session.commit()
+        await session.execute(
+            update(WorkflowRun)
+            .where(
+                col(WorkflowRun.project_id) == page["project_id"],
+                col(WorkflowRun.type) == WorkflowRunType.REFERENCE_EXTRACTION,
+                col(WorkflowRun.revision) == 1,
+            )
+            .values(state_json=null())
+        )
+        await session.commit()
+
+    overview = await overview_of(page, revision=1)
+
+    by_type = {s.run.type: s for s in overview.workflow_runs}
+    assert set(by_type) == {
+        ASSESSMENT,
+        WorkflowRunType.DOCUMENT_PROCESSING,
+        WorkflowRunType.REFERENCE_EXTRACTION,
+    }
+    assert by_type[WorkflowRunType.DOCUMENT_PROCESSING].errors == []
+    assert overview.reference_count == 0
+    assert overview.has_docx is False
+
+
+def _run_without_state(page: dict, workflow_type: WorkflowRunType) -> WorkflowRun:
+    return WorkflowRun(
+        project_id=uuid.UUID(page["project_id"]),
+        type=workflow_type,
+        langgraph_thread_id=str(uuid.uuid4()),
+        status=WorkflowRunStatus.FAILED,
+        revision=1,
+        state_json=None,
+    )

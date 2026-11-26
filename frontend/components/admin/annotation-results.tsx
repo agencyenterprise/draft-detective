@@ -147,7 +147,7 @@ export function AnnotationResults() {
           {isLoading ? (
             <Loader2 className="mx-auto size-5 animate-spin text-muted-foreground" />
           ) : error ? (
-            <p className="text-sm text-destructive">{error.message}</p>
+            <p className="text-sm text-destructive">{getErrorMessage(error, 'Could not load the annotation sets')}</p>
           ) : (
             <StatsTable sets={sets ?? []} selected={current} onSelect={setSelected} />
           )}

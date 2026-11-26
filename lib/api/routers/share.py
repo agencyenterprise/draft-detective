@@ -32,7 +32,7 @@ async def enable_project_sharing(
     project, _ = await get_project_access(
         project_id, user=current_user, required_level=AccessLevel.WRITE
     )
-    return await enable_sharing("project", project.id, current_user)
+    return await enable_sharing(project.id, current_user)
 
 
 @router.post(
@@ -46,4 +46,4 @@ async def disable_project_sharing(
     project, _ = await get_project_access(
         project_id, user=current_user, required_level=AccessLevel.WRITE
     )
-    return await disable_sharing("project", project.id)
+    return await disable_sharing(project.id)

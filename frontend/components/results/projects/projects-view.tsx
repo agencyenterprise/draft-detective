@@ -3,7 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getErrorMessage } from '@/lib/api-error';
 import { listProjectsEndpointApiProjectsGet, ProjectListPage } from '@/lib/generated-api';
+import { PROJECT_LIST_QUERY_KEY } from '@/lib/hooks/use-project-data';
 import { InfiniteData, keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { FolderOpen, Loader2, Plus, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -42,7 +44,7 @@ export function ProjectsView() {
     // Explicit generics: a function-valued refetchInterval stops TypeScript
     // inferring the page type from queryFn.
     useInfiniteQuery<ProjectListPage, Error, InfiniteData<ProjectListPage>, [string, string], number>({
-      queryKey: ['projects', debouncedSearch],
+      queryKey: [...PROJECT_LIST_QUERY_KEY, debouncedSearch],
       // Every loaded page is refetched on each tick, so the interval scales with
       // what is on screen: quick while something is still running, otherwise a
       // slow heartbeat that still picks up projects created elsewhere.
@@ -134,7 +136,7 @@ export function ProjectsView() {
           </Centred>
         ) : error ? (
           <Centred>
-            <p className="text-sm text-destructive">{error.message}</p>
+            <p className="text-sm text-destructive">{getErrorMessage(error, 'Could not load the projects')}</p>
           </Centred>
         ) : items.length === 0 && !filtered ? (
           <Centred>

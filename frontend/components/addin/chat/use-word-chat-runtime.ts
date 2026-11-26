@@ -1,7 +1,7 @@
 import { AddinSession } from '@/components/addin/addin-sign-in';
 import { documentFile, fingerprint, selectedText } from '@/lib/addin/pane-document';
 import { streamWordChatResume, streamWordChatTurn, withDocumentOnRequest } from '@/lib/addin/word-chat-stream';
-import { isApiError } from '@/lib/api-error';
+import { getErrorMessage, isApiError } from '@/lib/api-error';
 import type { ChatStreamEvent } from '@/lib/chat/stream';
 import { ChatMessage, convertChatMessage, TurnAccumulator, userMessage } from '@/lib/chat/turn';
 import {
@@ -127,7 +127,7 @@ export function useWordChatRuntime(
     } catch (error) {
       if (isApiError(error, 401)) expire();
       if (controller.signal.aborted) turn.cancel();
-      else turn.fail(error instanceof Error ? error.message : 'The turn failed.');
+      else turn.fail(getErrorMessage(error, 'The turn failed.'));
       setInflight(shown(turn));
     } finally {
       // As on /chat: the stored turn replaces the local one in a single render, and

@@ -4,11 +4,11 @@ import {
   ProjectOverview,
   ShareStatusResponse,
 } from '@/lib/generated-api';
-import { getErrorMessage } from '@/lib/api-error';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
+import { writeServerAnswerAndRefresh } from '@/lib/query-cache';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 /** The project's public link, read from the overview (the owner's only) and managed from here. */
 export function useShareStatus(overview: ProjectOverview) {
@@ -17,31 +17,27 @@ export function useShareStatus(overview: ProjectOverview) {
   const projectId = overview.project.id;
 
   // The overview is cached per revision, and the link is the project's, so every copy gets it.
-  const applyShareStatus = (shareStatus: ShareStatusResponse) => {
-    queryClient.setQueriesData(
+  const applyShareStatus = (shareStatus: ShareStatusResponse) =>
+    writeServerAnswerAndRefresh<ProjectOverview>(
+      queryClient,
       { queryKey: projectQueryKeys.overviews(projectId) },
-      (curr: ProjectOverview | undefined) => (curr ? { ...curr, share_status: shareStatus } : curr),
+      (overview) => overview && { ...overview, share_status: shareStatus },
     );
-  };
 
-  const enableMutation = useMutation({
+  const enableMutation = useToastMutation({
     mutationFn: () => enableProjectSharingApiProjectsProjectIdShareEnablePost({ path: { project_id: projectId } }),
+    errorMessage: 'Failed to enable sharing',
     onSuccess: applyShareStatus,
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to enable sharing'));
-      setIsDialogOpen(false);
-    },
+    onError: () => setIsDialogOpen(false),
   });
 
-  const disableMutation = useMutation({
+  const disableMutation = useToastMutation({
     mutationFn: () => disableProjectSharingApiProjectsProjectIdShareDisablePost({ path: { project_id: projectId } }),
+    successMessage: 'Sharing disabled. All existing links are now invalid.',
+    errorMessage: 'Failed to disable sharing',
     onSuccess: (data) => {
       applyShareStatus(data);
       setIsDialogOpen(false);
-      toast.success('Sharing disabled. All existing links are now invalid.');
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to disable sharing'));
     },
   });
 

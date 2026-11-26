@@ -1,6 +1,5 @@
 'use client';
 
-import { getErrorMessage } from '@/lib/api-error';
 import {
   cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost,
   listReviewAssistantRequestsEndpointApiProjectProjectIdReviewAssistantRequestsGet,
@@ -8,9 +7,9 @@ import {
   startReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPost,
 } from '@/lib/generated-api';
 import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useProjectMutation } from '@/lib/hooks/use-project-mutation';
 import { isWorkflowProcessing } from '@/lib/workflow-state';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 /** Polled while a request is queued or running, so its status and results arrive on their own. */
 const ACTIVE_POLL_MS = 4000;
@@ -34,31 +33,27 @@ export interface StartRequestArgs {
   fileIds: string[];
 }
 
-export function useStartReviewAssistantRequest(projectId: string, onStarted: (runId: string) => void) {
-  const queryClient = useQueryClient();
-  return useMutation({
+/**
+ * Starts a request. Its run id arrives through `mutate`'s own `onSuccess`,
+ * which runs once the project's caches carry the new run.
+ */
+export function useStartReviewAssistantRequest(projectId: string) {
+  return useProjectMutation(projectId, {
     mutationFn: ({ outputs, fileIds }: StartRequestArgs) =>
       startReviewAssistantRequestEndpointApiProjectProjectIdReviewAssistantRequestsPost({
         path: { project_id: projectId },
         body: { outputs, file_ids: fileIds },
       }),
-    onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-      onStarted(response.workflow_run_id);
-    },
-    onError: (error) => toast.error(getErrorMessage(error, 'Failed to start the Review Assistant')),
+    errorMessage: 'Failed to start the Review Assistant',
+    waitForRefresh: true,
   });
 }
 
 export function useCancelReviewAssistantRequest(projectId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
+  return useProjectMutation(projectId, {
     mutationFn: (runId: string) =>
       cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost({ path: { workflow_run_id: runId } }),
-    onSuccess: () => {
-      toast.success('Request cancelled');
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-    },
-    onError: (error) => toast.error(getErrorMessage(error, 'Failed to cancel the request')),
+    successMessage: 'Request cancelled',
+    errorMessage: 'Failed to cancel the request',
   });
 }

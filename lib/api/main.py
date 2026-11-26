@@ -10,11 +10,11 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastmcp.utilities.lifespan import combine_lifespans
 
 from lib.agents.checkpointer import close_checkpointer_pool
+from lib.api.cors import add_cors_middleware
 from lib.api.mcp.middlewares import MCPTrailingSlashMiddleware
 from lib.api.mcp.server import mcp_app, mcp_auth
 from lib.api.routers import (
@@ -26,6 +26,7 @@ from lib.api.routers import (
     files,
     health,
     issues,
+    live_reports,
     logs,
     project_views,
     projects,
@@ -83,26 +84,8 @@ app.mount("/mcp", mcp_app)
 app.add_middleware(MCPTrailingSlashMiddleware)
 app.add_middleware(TusTerminationMiddleware)
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # TODO: restrict to only our own origin later
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    # Expose Tus headers, and the download filename, so frontend can read them
-    expose_headers=[
-        "Content-Disposition",
-        "Upload-Offset",
-        "Upload-Length",
-        "Upload-Expires",
-        "Tus-Version",
-        "Tus-Resumable",
-        "Tus-Extension",
-        "Tus-Max-Size",
-        "Location",
-    ],
-)
+# CORS, with unhandled errors answered inside it so a 500 still carries CORS headers
+add_cors_middleware(app)
 
 # Gzip middleware
 app.add_middleware(GZipMiddleware)
@@ -113,6 +96,7 @@ app.include_router(about.router)
 app.include_router(admin_dashboard.router)
 app.include_router(annotations.router)
 app.include_router(chat.router)
+app.include_router(live_reports.router)
 app.include_router(workflows.router)
 app.include_router(workflow_types.router)
 app.include_router(files.router)

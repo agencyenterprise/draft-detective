@@ -18,6 +18,7 @@ from lib.services.files.service import (
     find_main_file,
     get_file_by_id,
     get_files_by_project_id,
+    in_project,
     load_file_document,
     update_file_artifacts,
 )
@@ -42,6 +43,10 @@ from lib.workflows.reference_file_matching.state import (
 from lib.workflows.util import run_type_of
 
 logger = logging.getLogger(__name__)
+
+
+class MainFileNotFoundError(ValueError):
+    """The revision has no main document uploaded yet."""
 
 
 def _as_uuids(file_ids: list[str]) -> list[uuid.UUID]:
@@ -149,10 +154,24 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         return await self._get_file_document_from_state(file_id)
 
+    async def _project_file(self, file_id: str) -> File | None:
+        """The file with this id, or None when it belongs to another project.
+
+        Agents pass file ids they read in documents, which their authors write:
+        an id from another project must not open that project's files.
+        """
+        file = await get_file_by_id(file_id)
+        if not in_project(file, self.project_id):
+            logger.warning(
+                "Refused file %s: it is not in project %s", file_id, self.project_id
+            )
+            return None
+        return file
+
     async def _get_file_document_from_db(self, file_id: str) -> FileDocument | None:
         """Return FileDocument from DB cached artifacts when available."""
-        file = await get_file_by_id(file_id)
-        if not file.has_cached_markdown:
+        file = await self._project_file(file_id)
+        if file is None or not file.has_cached_markdown:
             return None
         return await load_file_document(file, use_cached_artifacts=True)
 
@@ -209,7 +228,7 @@ class FileArtifactsService(FileArtifactsServiceType):
 
         if revision is not None:
             if main_file is None:
-                raise ValueError(
+                raise MainFileNotFoundError(
                     f"No main file found for revision {rev} in project {self.project_id}"
                 )
             return await self._load_file_document_with_markdown(main_file)
@@ -271,8 +290,8 @@ class FileArtifactsService(FileArtifactsServiceType):
 
     async def _get_file_summary_from_db(self, file_id: str) -> FileSummary | None:
         """Return FileSummary from DB cached summary when available."""
-        file = await get_file_by_id(file_id)
-        if not file.has_cached_summary or file.summary is None:
+        file = await self._project_file(file_id)
+        if file is None or not file.has_cached_summary or file.summary is None:
             return None
         logger.debug("Loaded summary for file %s from DB cache", file_id)
         return FileSummary(file_id=file_id, **file.summary)
