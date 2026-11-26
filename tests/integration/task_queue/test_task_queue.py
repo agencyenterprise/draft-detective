@@ -81,7 +81,13 @@ async def _run_lifespan_probe(message: str) -> dict[str, int]:
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    stdout, stderr = await asyncio.wait_for(process.communicate(), PROBE_SECONDS)
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), PROBE_SECONDS)
+    finally:
+        # A hung or cancelled probe must not keep its queue worker and connections.
+        if process.returncode is None:
+            process.kill()
+            await process.wait()
     assert process.returncode == 0, stderr.decode()[-2000:]
     return json.loads(stdout.decode().strip().splitlines()[-1])
 
@@ -105,9 +111,10 @@ def _api_process_queue() -> App:
     return task_queue.with_connector(connector)
 
 
-async def _run_worker(app: App, name: str) -> None:
+async def _run_worker(app: App, name: str, queue: str) -> None:
     async with app.open_async():
         await app.run_worker_async(
+            queues=[queue],
             concurrency=config.TASK_QUEUE_CONCURRENCY,
             name=name,
             install_signal_handlers=False,
@@ -118,19 +125,29 @@ async def _run_worker(app: App, name: str) -> None:
 async def test_several_workers_run_each_job_once(
     db: psycopg.AsyncConnection, job_ids: list[int]
 ) -> None:
+    # A queue of its own, so these workers never take a job another test defers
+    # (the lifespan test asserts which worker ran its job). Short: the queue name
+    # becomes part of a NOTIFY channel, which Postgres caps at 63 bytes.
+    queue = f"test-{uuid.uuid4().hex[:12]}"
+    # Deferred before any worker starts, so all four start together on the same
+    # backlog and race for every job.
+    async with task_queue.open_async():
+        deferrer = ping.configure(queue=queue)
+        for n in range(JOBS):
+            message = f"job {n} {uuid.uuid4()}"
+            job_ids.append(await deferrer.defer_async(message=message))
+
     workers = [
-        asyncio.create_task(_run_worker(_api_process_queue(), f"api-{n}"))
+        asyncio.create_task(_run_worker(_api_process_queue(), f"api-{n}", queue))
         for n in range(API_WORKERS)
     ]
     try:
-        async with task_queue.open_async():
-            for n in range(JOBS):
-                message = f"job {n} {uuid.uuid4()}"
-                job_ids.append(await ping.defer_async(message=message))
         await _wait_until_succeeded(db, job_ids)
     finally:
         for worker in workers:
             worker.cancel()
-        await asyncio.gather(*workers, return_exceptions=True)
+        await asyncio.wait_for(
+            asyncio.gather(*workers, return_exceptions=True), WAIT_SECONDS
+        )
 
     assert await _starts_per_job(db, job_ids) == [1] * JOBS
