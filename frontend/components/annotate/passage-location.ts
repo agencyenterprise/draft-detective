@@ -1,4 +1,4 @@
-import { documentUrlTransform } from '@/components/document-image';
+import { documentUrlTransform } from '@/components/shared/document-image';
 
 /** Example documents carry their figures inline, as the backend builds them from the eval datasets. */
 const INLINE_IMAGE = /^data:image\/(png|jpeg|gif|webp);base64,/;
