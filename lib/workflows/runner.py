@@ -1,3 +1,10 @@
+"""Executing a workflow run: runs a claimed run's LangGraph graph and writes
+its status, state and issues. Called by the queue job (``run_workflow`` in
+``lib/services/task_queue/tasks.py``) once ``promote_ready_runs`` found the run
+ready; the run rows and the rules for what runs next are
+``lib/services/workflow_runs/``. See docs/workflow-runs.md.
+"""
+
 import asyncio
 import logging
 import uuid

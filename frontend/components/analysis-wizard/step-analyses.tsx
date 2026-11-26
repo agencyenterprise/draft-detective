@@ -12,9 +12,7 @@ import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useWebSearchConsent } from '@/lib/hooks/use-web-search-consent';
 import { hasWebSearchRequirement, startBlocker, StartBlocker } from '@/components/workflows/utils';
 import { startMultipleWorkflowsApiWorkflowsStartMultiplePost } from '@/lib/generated-api';
-import { useMutation } from '@tanstack/react-query';
-import { getErrorMessage } from '@/lib/api-error';
-import { toast } from 'sonner';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 
 /** The start button says how many it will start, so the count is confirmed where it matters. */
 function startLabel(selectedCount: number): string {
@@ -40,7 +38,7 @@ export function StepAnalyses() {
   const needsWebSearch = hasWebSearchRequirement(selectedWorkflowTypes, workflowTypes);
   const selectedCount = selectedWorkflowTypes.length;
 
-  const startAnalysisMutation = useMutation({
+  const startAnalysisMutation = useToastMutation({
     mutationFn: async () => {
       if (!wizard.projectId) throw new Error('No project ID');
       if (blocker !== null) throw new Error('The selection is not ready to start');
@@ -52,13 +50,9 @@ export function StepAnalyses() {
         },
       });
     },
-    onSuccess: () => {
-      toast.success('Assessment started! Redirecting to your project...');
-      router.push(`/projects/${wizard.projectId}`);
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error, 'Failed to start assessment'));
-    },
+    successMessage: 'Assessment started! Redirecting to your project...',
+    errorMessage: 'Failed to start assessment',
+    onSuccess: () => router.push(`/projects/${wizard.projectId}`),
   });
 
   const isSubmitting = startAnalysisMutation.isPending || startAnalysisMutation.isSuccess;

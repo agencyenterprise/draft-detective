@@ -8,6 +8,27 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * FastAPI's reason in an error body: its `detail`, when that is a string. A request-validation 422's
+ * `detail` is a list of objects, and a proxy's error page is not JSON: neither is a reason to show.
+ */
+export function detailOf(body: unknown): string | undefined {
+  const detail: unknown = (body as { detail?: unknown } | null | undefined)?.detail;
+  return typeof detail === 'string' ? detail : undefined;
+}
+
+/** The ApiError for a failed response read without the generated client, such as a streamed request. */
+export async function apiErrorFrom(response: Response): Promise<ApiError> {
+  const text = await response.text().catch(() => '');
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = undefined;
+  }
+  return new ApiError(response.status, detailOf(body));
+}
+
 export function isApiError(error: unknown, status?: number): error is ApiError {
   return error instanceof ApiError && (status === undefined || error.status === status);
 }

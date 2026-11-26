@@ -106,3 +106,25 @@ describe('useProjectFeedback', () => {
     await view.unmount();
   });
 });
+
+describe('useProjectFeedback, with a reload in flight', () => {
+  it('keeps a new rating when a list read before it lands afterwards', async () => {
+    mocks.list.mockResolvedValue([feedback('a')]);
+    const { client, view, hook } = await mountFeedback('p');
+    // A reload (a window refocus, say) leaves before the rating and answers after it.
+    let stale!: (value: FeedbackResponse[]) => void;
+    mocks.list
+      .mockImplementationOnce(() => new Promise<FeedbackResponse[]>((resolve) => (stale = resolve)))
+      .mockResolvedValue([feedback('a'), feedback('c')]);
+    void client.refetchQueries({ queryKey: ['feedback', 'project', 'p'] });
+    mocks.submit.mockResolvedValue(feedback('c'));
+
+    await act(async () => hook().submitFeedback({ issueId: 'c', feedbackType: FeedbackType.ThumbsUp }));
+    await flush();
+    await act(async () => stale([feedback('a')]));
+    await flush();
+
+    expect(hook().getFeedbackForIssue('c')).toEqual(feedback('c'));
+    await view.unmount();
+  });
+});

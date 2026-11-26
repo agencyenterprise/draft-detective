@@ -4,12 +4,9 @@ import {
   WorkflowRunStatus,
   WorkflowRunType,
 } from '@/lib/generated-api';
-import { getErrorMessage } from '@/lib/api-error';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2Icon, PlayIcon, XIcon } from 'lucide-react';
 import { ReactNode, useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +20,7 @@ import {
 import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { WorkflowConfigDialog, WorkflowConfigFormValues } from './workflow-config-dialog';
-import { projectQueryKeys } from '@/lib/hooks/use-project-data';
+import { useProjectMutation } from '@/lib/hooks/use-project-mutation';
 
 export interface StartWorkflowButtonProps {
   type: WorkflowRunType;
@@ -46,40 +43,23 @@ export function StartWorkflowButton({
 }: StartWorkflowButtonProps) {
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const queryClient = useQueryClient();
   const { getWorkflowTypeName } = useWorkflowTypes();
   const workflowName = getWorkflowTypeName(type);
 
-  const startWorkflowMutation = useMutation({
-    mutationFn: async (values: WorkflowConfigFormValues) => {
-      return onConfirm(values);
-    },
-    onSuccess: () => {
-      setIsConfigDialogOpen(false);
-      toast.success(`${workflowName} workflow started`);
-      queryClient.invalidateQueries({
-        queryKey: projectQueryKeys.all(projectId),
-      });
-    },
-    onError: (error) => {
-      console.error(`Failed to start ${workflowName} workflow:`, error);
-      toast.error(getErrorMessage(error, `Failed to start ${workflowName} workflow`));
-    },
+  const startWorkflowMutation = useProjectMutation(projectId, {
+    mutationFn: onConfirm,
+    successMessage: `${workflowName} workflow started`,
+    errorMessage: `Failed to start ${workflowName} workflow`,
+    onSuccess: () => setIsConfigDialogOpen(false),
   });
 
-  const cancelWorkflowMutation = useMutation({
+  const cancelWorkflowMutation = useProjectMutation(projectId, {
     mutationFn: () =>
       cancelWorkflowRunEndpointApiWorkflowRunsWorkflowRunIdCancelPost({
         path: { workflow_run_id: workflow!.id },
       }),
-    onSuccess: () => {
-      toast.success(`${workflowName} workflow cancelled`);
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.all(projectId) });
-    },
-    onError: (error) => {
-      console.error(`Failed to cancel ${workflowName} workflow:`, error);
-      toast.error(getErrorMessage(error, `Failed to cancel ${workflowName} workflow`));
-    },
+    successMessage: `${workflowName} workflow cancelled`,
+    errorMessage: `Failed to cancel ${workflowName} workflow`,
   });
 
   const isActive = workflow?.status === WorkflowRunStatus.Running || workflow?.status === WorkflowRunStatus.Pending;

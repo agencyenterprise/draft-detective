@@ -19,7 +19,9 @@ import {
   Issue,
   WorkflowRunType,
 } from '@/lib/generated-api';
+import { getErrorMessage } from '@/lib/api-error';
 import { downloadFile } from '@/lib/file-download';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -172,7 +174,6 @@ export function FeedbacksList() {
   const [selectedWorkflowType, setSelectedWorkflowType] = useState<string>(ALL_VALUE);
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>(ALL_VALUE);
   const [selectedItem, setSelectedItem] = useState<AdminFeedbackItem | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
 
   const { workflowTypes, getWorkflowTypeName } = useWorkflowTypes();
 
@@ -219,9 +220,8 @@ export function FeedbacksList() {
     selectedWorkflowType !== ALL_VALUE ||
     selectedFeedbackType !== ALL_VALUE;
 
-  const handleExport = async () => {
-    setIsExporting(true);
-    try {
+  const exportCsv = useToastMutation({
+    mutationFn: async () => {
       const csv = (await exportAdminFeedbacksCsvApiAdminFeedbacksExportGet({
         query: {
           search: debouncedSearch || undefined,
@@ -232,10 +232,9 @@ export function FeedbacksList() {
       })) as string;
 
       downloadFile({ blob: new Blob([csv]), filename: 'feedbacks.csv' });
-    } finally {
-      setIsExporting(false);
-    }
-  };
+    },
+    errorMessage: 'Failed to export feedback',
+  });
 
   return (
     <>
@@ -249,8 +248,12 @@ export function FeedbacksList() {
                 is shown.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
-              {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            <Button variant="outline" size="sm" onClick={() => exportCsv.mutate()} disabled={exportCsv.isPending}>
+              {exportCsv.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
               Export to CSV
             </Button>
           </div>
@@ -312,7 +315,7 @@ export function FeedbacksList() {
             </div>
           ) : error ? (
             <div className="text-center py-8">
-              <p className="text-destructive">{error instanceof Error ? error.message : 'Failed to load feedback'}</p>
+              <p className="text-destructive">{getErrorMessage(error, 'Failed to load feedback')}</p>
             </div>
           ) : (
             <>

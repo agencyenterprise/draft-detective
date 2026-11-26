@@ -2,7 +2,10 @@
 use, and gate approval.
 
 Every start creates (or joins) the waiting runs, then calls
-``promote_ready_runs``, which queues whichever are ready. Nothing runs here.
+``promote_ready_runs``, which queues whichever are ready. Nothing runs here:
+a queue job runs each run (``lib/services/task_queue/tasks.py``, executing
+through ``lib/workflows/runner.py``), and the run rows and the rules for what
+runs next are ``lib/services/workflow_runs/``. See docs/workflow-runs.md.
 """
 
 import logging

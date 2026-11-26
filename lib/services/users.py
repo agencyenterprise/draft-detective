@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import HTTPException
 from sqlalchemy import or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import col
 
 from lib.config.database import get_async_db_session
@@ -10,18 +11,26 @@ from lib.services.encryption import decrypt_value, encrypt_value
 
 
 async def get_or_create_user_by_email(email: str, name: str) -> User:
+    """Return the user with this email, creating it on first sight.
+
+    Concurrent first requests for a new user all reach the insert; ON CONFLICT
+    DO NOTHING lets every one of them through, and the select returns the row
+    whichever request won.
+    """
     async with get_async_db_session() as session:
         stmt = select(User).where(col(User.email) == email)
-        result = await session.execute(stmt)
-        user = result.scalar_one_or_none()
+        user = (await session.execute(stmt)).scalar_one_or_none()
+        if user:
+            return user
 
-        if not user:
-            user = User(email=email, name=name)
-            session.add(user)
-            await session.commit()
-            await session.refresh(user)
-
-        return user
+        insert_stmt = (
+            pg_insert(User)
+            .values(email=email, name=name)
+            .on_conflict_do_nothing(index_elements=[col(User.email)])
+        )
+        await session.execute(insert_stmt)
+        await session.commit()
+        return (await session.execute(stmt)).scalar_one()
 
 
 async def get_all_users(

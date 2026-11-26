@@ -12,15 +12,14 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useShare } from '@/context/share-context';
 import { useShareStatus } from '@/hooks/use-share-status';
-import { ProjectOverview, updateProjectEndpointApiProjectProjectIdPatch } from '@/lib/generated-api';
-import { projectQueryKeys, useProjectIssues } from '@/lib/hooks/use-project-data';
+import { ProjectOverview } from '@/lib/generated-api';
+import { useProjectIssues } from '@/lib/hooks/use-project-data';
+import { useUpdateProject } from '@/lib/hooks/use-update-project';
 import { useProjectExplorerFilter } from '@/lib/stores/document-explorer-store';
-import { getErrorMessage } from '@/lib/api-error';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Download, EllipsisVerticalIcon, Link, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { toast } from 'sonner';
-import { downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
+import { useFileDownload } from '@/lib/hooks/use-file-download';
+import { docxDownloadMessages, downloadDocxFile, DocxType, useDownloadDocx } from './use-download-docx';
 import { exportCounts, shareLinksAvailable } from '@/lib/export-scope';
 import { ReplaceMainDocumentDialog } from './replace-main-document-dialog';
 import { RevisionSwitcher } from './revision-switcher';
@@ -46,10 +45,8 @@ export function AnalysisOptionsMenu({
   const projectId = project.id;
   const share = useShareStatus(overview);
   const shareContext = useShare();
-  const queryClient = useQueryClient();
 
   const [showShareWarning, setShowShareWarning] = useState(false);
-  const [isEnablingForDownload, setIsEnablingForDownload] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   // Remounts the edit form on every open, so values left by a cancelled edit are not submitted later.
   const [editDialogKey, setEditDialogKey] = useState(0);
@@ -66,39 +63,28 @@ export function AnalysisOptionsMenu({
     includePassing: filter.showPassing,
     revision: selectedRevision,
   });
+  const shareDownload = useFileDownload();
 
   const hasDocx = overview.has_docx ?? false;
   // Usually already cached by the document explorer; fetched here only once the dialog asks.
   const { data: issues, isError: issuesFailed } = useProjectIssues(overview, { enabled: showShareWarning });
 
-  const updateProjectMutation = useMutation({
-    mutationFn: async (values: EditProjectFormValues) => {
-      return await updateProjectEndpointApiProjectProjectIdPatch({
-        path: { project_id: projectId },
-        body: {
-          title: values.title,
-          publication_date: values.publication_date ? new Date(values.publication_date) : null,
-          feedback_visibility: values.feedback_visibility ?? undefined,
-          group_by_severity: values.group_by_severity,
-        },
-      });
-    },
-    onSuccess: () => {
-      // Only the project's own fields changed, which the overview carries.
-      queryClient.invalidateQueries({ queryKey: projectQueryKeys.overviews(projectId) });
-      setIsEditDialogOpen(false);
-      toast.success('Project details updated successfully');
-    },
-    onError: (error) => {
-      toast.error(`Failed to update project: ${getErrorMessage(error, 'Unknown error')}`);
-    },
+  const updateProjectMutation = useUpdateProject(projectId, {
+    successMessage: 'Project details updated successfully',
+    errorMessage: 'Failed to update project',
+    onSuccess: () => setIsEditDialogOpen(false),
   });
+  const saveProjectDetails = (values: EditProjectFormValues) =>
+    updateProjectMutation.mutate({
+      title: values.title,
+      publication_date: values.publication_date ? new Date(values.publication_date) : null,
+      feedback_visibility: values.feedback_visibility ?? undefined,
+      group_by_severity: values.group_by_severity,
+    });
 
-  const downloadWithShare = async (docxType: DocxType, includeEdits: boolean) => {
-    setIsEnablingForDownload(true);
-    const toastId = toast.loading('Preparing DOCX with share links...', { description: 'This may take a few moments' });
-
-    try {
+  // Enabling sharing first is part of the same export, under the same toast.
+  const downloadWithShare = (docxType: DocxType, includeEdits: boolean) =>
+    shareDownload.download(async () => {
       const shareResponse = await share.enable();
       const token = shareResponse?.share_link?.token;
       if (!token) throw new Error('Failed to create share token');
@@ -113,14 +99,7 @@ export function AnalysisOptionsMenu({
         includeEdits,
         revision: selectedRevision,
       });
-      toast.success('DOCX file downloaded successfully', { id: toastId });
-    } catch (error) {
-      console.error('Failed to enable sharing and download:', error);
-      toast.error('Failed to download DOCX file', { id: toastId });
-    } finally {
-      setIsEnablingForDownload(false);
-    }
-  };
+    }, docxDownloadMessages(docxType));
 
   // Execute the actual download based on pending action
   const executeDownload = (docxType: DocxType, includeEdits: boolean) => {
@@ -237,7 +216,7 @@ export function AnalysisOptionsMenu({
         open={showShareWarning}
         onOpenChange={setShowShareWarning}
         isProjectPublic={share.isEnabled || !!shareContext.shareToken}
-        isEnablingShare={isEnablingForDownload || share.isEnabling}
+        isEnablingShare={shareDownload.isDownloading || share.isEnabling}
         isDownloading={isDownloading}
         filters={{ severity: filter.severity, workflowType: filter.workflowType, showPassing: filter.showPassing }}
         counts={issues ? exportCounts(issues, filter) : null}
@@ -253,7 +232,7 @@ export function AnalysisOptionsMenu({
         key={editDialogKey}
         isOpen={isEditDialogOpen}
         project={project}
-        onConfirm={(values) => updateProjectMutation.mutate(values)}
+        onConfirm={saveProjectDetails}
         onCancel={() => setIsEditDialogOpen(false)}
         isSubmitting={updateProjectMutation.isPending}
       />

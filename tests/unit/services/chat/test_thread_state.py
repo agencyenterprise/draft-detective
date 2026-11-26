@@ -78,6 +78,35 @@ async def test_a_thread_of_several_turns_reads_back_whole() -> None:
 
 
 @pytest.mark.asyncio
+async def test_listing_a_directory_returns_its_own_files_only() -> None:
+    saver = InMemorySaver()
+    agent = create_deep_agent(
+        model=_FakeModel(messages=iter([AIMessage("ok")])), checkpointer=saver
+    )
+    files = {
+        "/live-report/intake.md": create_file_data("intake"),
+        "/live-report/research-plan.md": create_file_data("plan"),
+        "/live-report/research/C1.md": create_file_data("notes"),
+        "/live-reports/other.md": create_file_data("not this folder"),
+    }
+    await agent.ainvoke(
+        agent_input(files=files, messages=[HumanMessage("go")]),
+        config=thread_config("t-1"),
+    )
+    reader, graph = _patched(saver)
+    with reader, graph:
+        listed = await thread_state.list_thread_files(
+            "t-1", "/live-report", reader=CHAT
+        )
+    assert {path: file.content for path, file in listed.items()} == {
+        "/live-report/intake.md": "intake",
+        "/live-report/research-plan.md": "plan",
+        "/live-report/research/C1.md": "notes",
+    }
+    assert all(file.modified_at for file in listed.values())
+
+
+@pytest.mark.asyncio
 async def test_a_thread_never_run_has_no_messages() -> None:
     reader, graph = _patched(InMemorySaver())
     with reader, graph:
@@ -154,3 +183,21 @@ class TestFilesToMount:
         )
 
         assert mounted == {"/attachments/a.md": changed}
+
+
+@pytest.mark.asyncio
+async def test_a_reader_graph_is_built_once_and_reused() -> None:
+    # Building a graph takes ~50 ms of blocking CPU, and the page polls.
+    built: list[Any] = []
+
+    def reader(checkpointer: Any) -> Any:
+        built.append(checkpointer)
+        return create_deep_agent(
+            model=_FakeModel(messages=iter([])), checkpointer=checkpointer
+        )
+
+    get_checkpointer, _ = _patched(InMemorySaver())
+    with get_checkpointer:
+        await thread_state.load_thread_values("t-1", reader=reader)
+        await thread_state.load_thread_values("t-1", reader=reader)
+    assert len(built) == 1

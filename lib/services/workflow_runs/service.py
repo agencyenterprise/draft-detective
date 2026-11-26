@@ -1,3 +1,9 @@
+"""Workflow run rows: create, read, status writes (terminal statuses are
+write-once), cancel and fail, heartbeat, state persistence and cost. When a
+waiting run may start, and cancelling the dependents of a run that ended
+unsuccessfully, is `promoter.py`'s (rules in `promotion_plan.py`). See
+docs/workflow-runs.md."""
+
 import asyncio
 import logging
 import uuid

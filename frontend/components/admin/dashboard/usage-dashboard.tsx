@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { getErrorMessage } from '@/lib/api-error';
 import {
   DashboardIgnoredUser,
   getDashboardApiAdminDashboardGet,
@@ -142,7 +143,7 @@ export function UsageDashboard() {
         </div>
       ) : error ? (
         <div className="py-16 text-center">
-          <p className="text-destructive">{error.message}</p>
+          <p className="text-destructive">{getErrorMessage(error, 'Could not load the dashboard')}</p>
           <Button variant="outline" className="mt-4" onClick={() => refetch()}>
             Retry
           </Button>

@@ -27,7 +27,7 @@ class RecommendationCheckManifest(SimpleDeepAgentManifest):
         "vague or do not say who should act, and lists of more than three."
     )
     required_dependencies = [WorkflowRunType.DOCUMENT_PROCESSING]
-    is_experimental = True
+    is_experimental = False
 
     skill = "recommendation-check"
 

@@ -11,9 +11,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { deleteProjectEndpointApiProjectProjectIdDelete } from '@/lib/generated-api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { PROJECT_LIST_QUERY_KEY } from '@/lib/hooks/use-project-data';
+import { useToastMutation } from '@/lib/hooks/use-toast-mutation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface DeleteProjectDialogProps {
   projectId: string;
@@ -23,14 +24,12 @@ interface DeleteProjectDialogProps {
 export function DeleteProjectDialog({ projectId, projectTitle }: DeleteProjectDialogProps) {
   const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
+  const deleteMutation = useToastMutation({
     mutationFn: () => deleteProjectEndpointApiProjectProjectIdDelete({ path: { project_id: projectId } }),
+    successMessage: 'Project deleted successfully',
+    errorMessage: 'Failed to delete project',
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Project deleted successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete: ${error.message}`);
+      void queryClient.invalidateQueries({ queryKey: PROJECT_LIST_QUERY_KEY });
     },
   });
 

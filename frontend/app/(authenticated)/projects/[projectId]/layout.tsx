@@ -4,7 +4,7 @@ import { ProjectShell } from '@/components/results/project-shell';
 import { ShellStatusScreen } from '@/components/results/shell-status-screen';
 import { useProjectShellState } from '@/components/results/use-project-shell-state';
 import { useTabRouting } from '@/components/results/use-tab-routing';
-import { isApiError } from '@/lib/api-error';
+import { getErrorMessage, isApiError } from '@/lib/api-error';
 import { needsReferenceReview } from '@/components/workflows/utils';
 import { useWorkflowTypes } from '@/lib/hooks/use-workflow-types';
 import { FileXIcon, LockIcon } from 'lucide-react';
@@ -68,7 +68,7 @@ export default function ProjectLayout({ children }: { children: ReactNode }) {
   if (error) {
     return (
       <ShellStatusScreen>
-        <p className="text-destructive">{error.message}</p>
+        <p className="text-destructive">{getErrorMessage(error, 'Could not load the project')}</p>
       </ShellStatusScreen>
     );
   }

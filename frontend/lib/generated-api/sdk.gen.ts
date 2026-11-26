@@ -179,6 +179,9 @@ import type {
   ListChatSkillsApiChatSkillsGetResponses,
   ListChecksApiMicrosoftWordChatChecksGetData,
   ListChecksApiMicrosoftWordChatChecksGetResponses,
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetData,
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors,
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses,
   ListLogsApiAdminLogsGetData,
   ListLogsApiAdminLogsGetResponses,
   ListMessagesApiChatThreadsThreadIdMessagesGetData,
@@ -200,6 +203,7 @@ import type {
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetErrors,
   ListRevisionsEndpointApiProjectProjectIdRevisionsGetResponses,
   ListThreadsApiChatThreadsGetData,
+  ListThreadsApiChatThreadsGetErrors,
   ListThreadsApiChatThreadsGetResponses,
   ListUsersApiUsersGetData,
   ListUsersApiUsersGetErrors,
@@ -532,8 +536,13 @@ export const listAnnotatedItemsApiAdminAnnotationsSetsSlugItemsGet = <ThrowOnErr
  */
 export const listThreadsApiChatThreadsGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListThreadsApiChatThreadsGetData, ThrowOnError>,
-): RequestResult<ListThreadsApiChatThreadsGetResponses, unknown, ThrowOnError, 'data'> =>
-  (options?.client ?? client).get<ListThreadsApiChatThreadsGetResponses, unknown, ThrowOnError, 'data'>({
+): RequestResult<ListThreadsApiChatThreadsGetResponses, ListThreadsApiChatThreadsGetErrors, ThrowOnError, 'data'> =>
+  (options?.client ?? client).get<
+    ListThreadsApiChatThreadsGetResponses,
+    ListThreadsApiChatThreadsGetErrors,
+    ThrowOnError,
+    'data'
+  >({
     responseStyle: 'data',
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/chat/threads',
@@ -755,6 +764,8 @@ export const cancelChatTurnApiChatThreadsThreadIdCancelPost = <ThrowOnError exte
 
 /**
  * List Chat Models
+ *
+ * The models /chat's picker offers, with its default.
  */
 export const listChatModelsApiChatModelsGet = <ThrowOnError extends boolean = true>(
   options?: Options<ListChatModelsApiChatModelsGetData, ThrowOnError>,
@@ -839,6 +850,33 @@ export const extractAttachmentTextApiChatExtractPost = <ThrowOnError extends boo
       'Content-Type': null,
       ...options.headers,
     },
+  });
+
+/**
+ * List Live Report Files
+ *
+ * The files written so far: the step files (``intake.md``,
+ * ``research-plan.md``…) and the research notes under ``research/``, which the
+ * page uses to show the research's progress.
+ */
+export const listLiveReportFilesApiLiveReportsThreadIdFilesGet = <ThrowOnError extends boolean = true>(
+  options: Options<ListLiveReportFilesApiLiveReportsThreadIdFilesGetData, ThrowOnError>,
+): RequestResult<
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses,
+  ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors,
+  ThrowOnError,
+  'data'
+> =>
+  (options.client ?? client).get<
+    ListLiveReportFilesApiLiveReportsThreadIdFilesGetResponses,
+    ListLiveReportFilesApiLiveReportsThreadIdFilesGetErrors,
+    ThrowOnError,
+    'data'
+  >({
+    responseStyle: 'data',
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/live-reports/{thread_id}/files',
+    ...options,
   });
 
 /**
@@ -1063,8 +1101,8 @@ export const getRecentSelectionApiWorkflowTypesRecentSelectionGet = <ThrowOnErro
  *
  * Lets the UI show a ballpark "how long will this take" before a workflow is
  * started. `project_id` is accepted for future project-specific refinement but
- * is not yet factored into the estimate. The response is cached for an hour at
- * the endpoint layer (see `_cached_duration_estimates`).
+ * is not yet factored into the estimate, nor into the cache key. The response
+ * is cached for an hour at the endpoint layer (see `_cached_duration_estimates`).
  */
 export const getDurationEstimatesApiWorkflowTypesDurationEstimatesGet = <ThrowOnError extends boolean = true>(
   options: Options<GetDurationEstimatesApiWorkflowTypesDurationEstimatesGetData, ThrowOnError>,
@@ -1092,7 +1130,8 @@ export const getDurationEstimatesApiWorkflowTypesDurationEstimatesGet = <ThrowOn
  * Download a file by ID with access control.
  *
  * This endpoint supports two access modes:
- * 1. Authenticated access: User must own the project containing the file
+ * 1. Authenticated access: User may read the project containing the file (its
+ * owner, or an admin when the project is shared with admins)
  * 2. Share token access: Valid share token for the project grants read access
  *
  * Args:

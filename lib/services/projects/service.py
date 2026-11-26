@@ -277,7 +277,7 @@ async def get_project_access(
         access_level = AccessLevel.READ
     elif share_token is not None:
         share_link = await get_resource_by_token(share_token)
-        if share_link is not None and str(share_link.resource_id) == project_id:
+        if share_link is not None and str(share_link.project_id) == project_id:
             access_level = AccessLevel.READ
 
     if access_level is None:

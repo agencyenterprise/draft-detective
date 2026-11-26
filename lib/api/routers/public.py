@@ -27,12 +27,9 @@ async def get_shared_resource(token: str):
     if not share_link:
         raise HTTPException(status_code=404, detail="Share link not found or expired")
 
-    if share_link.resource_type != "project":
-        raise HTTPException(status_code=400, detail="Unsupported resource type")
-
     # No user on purpose: a share page renders what any holder of the link
     # sees, so an owner previewing their own link gets READ like everyone else.
     project, access_level = await get_project_access(
-        str(share_link.resource_id), user=None, share_token=token
+        str(share_link.project_id), user=None, share_token=token
     )
     return await get_project_overview(project, access_level)

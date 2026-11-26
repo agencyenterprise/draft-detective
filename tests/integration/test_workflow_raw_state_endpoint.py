@@ -66,8 +66,7 @@ async def fixtures():
     share = ShareLink(
         id=uuid.uuid4(),
         token=uuid.uuid4().hex,
-        resource_type="project",
-        resource_id=project.id,
+        project_id=project.id,
         created_by_user_id=owner.id,
         is_active=True,
         created_at=datetime.now(UTC),

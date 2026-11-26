@@ -64,10 +64,11 @@ describe('useVisibleWorkflowTypes', () => {
     // The Review Assistant is in no category; the Review category empties out and is dropped.
     expect(visible.visibleTypes).toEqual([AbbreviationScanV2, FiguresTablesCheck]);
     expect(visible.visibleGroups.map((group) => group.category.slug)).toEqual(['style']);
-    expect(visible.presets).toEqual([]);
+    // Presets reach everyone, narrowed to the visible assessments; one left empty is dropped.
+    expect(visible.presets.map((preset) => [preset.slug, preset.workflows])).toEqual([['all', [FiguresTablesCheck]]]);
   });
 
-  it('adds experimental assessments and the presets for users who opted in, narrowed to what they can see', async () => {
+  it('adds experimental assessments, and their presets, for users who opted in', async () => {
     mocks.experimental.value = true;
 
     const visible = await mount();
@@ -81,7 +82,6 @@ describe('useVisibleWorkflowTypes', () => {
   });
 
   it('drops a preset whose every assessment is hidden', async () => {
-    mocks.experimental.value = true;
     mocks.types.mockResolvedValue({
       workflow_types: [type(FiguresTablesCheck), type(DocumentProcessing, { internal: true })],
       categories: [{ slug: 'style', label: 'Style', workflows: [FiguresTablesCheck, DocumentProcessing] }],

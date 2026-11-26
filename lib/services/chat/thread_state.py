@@ -7,20 +7,24 @@ Reading `channel_values` directly returns an empty history for any thread that r
 turn since.
 
 The graph that replays a thread is the one that wrote it, so each reader names its
-own (``chat_reader`` for /chat, ``word_chat_reader`` for the Word pane, each next
-to its agent): a graph is
+own (``chat_reader`` for /chat, ``word_chat_reader`` for the Word pane,
+``live_report_reader`` for /live-reports, each next to its agent; a chat thread's
+reader is picked by its kind in ``thread_agents.py``): a graph is
 never asked to read state shaped by another agent's tools and middleware.
 """
 
 from collections.abc import Callable, Mapping
+from functools import cache
 from typing import Any, cast
 
 from deepagents.backends.protocol import FileData
 from deepagents.backends.utils import file_data_to_string
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import StateSnapshot
+from pydantic import BaseModel
 
 from lib.agents.checkpointer import get_checkpointer
 from lib.services.chat.history import thread_config
@@ -33,13 +37,23 @@ ThreadReader = Callable[[BaseCheckpointSaver], CompiledStateGraph]
 READER_API_KEY = "unused-state-reader"
 
 
+@cache
+def _reader_graph(reader: ThreadReader) -> CompiledStateGraph:
+    """The reader's graph, built once: building one takes ~50 ms of blocking CPU,
+    and the page polls the thread every few seconds while a turn runs. Each read
+    copies it onto that request's checkpointer."""
+
+    return reader(InMemorySaver())
+
+
 async def load_thread_snapshot(
     thread_id: str, *, reader: ThreadReader
 ) -> StateSnapshot:
     """The thread's current state, interrupts included; empty for a thread never run."""
 
     async with get_checkpointer() as saver:
-        return await reader(saver).aget_state(thread_config(thread_id))
+        graph = _reader_graph(reader).copy({"checkpointer": saver})
+        return await graph.aget_state(thread_config(thread_id))
 
 
 async def load_thread_values(thread_id: str, *, reader: ThreadReader) -> dict[str, Any]:
@@ -66,6 +80,31 @@ async def read_thread_file(
     if not isinstance(data, dict):
         return None
     return file_data_to_string(cast(FileData, data))
+
+
+class ThreadFile(BaseModel):
+    """A text file in a thread's filesystem, and when it was last written."""
+
+    content: str
+    # ISO 8601, as deepagents stamps it; None for a file written without one.
+    modified_at: str | None = None
+
+
+async def list_thread_files(
+    thread_id: str, directory: str, *, reader: ThreadReader
+) -> dict[str, ThreadFile]:
+    """The text files anywhere under ``directory``, by path."""
+
+    values = await load_thread_values(thread_id, reader=reader)
+    prefix = directory.rstrip("/") + "/"
+    return {
+        path: ThreadFile(
+            content=file_data_to_string(cast(FileData, data)),
+            modified_at=data.get("modified_at"),
+        )
+        for path, data in sorted((values.get("files") or {}).items())
+        if path.startswith(prefix) and isinstance(data, dict)
+    }
 
 
 async def files_to_mount(

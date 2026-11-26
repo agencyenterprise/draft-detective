@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -14,13 +15,22 @@ from sqlmodel import Field, SQLModel
 STALE_TURN = timedelta(minutes=2)
 
 
+class ChatThreadKind(str, Enum):
+    """Which agent a thread talks to, and which page shows it."""
+
+    # The /chat page's assistant.
+    CHAT = "chat"
+    # The /live-reports page's orchestrator (``lib/agents/live_report_agent.py``).
+    LIVE_REPORT = "live_report"
+
+
 class ChatThread(SQLModel, table=True):
     """A chat thread belonging to a user: the index entry, not the conversation.
 
     What was said lives in the LangGraph checkpointer, keyed by this row's id
     (see ``lib/services/chat/history.py``). This table holds what the
-    checkpointer cannot: who owns the thread, its title, and whether it is
-    archived, and whether a turn is running on it now (see
+    checkpointer cannot: who owns the thread, which agent it talks to (``kind``),
+    its title, whether it is archived, and whether a turn is running on it now (see
     ``lib/services/chat/turn_claims.py``). Its id is its row's in ``conversations``
     (``lib/models/conversation.py``); deleting the thread deletes that row, and
     this one with it.
@@ -45,6 +55,16 @@ class ChatThread(SQLModel, table=True):
             nullable=False,
         ),
         description="Owner of the thread",
+    )
+    kind: ChatThreadKind = Field(
+        default=ChatThreadKind.CHAT,
+        sa_column=Column(
+            String,
+            nullable=False,
+            default=ChatThreadKind.CHAT.value,
+            server_default=ChatThreadKind.CHAT.value,
+        ),
+        description="Which agent the thread talks to; fixed when the thread is created",
     )
     title: str | None = Field(
         default=None,

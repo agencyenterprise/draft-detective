@@ -6,6 +6,68 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v2.9.3] - 2026-11-23
+
+### Changed
+- Upgraded deepagents, langchain, langgraph, and related provider packages to their latest releases.
+- Consolidated frontend mutation outcome notifications while preserving existing toast messages.
+- Centralized how cached project overviews apply and refresh saved changes.
+
+### Fixed
+- Restored chat replies that could be missing after malformed tool calls.
+- Refreshed project overviews when a save completes during their initial load.
+- Fixed document outlines incorrectly treating code-fence content as headings.
+
+### Security
+- Restricted agent file-reading tools to files belonging to the current project.
+
+
+## [v2.9.2] - 2026-11-19
+
+### Fixed
+- Preserved newly created share links when an older overview refresh completes afterward.
+- Preserved newly submitted ratings when an older feedback reload completes afterward.
+
+
+## [v2.9.1] - 2026-11-17
+
+### Changed
+- Updated dnspython from 2.9.0 to 2.9.2.
+- Consolidated frontend project mutation and project-save handling.
+- Added tests for document explorer line links, Word add-in document reading, and project share-link status behavior.
+
+### Fixed
+- Admin feedback exports now neutralize spreadsheet formulas beginning with a line feed as well as other formula prefixes.
+- Cleaned up completed and stale TUS upload files.
+- Editing project details now refreshes the project list after a rename.
+- Revisiting a document line link after navigating away now selects the linked lines again.
+- New users are provisioned correctly when their first authenticated requests arrive concurrently.
+- Failed attempts to enable project sharing no longer cause an unhandled promise rejection.
+- Running assessments can no longer be started again from the Assessments tab.
+
+### Security
+- Prevented signed-in users from deleting stored documents through the upload route.
+- Neutralized spreadsheet formulas in the admin feedback CSV export.
+
+
+## [v2.9.0] - 2026-11-16
+
+### Added
+- Released Recommendation Check to all users and marked it as New in the assessment picker for 30 days.
+- Made assessment presets available to all users while limiting each preset to assessments they can access.
+- Added per-project, revision, and workflow-type limits of one running run and one waiting run, except for Review Assistant.
+- Added a script and documentation for running private end-to-end instances on available ports.
+- Added workflow-run lifecycle documentation and a guide to where related components live.
+
+### Changed
+- Updated `opentelemetry-api` from 1.45.1 to 1.45.2.
+- Updated `soupsieve` from 2.9 to 4.0.
+
+### Fixed
+- Returned readable CORS-enabled JSON 500 responses for unhandled backend errors.
+- Standardized frontend API error handling, including chat-stream errors, with clearer fallback messages.
+
+
 ## [v2.8.2] - 2026-11-12
 
 Added

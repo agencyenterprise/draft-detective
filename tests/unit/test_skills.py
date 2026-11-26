@@ -240,3 +240,11 @@ class TestSkillBackendFiles:
         files = skill_backend_files(exclude={"literature-review"})
         assert not any(path.startswith("/skills/literature-review/") for path in files)
         assert "/skills/reference-validation/SKILL.md" in files
+
+
+def test_skill_backend_files_can_mount_only_the_named_skills():
+    files = skill_backend_files(include={"live-reports", "voice-and-tone"})
+    skills = {path.split("/")[2] for path in files}
+    assert skills == {"live-reports", "voice-and-tone"}
+    # A skill's other files come with it, not only its SKILL.md.
+    assert "/skills/live-reports/steps/research.md" in files
