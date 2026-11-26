@@ -16,7 +16,7 @@ import { HelpLink } from '@/components/help/help-link';
 import { Label } from '@/components/ui/label';
 import { FileUpload } from '@/components/ui/file-upload';
 import { FileListItem } from '@/components/analysis-form/file-list-item';
-import { uploadSingleFile, formatBytes, type UploadProgress } from '@/lib/hooks/upload';
+import { formatBytes, type UploadProgress } from '@/lib/hooks/upload/types';
 import {
   createRevisionEndpointApiProjectProjectIdRevisionsPost,
   FileRole,
@@ -74,8 +74,12 @@ export function ReplaceMainDocumentDialog({
       if (!selectedFile) throw new Error('No file selected');
       abortRef.current = false;
 
-      // Step 1: Create new revision
       setStage('creating-revision');
+      // The upload client (Uppy and tus) loads only when someone replaces the document, and
+      // before the revision exists: if its chunk fails to load, the project stays unchanged.
+      const { uploadSingleFile } = await import('@/lib/hooks/upload/upload-single');
+
+      // Step 1: Create new revision
       const { previous_workflow_types } = await createRevisionEndpointApiProjectProjectIdRevisionsPost({
         path: { project_id: projectId },
       });
