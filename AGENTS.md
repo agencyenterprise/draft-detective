@@ -22,6 +22,7 @@ Deeper docs, read when the task needs them: `DEVELOPMENT.md` (setup, Docker, env
 | Tests | `tests/unit/`, `tests/integration/`; shared fixtures in `tests/conftest.py`; test documents (PDFs, DOCX) in `tests/evals/data/` |
 | Eval suites | `evals_inspectai/e2e/<workflow>/` |
 | Frontend pages | `frontend/app/(authenticated)/`: the UI is `/projects/{id}`, while many API routes are `/api/project/{id}` |
+| Frontend components | `frontend/components/<feature>/`; `components/shared/` holds app components several features use (`Markdown`, `DocumentImage`, `EmptyState`), `components/ui/` the shadcn primitives and generic widgets with no app knowledge |
 | Frontend request path | `frontend/lib/api.ts` (base URL, auth header), `lib/api-client.ts` (configures the generated client), `lib/api-error.ts` (`ApiError`), `components/api-config.tsx` (keeps the token current) |
 
 

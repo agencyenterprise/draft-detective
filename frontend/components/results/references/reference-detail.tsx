@@ -1,6 +1,6 @@
 'use client';
 
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { FileUploadDialog } from '@/components/results/references/file-upload-dialog';
 import { useFetchFromWebMutation, useRemoveFileMutation } from '@/components/results/references/mutations';
 import { ReferenceReviewItem, ReferenceReviewStatus } from '@/components/results/references/types';

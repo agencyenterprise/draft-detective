@@ -1,7 +1,7 @@
 'use client';
 
-import { LabeledValue } from '@/components/labeled-value';
-import { Markdown } from '@/components/markdown';
+import { LabeledValue } from '@/components/shared/labeled-value';
+import { Markdown } from '@/components/shared/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileDownloadLink } from '@/components/ui/file-download-link';

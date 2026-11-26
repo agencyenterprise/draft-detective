@@ -2,7 +2,7 @@
 
 import { Kbd } from '@/components/annotate/kbd';
 import { SectionLabel } from '@/components/annotate/section-label';
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { useAnnotationShortcuts } from '@/components/annotate/use-annotation-shortcuts';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';

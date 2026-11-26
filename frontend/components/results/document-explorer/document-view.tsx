@@ -4,7 +4,7 @@ import type { Issue } from '@/lib/generated-api';
 import { severityRank } from '@/lib/severity';
 import { cn } from '@/lib/utils';
 import type { Element } from 'hast';
-import { DocumentImage, documentUrlTransform } from '@/components/document-image';
+import { DocumentImage, documentUrlTransform } from '@/components/shared/document-image';
 import { SEVERITY } from '@/lib/severity-style';
 import { useGroupBySeverity, useSeverityStyle } from '@/context/group-by-severity-context';
 import { clearEditHighlight, quoteRanges, setEditHighlight } from './edit-highlight';

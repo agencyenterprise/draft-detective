@@ -1,6 +1,6 @@
 'use client';
 
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { AgentTranscript } from '@/components/workflows/results/agent-transcript';
 import { WorkflowIssuesList } from '@/components/results/components/workflow-issues-list';
 import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';

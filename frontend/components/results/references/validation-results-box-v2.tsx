@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { LabeledValue } from '@/components/labeled-value';
-import { Markdown } from '@/components/markdown';
+import { LabeledValue } from '@/components/shared/labeled-value';
+import { Markdown } from '@/components/shared/markdown';
 import { AgentMessagesDialog } from '@/components/shared/agent-messages-dialog';
 import {
   ReferenceValidationFinalResultV2,

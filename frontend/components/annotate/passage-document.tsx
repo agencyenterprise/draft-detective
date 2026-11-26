@@ -1,7 +1,7 @@
 'use client';
 
 import { blockCoversLine, isInlineImage, passageUrlTransform } from '@/components/annotate/passage-location';
-import { DocumentImage } from '@/components/document-image';
+import { DocumentImage } from '@/components/shared/document-image';
 import {
   BLOCK_COMPONENTS,
   REHYPE_PLUGINS,
