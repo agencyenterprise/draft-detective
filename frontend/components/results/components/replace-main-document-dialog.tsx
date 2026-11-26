@@ -74,8 +74,12 @@ export function ReplaceMainDocumentDialog({
       if (!selectedFile) throw new Error('No file selected');
       abortRef.current = false;
 
-      // Step 1: Create new revision
       setStage('creating-revision');
+      // The upload client (Uppy and tus) loads only when someone replaces the document, and
+      // before the revision exists: if its chunk fails to load, the project stays unchanged.
+      const { uploadSingleFile } = await import('@/lib/hooks/upload/upload-single');
+
+      // Step 1: Create new revision
       const { previous_workflow_types } = await createRevisionEndpointApiProjectProjectIdRevisionsPost({
         path: { project_id: projectId },
       });
@@ -84,8 +88,6 @@ export function ReplaceMainDocumentDialog({
 
       // Step 2: Upload new main document
       setStage('uploading');
-      // Loaded here: the upload client (Uppy and tus) is only needed once someone replaces the document.
-      const { uploadSingleFile } = await import('@/lib/hooks/upload/upload-single');
       await uploadSingleFile(selectedFile, {
         projectId,
         fileRole: FileRole.Main,
