@@ -133,11 +133,14 @@ async def run_multiple_workflows_blocking(
 
     if plan.pending_human_approval or plan.pending_web_search:
         gated = set(plan.pending_human_approval)
+        # Every ungated run the batch owns, the RUNNING dependencies it joined
+        # included, so the caller learns how each one ended.
+        started = list(zip((config.type for config in plan.configs), run_ids))
         completed, unsuccessful = await _batch_outcomes(
             [
-                (config.type, run_id)
-                for config, run_id in zip(plan.configs, run_ids, strict=True)
-                if config.type not in gated
+                (workflow_type, run_id)
+                for workflow_type, run_id in started + plan.joined_runs
+                if workflow_type not in gated
             ]
         )
         raise WorkflowGateRequiredError(

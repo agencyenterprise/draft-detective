@@ -338,3 +338,18 @@ async def test_approving_a_gate_records_it_and_returns_what_the_promoter_release
         approved_by_user_id=harness.user.id,
     )
     harness.promote.assert_awaited_once_with(str(harness.project.id), 1)
+
+
+@pytest.mark.asyncio
+async def test_blocking_path_reports_how_a_joined_dependency_ended_with_the_gate():
+    """A RUNNING dependency the batch joined is part of its outcome too."""
+    running = _run(EXTRACTION, WorkflowRunStatus.RUNNING)
+    harness = Harness(existing={EXTRACTION: running})
+    harness.run_statuses[str(running.id)] = WorkflowRunStatus.FAILED
+
+    with pytest.raises(WorkflowGateRequiredError) as exc_info:
+        await harness.blocking([CLAIM])
+
+    assert exc_info.value.unsuccessful_workflows == {
+        EXTRACTION: WorkflowRunStatus.FAILED
+    }

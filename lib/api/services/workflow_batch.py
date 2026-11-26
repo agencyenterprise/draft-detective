@@ -92,8 +92,14 @@ class BatchPlan(BaseModel):
     revision: int
     # Configs of the workflows to start (or join), dependencies first.
     configs: list[WorkflowConfig] = []
-    # RUNNING dependencies the batch waits on instead of starting them again.
-    joined_run_ids: list[str] = []
+    # RUNNING dependencies the batch waits on instead of starting them again,
+    # as (type, run id).
+    joined_runs: list[tuple[WorkflowRunType, str]] = []
+
+    @property
+    def joined_run_ids(self) -> list[str]:
+        return [run_id for _, run_id in self.joined_runs]
+
     # Only on the blocking (MCP) path: workflows that wait on a gate, and
     # workflows left out until the user consents to web search.
     pending_human_approval: list[WorkflowRunType] = []
@@ -253,7 +259,7 @@ async def _plan_workflow(
             f"Not starting {workflow_type.value}: run {reused.id} is {reused.status.value}"
         )
         if reused.status == WorkflowRunStatus.RUNNING:
-            plan.joined_run_ids.append(str(reused.id))
+            plan.joined_runs.append((workflow_type, str(reused.id)))
         return
     if any(dep in blocked for dep in manifest.required_dependencies):
         blocked.add(workflow_type)
