@@ -63,6 +63,8 @@ describe('toReferenceReviewItems', () => {
     expect(items[1].source).toBe(MatchSource.AutoMatched);
   });
 
+  // 'fetching' wins over a match on purpose: the detail pane disables its actions while a
+  // row is fetching, since a fetch that finds a source replaces whatever match came before.
   it('shows a reference as fetching while its web fetch is pending, matched or not', () => {
     const items = rows(
       [{ reference_id: 'r1', file_id: 'f1', source: MatchSource.AutoMatched }],
@@ -145,15 +147,19 @@ describe('useReferenceReviewReferences', () => {
     await view.unmount();
   });
 
-  it('neither loads nor fails before references were extracted', async () => {
+  it('is not loading before references were extracted, while the endpoint hangs', async () => {
     fetchReferences.mockReturnValue(new Promise(() => {}) as never);
-    const pending = await mount();
-    expect(pending.seen.current).toMatchObject({ isLoading: false, error: null });
-    await pending.view.unmount();
+    const { seen, view } = await mount();
 
+    expect(seen.current).toMatchObject({ isLoading: false, error: null });
+    await view.unmount();
+  });
+
+  it('reports no error before references were extracted, when the endpoint fails', async () => {
     fetchReferences.mockRejectedValue(new Error('Server error'));
-    const failed = await mount();
-    expect(failed.seen.current).toMatchObject({ isLoading: false, error: null });
-    await failed.view.unmount();
+    const { seen, view } = await mount();
+
+    expect(seen.current).toMatchObject({ isLoading: false, error: null });
+    await view.unmount();
   });
 });
