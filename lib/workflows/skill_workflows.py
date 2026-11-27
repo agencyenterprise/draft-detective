@@ -17,20 +17,15 @@ own graphs keep their explicit manifests.
 from pathlib import Path
 from typing import ClassVar, cast
 
-from pydantic import ValidationError
-
 from lib.skill_workflow_spec import (
     SkillWorkflowDeclaration,
+    SkillWorkflowError,
     read_all_skill_workflow_declarations,
 )
 from lib.workflows.categories import WORKFLOW_DISPLAY_CONFIG
 from lib.workflows.models import WorkflowRunType
 from lib.workflows.presets import WORKFLOW_PRESETS
 from lib.workflows.simple_deep_agent.manifest_base import SimpleDeepAgentManifest
-
-
-class SkillWorkflowError(ValueError):
-    """A skill declares a workflow that cannot be wired up."""
 
 
 class SkillWorkflowManifest(SimpleDeepAgentManifest):
@@ -137,10 +132,5 @@ def discover_skill_workflows(
     check that was meant to exist should fail loudly rather than vanish from
     the picker.
     """
-    try:
-        declarations = read_all_skill_workflow_declarations(skills_dir)
-    except ValidationError as e:
-        raise SkillWorkflowError(
-            f"invalid draft_detective block in a skill: {e}"
-        ) from e
+    declarations = read_all_skill_workflow_declarations(skills_dir)
     return [build_skill_workflow_manifest(d) for d in declarations]

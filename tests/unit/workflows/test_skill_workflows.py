@@ -291,6 +291,25 @@ def test_malformed_block_fails_loudly(tmp_path: Path):
         discover_skill_workflows(tmp_path)
 
 
+def test_malformed_block_names_the_skill_and_its_file(tmp_path: Path):
+    """The import-time reader (models.py) hits a bad block first: its error
+    must say which skill to fix, not just which key is wrong."""
+    skill_file = _write_skill(
+        tmp_path,
+        "bad-skill",
+        "    title: Bad\n    category: language\n    colour: red\n",
+    )
+
+    with pytest.raises(SkillWorkflowError) as raised:
+        read_all_skill_workflow_declarations(tmp_path)
+
+    message = str(raised.value)
+    assert "bad-skill" in message
+    assert str(skill_file) in message
+    assert "colour" in message
+    assert isinstance(raised.value.__cause__, ValidationError)
+
+
 def test_built_manifest_carries_every_declared_option(tmp_path: Path):
     _write_skill(
         tmp_path,
