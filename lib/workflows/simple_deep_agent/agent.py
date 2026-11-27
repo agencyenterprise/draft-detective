@@ -85,6 +85,8 @@ def _document_size_note(document: str | None) -> str:
 
     Stated up front so a line threshold in the workflow criteria is checked
     before the review starts rather than whenever the agent next reads the file.
+    Counted with ``str.splitlines``, as the ``read_file`` header counts its total,
+    not by ``\n`` like ``document_lines``: the note has to match the header.
     """
     if document is None:
         return ""

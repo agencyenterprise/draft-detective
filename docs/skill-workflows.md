@@ -199,8 +199,7 @@ search (Literature Review) has no stable titles and may raise several issues on 
 claim, so its expected issues are untitled and it loads with `pairing="several_per_expected"`; its sources are
 not asserted, but the shared `source_checks` scorer (`evals_inspectai/common/source_citations.py`)
 reads every link-bearing line of an issue as a citation and checks it has a year, falls on the right
-side of the record's `publication_date`, is listed in the report, and, for a live report, is not in
-the document's own reference list. A record with `expected_issues: []` is a clean
+side of the record's `publication_date` and is listed in the report. A record with `expected_issues: []` is a clean
 document: anything reported on it is a false positive. Fixture documents live under
 `evals_inspectai/e2e/<slug>/files/` and are referenced with `file://e2e/<slug>/files/...`.
 
