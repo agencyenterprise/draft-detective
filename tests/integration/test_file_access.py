@@ -83,8 +83,7 @@ class _Project:
         self.link = ShareLink(
             id=uuid.uuid4(),
             token=generate_share_token(),
-            resource_type="project",
-            resource_id=self.project.id,
+            project_id=self.project.id,
             created_by_user_id=owner.id,
             is_active=True,
         )

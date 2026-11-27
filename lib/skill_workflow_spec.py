@@ -39,7 +39,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from lib.skills import iter_skill_files, read_skill_frontmatter
 
@@ -144,13 +144,18 @@ class SkillWorkflowDeclaration(BaseModel):
         return self.spec.description or self.skill_description
 
 
+class SkillWorkflowError(ValueError):
+    """A skill declares a workflow that cannot be wired up."""
+
+
 def read_skill_workflow_declaration(
     skill_file: Path,
 ) -> SkillWorkflowDeclaration | None:
     """The workflow declaration of one skill file, or None when it has none.
 
-    Raises ``pydantic.ValidationError`` when the block is present but malformed,
-    so a typo in a skill fails loudly instead of silently dropping the check.
+    Raises ``SkillWorkflowError`` naming the skill and its file when the block
+    is present but malformed, so a typo in a skill fails loudly instead of
+    silently dropping the check.
     """
     frontmatter = read_skill_frontmatter(skill_file)
     if frontmatter is None:
@@ -163,11 +168,19 @@ def read_skill_workflow_declaration(
     block = metadata.get("draft_detective")
     if block is None:
         return None
+    skill_name = str(frontmatter.get("name") or skill_file.parent.name)
+    try:
+        spec = SkillWorkflowSpec.model_validate(block)
+    except ValidationError as e:
+        raise SkillWorkflowError(
+            f"skill '{skill_name}' ({skill_file}) has an invalid draft_detective "
+            f"block: {e}"
+        ) from e
     return SkillWorkflowDeclaration(
-        skill_name=str(frontmatter.get("name") or skill_file.parent.name),
+        skill_name=skill_name,
         skill_description=str(frontmatter.get("description") or "").strip(),
         skill_file=skill_file,
-        spec=SkillWorkflowSpec.model_validate(block),
+        spec=spec,
     )
 
 

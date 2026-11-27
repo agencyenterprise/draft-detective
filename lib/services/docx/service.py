@@ -31,6 +31,10 @@ from lib.workflows.models import SeverityEnum
 logger = logging.getLogger(__name__)
 
 
+class UnsupportedMainFileError(ValueError):
+    """A commented export was asked of a project whose main file isn't Word."""
+
+
 async def generate_docx(
     project_id: str,
     share_token: str | None,
@@ -90,7 +94,9 @@ async def generate_docx(
     # Validate file is a DOCX
     main_file_path = main_file.file_path.lower()
     if not main_file_path.endswith(".docx") and not main_file_path.endswith(".doc"):
-        raise ValueError("Main file must be a .docx or .doc to generate reviewed DOCX")
+        raise UnsupportedMainFileError(
+            "Main file must be a .docx or .doc to generate reviewed DOCX"
+        )
 
     # A Word 97 binary is read through the LibreOffice conversion ingestion
     # made its markdown from; the output is a .docx either way.

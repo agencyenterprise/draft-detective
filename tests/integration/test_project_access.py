@@ -78,14 +78,11 @@ async def _delete_project(project: Project) -> None:
             await session.commit()
 
 
-async def _make_share_link(
-    project: Project, owner: User, resource_type: str = "project"
-) -> ShareLink:
+async def _make_share_link(project: Project, owner: User) -> ShareLink:
     link = ShareLink(
         id=uuid.uuid4(),
         token=generate_share_token(),
-        resource_type=resource_type,
-        resource_id=project.id,
+        project_id=project.id,
         created_by_user_id=owner.id,
         is_active=True,
     )
@@ -198,27 +195,6 @@ async def test_invalid_share_token_is_denied(owner):
             await get_project_access(str(project.id), share_token="not-a-real-token")
         assert exc_info.value.status_code == 403
     finally:
-        await _delete_project(project)
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "get_project_access matches a share link on resource_id alone, so a "
-        "link to another kind of resource with the project's id grants READ "
-        "(reported in #871). Unreachable today: only project links are created."
-    ),
-)
-@pytest.mark.asyncio
-async def test_share_token_for_another_resource_type_is_denied(owner):
-    project = await _make_project(owner, FeedbackVisibility.PRIVATE)
-    link = await _make_share_link(project, owner, resource_type="report")
-    try:
-        with pytest.raises(HTTPException) as exc_info:
-            await get_project_access(str(project.id), share_token=link.token)
-        assert exc_info.value.status_code == 403
-    finally:
-        await _delete_share_link(link)
         await _delete_project(project)
 
 

@@ -6,6 +6,7 @@ routes: a revoked link must stop granting access, and only the owner may turn
 sharing on or off.
 """
 
+import asyncio
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
@@ -22,7 +23,8 @@ from lib.config.env import config
 from lib.models.project import FeedbackVisibility, Project
 from lib.models.share_link import ShareLink
 from lib.models.user import User, UserRole
-from lib.services.projects.service import get_project_access
+from lib.services.projects import share_links
+from lib.services.projects.service import delete_project, get_project_access
 from lib.services.projects.share_links import (
     ShareStatusResponse,
     disable_sharing,
@@ -77,7 +79,7 @@ async def setup() -> AsyncIterator[dict[str, Any]]:
     project_ids = [p.id for p in projects]
     async with get_async_db_session() as session:
         await session.execute(
-            delete(ShareLink).where(col(ShareLink.resource_id).in_(project_ids))
+            delete(ShareLink).where(col(ShareLink.project_id).in_(project_ids))
         )
         await session.execute(delete(Project).where(col(Project.id).in_(project_ids)))
         await session.execute(
@@ -88,12 +90,12 @@ async def setup() -> AsyncIterator[dict[str, Any]]:
 
 async def _links(project: Project) -> list[ShareLink]:
     async with get_async_db_session() as session:
-        stmt = select(ShareLink).where(col(ShareLink.resource_id) == project.id)
+        stmt = select(ShareLink).where(col(ShareLink.project_id) == project.id)
         return list((await session.execute(stmt)).scalars().all())
 
 
 async def _enabled_token(project: Project, owner: User) -> str:
-    status = await enable_sharing("project", project.id, owner)
+    status = await enable_sharing(project.id, owner)
     assert status.share_link is not None
     return status.share_link.token
 
@@ -114,7 +116,7 @@ async def test_enabling_creates_one_active_link_with_a_frontend_url(
     monkeypatch.setattr(config, "FRONTEND_URL", "https://dd.example")
     project = setup["project"]
 
-    status = await enable_sharing("project", project.id, setup["owner"])
+    status = await enable_sharing(project.id, setup["owner"])
 
     assert status.enabled is True
     assert status.share_link is not None
@@ -123,7 +125,7 @@ async def test_enabling_creates_one_active_link_with_a_frontend_url(
     [link] = await _links(project)
     assert (link.token, link.is_active) == (token, True)
     assert link.created_by_user_id == setup["owner"].id
-    assert await get_share_status("project", project.id) == status
+    assert await get_share_status(project.id) == status
 
 
 @pytest.mark.asyncio
@@ -143,12 +145,12 @@ async def test_disabling_revokes_access_through_the_link(setup: dict[str, Any]) 
     token = await _enabled_token(project, setup["owner"])
     assert await _reads_with_token(project, token)
 
-    status = await disable_sharing("project", project.id)
+    status = await disable_sharing(project.id)
 
     assert (status.enabled, status.share_link) == (False, None)
     assert await get_resource_by_token(token) is None
     assert not await _reads_with_token(project, token)
-    assert (await get_share_status("project", project.id)).enabled is False
+    assert (await get_share_status(project.id)).enabled is False
 
 
 @pytest.mark.asyncio
@@ -157,7 +159,7 @@ async def test_re_enabling_issues_a_new_token_and_the_old_one_stays_dead(
 ) -> None:
     project, owner = setup["project"], setup["owner"]
     old = await _enabled_token(project, owner)
-    await disable_sharing("project", project.id)
+    await disable_sharing(project.id)
 
     new = await _enabled_token(project, owner)
 
@@ -173,17 +175,14 @@ async def test_disabling_revokes_every_active_link_of_the_resource_only(
     project, other, owner = setup["project"], setup["other_project"], setup["owner"]
     # Two active links for one project: the orphaned state disable must clean up.
     orphans = [
-        ShareLink(
-            resource_type="project", resource_id=project.id, created_by_user_id=owner.id
-        )
-        for _ in range(2)
+        ShareLink(project_id=project.id, created_by_user_id=owner.id) for _ in range(2)
     ]
     async with get_async_db_session() as session:
         session.add_all(orphans)
         await session.commit()
     other_token = await _enabled_token(other, owner)
 
-    await disable_sharing("project", project.id)
+    await disable_sharing(project.id)
 
     assert [link.is_active for link in await _links(project)] == [False, False]
     assert await _reads_with_token(other, other_token)
@@ -200,7 +199,7 @@ async def test_a_link_reads_only_its_own_project(setup: dict[str, Any]) -> None:
 async def test_disabling_a_project_that_was_never_shared_is_a_no_op(
     setup: dict[str, Any],
 ) -> None:
-    status = await disable_sharing("project", setup["project"].id)
+    status = await disable_sharing(setup["project"].id)
 
     assert (status.enabled, status.share_link) == (False, None)
     assert await _links(setup["project"]) == []
@@ -234,3 +233,45 @@ async def test_only_the_owner_may_toggle_sharing(
     # The owner's link is untouched: not revoked, and no second one created.
     [link] = await _links(project)
     assert (link.token, link.is_active) == (token, True)
+
+
+@pytest.mark.asyncio
+async def test_deleting_a_project_removes_its_share_links_only(
+    setup: dict[str, Any],
+) -> None:
+    project, other, owner = setup["project"], setup["other_project"], setup["owner"]
+    token = await _enabled_token(project, owner)
+    other_token = await _enabled_token(other, owner)
+
+    await delete_project(str(project.id), user=owner)
+
+    assert await _links(project) == []
+    assert await get_resource_by_token(token) is None
+    assert await _reads_with_token(other, other_token)
+
+
+@pytest.mark.asyncio
+async def test_enabling_at_once_creates_one_link(
+    setup: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A double-click: each enable used to find no link and insert its own, and
+    # two active links made the owner's share status raise MultipleResultsFound.
+    project, owner = setup["project"], setup["owner"]
+    lookup = share_links.get_active_share_link
+
+    async def slow_lookup(project_id: uuid.UUID) -> ShareLink | None:
+        link = await lookup(project_id)
+        await asyncio.sleep(0.2)  # Both requests read before either writes.
+        return link
+
+    monkeypatch.setattr(share_links, "get_active_share_link", slow_lookup)
+    tokens = await asyncio.gather(
+        _enabled_token(project, owner), _enabled_token(project, owner)
+    )
+    monkeypatch.undo()
+
+    assert tokens[0] == tokens[1]
+    assert len(await _links(project)) == 1
+    status = await get_share_status(project.id)
+    assert status.share_link is not None
+    assert status.share_link.token == tokens[0]

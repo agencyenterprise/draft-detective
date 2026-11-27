@@ -1,4 +1,4 @@
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { Card, CardContent } from '@/components/ui/card';
 import { getAboutContentApiAboutGet } from '@/lib/generated-api';
 import { createClient, createConfig } from '@/lib/generated-api/client';

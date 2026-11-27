@@ -4,7 +4,7 @@ import ReactMarkdown, { ExtraProps } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeMathML from '@daiji256/rehype-mathml';
-import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from './ui/table';
+import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
 
 type MarkdownComponentProps<Key extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Key] & ExtraProps;
 
@@ -50,7 +50,12 @@ const components = {
       />
     );
   },
-  img: componentFactory('img', 'mb-2 w-full'),
+  // Images render as their alt text only. Issue text and reports are written by
+  // an LLM that read the uploaded document, so a planted instruction could put
+  // an image there whose URL carries document text to an outside server, and
+  // every viewer's browser would fetch it on open.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  img: ({ node, alt }: MarkdownComponentProps<'img'>) => (alt ? <span>{alt}</span> : null),
   blockquote: componentFactory('blockquote', 'mb-2 border-l-4 border-border pl-4'),
   code: componentFactory('code', 'bg-muted px-1 py-0.5 rounded'),
   pre: componentFactory('pre', 'mb-2 bg-muted px-1 py-0.5 rounded'),

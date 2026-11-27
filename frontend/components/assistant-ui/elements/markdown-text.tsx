@@ -42,9 +42,11 @@ const MarkdownTextImpl: FC<MarkdownTextProps> = ({ components, componentsByLangu
   const stableComponentsByLanguage = useShallowStable(componentsByLanguage);
   const markdownComponents = useMemo(() => {
     if (!stableComponents) return defaultComponents;
+    // `img` last, so a caller's components cannot bring images back.
     return {
       ...defaultComponents,
       ...memoizeMarkdownComponents(stableComponents),
+      img: defaultComponents.img,
     };
   }, [stableComponents]);
 
@@ -80,6 +82,11 @@ const CodeHeader: FC<CodeHeaderProps> = ({ language, code }) => {
 };
 
 const defaultComponents = memoizeMarkdownComponents({
+  // No images, only their alt text: a document or web page the agent read can plant an
+  // image whose URL carries data out, and the browser would fetch it as soon as the
+  // answer shows. The live-report notes refuse images for the same reason (`Doc` in
+  // step-parts.tsx).
+  img: ({ alt }) => (alt ? <span className="aui-md-img-alt text-muted-foreground italic">{alt}</span> : null),
   h1: ({ className, ...props }) => (
     <h1
       className={cn('aui-md-h1 mt-5 mb-2 scroll-m-20 text-lg font-semibold first:mt-0 last:mb-0', className)}

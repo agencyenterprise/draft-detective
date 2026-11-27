@@ -1,5 +1,5 @@
 import { AlertCircle, type LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface EmptyStateProps {
   /** Icon to display - can be a LucideIcon component or a ReactNode */

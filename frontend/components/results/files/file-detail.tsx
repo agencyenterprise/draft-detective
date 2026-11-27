@@ -1,6 +1,6 @@
 'use client';
 
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { formatFileSize } from '@/components/analysis-form/utils';
 import { useRemoveFileMutation } from '@/components/results/references/mutations';
 import { FileTypeIcon } from '@/components/shared/file-type-icon';

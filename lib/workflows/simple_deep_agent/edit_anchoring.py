@@ -35,9 +35,12 @@ def document_lines(document_text: str) -> list[str]:
 
     Only ``\n`` ends a line. ``str.splitlines`` would also break on form feeds
     and Unicode separators such as U+2028, which survive DOCX conversion inside
-    a paragraph; the agent reads the file split on ``\n`` alone, so splitting
-    any other way here would shift every line number after such a character
-    and reject quotes that are correctly placed.
+    a paragraph. The numbered rows of a ``read_file`` result and ``grep``'s line
+    numbers count ``\n`` alone, so splitting any other way here would shift
+    every line number after such a character and reject quotes that are
+    correctly placed. (The ``lines A-B of T`` header and the read offset count
+    ``str.splitlines`` lines, so a read window that starts after such a
+    character is numbered from that count and runs ahead of these numbers.)
     """
     return document_text.split("\n")
 

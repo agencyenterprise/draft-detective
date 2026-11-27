@@ -1,6 +1,6 @@
 'use client';
 
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { ReferenceReviewItem } from '@/components/results/references/types';
 import { cn } from '@/lib/utils';
 import { FileText, FileX, Loader2 } from 'lucide-react';

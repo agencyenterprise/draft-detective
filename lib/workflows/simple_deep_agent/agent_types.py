@@ -68,9 +68,9 @@ class IssueItem(BaseModel):
 
 
 # --- State-facing result models -----------------------------------------
-# Deep agents no longer fill these as terminal structured responses. The
-# markdown report is read from a file; issues are collected through validated
-# tool calls. The models remain the state/API contract consumed downstream.
+# Never an agent's structured response: the markdown report is read from a
+# file and the issues are collected through validated tool calls. The models
+# are the state/API contract consumed downstream.
 
 
 class AgentCheckResult(BaseModel):

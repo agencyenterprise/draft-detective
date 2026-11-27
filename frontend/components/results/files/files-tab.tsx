@@ -18,9 +18,8 @@ import { Download, FileText, Loader2, Search, Upload } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Rail, RailToggle, SidePane, useRailState } from '../panes';
 import { FileDetail } from './file-detail';
-import { FileGroup, GROUP, fileGroup, revisionLabel, sortFiles } from './role';
-
-type Lens = 'all' | FileGroup;
+import { Lens, countByLens, filterFiles, isFiltered, listedFiles } from './filter';
+import { GROUP, fileGroup, revisionLabel, sortFiles } from './role';
 
 interface FilesTabProps {
   overview: ProjectOverview;
@@ -36,13 +35,7 @@ interface FilesTabProps {
 export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProps) {
   const projectId = overview.project.id;
   const currentRevision = overview.project.current_revision ?? 1;
-  const allFiles = useMemo(() => overview.files ?? [], [overview.files]);
-  // Supporting candidates are a staging role the reference downloader uses
-  // while it works, not files the project holds. The API already leaves them
-  // out of overview.files — get_project_files_list_items filters the role
-  // in SQL — so this is belt and braces, and the tab's counts match the badge
-  // in the header because both read this same list.
-  const files = useMemo(() => allFiles.filter((file) => file.role !== FileRole.SupportingCandidate), [allFiles]);
+  const files = useMemo(() => listedFiles(overview.files ?? []), [overview.files]);
 
   const rail = useRailState();
   const [lens, setLens] = useState<Lens>('all');
@@ -72,32 +65,14 @@ export function FilesTab({ overview, readOnly, onRevisionCreated }: FilesTabProp
 
   const sorted = useMemo(() => sortFiles(files), [files]);
 
-  const counts = useMemo(
-    () => ({
-      all: files.length,
-      main: files.filter((file) => fileGroup(file.role) === 'main').length,
-      source: files.filter((file) => fileGroup(file.role) === 'source').length,
-      memo: files.filter((file) => fileGroup(file.role) === 'memo').length,
-      response: files.filter((file) => fileGroup(file.role) === 'response').length,
-      review: files.filter((file) => fileGroup(file.role) === 'review').length,
-    }),
-    [files],
+  const counts = useMemo(() => countByLens(files), [files]);
+
+  const shown = useMemo(
+    () => filterFiles(sorted, lens, search, referenceByFileId),
+    [sorted, lens, search, referenceByFileId],
   );
 
-  const shown = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return sorted.filter((file) => {
-      if (lens !== 'all' && fileGroup(file.role) !== lens) return false;
-      if (!query) return true;
-      return (
-        file.file_name?.toLowerCase().includes(query) ||
-        file.description?.toLowerCase().includes(query) ||
-        !!referenceByFileId.get(file.id)?.text?.toLowerCase().includes(query)
-      );
-    });
-  }, [sorted, lens, search, referenceByFileId]);
-
-  const filtered = lens !== 'all' || search.trim() !== '';
+  const filtered = isFiltered(lens, search);
   // Looked up in the filtered list, so the pane never describes a hidden row.
   const selected = shown.find((file) => file.id === selectedId) ?? null;
 

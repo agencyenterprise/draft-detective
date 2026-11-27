@@ -1,4 +1,4 @@
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { MarkdownDownloadButton } from '@/components/results/components/markdown-download-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Reviewer2State, WorkflowRunDetail } from '@/lib/generated-api';

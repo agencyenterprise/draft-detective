@@ -1,6 +1,6 @@
 'use client';
 
-import { Markdown } from '@/components/markdown';
+import { Markdown } from '@/components/shared/markdown';
 import { useProjectView } from '@/components/results/project-view-context';
 import { feedbackLabel, IssueFeedbackButtons } from '@/components/results/components/issue-feedback-buttons';
 import {
