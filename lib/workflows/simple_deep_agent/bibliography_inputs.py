@@ -1,8 +1,7 @@
-"""Per-run inputs for the deep agents that search the web against a bibliography.
+"""Per-run inputs for a deep agent that searches the web against a bibliography.
 
-Literature Review and Live Reports both append the document's publication date
-and its extracted bibliography to their skill prompt; they differ only in how
-the bibliography is introduced.
+Literature Review appends the document's publication date and its extracted
+bibliography to its skill prompt, under the heading it passes in.
 """
 
 from datetime import date
